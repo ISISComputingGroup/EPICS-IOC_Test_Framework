@@ -1,7 +1,7 @@
 # EPICS-IOC_Test_Framework
 
-A framework for testing IOCs using Lewis in place of real hardware.
-This uses the Python unittest module to test setting and reading PV values to check that the IOC responds correctly.
+A framework for testing the functionality of IOCs using Lewis in place of real hardware.
+This uses the Python unittest module to test setting and reading PV values etc. to check that the IOC responds correctly.
 
 Note: the unittest module is used for convenience. The tests themselves are not strictly unit tests, so it is okay to deviate a little from unit testing best practises.
 
