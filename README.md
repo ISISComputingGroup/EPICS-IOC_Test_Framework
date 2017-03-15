@@ -21,6 +21,8 @@ The command-line options are:
 -ep = the Lewis protocal to use. This is optional, currently it is only the julabo that requires the specific protocol to be set
 ```
 
+NOTE: it must use the genie_python installation of Python.
+
 ## Adding more IOCs
 
 1. Create a Python file with the same name as the Lewis device (for example: julabo, linkam_t95). This should be lowercase.

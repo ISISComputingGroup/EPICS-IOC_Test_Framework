@@ -3,6 +3,10 @@ import time
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 
 
+TOO_HIGH_PID_VALUE = 100000
+TOO_LOW_PID_VALUE = -100000
+
+
 def wait_for_ca_set():
     """
     Wait for the value to propagate to the IOC via CA.
@@ -99,3 +103,63 @@ class JulaboTests(unittest.TestCase):
         self.assertEqual(p, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTP"))
         self.assertEqual(i, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTI"))
         self.assertEqual(d, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTD"))
+
+    def test_setting_internal_PID_above_limit_does_nothing(self):
+        # Get initial values
+        start_p = self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTP")
+        start_i = self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTI")
+        start_d = self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTD")
+        # Set outside of range
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:INTP:SP", TOO_HIGH_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:INTI:SP", TOO_HIGH_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:INTD:SP", TOO_HIGH_PID_VALUE)
+        wait_for_ca_set()
+        # Check values have not changed
+        self.assertEqual(start_p, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTP"))
+        self.assertEqual(start_i, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTI"))
+        self.assertEqual(start_d, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTD"))
+
+    def test_setting_internal_PID_below_limit_does_nothing(self):
+        # Get initial values
+        start_p = self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTP")
+        start_i = self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTI")
+        start_d = self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTD")
+        # Set outside of range
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:INTP:SP", TOO_LOW_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:INTI:SP", TOO_LOW_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:INTD:SP", TOO_LOW_PID_VALUE)
+        wait_for_ca_set()
+        # Check values have not changed
+        self.assertEqual(start_p, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTP"))
+        self.assertEqual(start_i, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTI"))
+        self.assertEqual(start_d, self.ca.get_pv_value("TE:NDW1373:JULABO_01:INTD"))
+        
+    def test_setting_external_PID_above_limit_does_nothing(self):
+        # Get initial values
+        start_p = self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTP")
+        start_i = self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTI")
+        start_d = self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTD")
+        # Set outside of range
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:EXTP:SP", TOO_HIGH_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:EXTI:SP", TOO_HIGH_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:EXTD:SP", TOO_HIGH_PID_VALUE)
+        wait_for_ca_set()
+        # Check values have not changed
+        self.assertEqual(start_p, self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTP"))
+        self.assertEqual(start_i, self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTI"))
+        self.assertEqual(start_d, self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTD"))
+
+    def test_setting_external_PID_below_limit_does_nothing(self):
+        # Get initial values
+        start_p = self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTP")
+        start_i = self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTI")
+        start_d = self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTD")
+        # Set outside of range
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:EXTP:SP", TOO_LOW_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:EXTI:SP", TOO_LOW_PID_VALUE)
+        self.ca.set_pv_value("TE:NDW1373:JULABO_01:EXTD:SP", TOO_LOW_PID_VALUE)
+        wait_for_ca_set()
+        # Check values have not changed
+        self.assertEqual(start_p, self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTP"))
+        self.assertEqual(start_i, self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTI"))
+        self.assertEqual(start_d, self.ca.get_pv_value("TE:NDW1373:JULABO_01:EXTD"))
