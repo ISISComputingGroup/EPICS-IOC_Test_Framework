@@ -3,7 +3,7 @@
 A framework for testing IOCs using Lewis in place of real hardware.
 This uses the Python unittest module to test setting and reading PV values to check that the IOC responds correctly.
 
-Note: the unittest module is used for convenience. The tests themselves are not strictly unit tests.
+Note: the unittest module is used for convenience. The tests themselves are not strictly unit tests, so it is okay to deviate a little from unit testing best practises.
 
 ## How to run
 
@@ -21,7 +21,7 @@ The command-line options are:
 -ep = the Lewis protocal to use. This is optional, currently it is only the julabo that requires the specific protocol to be set
 ```
 
-NOTE: it must use the genie_python installation of Python.
+NOTE: it **must** use the genie_python installation of Python.
 
 ## Adding more IOCs
 
