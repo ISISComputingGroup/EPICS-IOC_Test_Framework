@@ -13,7 +13,7 @@ The command-line options are:
 ```
 -d = the name of the device in Lewis, for example: julabo
 -p = the full path to the directory containing the st.cmd for the IOC
--e = the full path to the Lewis start script (lewis.py)
+-e = the full path to the Lewis executable
 -ep = the Lewis protocal to use. This is optional, currently it is only the julabo that requires the specific protocol to be set
 -r = run in record simulation mode, this does not require Lewis
 ```
@@ -24,7 +24,7 @@ The command-line options are:
 From the command-line, the IOC and Lewis settings can be specified, for example:
 
 ```
-> python.exe run_tests.py -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e c:\CodeWorkspaces\GitHub\my_plankton\plankton\lewis.py -ep julabo-version-1
+> python.exe run_tests.py -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e C:\Instrument\Apps\Python\Scripts\lewis.exe -ep julabo-version-1
 ```
 
 
