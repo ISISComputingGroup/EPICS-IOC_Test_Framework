@@ -38,7 +38,7 @@ def load_module(name):
 @contextmanager
 def modified_environment(**kwargs):
     """
-    Modifies the environment variables as required for the IOC and tests, and then returns them to their original state.
+    Modifies the environment variables as required then returns them to their original state.
 
     :param kwargs: the settings to apply
     """
@@ -50,11 +50,10 @@ def modified_environment(**kwargs):
     yield
 
     # Restore old values
-    os.environ.clear()
     os.environ.update(old_env)
 
 
-def run_test(device, ioc_path, lewis_path, lewis_protocol):
+def run_test(device, ioc_path, lewis_path, lewis_protocol, use_rec_sim=False):
     """
     Runs the tests for the specified IOC.
 
@@ -62,34 +61,33 @@ def run_test(device, ioc_path, lewis_path, lewis_protocol):
     :param ioc_path: the path to the folder containing the IOC's st.cmd
     :param lewis_path: the path to the Lewis start-up script
     :param lewis_protocol: the Lewis protocol to use
+    :param use_rec_sim: use record simulation
     """
     # Load the device's test module and get the class
     m = load_module('tests.%s' % device.lower())
     test_class = getattr(m, "%sTests" % device.capitalize())
 
+    port = str(get_free_ports(1)[0])
+
     settings = dict()
     # Need to set epics address list to local broadcast otherwise channel access won't work
     settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
-    # Set IOC to dev sim mode
-    settings['IFDEVSIM'] = ' '
-    settings['IFNOTDEVSIM'] = '#'
-    # Set port for IOC and Lewis to communicate over
-    settings['EMULATOR_PORT'] = str(get_free_ports(1)[0])
 
     with modified_environment(**settings):
-        # Start Lewis
-        if lewis_protocol is None:
-            lewis = LewisLauncher(["python.exe",
-                                   lewis_path, "-e", "100",
-                                   device, "--", "--bind-address", "localhost", "--port", os.environ['EMULATOR_PORT']])
-        else:
-            lewis = LewisLauncher(["python.exe",
-                                   lewis_path, "-p", lewis_protocol,
-                                   "-e", "100",
-                                   device, "--", "--bind-address", "localhost", "--port", os.environ['EMULATOR_PORT']])
+        if not use_rec_sim:
+            # Start Lewis if we are not using rec_sim
+            if lewis_protocol is None:
+                lewis = LewisLauncher(["python.exe",
+                                       lewis_path, "-e", "100",
+                                       device, "--", "--bind-address", "localhost", "--port", port])
+            else:
+                lewis = LewisLauncher(["python.exe",
+                                       lewis_path, "-p", lewis_protocol,
+                                       "-e", "100",
+                                       device, "--", "--bind-address", "localhost", "--port", port])
 
         # Start the IOC
-        ioc = IocLauncher(ioc_path)
+        ioc = IocLauncher(ioc_path, port, use_rec_sim)
         # Need to give the IOC time to start
         print("Waiting for IOC to initialise")
         time.sleep(30)
@@ -100,7 +98,8 @@ def run_test(device, ioc_path, lewis_path, lewis_protocol):
         runner.run(test_suite)
 
         # Clean up
-        lewis.close()
+        if not use_rec_sim:
+            lewis.close()
         ioc.close()
 
 
@@ -112,14 +111,21 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--ioc-path', default=None, help="The path to the folder containing the IOC's st.cmd")
     parser.add_argument('-e', '--emulator-path', default=None, help="The path of the lewis.py file")
     parser.add_argument('-ep', '--emulator-protocol', default=None, help="The Lewis protocal to use (optional)")
+    parser.add_argument('-r', '--record-simulation', default=False, action="count",
+                        help="Use record simulation rather than emulation (optional)")
 
     arguments = parser.parse_args()
 
     if arguments.list_devices:
-        print "Available tests:"
-        print '\n'.join(package_contents("tests"))
-    elif arguments.device and arguments.ioc_path and arguments.emulator_path:
+        print("Available tests:")
+        print('\n'.join(package_contents("tests")))
+    elif arguments.record_simulation >= 1 and arguments.device and arguments.ioc_path:
+        print("Running using record simulation")
         run_test(arguments.device, os.path.abspath(arguments.ioc_path), os.path.abspath(arguments.emulator_path),
-                 arguments.emulator_protocol)
+                 arguments.emulator_protocol, True)
+    elif arguments.device and arguments.ioc_path and arguments.emulator_path:
+        print("Running using device emulation")
+        run_test(arguments.device, os.path.abspath(arguments.ioc_path), os.path.abspath(arguments.emulator_path),
+                 arguments.emulator_protocol, False)
     else:
-        print "Type -h for help"
+        print("Type -h for help")

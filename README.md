@@ -7,11 +7,7 @@ Note: the unittest module is used for convenience. The tests themselves are not 
 
 ## How to run
 
-From the command-line, the IOC and Lewis settings can be specified, for example:
-
-```
-> python.exe run_tests.py -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e c:\CodeWorkspaces\GitHub\my_plankton\plankton\lewis.py -ep julabo-version-1
-```
+NOTE: you **must** use the genie_python installation of Python.
 
 The command-line options are:
 ```
@@ -19,9 +15,28 @@ The command-line options are:
 -p = the full path to the directory containing the st.cmd for the IOC
 -e = the full path to the Lewis start script (lewis.py)
 -ep = the Lewis protocal to use. This is optional, currently it is only the julabo that requires the specific protocol to be set
+-r = run in record simulation mode, this does not require Lewis
 ```
 
-NOTE: it **must** use the genie_python installation of Python.
+
+### Emulation mode:
+
+From the command-line, the IOC and Lewis settings can be specified, for example:
+
+```
+> python.exe run_tests.py -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e c:\CodeWorkspaces\GitHub\my_plankton\plankton\lewis.py -ep julabo-version-1
+```
+
+
+### Record simulation mode
+
+To run in record simulation mode (does not require Lewis) use the -r option, for example:
+
+```
+> python.exe run_tests.py -r -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01
+```
+
+
 
 ## Adding more IOCs
 
