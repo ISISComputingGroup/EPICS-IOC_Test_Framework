@@ -34,7 +34,7 @@ class IocLauncher(object):
         FNULL = open(os.devnull, 'w')
 
         # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
-        # This does mean that the IOC will need to be close manually after the tests.
+        # This does mean that the IOC will need to be closed manually after the tests.
         # Make sure to revert before checking code in
         self.proc = subprocess.Popen([run_ioc_path, st_cmd_path], creationflags=subprocess.CREATE_NEW_CONSOLE,
                                      cwd=directory, stdin=subprocess.PIPE, stdout=FNULL, stderr=subprocess.STDOUT,

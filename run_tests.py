@@ -53,16 +53,21 @@ def modified_environment(**kwargs):
     os.environ.update(old_env)
 
 
-def run_test(device, ioc_path, lewis_path, lewis_protocol, use_rec_sim=False):
+def run_test(prefix, device, ioc_path, lewis_path, lewis_protocol, use_rec_sim=False):
     """
     Runs the tests for the specified IOC.
 
+    :param prefix: the instrument prefix
     :param device: the name of the IOC type
     :param ioc_path: the path to the folder containing the IOC's st.cmd
     :param lewis_path: the path to the Lewis start-up script
     :param lewis_protocol: the Lewis protocol to use
     :param use_rec_sim: use record simulation
     """
+    # Define an environment variable with the prefix in it
+    # This can then be accessed elsewhere
+    os.environ["testing_prefix"] = prefix
+
     # Load the device's test module and get the class
     m = load_module('tests.%s' % device.lower())
     test_class = getattr(m, "%sTests" % device.capitalize())
@@ -104,8 +109,9 @@ def run_test(device, ioc_path, lewis_path, lewis_protocol, use_rec_sim=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
-    parser.add_argument('-l', '--list-devices', help='List available devices for testing.', action='store_true')
-    parser.add_argument('-d', '--device', default=None, help='Device type to test.')
+    parser.add_argument('-l', '--list-devices', help="List available devices for testing.", action="store_true")
+    parser.add_argument('-pf', '--prefix', default=None, help='The instrument prefix; e.g. TE:NDW1373')
+    parser.add_argument('-d', '--device', default=None, help="Device type to test.")
     parser.add_argument('-p', '--ioc-path', default=None, help="The path to the folder containing the IOC's st.cmd")
     parser.add_argument('-e', '--emulator-path', default=None, help="The path of the lewis.py file")
     parser.add_argument('-ep', '--emulator-protocol', default=None, help="The Lewis protocal to use (optional)")
@@ -117,13 +123,18 @@ if __name__ == '__main__':
     if arguments.list_devices:
         print("Available tests:")
         print('\n'.join(package_contents("tests")))
-    elif arguments.record_simulation >= 1 and arguments.device and arguments.ioc_path:
-        print("Running using record simulation")
-        run_test(arguments.device, os.path.abspath(arguments.ioc_path), os.path.abspath(arguments.emulator_path),
-                 arguments.emulator_protocol, True)
-    elif arguments.device and arguments.ioc_path and arguments.emulator_path:
-        print("Running using device emulation")
-        run_test(arguments.device, os.path.abspath(arguments.ioc_path), os.path.abspath(arguments.emulator_path),
-                 arguments.emulator_protocol, False)
     else:
-        print("Type -h for help")
+        if arguments.prefix is None:
+            print("Cannot run without instrument prefix")
+        elif arguments.record_simulation >= 1 and arguments.device and arguments.ioc_path:
+            print("Running using record simulation")
+            run_test(arguments.prefix, arguments.device, os.path.abspath(arguments.ioc_path),
+                     os.path.abspath(arguments.emulator_path),
+                     arguments.emulator_protocol, True)
+        elif arguments.device and arguments.ioc_path and arguments.emulator_path:
+            print("Running using device emulation")
+            run_test(arguments.prefix, arguments.device, os.path.abspath(arguments.ioc_path),
+                     os.path.abspath(arguments.emulator_path),
+                     arguments.emulator_protocol, False)
+        else:
+            print("Type -h for help")
