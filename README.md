@@ -16,7 +16,7 @@ The command-line options are:
 -pf = the instrument prefix, for example: IN:DEMO [REQUIRED]
 -d = the name of the device in Lewis, for example: julabo
 -p = the full path to the directory containing the st.cmd for the IOC
--e = the full path to the Lewis start script (lewis.py)
+-e = the full path to the Lewis executable
 -ep = the Lewis protocal to use. This is optional, currently it is only the julabo that requires the specific protocol to be set
 -r = run in record simulation mode, this does not require Lewis
 ```

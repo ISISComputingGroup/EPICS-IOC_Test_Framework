@@ -82,14 +82,12 @@ def run_test(prefix, device, ioc_path, lewis_path, lewis_protocol, use_rec_sim=F
         if not use_rec_sim:
             # Start Lewis if we are not using rec_sim
             if lewis_protocol is None:
-                lewis = LewisLauncher(["python.exe",
-                                       lewis_path, "-e", "100",
-                                       device, "--", "--bind-address", "localhost", "--port", port])
+                lewis = LewisLauncher(
+                    [lewis_path, "-e", "100", device, "--", "--bind-address", "localhost", "--port", port])
             else:
-                lewis = LewisLauncher(["python.exe",
-                                       lewis_path, "-p", lewis_protocol,
-                                       "-e", "100",
-                                       device, "--", "--bind-address", "localhost", "--port", port])
+                lewis = LewisLauncher(
+                    [lewis_path, "-p", lewis_protocol, "-e", "100", device, "--", "--bind-address", "localhost",
+                     "--port", port])
 
         # Start the IOC
         ioc = IocLauncher(ioc_path, port, use_rec_sim)
