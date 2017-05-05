@@ -24,10 +24,10 @@ The command-line options are:
 
 ### Emulation mode:
 
-From the command-line, the IOC and Lewis settings can be specified, for example:
+From the command-line in the IocTestFramework directory, the IOC and Lewis settings can be specified, for example:
 
 ```
-> python.exe run_tests.py -pf IN:DEMO -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e c:\CodeWorkspaces\GitHub\my_plankton\plankton\lewis.py -ep julabo-version-1
+> python.exe run_tests.py -pf %MYPVPREFIX% -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e c:\CodeWorkspaces\GitHub\my_plankton\plankton\lewis.py -ep julabo-version-1
 ```
 
 
@@ -36,7 +36,7 @@ From the command-line, the IOC and Lewis settings can be specified, for example:
 To run in record simulation mode (does not require Lewis) use the -r option, for example:
 
 ```
-> python.exe run_tests.py -pf IN:DEMO -r -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01
+> python.exe run_tests.py -pf IN:DEMO -r -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -pf %MYPVPREFIX%
 ```
 
 

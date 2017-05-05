@@ -2,10 +2,9 @@ import os
 import imp
 import importlib
 import unittest
-import time
 import argparse
 from contextlib import contextmanager
-from utils.lewis_launcher import LewisLauncher
+from utils.lewis_launcher import LewisLauncher, LewisNone
 from utils.ioc_launcher import IocLauncher
 from utils.free_ports import get_free_ports
 
@@ -53,16 +52,14 @@ def modified_environment(**kwargs):
     os.environ.update(old_env)
 
 
-def run_test(prefix, device, ioc_path, lewis_path, lewis_protocol, use_rec_sim=False):
+def run_test(prefix, device, ioc_launcher, lewis_launcher):
     """
     Runs the tests for the specified IOC.
 
     :param prefix: the instrument prefix
     :param device: the name of the IOC type
-    :param ioc_path: the path to the folder containing the IOC's st.cmd
-    :param lewis_path: the path to the Lewis start-up script
-    :param lewis_protocol: the Lewis protocol to use
-    :param use_rec_sim: use record simulation
+    :param ioc_launcher: the ioc launcher
+    :param lewis_launcher: the lewis simulator to use; To not use use the LewisNone object
     """
     # Define an environment variable with the prefix in it
     # This can then be accessed elsewhere
@@ -73,37 +70,22 @@ def run_test(prefix, device, ioc_path, lewis_path, lewis_protocol, use_rec_sim=F
     test_class = getattr(m, "%sTests" % device.capitalize())
 
     port = str(get_free_ports(1)[0])
+    lewis_launcher.port = port
+    ioc_launcher.port = port
 
     settings = dict()
     # Need to set epics address list to local broadcast otherwise channel access won't work
     settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
 
     with modified_environment(**settings):
-        if not use_rec_sim:
-            # Start Lewis if we are not using rec_sim
-            if lewis_protocol is None:
-                lewis = LewisLauncher(
-                    [lewis_path, "-e", "100", device, "--", "--bind-address", "localhost", "--port", port])
-            else:
-                lewis = LewisLauncher(
-                    [lewis_path, "-p", lewis_protocol, "-e", "100", device, "--", "--bind-address", "localhost",
-                     "--port", port])
-
-        # Start the IOC
-        ioc = IocLauncher(ioc_path, port, use_rec_sim)
-        # Need to give the IOC time to start
-        print("Waiting for IOC to initialise")
-        time.sleep(30)
-
-        # Run the tests
-        runner = unittest.TextTestRunner()
-        test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
-        runner.run(test_suite)
-
-        # Clean up
-        if not use_rec_sim:
-            lewis.close()
-        ioc.close()
+        with lewis_launcher:
+            with ioc_launcher:
+                ioc_launcher.wait_for_start()
+                if not lewis_launcher.check():
+                    exit(-1)
+                runner = unittest.TextTestRunner()
+                test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
+                runner.run(test_suite)
 
 
 if __name__ == '__main__':
@@ -117,24 +99,41 @@ if __name__ == '__main__':
     parser.add_argument('-ep', '--emulator-protocol', default=None, help="The Lewis protocal to use (optional)")
     parser.add_argument('-r', '--record-simulation', default=False, action="count",
                         help="Use record simulation rather than emulation (optional)")
+    parser.add_argument('-ea', '--emulator-add-path', default=None, help="Add path where device packages exist for the emulator.")
+    parser.add_argument('-ek', '--emulator-device-package', default=None, help="Name of packages where devices are found.")
+    parser.add_argument('-ic', '--ioc_show_console', default=False, action="store_true", help="Show the IOC console ouput instead of hiding it")
 
     arguments = parser.parse_args()
 
     if arguments.list_devices:
         print("Available tests:")
         print('\n'.join(package_contents("tests")))
+        exit(0)
     else:
         if arguments.prefix is None:
             print("Cannot run without instrument prefix")
+            exit(-1)
         elif arguments.record_simulation >= 1 and arguments.device and arguments.ioc_path:
             print("Running using record simulation")
-            run_test(arguments.prefix, arguments.device, os.path.abspath(arguments.ioc_path),
-                     os.path.abspath(arguments.emulator_path),
-                     arguments.emulator_protocol, True)
+            lewis = LewisNone()
+            iocLauncher = IocLauncher(
+                os.path.abspath(arguments.ioc_path),
+                use_rec_sim=True,
+                show_console=arguments.ioc_show_console)
+            run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
         elif arguments.device and arguments.ioc_path and arguments.emulator_path:
             print("Running using device emulation")
-            run_test(arguments.prefix, arguments.device, os.path.abspath(arguments.ioc_path),
-                     os.path.abspath(arguments.emulator_path),
-                     arguments.emulator_protocol, False)
+            lewis = LewisLauncher(
+                device=arguments.device,
+                lewis_path=os.path.abspath(arguments.emulator_path),
+                lewis_protocol=arguments.emulator_protocol,
+                lewis_additional_path=arguments.emulator_add_path,
+                lewis_package=arguments.emulator_device_package)
+            iocLauncher = IocLauncher(
+                os.path.abspath(arguments.ioc_path),
+                use_rec_sim=False,
+                show_console=arguments.ioc_show_console)
+            run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
         else:
             print("Type -h for help")
+            exit(-1)
