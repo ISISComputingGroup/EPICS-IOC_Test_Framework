@@ -5,9 +5,8 @@ import unittest
 import argparse
 from contextlib import contextmanager
 from utils.lewis_launcher import LewisLauncher, LewisNone
-from utils.ioc_launcher import IocLauncher
+from utils.ioc_launcher import IocLauncher, IOCRegister
 from utils.free_ports import get_free_ports
-
 
 def package_contents(package_name):
     """
@@ -80,13 +79,11 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
     with modified_environment(**settings):
         with lewis_launcher:
             with ioc_launcher:
-                ioc_launcher.wait_for_start()
                 if not lewis_launcher.check():
                     exit(-1)
                 runner = unittest.TextTestRunner()
                 test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
                 runner.run(test_suite)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -101,7 +98,6 @@ if __name__ == '__main__':
                         help="Use record simulation rather than emulation (optional)")
     parser.add_argument('-ea', '--emulator-add-path', default=None, help="Add path where device packages exist for the emulator.")
     parser.add_argument('-ek', '--emulator-device-package', default=None, help="Name of packages where devices are found.")
-    parser.add_argument('-ic', '--ioc_show_console', default=False, action="store_true", help="Show the IOC console ouput instead of hiding it")
 
     arguments = parser.parse_args()
 
@@ -115,11 +111,11 @@ if __name__ == '__main__':
             exit(-1)
         elif arguments.record_simulation >= 1 and arguments.device and arguments.ioc_path:
             print("Running using record simulation")
-            lewis = LewisNone()
+            lewis = LewisNone(arguments.device)
             iocLauncher = IocLauncher(
-                os.path.abspath(arguments.ioc_path),
-                use_rec_sim=True,
-                show_console=arguments.ioc_show_console)
+                device=arguments.device,
+                directory=os.path.abspath(arguments.ioc_path),
+                use_rec_sim=True)
             run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
         elif arguments.device and arguments.ioc_path and arguments.emulator_path:
             print("Running using device emulation")
@@ -130,9 +126,9 @@ if __name__ == '__main__':
                 lewis_additional_path=arguments.emulator_add_path,
                 lewis_package=arguments.emulator_device_package)
             iocLauncher = IocLauncher(
-                os.path.abspath(arguments.ioc_path),
-                use_rec_sim=False,
-                show_console=arguments.ioc_show_console)
+                device=arguments.device,
+                directory=os.path.abspath(arguments.ioc_path),
+                use_rec_sim=False)
             run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
         else:
             print("Type -h for help")
