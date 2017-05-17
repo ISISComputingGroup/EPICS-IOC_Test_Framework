@@ -77,12 +77,13 @@ class LewisLauncher(object):
     Launches Lewis.
     """
 
-    def __init__(self, device, lewis_path, lewis_protocol=None, lewis_additional_path=None, lewis_package=None):
+    def __init__(self, device, lewis_path, var_dir, lewis_protocol=None, lewis_additional_path=None, lewis_package=None):
         """
         Constructor that also launches Lewis.
 
         :param device: device to start
         :param lewis_path: path to lewis
+        :param var_dir: location of directory to write log file and macros directories
         :param lewis_protocol: protocol to use; None let Lewis use the default protocol
         :param lewis_additional_path: additional path to add to lewis usually the location of the device emulators
         :param lewis_package: package to use by lewis
@@ -96,6 +97,7 @@ class LewisLauncher(object):
         self.port = None
         self._logFile = None
         self._connected = None
+        self._var_dir = var_dir
 
     def __enter__(self):
         self._open(self.port)
@@ -147,7 +149,7 @@ class LewisLauncher(object):
         self._connected = True
 
     def _log_filename(self):
-        return log_filename("lewis", self._device, False)
+        return log_filename("lewis", self._device, False, self._var_dir)
 
     def check(self):
         """
@@ -169,7 +171,10 @@ class LewisLauncher(object):
         :param value: new value it should have
         :return:
         """
-        self.backdoor_command(["device", str(variable_name), str(value)])
+        if isinstance(value, str):
+            self.backdoor_command(["device", str(variable_name), "'{0}'".format(value)])
+        else:
+            self.backdoor_command(["device", str(variable_name), str(value)])
 
     def backdoor_command(self, lewis_command):
         """

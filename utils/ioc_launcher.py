@@ -40,22 +40,27 @@ class IocLauncher(object):
     Launches an IOC for testing.
     """
 
-    def __init__(self, device, directory, use_rec_sim):
+    def __init__(self, device, directory, use_rec_sim, var_dir):
         """
         Constructor that also launches the IOC.
 
         :param device: device name
         :param directory: the directory where the st.cmd for the IOC is found
         :param use_rec_sim: Use record simulation not device simulation in the ioc
+        :param var_dir: location of directory to write log file and macros directories
         """
         self._directory = directory
         self.use_rec_sim = use_rec_sim
-        self.port = None
         self._process = None
         self._logFile = None
         self._device = device
         IOCRegister.uses_rec_sim = use_rec_sim
         self._ca = None
+        self._var_dir = var_dir
+        # port to use for the ioc
+        self.port = None
+        # macros to use for the ioc
+        self.macros = None
 
     def __enter__(self):
         self.open()
@@ -68,7 +73,7 @@ class IocLauncher(object):
             print "Lewis log written to {0}".format(self._log_filename())
 
     def _log_filename(self):
-        return log_filename("ioc", self._device, self.use_rec_sim)
+        return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
 
     def open(self):
 
@@ -88,6 +93,14 @@ class IocLauncher(object):
             settings['TESTRECSIM'] = '#'
         # Set the port
         settings['EMULATOR_PORT'] = str(self.port)
+
+        # create macros
+        full_dir = os.path.join(self._var_dir, "tmp")
+        if not os.path.exists(full_dir):
+            os.makedirs(full_dir)
+        with file(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
+            for macro, value in self.macros.iteritems():
+                f.write("epicsEnvSet {macro} {value}\n".format(macro=macro, value=value))
 
         # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
         # This does mean that the IOC will need to be closed manually after the tests.

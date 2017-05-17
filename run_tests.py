@@ -66,11 +66,16 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
 
     # Load the device's test module and get the class
     m = load_module('tests.%s' % device.lower())
+
     test_class = getattr(m, "%sTests" % device.capitalize())
 
     port = str(get_free_ports(1)[0])
     lewis_launcher.port = port
     ioc_launcher.port = port
+    try:
+        ioc_launcher.macros = m.MACROS
+    except AttributeError:
+        ioc_launcher.macros = {}
 
     settings = dict()
     # Need to set epics address list to local broadcast otherwise channel access won't work
@@ -99,6 +104,10 @@ if __name__ == '__main__':
     parser.add_argument('-ea', '--emulator-add-path', default=None, help="Add path where device packages exist for the emulator.")
     parser.add_argument('-ek', '--emulator-device-package', default=None, help="Name of packages where devices are found.")
 
+    parser.add_argument('--var-dir', default=None, help="Directory in which to create a log dir to write log file to and "
+                                                        "directory in which to create tmp dir which contains environments "
+                                                        "variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.")
+
     arguments = parser.parse_args()
 
     if arguments.list_devices:
@@ -106,6 +115,11 @@ if __name__ == '__main__':
         print('\n'.join(package_contents("tests")))
         exit(0)
     else:
+        if arguments.var_dir is None:
+            var_dir = os.getenv("ICPVARDIR", os.curdir)
+        else:
+            var_dir = arguments.var_dir
+
         if arguments.prefix is None:
             print("Cannot run without instrument prefix")
             exit(-1)
@@ -115,7 +129,8 @@ if __name__ == '__main__':
             iocLauncher = IocLauncher(
                 device=arguments.device,
                 directory=os.path.abspath(arguments.ioc_path),
-                use_rec_sim=True)
+                use_rec_sim=True,
+                var_dir=var_dir)
             run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
         elif arguments.device and arguments.ioc_path and arguments.emulator_path:
             print("Running using device emulation")
@@ -124,11 +139,13 @@ if __name__ == '__main__':
                 lewis_path=os.path.abspath(arguments.emulator_path),
                 lewis_protocol=arguments.emulator_protocol,
                 lewis_additional_path=arguments.emulator_add_path,
-                lewis_package=arguments.emulator_device_package)
+                lewis_package=arguments.emulator_device_package,
+                var_dir=var_dir)
             iocLauncher = IocLauncher(
                 device=arguments.device,
                 directory=os.path.abspath(arguments.ioc_path),
-                use_rec_sim=False)
+                use_rec_sim=False,
+                var_dir=var_dir)
             run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
         else:
             print("Type -h for help")
