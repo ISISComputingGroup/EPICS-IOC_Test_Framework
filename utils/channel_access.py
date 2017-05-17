@@ -149,7 +149,6 @@ class ChannelAccess(object):
         while current_time - start_time < timeout:
             try:
                 lambda_value = wait_for_lambda()
-                print "lambda_value: {0}".format(lambda_value)
                 if lambda_value is None:
                     return lambda_value
             except UnableToConnectToPVException:
