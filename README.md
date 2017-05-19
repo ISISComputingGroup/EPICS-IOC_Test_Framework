@@ -7,20 +7,29 @@ Note: the unittest module is used for convenience. The tests themselves are not 
 
 ## How to run
 
-NOTE: currently you **must** use the genie_python installation of Python.
+NOTE: currently you **must** use the genie_python installation of Python because it allows you to access the python wrapper for EPICS Channel access.
 
 It recommended that you don't have the server side of IBEX running then testing an IOC.
 
-The command-line options are:
-```
--pf = the instrument prefix, for example: IN:DEMO [REQUIRED]
--d = the name of the device in Lewis, for example: julabo
--p = the full path to the directory containing the st.cmd for the IOC
--e = the full path to the Lewis executable
--ep = the Lewis protocal to use. This is optional, currently it is only the julabo that requires the specific protocol to be set
--r = run in record simulation mode, this does not require Lewis
-```
+The command-line options are split into groups:
 
+- `-l`, `--list-devices`    List available devices that can be tested.
+
+### all modes
+- `-pf PREFIX`, `--prefix PREFIX` The instrument prefix which will be prefixed to all PVs; e.g. TE:NDW1373
+- `-d DEVICE`, `--device DEVICE` Device type to test.
+- `-p IOC_PATH`, `--ioc-path IOC_PATH` The path to the folder containing the IOC's st.cmd. It will run runIOC.bat st.cmd.
+
+### Dev simulation mode
+- `-e EMULATOR_PATH`, `--emulator-path EMULATOR_PATH` The path which contains lewis and lewis-control executables
+- `-ep EMULATOR_PROTOCOL`, `--emulator-protocol EMULATOR_PROTOCOL` The Lewis protocal to use (optional)
+- `-ea EMULATOR_ADD_PATH`, `--emulator-add-path EMULATOR_ADD_PATH` Add path where device packages exist for the emulator.
+- `-ek EMULATOR_DEVICE_PACKAGE`, `--emulator-device-package EMULATOR_DEVICE_PACKAGE` device package to use to perform the emulation
+
+### Rec simulation mode
+
+- `-r`, `--record-simulation` Use record simulation rather than emulation (optional)
+- `--var-dir VAR_DIR` Directory in which to create a log dir to write log file to and directory in which to create tmp dir which contains environments variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.
 
 ### Emulation mode:
 
