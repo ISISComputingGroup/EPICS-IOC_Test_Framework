@@ -2,6 +2,8 @@ import os
 import imp
 import importlib
 import unittest
+import time
+import xmlrunner
 import argparse
 from contextlib import contextmanager
 from utils.lewis_launcher import LewisLauncher, LewisNone
@@ -82,15 +84,43 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
     settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
 
     with modified_environment(**settings):
+        if not use_rec_sim:
+            # Start Lewis if we are not using rec_sim
+            if lewis_protocol is None:
+                lewis = LewisLauncher(
+                    [lewis_path, "-e", "100", device, "--", "--bind-address", "localhost", "--port", port])
+            else:
+                lewis = LewisLauncher(
+                    [lewis_path, "-p", lewis_protocol, "-e", "100", device, "--", "--bind-address", "localhost",
+                     "--port", port])
+
+        # Start the IOC
+        ioc = IocLauncher(ioc_path, port, use_rec_sim)
+        # Need to give the IOC time to start
+        print("Waiting for IOC to initialise")
+        time.sleep(30)
+
+        # Run the tests
+        runner = unittest.TextTestRunner()
+        test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
+        runner.run(test_suite)
+
+        # Clean up
+        if not use_rec_sim:
+            lewis.close()
+        ioc.close()
+
         with lewis_launcher:
             with ioc_launcher:
                 if not lewis_launcher.check():
                     exit(-1)
-                runner = unittest.TextTestRunner()
+#                runner = unittest.TextTestRunner()
+                runner = xmlrunner.XMLTestRunner(output='test-reports')
                 test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
                 runner.run(test_suite)
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices', help="List available devices for testing.", action="store_true")

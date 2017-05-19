@@ -90,3 +90,6 @@ ENV/
 
 # PyCharm files
 .idea/
+
+/test-reports
+NULL
