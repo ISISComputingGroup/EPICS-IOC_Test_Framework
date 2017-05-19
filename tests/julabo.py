@@ -1,6 +1,9 @@
 import unittest
-from utils.channel_access import ChannelAccess
+from unittest import skipIf
 
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import IOCRegister
+from utils.testing import get_running_lewis_and_ioc
 
 TOO_HIGH_PID_VALUE = 100000
 TOO_LOW_PID_VALUE = -100000
@@ -12,7 +15,11 @@ class JulaboTests(unittest.TestCase):
     """
 
     def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("julabo")
+
+
         self.ca = ChannelAccess()
+        self.ca.wait_for("JULABO_01:TEMP")
         # Turn off circulate
         self.ca.set_pv_value("JULABO_01:MODE:SP", 0)
 
@@ -24,6 +31,7 @@ class JulaboTests(unittest.TestCase):
         # Check SP RBV matches new temp
         self.assertEqual(start_t + 5, self.ca.get_pv_value("JULABO_01:TEMP:SP:RBV"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_temperature_above_high_limit_does_not_set_value(self):
         # Get current temp sp rbv
         start_t = self.ca.get_pv_value("JULABO_01:TEMP:SP:RBV")
@@ -34,6 +42,7 @@ class JulaboTests(unittest.TestCase):
         # Check SP RBV hasn't changed
         self.assertEqual(start_t, self.ca.get_pv_value("JULABO_01:TEMP:SP:RBV"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_temperature_below_low_limit_does_not_set_value(self):
         # Get current temp sp rbv
         start_t = self.ca.get_pv_value("JULABO_01:TEMP:SP:RBV")
@@ -44,6 +53,7 @@ class JulaboTests(unittest.TestCase):
         # Check SP RBV hasn't changed
         self.assertEqual(start_t, self.ca.get_pv_value("JULABO_01:TEMP:SP:RBV"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_set_new_temperature_with_circulate_off_means_temperature_remains_unchanged(self):
         # Get current temp
         start_t = self.ca.get_pv_value("JULABO_01:TEMP")
@@ -90,6 +100,7 @@ class JulaboTests(unittest.TestCase):
         self.assertEqual(i, self.ca.get_pv_value("JULABO_01:INTI"))
         self.assertEqual(d, self.ca.get_pv_value("JULABO_01:INTD"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_internal_PID_above_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("JULABO_01:INTP")
@@ -104,6 +115,7 @@ class JulaboTests(unittest.TestCase):
         self.assertEqual(start_i, self.ca.get_pv_value("JULABO_01:INTI"))
         self.assertEqual(start_d, self.ca.get_pv_value("JULABO_01:INTD"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_internal_PID_below_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("JULABO_01:INTP")
@@ -118,6 +130,7 @@ class JulaboTests(unittest.TestCase):
         self.assertEqual(start_i, self.ca.get_pv_value("JULABO_01:INTI"))
         self.assertEqual(start_d, self.ca.get_pv_value("JULABO_01:INTD"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_external_PID_above_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("JULABO_01:EXTP")
@@ -132,6 +145,7 @@ class JulaboTests(unittest.TestCase):
         self.assertEqual(start_i, self.ca.get_pv_value("JULABO_01:EXTI"))
         self.assertEqual(start_d, self.ca.get_pv_value("JULABO_01:EXTD"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_external_PID_below_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("JULABO_01:EXTP")
