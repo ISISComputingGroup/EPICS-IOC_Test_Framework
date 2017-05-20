@@ -2,6 +2,8 @@ import os
 import imp
 import importlib
 import unittest
+import time
+import xmlrunner
 import argparse
 from contextlib import contextmanager
 from utils.lewis_launcher import LewisLauncher, LewisNone
@@ -86,11 +88,13 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
             with ioc_launcher:
                 if not lewis_launcher.check():
                     exit(-1)
-                runner = unittest.TextTestRunner()
+#                runner = unittest.TextTestRunner()
+                runner = xmlrunner.XMLTestRunner(output='test-reports')
                 test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
                 runner.run(test_suite)
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices', help="List available devices for testing.", action="store_true")
