@@ -30,5 +30,3 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r
 echo ---------------------------------------
 echo;
 
-pause
-
