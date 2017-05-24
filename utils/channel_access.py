@@ -23,13 +23,13 @@ class ChannelAccess(object):
     ALARM_CALC = ["CALC"]
     """Alarm values if the record has a calc alarm"""
 
-    def __init__(self, default_time_out_for_pv_test=5):
+    def __init__(self, default_timeout=5):
         """
         Constructor.
         """
         self.ca = CaChannelWrapper()
         self.prefix = os.environ["testing_prefix"]
-        self._default_time_out_for_pv_test = default_time_out_for_pv_test
+        self._default_timeout = default_timeout
         if not self.prefix.endswith(':'):
             self.prefix += ':'
 
@@ -158,7 +158,7 @@ class ChannelAccess(object):
         else:
             return "Expected one of {expected}: actual {actual}".format(expected=expected_values, actual=pv_value)
 
-    def wait_for(self, pv, timeout=30):
+    def wait_for(self, pv, timeout=None):
         """
         Wait for pv to be available or timeout and throw UnableToConnectToPVException
 
@@ -167,6 +167,10 @@ class ChannelAccess(object):
         :return:
         :raises UnableToConnectToPVException: if pv can not be connected to after given time
         """
+
+        if timeout is None:
+            timeout = self._default_timeout
+
         if not self.ca.pv_exists(self._create_pv_with_prefix(pv), timeout=timeout):
             AssertionError("PV {pv} does not exist".format(pv=self._create_pv_with_prefix(pv)))
 
@@ -187,12 +191,11 @@ class ChannelAccess(object):
         """
         start_time = time.time()
         current_time = start_time
-        if timeout is None:
-            the_timeout = self._default_time_out_for_pv_test
-        else:
-            the_timeout = timeout
 
-        while current_time - start_time < the_timeout:
+        if timeout is None:
+            timeout = self._default_timeout
+
+        while current_time - start_time < timeout:
             try:
                 lambda_value = wait_for_lambda()
                 if lambda_value is None:

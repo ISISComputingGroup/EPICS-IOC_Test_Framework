@@ -72,6 +72,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         for v in ["0", "1", "0"]:
             _set_and_check(v)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_that_if_the_movement_type_on_rig_is_hold_then_it_gets_stopped(self):
 
         self.ca.set_pv_value("INSTRON_01:MOVE:SP", 1)
