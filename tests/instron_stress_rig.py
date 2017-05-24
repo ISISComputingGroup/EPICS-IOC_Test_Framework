@@ -15,7 +15,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
 
         self.ca = ChannelAccess(15)
-        self.ca.wait_for("INSTRON_01:CHANNEL")
+        self.ca.wait_for("INSTRON_01:CHANNEL", timeout=30)
 
     def test_that_when_the_rig_is_initialized_the_status_is_ok(self):
         self.ca.assert_that_pv_is("INSTRON_01:STAT:DISP", "System OK")
