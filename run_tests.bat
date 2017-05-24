@@ -1,6 +1,6 @@
 setlocal
 @echo off
-REM Run all known tests using hte IOC Testing Framework
+REM Run all known tests using the IOC Testing Framework
 
 SET CurrentDir=%~dp0
 
