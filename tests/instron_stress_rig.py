@@ -97,3 +97,22 @@ class Instron_stress_rigTests(unittest.TestCase):
         for set_val, return_val in [(0, "Position"), (1, "Stress"), (2, "Strain")]:
             _set_and_check(set_val, return_val)
 
+    def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
+
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":STEP:TIME:SP", value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":STEP:TIME", value)
+
+        for chan, val in [("POS", 123), ("STRESS", 456), ("STRAIN", 789)]:
+            _set_and_check(chan, val)
+
+    def test_WHEN_the_step_time_for_various_channels_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(self):
+
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":STEP:TIME:SP", value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":STEP:TIME", value)
+
+        for chan, val in [("POS", 111.111), ("STRESS", 222.222), ("STRAIN", 333.333)]:
+            _set_and_check(chan, val)
+
+
