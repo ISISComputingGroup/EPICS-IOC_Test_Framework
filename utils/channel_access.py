@@ -122,7 +122,9 @@ class ChannelAccess(object):
         if pv_value == expected_value:
             return None
         else:
-            return "Expected {expected}: actual {actual}".format(expected=expected_value, actual=pv_value)
+            return """Values didn't match when reading PV '{PV}'.
+                   Expected value: {expected}
+                   Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
 
     def _value_is_an_integer_between(self, pv, min, max):
         """

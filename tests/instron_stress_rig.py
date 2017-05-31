@@ -97,7 +97,8 @@ class Instron_stress_rigTests(unittest.TestCase):
         for set_val, return_val in [(0, "Position"), (1, "Stress"), (2, "Strain")]:
             _set_and_check(set_val, return_val)
 
-    def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
+            self):
 
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":STEP:TIME:SP", value)
@@ -106,7 +107,8 @@ class Instron_stress_rigTests(unittest.TestCase):
         for chan, val in [("POS", 123), ("STRESS", 456), ("STRAIN", 789)]:
             _set_and_check(chan, val)
 
-    def test_WHEN_the_step_time_for_various_channels_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    def test_WHEN_the_step_time_for_various_channels_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(
+            self):
 
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":STEP:TIME:SP", value)
@@ -115,4 +117,37 @@ class Instron_stress_rigTests(unittest.TestCase):
         for chan, val in [("POS", 111.111), ("STRESS", 222.222), ("STRAIN", 333.333)]:
             _set_and_check(chan, val)
 
+    def test_WHEN_the_ramp_waveform_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
 
+        def _set_and_check(chan, set_value, return_value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":ABS:SP", set_value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":ABS", return_value)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for set_value, return_value in [(0, "Ramp"),
+                                            (1, "Dual ramp"),
+                                            (2, "Trapezium"),
+                                            (3, "Absolute ramp"),
+                                            (4, "Absolute hold ramp"),
+                                            (5, "Absolute rate ramp"),]:
+
+                _set_and_check(chan, set_value, return_value)
+
+    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW:SP:RBV", value)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for i in [0,10,1000,1000000]:
+                _set_and_check(chan, i)
+
+    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(
+            self):
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW:SP:RBV", value)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
+                _set_and_check(chan, i)
