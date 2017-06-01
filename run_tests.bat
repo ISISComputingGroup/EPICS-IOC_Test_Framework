@@ -18,6 +18,12 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -p
 echo ---------------------------------------
 echo;
 
+echo ---------------------------------------
+echo TESTING TPG26X Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d TPG26x -p %EPICS_KIT_ROOT%\ioc\master\TPG26x\iocBoot\iocTPG26x-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
 
 echo ---------------------------------------
 echo TESTING JULABO Rec Sim
@@ -30,5 +36,12 @@ echo TESTING AMINT2L Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d amint2l -p %EPICS_KIT_ROOT%\ioc\master\AMINT2L\iocBoot\iocAMINT2L-IOC-01
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING TPG26X Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d TPG26x -p %EPICS_KIT_ROOT%\ioc\master\TPG26x\iocBoot\iocTPG26x-IOC-01
+echo ---------------------------------------
+echo;
+
 
 
