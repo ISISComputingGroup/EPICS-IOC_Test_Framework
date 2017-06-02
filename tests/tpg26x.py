@@ -8,10 +8,12 @@ from utils.testing import get_running_lewis_and_ioc
 # MACROS to use for the IOC
 MACROS = {}
 
+
 class UnitFlags(object):
     MBAR = 0
     TORR = 1
     PA = 2
+
 
 class UnitStrings(object):
     MBAR = "mbar"
@@ -83,10 +85,16 @@ class Tpg26xTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("TPG26X_01:2:PRESSURE", expected_pressure)
 
-    def test_GIVEN_units_set_WHEN_read_THEN_units_is_as_expected(self):
+    def test_GIVEN_units_set_WHEN_read_THEN_units_are_as_expected(self):
         expected_units = UnitFlags.PA
         expected_unit_str = UnitStrings.PA
         self._set_units(expected_units)
 
         self.ca.assert_that_pv_is("TPG26X_01:UNITS", expected_unit_str)
 
+    def test_WHEN_write_units_THEN_units_are_as_expected(self):
+        expected_units = UnitFlags.PA
+        expected_unit_str = UnitStrings.PA
+
+        self.ca.set_pv_value("TPG26X_01:UNITS:SP", expected_units)
+        self.ca.assert_that_pv_is("TPG26X_01:UNITS", expected_unit_str)
