@@ -142,12 +142,50 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [0,10,1000,1000000]:
                 _set_and_check(chan, i)
 
-    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(
-            self):
+    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
             self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW:SP:RBV", value)
 
         for chan in ["POS", "STRESS", "STRAIN"]:
             for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
+                _set_and_check(chan, i)
+
+    def test_GIVEN_a_ramp_amplitude_setpoint_WHEN_asking_for_the_raw_value_of_the_channel_THEN_the_value_is_equal_to_the_setpoint(self):
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW", value)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
+                _set_and_check(chan, i)
+
+    def test_WHEN_channel_tolerance_is_set_THEN_it_changes(self):
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":TOLERANCE", value)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for i in [0.1, 1.0, 2.5]:
+                _set_and_check(chan, i)
+
+    def test_GIVEN_a_big_tolerance_WHEN_the_setpoint_and_readback_difference_is_less_than_one_THEN_the_setpoint_has_no_alarms(self):
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", 9999)
+            self.ca.assert_pv_alarm_is("INSTRON_01:" + chan + ":SP:RBV", ChannelAccess.ALARM_NONE)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for i in [0.1, ]:
+                _set_and_check(chan, i)
+
+    def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_and_readback_difference_is_less_than_one_THEN_the_setpoint_has_alarms(
+            self):
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", -1)
+            self.ca.assert_pv_alarm_is("INSTRON_01:" + chan + ":SP:RBV", ChannelAccess.ALARM_MINOR)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for i in [0.1, ]:
                 _set_and_check(chan, i)
