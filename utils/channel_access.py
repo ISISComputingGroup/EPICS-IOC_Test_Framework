@@ -11,10 +11,10 @@ class ChannelAccess(object):
     ALARM_NONE = ["NO_ALARM"]
     """Alarm values if their is no alarm"""
 
-    ALARM_MAJOR = ["LOLO", "HIHI"]
+    ALARM_MAJOR = ["MAJOR"]
     """Alarm values if the record is in major alarm"""
 
-    ALARM_MINOR = ["LOW", "HIGH"]
+    ALARM_MINOR = ["MINOR"]
     """Alarm values if the record is in minor alarm"""
 
     ALARM_DISCONNECTED = ["TIMEOUT"]
@@ -170,4 +170,4 @@ class ChannelAccess(object):
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
 
-        self.assert_that_pv_is_one_of("{pv}.STAT".format(pv=pv), alarms, timeout=timeout)
+        self.assert_that_pv_is_one_of("{pv}.SEVR".format(pv=pv), alarms, timeout=timeout)
