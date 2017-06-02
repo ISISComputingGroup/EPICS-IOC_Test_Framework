@@ -8,20 +8,17 @@ class ChannelAccess(object):
     Provides the required channel access commands.
     """
 
-    ALARM_NONE = ["NO_ALARM"]
-    """Alarm values if their is no alarm"""
+    ALARM_NONE = "NO_ALARM"
+    """Alarm value if their is no alarm"""
 
-    ALARM_MAJOR = ["MAJOR"]
-    """Alarm values if the record is in major alarm"""
+    ALARM_MAJOR = "MAJOR"
+    """Alarm value if the record is in major alarm"""
 
-    ALARM_MINOR = ["MINOR"]
-    """Alarm values if the record is in minor alarm"""
+    ALARM_MINOR = "MINOR"
+    """Alarm value if the record is in minor alarm"""
 
-    ALARM_DISCONNECTED = ["TIMEOUT"]
-    """Alarm values if the record is disconnected"""
-
-    ALARM_CALC = ["CALC"]
-    """Alarm values if the record has a calc alarm"""
+    ALARM_INVALID = "INVALID"
+    """Alarm value if the record has a calc alarm"""
 
     def __init__(self):
         """
@@ -159,15 +156,15 @@ class ChannelAccess(object):
         # last try
         return wait_for_lambda()
 
-    def assert_pv_alarm_is(self, pv, alarms, timeout=5):
+    def assert_pv_alarm_is(self, pv, alarm, timeout=5):
         """
         Assert that a pv is in alarm state given or timeout
         :param pv: pv name
-        :param alarms: list of alarm states (see constants)
+        :param alarm: alarm state (see constants ALARM_X)
         :param timeout: length of time to wait for change
         :return:
         :raises AssertionError: if alarm does not become requested value
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
 
-        self.assert_that_pv_is_one_of("{pv}.SEVR".format(pv=pv), alarms, timeout=timeout)
+        self.assert_that_pv_is("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)

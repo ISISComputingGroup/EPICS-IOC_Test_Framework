@@ -53,7 +53,7 @@ class Amint2lTests(unittest.TestCase):
         expected_pressure = "OR"
         self._set_pressure(expected_pressure)
 
-        self.ca.assert_pv_alarm_is("AMINT2L_01:PRESSURE", ChannelAccess.ALARM_CALC)
+        self.ca.assert_pv_alarm_is("AMINT2L_01:PRESSURE", ChannelAccess.ALARM_INVALID)
         self.ca.assert_that_pv_is("AMINT2L_01:RANGE:ERROR", "Over Range")
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -61,7 +61,7 @@ class Amint2lTests(unittest.TestCase):
         expected_pressure = "UR"
         self._set_pressure(expected_pressure)
 
-        self.ca.assert_pv_alarm_is("AMINT2L_01:PRESSURE", ChannelAccess.ALARM_CALC)
+        self.ca.assert_pv_alarm_is("AMINT2L_01:PRESSURE", ChannelAccess.ALARM_INVALID)
         self.ca.assert_that_pv_is("AMINT2L_01:RANGE:ERROR", "Under Range")
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -70,4 +70,4 @@ class Amint2lTests(unittest.TestCase):
         # Setting none simulates no response from device which is like pulling the serial cable. Disconnecting the
         # emulator using the backdoor makes the record go udf not timeout which is what the actual device does.
 
-        self.ca.assert_pv_alarm_is("AMINT2L_01:PRESSURE", ChannelAccess.ALARM_DISCONNECTED)
+        self.ca.assert_pv_alarm_is("AMINT2L_01:PRESSURE", ChannelAccess.ALARM_INVALID)
