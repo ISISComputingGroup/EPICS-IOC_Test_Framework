@@ -192,15 +192,15 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [0.234, 789]:
                 _set_and_check(chan, i)
 
-    def test_WHEN_ioc_gets_a_raw_reading_from_the_device_THEN_it_is_converted_correctly(self):
+    def test_WHEN_ioc_gets_a_raw_position_reading_from_the_device_THEN_it_is_converted_correctly(self):
 
-        def _set_and_check(chan_num, chan_name, raw_value, expected_value):
-            self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "value", str(raw_value)])
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan_name + ":RAW", raw_value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan_name, expected_value)
+        for chan_scale in [0.1, 10]:
+            self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(chan_scale)])
+            self.ca.assert_that_pv_is("INSTRON_01:POS:SCALE", chan_scale)
 
-        for chan_num, chan_name in [(1, "POS"), (2, "STRESS"), (3, "STRAIN")]:
-            for raw_value, expected_value in [(0, 0), (123, 123000)]:
-                _set_and_check(chan_num, chan_name, raw_value, expected_value)
+            for raw_value in [0, 123]:
+                self._lewis.backdoor_command(["device", "set_channel_param", "1", "value", str(raw_value)])
+                self.ca.assert_that_pv_is("INSTRON_01:POS:RAW", raw_value)
+                self.ca.assert_that_pv_is("INSTRON_01:POS", raw_value * chan_scale * 1000)
 
 
