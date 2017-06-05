@@ -5,6 +5,8 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
+import time
+
 
 class Instron_stress_rigTests(unittest.TestCase):
     """
@@ -151,14 +153,14 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
                 _set_and_check(chan, i)
 
-    def test_GIVEN_a_ramp_amplitude_setpoint_WHEN_asking_for_the_raw_value_of_the_channel_THEN_the_value_is_equal_to_the_setpoint(self):
-        def _set_and_check(chan, value):
-            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW", value)
-
-        for chan in ["POS", "STRESS", "STRAIN"]:
-            for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
-                _set_and_check(chan, i)
+#    def test_GIVEN_a_ramp_amplitude_setpoint_WHEN_asking_for_the_raw_value_of_the_channel_THEN_the_value_is_equal_to_the_setpoint(self):
+#        def _set_and_check(chan, value):
+#            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
+#            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW", value)
+#
+#        for chan in ["POS", "STRESS", "STRAIN"]:
+#            for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
+#                _set_and_check(chan, i)
 
     def test_WHEN_channel_tolerance_is_set_THEN_it_changes(self):
         def _set_and_check(chan, value):
@@ -169,17 +171,17 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [0.1, 1.0, 2.5]:
                 _set_and_check(chan, i)
 
-    def test_GIVEN_a_big_tolerance_WHEN_the_setpoint_and_readback_difference_is_less_than_one_THEN_the_setpoint_has_no_alarms(self):
+    def test_GIVEN_a_big_tolerance_WHEN_the_setpoint_is_set_THEN_the_setpoint_has_no_alarms(self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
             self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", 9999)
             self.ca.assert_pv_alarm_is("INSTRON_01:" + chan + ":SP:RBV", ChannelAccess.ALARM_NONE)
 
         for chan in ["POS", "STRESS", "STRAIN"]:
-            for i in [0.1, ]:
+            for i in [0.123, 567]:
                 _set_and_check(chan, i)
 
-    def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_and_readback_difference_is_less_than_one_THEN_the_setpoint_has_alarms(
+    def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_is_set_THEN_the_setpoint_has_alarms(
             self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
@@ -187,5 +189,18 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is("INSTRON_01:" + chan + ":SP:RBV", ChannelAccess.ALARM_MINOR)
 
         for chan in ["POS", "STRESS", "STRAIN"]:
-            for i in [0.1, ]:
+            for i in [0.234, 789]:
                 _set_and_check(chan, i)
+
+    def test_WHEN_ioc_gets_a_raw_reading_from_the_device_THEN_it_is_converted_correctly(self):
+
+        def _set_and_check(chan_num, chan_name, raw_value, expected_value):
+            self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "value", str(raw_value)])
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan_name + ":RAW", raw_value)
+            self.ca.assert_that_pv_is("INSTRON_01:" + chan_name, expected_value)
+
+        for chan_num, chan_name in [(1, "POS"), (2, "STRESS"), (3, "STRAIN")]:
+            for raw_value, expected_value in [(0, 0), (123, 123000)]:
+                _set_and_check(chan_num, chan_name, raw_value, expected_value)
+
+
