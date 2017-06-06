@@ -209,10 +209,10 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INSTRON_01:STRAIN:LENGTH", value)
 
     def test_WHEN_ioc_gets_a_raw_strain_reading_from_the_device_THEN_it_is_converted_correctly(self):
-        for chan_scale in [0.1, 10]:
+        for chan_scale in [0.1, 10.0]:
             self._lewis.backdoor_command(["device", "set_channel_param", "3", "scale", str(chan_scale)])
 
-            for chan_length in [0.1, 10]:
+            for chan_length in [0.1, 10.0]:
                 self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", str(chan_length)])
 
                 for raw_value in [0, 0.001]:
