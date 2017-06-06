@@ -223,3 +223,12 @@ class Instron_stress_rigTests(unittest.TestCase):
                     self.ca.assert_that_pv_is("INSTRON_01:STRAIN:RAW", raw_value)
 
                     self.ca.assert_that_pv_is("INSTRON_01:STRAIN", (raw_value * chan_scale * 100000 * (1/chan_length)))
+
+    def test_WHEN_the_area_setpoint_is_set_THEN_the_readback_updates(self):
+        def _set_and_check(value):
+            self.ca.set_pv_value("INSTRON_01:STRESS:AREA:SP", value)
+            self.ca.assert_that_pv_is("INSTRON_01:STRESS:AREA", value)
+            self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:AREA", ChannelAccess.ALARM_NONE)
+
+        for val in [0.234, 789]:
+            _set_and_check(val)
