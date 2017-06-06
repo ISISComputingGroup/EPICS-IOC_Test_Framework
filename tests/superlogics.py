@@ -4,13 +4,14 @@ from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
 
 # Internal Address of device (must be 2 characters)
-ADDRESS = "01"
+ADDRESS = "02"
 
 # MACROS to use for the IOC
 MACROS = {"ADDR": ADDRESS}
 
 # Prefix for addressing PVs on this device
 PREFIX = "SPRLG_01"
+
 
 class SuperlogicsTests(unittest.TestCase):
     """
