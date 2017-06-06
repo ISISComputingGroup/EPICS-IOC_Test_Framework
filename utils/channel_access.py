@@ -66,6 +66,23 @@ class ChannelAccess(object):
 
         raise AssertionError(error_message)
 
+    def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None):
+        """
+        Assert that the pv has the expected value or that it becomes the expected value within the timeout
+        :param pv: pv name
+        :param expected_value: expected value
+        :param timeout: if it hasn't changed within this time raise assertion error
+        :raises AssertionError: if value does not become requested value
+        :raises UnableToConnectToPVException: if pv does not exist within timeout
+        """
+
+        error_message = self._wait_for_pv_lambda(lambda: self._value_is_number(pv, expected_value, tolerance), timeout)
+
+        if error_message is None:
+            return
+
+        raise AssertionError(error_message)
+
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=None):
         """
         Assert that the pv has one of the expected values or that it becomes one of the expected value within the
@@ -141,6 +158,26 @@ class ChannelAccess(object):
             return None
         else:
             return "Expected integer between {min} and {max} but was {actual}".format(min=min, max=max, actual=pv_value)
+
+    def _value_is_number(self, pv, expected_value, tolerance):
+        """
+            Check pv can be interpreted as an integer between two bounds
+            :param pv: name of the pv (no prefix)
+            :param min: minimum numeric value (inclusive)
+            :param max: minimum numeric value (inclusive)
+            :return: None if they match; error string stating the difference if they do not
+            """
+        pv_value = self.get_pv_value(pv)
+
+        try:
+            pv_value = float(pv_value)
+        except ValueError:
+            return "Expected a numeric value but got: {actual}".format(actual=pv_value)
+
+        if expected_value - pv_value < tolerance:
+            return None
+        else:
+            return "Expected {expected} (tolerance: {tolerance}) but was {actual}".format(expected=expected_value, tolerance=tolerance, actual=pv_value)
 
     def _value_match_one_of(self, pv, expected_values):
         """

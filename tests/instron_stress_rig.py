@@ -5,7 +5,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
-import time
+import math
 
 
 class Instron_stress_rigTests(unittest.TestCase):
@@ -224,10 +224,37 @@ class Instron_stress_rigTests(unittest.TestCase):
 
                     self.ca.assert_that_pv_is("INSTRON_01:STRAIN", (raw_value * chan_scale * 100000 * (1/chan_length)))
 
-    def test_WHEN_the_area_setpoint_is_set_THEN_the_readback_updates(self):
+    def test_WHEN_the_area_setpoint_is_set_THEN_the_area_readback_updates(self):
         def _set_and_check(value):
             self.ca.set_pv_value("INSTRON_01:STRESS:AREA:SP", value)
             self.ca.assert_that_pv_is("INSTRON_01:STRESS:AREA", value)
+            self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:AREA", ChannelAccess.ALARM_NONE)
+
+        for val in [0.234, 789]:
+            _set_and_check(val)
+
+    def test_WHEN_the_area_setpoint_is_set_THEN_the_diameter_readback_updates(self):
+        def _set_and_check(value):
+            self.ca.set_pv_value("INSTRON_01:STRESS:AREA:SP", value)
+            self.ca.assert_that_pv_is("INSTRON_01:STRESS:DIAMETER", ((value/2.0)**2 * math.pi))
+            self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
+
+        for val in [0.234, 789]:
+            _set_and_check(val)
+
+    def test_WHEN_the_diameter_setpoint_is_set_THEN_the_diameter_readback_updates(self):
+        def _set_and_check(value):
+            self.ca.set_pv_value("INSTRON_01:STRESS:DIAMETER:SP", value)
+            self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:DIAMETER", value, tolerance=0.0005)
+            self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
+
+        for val in [0.234, 789]:
+            _set_and_check(val)
+
+    def test_WHEN_the_diameter_setpoint_is_set_THEN_the_area_readback_updates(self):
+        def _set_and_check(value):
+            self.ca.set_pv_value("INSTRON_01:STRESS:DIAMETER:SP", value)
+            self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:AREA", (2*math.sqrt(value/math.pi)), tolerance=0.0005)
             self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:AREA", ChannelAccess.ALARM_NONE)
 
         for val in [0.234, 789]:
