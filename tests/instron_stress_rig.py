@@ -321,7 +321,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         for chan_name, chan_num in [("POS", 1), ("STRESS", 2), ("STRAIN", 3)]:
             for value_1, value_2, return_value_1, return_value_2 in [
-                    (0, 1, "Standard transducer", "Unrecognised"),
+                    (0, 1, "Standard transducer", "Unrecognized"),
                     (1, 10, "User transducer", "Ext. waveform generator")]:
 
                 self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_1", str(value_1)])
