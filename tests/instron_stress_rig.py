@@ -251,7 +251,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_area_setpoint_is_set_THEN_the_diameter_readback_updates(self):
         def _set_and_check(value):
             self.ca.set_pv_value("INSTRON_01:STRESS:AREA:SP", value)
-            self.ca.assert_that_pv_is("INSTRON_01:STRESS:DIAMETER", ((value/2.0)**2 * math.pi))
+            self.ca.assert_that_pv_is("INSTRON_01:STRESS:DIAMETER", (2*math.sqrt(value/math.pi)))
             self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
 
         for val in [0.234, 789]:
@@ -269,7 +269,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_diameter_setpoint_is_set_THEN_the_area_readback_updates(self):
         def _set_and_check(value):
             self.ca.set_pv_value("INSTRON_01:STRESS:DIAMETER:SP", value)
-            self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:AREA", (2*math.sqrt(value/math.pi)), tolerance=0.0005)
+            self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:AREA", ((value/2.0)**2 * math.pi), tolerance=0.0005)
             self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:AREA", ChannelAccess.ALARM_NONE)
 
         for val in [0.234, 789]:
