@@ -276,13 +276,13 @@ class Instron_stress_rigTests(unittest.TestCase):
             _set_and_check(val)
 
     def test_WHEN_a_position_setpoint_is_set_THEN_it_is_converted_correctly(self):
-        for chan_scale in [2.34, 456.78]:
-            self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(chan_scale)])
-            self.ca.assert_that_pv_is("INSTRON_01:POS:SCALE", chan_scale)
+        for scale in [2.34, 456.78]:
+            self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(scale)])
+            self.ca.assert_that_pv_is("INSTRON_01:POS:SCALE", scale)
 
             for val in [1.23, 123.45]:
                 self.ca.set_pv_value("INSTRON_01:POS:SP", val)
-                self.ca.assert_that_pv_is_number("INSTRON_01:POS:RAW:SP", val * (1.0/1000.0) * (1/chan_scale), tolerance=0.0000000001)
+                self.ca.assert_that_pv_is_number("INSTRON_01:POS:RAW:SP", val * (1.0/1000.0) * (1/scale), tolerance=0.0000000001)
                 self.ca.assert_pv_alarm_is("INSTRON_01:POS:RAW:SP", ChannelAccess.ALARM_NONE)
 
     def test_WHEN_a_stress_setpoint_is_set_THEN_it_is_converted_correctly(self):
@@ -316,3 +316,12 @@ class Instron_stress_rigTests(unittest.TestCase):
                     self.ca.assert_that_pv_is_number("INSTRON_01:STRAIN:RAW:SP", val * (1 / chan_scale) * length * (1.0/100000.0),
                                                      tolerance=0.0000000001)
                     self.ca.assert_pv_alarm_is("INSTRON_01:STRAIN:RAW:SP", ChannelAccess.ALARM_NONE)
+
+    def test_WHEN_the_channel_type_updates_on_the_device_THEN_the_pv_updates(self):
+
+        for chan_name, chan_num in [("POS", 1), ("STRESS", 2), ("STRAIN", 3)]:
+            for value_1, value_2 in [(0, 1), (1, 10)]:
+                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_1", str(value_1)])
+                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_2", str(value_2)])
+                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD", value_1)
+                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE", value_2)
