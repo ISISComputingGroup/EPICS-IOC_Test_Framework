@@ -194,7 +194,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_ioc_gets_a_raw_position_reading_from_the_device_THEN_it_is_converted_correctly(self):
 
-        for chan_scale in [0.1, 10]:
+        for chan_scale in [0.1, 10.0]:
             self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(chan_scale)])
             self.ca.assert_that_pv_is("INSTRON_01:POS:SCALE", chan_scale)
 
@@ -202,6 +202,21 @@ class Instron_stress_rigTests(unittest.TestCase):
                 self._lewis.backdoor_command(["device", "set_channel_param", "1", "value", str(raw_value)])
                 self.ca.assert_that_pv_is("INSTRON_01:POS:RAW", raw_value)
                 self.ca.assert_that_pv_is("INSTRON_01:POS", raw_value * chan_scale * 1000)
+
+    def test_WHEN_ioc_gets_a_raw_stress_reading_from_the_device_THEN_it_is_converted_correctly(self):
+
+        for chan_area in [0.1, 10.0]:
+            self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", str(chan_area)])
+            self.ca.assert_that_pv_is("INSTRON_01:STRESS:AREA", chan_area)
+
+            for chan_scale in [0.1, 10.0]:
+                self._lewis.backdoor_command(["device", "set_channel_param", "2", "scale", str(chan_scale)])
+                self.ca.assert_that_pv_is("INSTRON_01:STRESS:SCALE", chan_scale)
+
+                for raw_value in [0, 123]:
+                    self._lewis.backdoor_command(["device", "set_channel_param", "2", "value", str(raw_value)])
+                    self.ca.assert_that_pv_is("INSTRON_01:STRESS:RAW", raw_value)
+                    self.ca.assert_that_pv_is("INSTRON_01:STRESS", raw_value * chan_scale * (1.0/chan_area))
 
     def test_WHEN_strain_length_updates_on_device_THEN_pv_updates(self):
         for value in [1,123]:
