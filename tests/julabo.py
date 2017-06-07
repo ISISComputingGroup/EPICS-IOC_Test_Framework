@@ -19,7 +19,7 @@ class JulaboTests(unittest.TestCase):
 
 
         self.ca = ChannelAccess()
-        self.ca.wait_for("JULABO_01:TEMP")
+        self.ca.wait_for("JULABO_01:TEMP", timeout=30)
         # Turn off circulate
         self.ca.set_pv_value("JULABO_01:MODE:SP", 0)
 
