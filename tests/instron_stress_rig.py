@@ -320,8 +320,11 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_channel_type_updates_on_the_device_THEN_the_pv_updates(self):
 
         for chan_name, chan_num in [("POS", 1), ("STRESS", 2), ("STRAIN", 3)]:
-            for value_1, value_2 in [(0, 1), (1, 10)]:
+            for value_1, value_2, return_value_1, return_value_2 in [
+                    (0, 1, "Standard transducer", "Unrecognised"),
+                    (1, 10, "User transducer", "Ext. waveform generator")]:
+
                 self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_1", str(value_1)])
                 self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_2", str(value_2)])
-                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD", value_1)
-                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE", value_2)
+                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD", return_value_1)
+                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE", return_value_2)
