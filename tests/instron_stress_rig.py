@@ -308,7 +308,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INSTRON_01:STRAIN:LENGTH", length)
 
             for chan_scale in [2.34, 456.78]:
-                self._lewis.backdoor_command(["device", "set_channel_param", "2", "scale", str(chan_scale)])
+                self._lewis.backdoor_command(["device", "set_channel_param", "3", "scale", str(chan_scale)])
                 self.ca.assert_that_pv_is("INSTRON_01:STRAIN:SCALE", chan_scale)
 
                 for val in [1.23, 123.45]:
