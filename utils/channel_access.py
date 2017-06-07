@@ -71,6 +71,7 @@ class ChannelAccess(object):
         Assert that the pv has the expected value or that it becomes the expected value within the timeout
         :param pv: pv name
         :param expected_value: expected value
+        :param tolerance: the allowable deviation from the expected value
         :param timeout: if it hasn't changed within this time raise assertion error
         :raises AssertionError: if value does not become requested value
         :raises UnableToConnectToPVException: if pv does not exist within timeout
@@ -163,8 +164,8 @@ class ChannelAccess(object):
         """
             Check pv can be interpreted as an integer between two bounds
             :param pv: name of the pv (no prefix)
-            :param min: minimum numeric value (inclusive)
-            :param max: minimum numeric value (inclusive)
+            :param expected_value: value that is expected
+            :param tolerance: if the difference between the actual and expected values is less than the tolerance, they are treated as equal
             :return: None if they match; error string stating the difference if they do not
             """
         pv_value = self.get_pv_value(pv)
@@ -174,7 +175,7 @@ class ChannelAccess(object):
         except ValueError:
             return "Expected a numeric value but got: {actual}".format(actual=pv_value)
 
-        if expected_value - pv_value < tolerance:
+        if abs(expected_value - pv_value) < tolerance:
             return None
         else:
             return "Expected {expected} (tolerance: {tolerance}) but was {actual}".format(expected=expected_value, tolerance=tolerance, actual=pv_value)

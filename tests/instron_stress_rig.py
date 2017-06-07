@@ -274,3 +274,45 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         for val in [0.234, 789]:
             _set_and_check(val)
+
+    def test_WHEN_a_position_setpoint_is_set_THEN_it_is_converted_correctly(self):
+        for chan_scale in [2.34, 456.78]:
+            self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(chan_scale)])
+            self.ca.assert_that_pv_is("INSTRON_01:POS:SCALE", chan_scale)
+
+            for val in [1.23, 123.45]:
+                self.ca.set_pv_value("INSTRON_01:POS:SP", val)
+                self.ca.assert_that_pv_is_number("INSTRON_01:POS:RAW:SP", val * (1.0/1000.0) * (1/chan_scale), tolerance=0.0000000001)
+                self.ca.assert_pv_alarm_is("INSTRON_01:POS:RAW:SP", ChannelAccess.ALARM_NONE)
+
+    def test_WHEN_a_stress_setpoint_is_set_THEN_it_is_converted_correctly(self):
+
+        for area in [789, 543.21]:
+            self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", str(area)])
+            self.ca.assert_that_pv_is("INSTRON_01:STRESS:AREA", area)
+
+            for chan_scale in [2.34, 456.78]:
+                self._lewis.backdoor_command(["device", "set_channel_param", "2", "scale", str(chan_scale)])
+                self.ca.assert_that_pv_is("INSTRON_01:STRESS:SCALE", chan_scale)
+
+                for val in [1.23, 123.45]:
+                    self.ca.set_pv_value("INSTRON_01:STRESS:SP", val)
+                    self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:RAW:SP", val * (1 / chan_scale) * area,
+                                                     tolerance=0.0000000001)
+                    self.ca.assert_pv_alarm_is("INSTRON_01:STRESS:RAW:SP", ChannelAccess.ALARM_NONE)
+
+    def test_WHEN_a_strain_setpoint_is_set_THEN_it_is_converted_correctly(self):
+
+        for length in [789, 543.21]:
+            self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", str(length)])
+            self.ca.assert_that_pv_is("INSTRON_01:STRAIN:LENGTH", length)
+
+            for chan_scale in [2.34, 456.78]:
+                self._lewis.backdoor_command(["device", "set_channel_param", "2", "scale", str(chan_scale)])
+                self.ca.assert_that_pv_is("INSTRON_01:STRAIN:SCALE", chan_scale)
+
+                for val in [1.23, 123.45]:
+                    self.ca.set_pv_value("INSTRON_01:STRAIN:SP", val)
+                    self.ca.assert_that_pv_is_number("INSTRON_01:STRAIN:RAW:SP", val * (1 / chan_scale) * length * (1.0/100000.0),
+                                                     tolerance=0.0000000001)
+                    self.ca.assert_pv_alarm_is("INSTRON_01:STRAIN:RAW:SP", ChannelAccess.ALARM_NONE)
