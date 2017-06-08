@@ -9,16 +9,17 @@ from utils.log_file import log_filename
 
 class LewisRegister(object):
     """
-    A way of registering running emulators
+    A way of registering running emulators.
     """
 
-    """static dictionary of running emulator"""
     RunningEmulators = {}
+    """Static dictionary of running emulators"""
 
     @classmethod
     def get_running(cls, lewis_emulator):
         """
-        Get a running emulator by name, return None if not running
+        Get a running emulator by name, return None if not running.
+
         :param lewis_emulator: name of the lewis emulator to grab
         :return: lewis launcher
         """
@@ -27,7 +28,8 @@ class LewisRegister(object):
     @classmethod
     def add_emulator(cls, name, emulator):
         """
-        Add a emulator to the running list
+        Add a emulator to the running list.
+
         :param name: name of the emmulator
         :param emulator: the emmulator launcher
         :return:
@@ -37,11 +39,12 @@ class LewisRegister(object):
 
 class LewisNone(object):
     """
-    Object representing a Lewis Launcher when Lewis is not required
+    Object representing a Lewis Launcher when Lewis is not required.
     """
 
     def __init__(self, device):
         """
+        Constructor.
 
         :param device: device name
         """
@@ -57,14 +60,16 @@ class LewisNone(object):
 
     def check(self):
         """
-        The none lewis simulator is running
+        The none lewis simulator is running.
+
         :return: True
         """
         return True
 
     def backdoor_set_on_device(self, variable_name, value):
         """
-        does nothing
+        Does nothing.
+
         :param variable_name: name of the variable to set
         :param value: value
         :return:
@@ -120,7 +125,7 @@ class LewisLauncher(object):
 
     def _open(self, port):
         """
-        Start the lewis emulator
+        Start the lewis emulator.
 
         :param port: the port on which to run lewis
         :return:
@@ -153,7 +158,8 @@ class LewisLauncher(object):
 
     def check(self):
         """
-        Check that the lewis emmulator is running
+        Check that the lewis emulator is running.
+
         :return: True if it is running; False otherwise
         """
         if self._process.poll() is None:
@@ -166,7 +172,8 @@ class LewisLauncher(object):
 
     def backdoor_set_on_device(self, variable_name, value):
         """
-        Set a value in the device using the lewis backdoor
+        Set a value in the device using the lewis backdoor.
+
         :param variable_name: name of variable to set
         :param value: new value it should have
         :return:
@@ -178,7 +185,8 @@ class LewisLauncher(object):
 
     def backdoor_command(self, lewis_command):
         """
-        Send a command to the backdoor of lewis
+        Send a command to the backdoor of lewis.
+
         :param lewis_command: array of command line arguments to send
         :return:
         """
@@ -196,20 +204,20 @@ class LewisLauncher(object):
 
     def backdoor_emulator_disconnect_device(self):
         """
-        Disconnect the emulated device
+        Disconnect the emulated device.
+
         :return:
         """
         if self._connected:
             self.backdoor_command(["simulation", "disconnect_device"])
         self._connected = False
 
-
     def backdoor_emulator_connect_device(self):
         """
-        Connect the emulated device
+        Connect the emulated device.
+
         :return:
         """
         if not self._connected:
             self.backdoor_command(["simulation", "connect_device"])
         self._connected = True
-

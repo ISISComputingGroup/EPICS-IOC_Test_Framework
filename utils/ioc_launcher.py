@@ -7,18 +7,19 @@ from utils.log_file import log_filename
 
 class IOCRegister(object):
     """
-    A way of registering running iocs
+    A way of registering running iocs.
     """
 
-    """static dictionary of running iocs"""
     RunningIOCs = {}
+    """Static dictionary of running iocs"""
 
     uses_rec_sim = False
 
     @classmethod
     def get_running(cls, ioc_name):
         """
-        Get a running ioc by name, return None if not running
+        Get a running ioc by name, return None if not running.
+
         :param ioc_name: name of the ioc emulator to grab
         :return: ioc launcher
         """
@@ -27,7 +28,8 @@ class IOCRegister(object):
     @classmethod
     def add_ioc(cls, name, ioc):
         """
-        Add an ioc to the running list
+        Add an ioc to the running list.
+
         :param name: name of the ioc
         :param ioc: the ioc launcher
         :return:
@@ -76,7 +78,6 @@ class IocLauncher(object):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
 
     def open(self):
-
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
@@ -125,7 +126,8 @@ class IocLauncher(object):
 
     def set_simulated_value(self, pv_name, value):
         """
-        If this IOC is in rec sim set the PV value
+        If this IOC is in rec sim set the PV value.
+
         :param pv_name: name of the pv value
         :param value: value to set
         :return:

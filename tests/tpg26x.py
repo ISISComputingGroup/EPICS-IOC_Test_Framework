@@ -43,7 +43,7 @@ class ErrorStrings(object):
 
 class Tpg26xTests(unittest.TestCase):
     """
-    Tests for the TPG26x
+    Tests for the TPG26x.
     """
 
     CHANNEL_ONE = 1

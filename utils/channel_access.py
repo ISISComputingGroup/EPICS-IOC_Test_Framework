@@ -51,7 +51,8 @@ class ChannelAccess(object):
 
     def assert_that_pv_is(self, pv, expected_value, timeout=5):
         """
-        Assert that the pv has the expected value or that it becomes the expected value within the timeout
+        Assert that the pv has the expected value or that it becomes the expected value within the timeout.
+
         :param pv: pv name
         :param expected_value: expected value
         :param timeout: if it hasn't changed within this time raise assertion error
@@ -69,7 +70,7 @@ class ChannelAccess(object):
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=5):
         """
         Assert that the pv has one of the expected values or that it becomes one of the expected value within the
-        timeout
+        timeout.
 
         :param pv: pv name
         :param expected_values: expected values
@@ -88,7 +89,8 @@ class ChannelAccess(object):
 
     def _values_match(self, pv, expected_value):
         """
-        Check pv matches a value
+        Check pv matches a value.
+
         :param pv: name of the pv (no prefix)
         :param expected_value: value that is expected
         :return: None if they match; error string stating the difference if they do not
@@ -101,7 +103,8 @@ class ChannelAccess(object):
 
     def _value_match_one_of(self, pv, expected_values):
         """
-        Check pv matches one of a number of values
+        Check pv matches one of a number of values.
+
         :param pv: name of the pv (no prefix)
         :param expected_values: list of value of of which is expected
         :return: None if they match; error string stating the difference if they do not
@@ -115,7 +118,7 @@ class ChannelAccess(object):
 
     def wait_for(self, pv, timeout=30):
         """
-        Wait for pv to be available or timeout and throw UnableToConnectToPVException
+        Wait for pv to be available or timeout and throw UnableToConnectToPVException.
 
         :param pv: pv to wait for
         :param timeout: time to wait for
@@ -127,7 +130,8 @@ class ChannelAccess(object):
 
     def _create_pv_with_prefix(self, pv):
         """
-        Create the full pv name with instrument prefix
+        Create the full pv name with instrument prefix.
+
         :param pv: pv name without prefix
         :return: pv name with prefix
         """
@@ -135,7 +139,8 @@ class ChannelAccess(object):
 
     def _wait_for_pv_lambda(self, wait_for_lambda, timeout):
         """
-        Wait for a lambda containing a pv to become None; return value or timeout and return actual value
+        Wait for a lambda containing a pv to become None; return value or timeout and return actual value.
+
         :param wait_for_lambda: lambda we expect to be None
         :param timeout: time out period
         :return: final value of lambda
@@ -158,7 +163,8 @@ class ChannelAccess(object):
 
     def assert_pv_alarm_is(self, pv, alarm, timeout=5):
         """
-        Assert that a pv is in alarm state given or timeout
+        Assert that a pv is in alarm state given or timeout.
+
         :param pv: pv name
         :param alarm: alarm state (see constants ALARM_X)
         :param timeout: length of time to wait for change

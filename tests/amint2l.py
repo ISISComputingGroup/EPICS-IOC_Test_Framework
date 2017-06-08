@@ -14,7 +14,7 @@ MACROS = {"ADDR": ADDRESS}
 
 class Amint2lTests(unittest.TestCase):
     """
-    Tests for the AM Int2-L
+    Tests for the AM Int2-L.
     """
 
     def setUp(self):
