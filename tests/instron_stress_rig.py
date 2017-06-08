@@ -153,15 +153,6 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
                 _set_and_check(chan, i)
 
-#    def test_GIVEN_a_ramp_amplitude_setpoint_WHEN_asking_for_the_raw_value_of_the_channel_THEN_the_value_is_equal_to_the_setpoint(self):
-#        def _set_and_check(chan, value):
-#            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
-#            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW", value)
-#
-#        for chan in ["POS", "STRESS", "STRAIN"]:
-#            for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
-#                _set_and_check(chan, i)
-
     def test_WHEN_channel_tolerance_is_set_THEN_it_changes(self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", value)
