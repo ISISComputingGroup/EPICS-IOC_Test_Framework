@@ -9,7 +9,7 @@ class ChannelAccess(object):
     """
 
     ALARM_NONE = "NO_ALARM"
-    """Alarm value if their is no alarm"""
+    """Alarm value if there is no alarm"""
 
     ALARM_MAJOR = "MAJOR"
     """Alarm value if the record is in major alarm"""
