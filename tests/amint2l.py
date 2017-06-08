@@ -21,7 +21,7 @@ class Amint2lTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("amint2l")
 
         self.ca = ChannelAccess()
-        self.ca.wait_for("AMINT2L_01:PRESSURE")
+        self.ca.wait_for("AMINT2L_01:PRESSURE", timeout=30)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _set_pressure(self, expected_pressure):
