@@ -10,8 +10,8 @@ class IOCRegister(object):
     A way of registering running iocs.
     """
 
+    # Static dictionary of running iocs
     RunningIOCs = {}
-    """Static dictionary of running iocs"""
 
     uses_rec_sim = False
 

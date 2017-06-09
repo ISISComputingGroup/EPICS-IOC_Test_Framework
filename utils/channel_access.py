@@ -8,17 +8,17 @@ class ChannelAccess(object):
     Provides the required channel access commands.
     """
 
+    # Alarm value if there is no alarm
     ALARM_NONE = "NO_ALARM"
-    """Alarm value if there is no alarm"""
 
+    # Alarm value if the record is in major alarm
     ALARM_MAJOR = "MAJOR"
-    """Alarm value if the record is in major alarm"""
 
+    # Alarm value if the record is in minor alarm
     ALARM_MINOR = "MINOR"
-    """Alarm value if the record is in minor alarm"""
 
+    # Alarm value if the record has a calc alarm
     ALARM_INVALID = "INVALID"
-    """Alarm value if the record has a calc alarm"""
 
     def __init__(self, default_timeout=5):
         """

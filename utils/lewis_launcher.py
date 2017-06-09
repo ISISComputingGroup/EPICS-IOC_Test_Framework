@@ -12,8 +12,8 @@ class LewisRegister(object):
     A way of registering running emulators.
     """
 
+    # Static dictionary of running emulators
     RunningEmulators = {}
-    """Static dictionary of running emulators"""
 
     @classmethod
     def get_running(cls, lewis_emulator):
