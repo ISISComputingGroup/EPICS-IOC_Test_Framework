@@ -23,7 +23,7 @@ def get_free_ports(n):
 
 def get_free_ports_from_list(n, port_low, port_high):
     """
-    Return n free ports by testing specified range
+    Return n free ports by testing specified range.
 
     :param n: the number of ports required
     :param port_low: the minimum of the ports range

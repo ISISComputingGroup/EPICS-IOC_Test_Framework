@@ -6,7 +6,8 @@ LOG_FILES_DIRECTORY = os.path.join("logs","IOCTestFramework")
 
 def log_filename(what, device, uses_rec_sim, var_dir):
     """
-    Log file name with path. Ensure path exists
+    Log file name with path. Ensure path exists.
+
     :param what: what is being logged for, e.g. lewis
     :param device: device the log is for
     :param uses_rec_sim: whether rec sim is used

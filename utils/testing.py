@@ -4,7 +4,8 @@ from utils.lewis_launcher import LewisRegister, LewisLauncher
 
 def get_running_lewis_and_ioc(device_name):
     """
-    Assert that the emulator and ioc have been started if needed
+    Assert that the emulator and ioc have been started if needed.
+
     :param device_name: the device name
     :return: lewis launcher and ioc launcher tuple
     :rtype: (LewisLauncher, IocLauncher)
