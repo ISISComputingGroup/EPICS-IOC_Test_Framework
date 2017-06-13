@@ -27,27 +27,39 @@ class SuperlogicsTests(unittest.TestCase):
     def _set_channel_values(self, values):
         self._lewis.backdoor_set_on_device("values", values)
 
-    def test_GIVEN_channel_one_value_set_WHEN_read_THEN_value_is_as_expected(self):
+    def _set_firmware_version(self, value):
+        self._lewis.backdoor_set_on_device("version", value)
+
+    def test_GIVEN_one_value_set_WHEN_read_THEN_error_state(self):
         channel = 1
         expected_value = 1.3
         self._set_channel_values([expected_value])
 
         pv_name = "{0}:{1}:{2}:VALUE".format(PREFIX, ADDRESS, channel)
-        self.ca.assert_that_pv_is(pv_name, expected_value)
+        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_CALC)
 
-    def test_GIVEN_channel_two_value_set_WHEN_read_THEN_value_is_as_expected(self):
+    def test_GIVEN_two_values_set_WHEN_read_THEN_error_state(self):
         channel = 2
         expected_value = 2.0
         self._set_channel_values([0., expected_value])
 
         pv_name = "{0}:{1}:{2}:VALUE".format(PREFIX, ADDRESS, channel)
-        self.ca.assert_that_pv_is(pv_name, expected_value)
+        # self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_CALC)
 
-    def test_GIVEN_all_channels_value_set_WHEN_read_THEN_value_is_as_expected(self):
+    def test_GIVEN_all_channels_value_set_WHEN_read_THEN_values_are_as_expected(self):
         expected_values = [1., 2., 3., 4., 5., 6., 7., 8.]
         self._set_channel_values(expected_values)
 
         for channel, expected_value in enumerate(expected_values):
             pv_name = "{0}:{1}:{2}:VALUE".format(PREFIX, ADDRESS, channel+1)
             self.ca.assert_that_pv_is(pv_name, expected_value)
+            self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_version_set_WHEN_read_THEN_value_is_as_expected(self):
+        expected_version = "B1.0"
+        self._set_firmware_version(expected_version)
+        pv_name = "{0}:{1}:VERSION".format(PREFIX, ADDRESS)
+
+        self.ca.assert_that_pv_is(pv_name, expected_version)
+        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
