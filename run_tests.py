@@ -10,6 +10,7 @@ from utils.lewis_launcher import LewisLauncher, LewisNone
 from utils.ioc_launcher import IocLauncher, IOCRegister
 from utils.free_ports import get_free_ports
 
+
 def package_contents(package_name):
     """
     Finds all the modules in a package.

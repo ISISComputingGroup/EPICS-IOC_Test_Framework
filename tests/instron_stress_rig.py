@@ -96,4 +96,3 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         for set_val, return_val in [(0, "Position"), (1, "Stress"), (2, "Strain")]:
             _set_and_check(set_val, return_val)
-
