@@ -16,8 +16,6 @@ class JulaboTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("julabo")
-
-
         self.ca = ChannelAccess()
         self.ca.wait_for("JULABO_01:TEMP", timeout=30)
         # Turn off circulate
