@@ -98,7 +98,6 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         for set_val, return_val in [(0, "Position"), (1, "Stress"), (2, "Strain")]:
             _set_and_check(set_val, return_val)
-<<<<<<< HEAD
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
             self):
@@ -328,5 +327,3 @@ class Instron_stress_rigTests(unittest.TestCase):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_2", str(value_2)])
                 self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD", return_value_1)
                 self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE", return_value_2)
-=======
->>>>>>> master
