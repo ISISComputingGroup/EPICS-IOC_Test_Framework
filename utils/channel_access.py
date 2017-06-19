@@ -256,4 +256,4 @@ class ChannelAccess(object):
         :raises AssertionError: if alarm does not become requested value
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
-        self.assert_that_pv_is_one_of("{pv}.SEVR".format(pv=pv), alarms, timeout=timeout)
+        self.assert_that_pv_is_one_of("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
