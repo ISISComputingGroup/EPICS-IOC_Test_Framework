@@ -14,12 +14,19 @@ WAVEFORM_ABORTED = "4"
 NUMBER_OF_CHANNELS = 3
 
 
+def add_prefix(prefix, root):
+    return "{0}:{1}".format(prefix, root)
+
 def prefixed(val):
-    return "{0}{1}".format("INSTRON_01:", val)
+    return add_prefix("INSTRON_01", val)
 
 
 def wave_prefixed(val):
-    return prefixed("{0}{1}".format("WAVE:", val))
+    return prefixed(add_prefix("WAVE", val))
+
+
+def quart_prefixed(val):
+    return prefixed(add_prefix("QUART", val))
 
 
 class Instron_stress_rigTests(unittest.TestCase):
@@ -438,21 +445,52 @@ class Instron_stress_rigTests(unittest.TestCase):
     #    for channel in range(NUMBER_OF_CHANNELS):
     #        self.ca.set_pv_value(prefixed("CHANNEL:SP.VAL"), channel)
     #        self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[channel])
+    #
+    #@skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    #def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
+    #    input_values = [123.456, 789.012, 345.678]
+    #    conversion_factors = [
+    #        float(self.ca.get_pv_value(prefixed("POS:SCALE")))*1000.0,
+    #        float(self.ca.get_pv_value(prefixed("STRESS:SCALE")))*float(self.ca.get_pv_value(prefixed("STRESS:AREA"))),
+    #        float(self.ca.get_pv_value(prefixed("STRAIN:SCALE")))*100000.0/float(self.ca.get_pv_value(prefixed("STRAIN:LENGTH")))
+    #    ]
+    #    expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
+    #    assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
+    #
+    #    for channel in range(NUMBER_OF_CHANNELS):
+    #        self.ca.set_pv_value(prefixed("CHANNEL:SP.VAL"), channel)
+    #        self.ca.set_pv_value(wave_prefixed("AMP:SP"), input_values[channel])
+    #    for channel in range(NUMBER_OF_CHANNELS):
+    #        self.ca.set_pv_value(prefixed("CHANNEL:SP.VAL"), channel)
+    #        self.ca.assert_that_pv_is_number(wave_prefixed("AMP"), expected_values[channel], tolerance=0.0005)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
-        input_values = [123.456, 789.012, 345.678]
-        conversion_factors = [
-            float(self.ca.get_pv_value(prefixed("POS:SCALE")))*1000.0,
-            float(self.ca.get_pv_value(prefixed("STRESS:SCALE")))*float(self.ca.get_pv_value(prefixed("STRESS:AREA"))),
-            float(self.ca.get_pv_value(prefixed("STRAIN:SCALE")))*100000.0/float(self.ca.get_pv_value(prefixed("STRAIN:LENGTH")))
-        ]
-        expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
-        assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
+    def test_WHEN_the_quarter_counter_is_off_THEN_the_number_of_counts_is_and_remains_zero(self):
+        self.ca.set_pv_value(quart_prefixed("OFF"), 1)
+        self.ca.assert_that_pv_is(prefixed("QUART"), 0)
+        sleep(5)
+        self.ca.assert_that_pv_is(prefixed("QUART"), 0)
 
-        for channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value(prefixed("CHANNEL:SP.VAL"), channel)
-            self.ca.set_pv_value(wave_prefixed("AMP:SP"), input_values[channel])
-        for channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value(prefixed("CHANNEL:SP.VAL"), channel)
-            self.ca.assert_that_pv_is_number(wave_prefixed("AMP"), expected_values[channel], tolerance=0.0005)
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_the_quarter_counter_is_armed_THEN_the_status_is_armed(self):
+        self.ca.set_pv_value(quart_prefixed("ARM"), 1)
+        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_the_quarter_counter_is_armed_THEN_it_starts_counting_and_keeps_increasing(self):
+        self.ca.set_pv_value(quart_prefixed("ARM"), 1)
+        first_count = float(self.ca.get_pv_value(prefixed("QUART")))
+        sleep(5)
+        second_count = float(self.ca.get_pv_value(prefixed("QUART")))
+        self.assertGreater(second_count, first_count)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
+        cycles = 5
+        self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
+        self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
+        self.ca.set_pv_value(quart_prefixed("ARM"), 1)
+        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
+        while self.ca.get_pv_value(quart_prefixed("ARM")) == "Armed":
+            self.assertLessEqual(4*float(self.ca.get_pv_value(wave_prefixed("QUART"))), cycles)
+        self.ca.get_pv_value(quart_prefixed("STATUS")) == "Tripped"
