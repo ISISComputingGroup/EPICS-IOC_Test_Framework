@@ -16,7 +16,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
 
-        self.ca = ChannelAccess(15)
+        self.ca = ChannelAccess(10)
         self.ca.wait_for("INSTRON_01:CHANNEL", timeout=30)
 
     def test_WHEN_the_rig_is_initialized_THEN_the_status_is_ok(self):
@@ -63,25 +63,16 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is_an_integer_between("INSTRON_01:ARBITRARY", min=1, max=3)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_arbitrary_command_C1_is_sent_THEN_Q1_gives_back_the_value_that_was_just_set(self):
+    def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
 
         def _set_and_check(value):
-            self.ca.set_pv_value("INSTRON_01:ARBITRARY:SP", "C1," + value)
-            self.ca.assert_that_pv_is("INSTRON_01:ARBITRARY:SP", "C1," + value)
-            self.ca.set_pv_value("INSTRON_01:ARBITRARY:SP", "Q1")
-            self.ca.assert_that_pv_is("INSTRON_01:ARBITRARY", value)
+            self.ca.set_pv_value("INSTRON_01:ARBITRARY:SP", "C4,1," + str(value))
+            self.ca.assert_that_pv_is("INSTRON_01:ARBITRARY:SP", "C4,1," + str(value))
+            self.ca.set_pv_value("INSTRON_01:ARBITRARY:SP", "Q4,1")
+            self.ca.assert_that_pv_is_number("INSTRON_01:ARBITRARY", value, tolerance=0.0001)
 
-        for v in ["0", "1", "0"]:
+        for v in [0, 1, 0]:
             _set_and_check(v)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_the_movement_type_on_rig_is_hold_THEN_it_gets_stopped(self):
-
-        self.ca.set_pv_value("INSTRON_01:MOVE:SP", 1)
-        self.ca.assert_that_pv_is_one_of("INSTRON_01:MOVE", ["RAMP_RUNNING", "RAND_RUNNING"])
-
-        self.ca.set_pv_value("INSTRON_01:MOVE:SP", 2)
-        self.ca.assert_that_pv_is("INSTRON_01:MOVE", "STOPPED")
 
     def test_WHEN_control_channel_is_requested_THEN_an_allowed_value_is_returned(self):
         self.ca.assert_that_pv_is_one_of("INSTRON_01:CHANNEL", ["Stress", "Strain", "Position"])
@@ -153,6 +144,15 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
                 _set_and_check(chan, i)
 
+    def test_WHEN_the_setpoint_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
+        def _set_and_check(chan, value):
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
+            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP:RBV", value, tolerance=0.005)
+
+        for chan in ["POS", "STRESS", "STRAIN"]:
+            for i in [1.0, 5.5, 1000]:
+                _set_and_check(chan, i)
+
     def test_WHEN_channel_tolerance_is_set_THEN_it_changes(self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", value)
@@ -172,7 +172,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [0.123, 567]:
                 _set_and_check(chan, i)
 
-    def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_is_set_THEN_the_setpoint_has_alarms(
+    def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_is_set_THEN_the_setpoint_readback_has_alarms(
             self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
