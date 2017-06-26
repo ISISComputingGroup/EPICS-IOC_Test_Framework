@@ -359,44 +359,44 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), status)
         self.ca.assert_that_pv_is(wave_prefixed("RUNNING"), "Running" if running else "Not running")
         self.ca.assert_that_pv_is(wave_prefixed("CONTINUING"), "Continuing" if continuing else "Not continuing")
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_it_is_started_THEN_it_is_running(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_STOPPED])
         self.check_running_state(status="Stopped", running=False, continuing=False)
         self.ca.set_pv_value(wave_prefixed("START"), 1)
         self.check_running_state(status="Running", running=True, continuing=True)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_it_is_aborted_THEN_it_is_stopped(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_STOPPED])
         self.check_running_state(status="Stopped", running=False, continuing=False)
         self.ca.set_pv_value(wave_prefixed("ABORT"), 1)
         self.check_running_state(status="Stopped", running=False, continuing=False)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_it_is_stopped_THEN_it_is_stopped(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_STOPPED])
         self.check_running_state(status="Stopped", running=False, continuing=False)
         self.ca.set_pv_value(wave_prefixed("STOP"), 1)
         self.check_running_state(status="Stopped", running=False, continuing=False)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_running_WHEN_it_is_started_THEN_it_is_running(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
         self.check_running_state(status="Running", running=True, continuing=True)
         self.ca.set_pv_value(wave_prefixed("START"), 1)
         self.check_running_state(status="Running", running=True, continuing=True)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_running_WHEN_it_is_aborted_THEN_it_is_aborted(self):
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
         self.check_running_state(status="Running", running=True, continuing=True)
         self.ca.set_pv_value(wave_prefixed("ABORT"), 1)
         self.check_running_state(status="Aborted", running=False, continuing=False)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_running_WHEN_it_is_stopped_THEN_it_is_finishing_and_then_stops_within_5_seconds(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
         self.check_running_state(status="Running", running=True, continuing=True)
@@ -404,42 +404,42 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.check_running_state(status="Finishing", running=True, continuing=False)
         sleep(5)
         self.check_running_state(status="Stopped", running=False, continuing=False)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_started_THEN_it_is_running(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_ABORTED])
         self.check_running_state(status="Aborted", running=False, continuing=False)
         self.ca.set_pv_value(wave_prefixed("START"), 1)
         self.check_running_state(status="Running", running=True, continuing=True)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_aborted_THEN_it_is_aborted(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_ABORTED])
         self.check_running_state(status="Aborted", running=False, continuing=False)
         self.ca.set_pv_value(wave_prefixed("ABORT"), 1)
         self.check_running_state(status="Aborted", running=False, continuing=False)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_stopped_THEN_it_is_aborted(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_ABORTED])
         self.check_running_state(status="Aborted", running=False, continuing=False)
         self.ca.set_pv_value(wave_prefixed("STOP"), 1)
         self.check_running_state(status="Aborted", running=False, continuing=False)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_stopped_THEN_it_is_aborted(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_ABORTED])
         self.check_running_state(status="Aborted", running=False, continuing=False)
         self.ca.set_pv_value(wave_prefixed("STOP"), 1)
         self.check_running_state(status="Aborted", running=False, continuing=False)
-    
 
     def test_WHEN_waveform_type_is_set_THEN_the_device_reports_it_has_changed(self):
-        for i in range(8):
-            self.ca.set_pv_value(wave_prefixed("TYPE:SP"), i)
-            self.ca.assert_that_pv_is(wave_prefixed("TYPE.RVAL"), i)
-    
+        for index, type in enumerate(["Sine", "Triangle", "Square", "Haversine",
+                     "Havetriangle", "Haversquare", "Sensor", "Aux", "Sawtooth"]):
+            self.ca.set_pv_value(wave_prefixed("TYPE:SP"), index)
+            self.ca.assert_that_pv_is(wave_prefixed("TYPE"), type)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Recsim record does not handle multiple channels
     def test_GIVEN_multiple_channels_WHEN_waveform_frequency_is_set_THEN_the_device_is_updated_to_that_value(self):
         expected_values = [123.456, 789.012, 345.678]
         assert len(expected_values) == NUMBER_OF_CHANNELS
@@ -450,8 +450,8 @@ class Instron_stress_rigTests(unittest.TestCase):
         for channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value(prefixed("CHANNEL:SP.VAL"), channel)
             self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[channel])
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Conversion factors initialized to 0
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = [123.456, 789.012, 345.678]
         conversion_factors = [
@@ -468,20 +468,19 @@ class Instron_stress_rigTests(unittest.TestCase):
         for channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value(prefixed("CHANNEL:SP.VAL"), channel)
             self.ca.assert_that_pv_is_number(wave_prefixed("AMP"), expected_values[channel], tolerance=0.0005)
-    
 
     def test_WHEN_the_quarter_counter_is_off_THEN_the_number_of_counts_is_and_remains_zero(self):
         self.ca.set_pv_value(quart_prefixed("OFF"), 1)
         self.ca.assert_that_pv_is(prefixed("QUART"), 0)
         sleep(5)
         self.ca.assert_that_pv_is(prefixed("QUART"), 0)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Status more complicated than RECSIM can handle
     def test_WHEN_the_quarter_counter_is_armed_THEN_the_status_is_armed(self):
         self.ca.set_pv_value(quart_prefixed("ARM"), 1)
         self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Counting part of dynamic device behaviour
     def test_WHEN_the_waveform_generator_is_started_THEN_the_quarter_counter_starts_counting_and_keeps_increasing(self):
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
         self.ca.set_pv_value(wave_prefixed("START"), 1)
@@ -489,8 +488,8 @@ class Instron_stress_rigTests(unittest.TestCase):
         sleep(5)
         second_count = float(self.ca.get_pv_value(prefixed("QUART")))
         self.assertGreater(second_count, first_count)
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Status more complicated than RECSIM can handle
     def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
         cycles = 5
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
@@ -500,31 +499,31 @@ class Instron_stress_rigTests(unittest.TestCase):
         while self.ca.get_pv_value(quart_prefixed("ARM")) == "Armed":
             self.assertLessEqual(4*float(self.ca.get_pv_value(wave_prefixed("QUART"))), cycles)
         self.ca.get_pv_value(quart_prefixed("STATUS")) == "Tripped"
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_instructed_to_hold_THEN_status_is_stopped(self):
        self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_STOPPED])
        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
        self.ca.set_pv_value(wave_prefixed("HOLD"), 1)
        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor
     def test_GIVEN_the_waveform_generator_is_running_WHEN_instructed_to_hold_THEN_status_is_holding(self):
        self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
        self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Running")
        self.ca.set_pv_value(wave_prefixed("HOLD"), 1)
        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Holding")
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_the_waveform_generator_is_holding_WHEN_instructed_to_hold_THEN_status_is_holding(self):
        self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
        self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_HOLDING])
        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Holding")
        self.ca.set_pv_value(wave_prefixed("HOLD"), 1)
        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Holding")
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor
     def test_GIVEN_the_waveform_generator_is_finishing_WHEN_instructed_to_hold_THEN_status_is_finishing(self):
        self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
        self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_FINISHING])
@@ -536,18 +535,16 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is(prefixed("POS:ABS"), expected_value)
         self.ca.assert_that_pv_is(prefixed("STRAIN:ABS"), expected_value)
         self.ca.assert_that_pv_is(prefixed("STRESS:ABS"), expected_value)
-    
 
     def test_WHEN_the_waveform_generator_is_started_THEN_every_axis_is_set_to_ramp(self):
         self.ca.set_pv_value(wave_prefixed("START"), 1)
         self.verify_channel_abs("Ramp")
-    
 
     def test_WHEN_the_waveform_generator_is_stopped_THEN_every_axis_is_set_to_absolute_ramp(self):
         self.ca.set_pv_value(wave_prefixed("STOP"), 1)
         self.verify_channel_abs("Absolute ramp")
-    
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Different statuses don't interact in RECSIM
     def test_WHEN_the_waveform_generator_is_started_THEN_the_quarter_counter_is_armed(self):
         self.ca.set_pv_value(wave_prefixed("START"), 1)
         self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
