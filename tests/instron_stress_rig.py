@@ -16,7 +16,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
 
-        self.ca = ChannelAccess(10)
+        self.ca = ChannelAccess(15)
         self.ca.wait_for("INSTRON_01:CHANNEL", timeout=30)
 
     def test_WHEN_the_rig_is_initialized_THEN_the_status_is_ok(self):
@@ -144,13 +144,19 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
                 _set_and_check(chan, i)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_setpoint_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
-            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP:RBV", value, tolerance=0.005)
+            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP", value, tolerance=0.001)
+            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP:RBV", value, tolerance=0.05)
+
+        # Ensure stress area and strain length are sensible values (i.e. not zero)
+        self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
+        self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
 
         for chan in ["POS", "STRESS", "STRAIN"]:
-            for i in [1.0, 5.5, 1000]:
+            for i in [1.0, 123.456, 555.555, 1000]:
                 _set_and_check(chan, i)
 
     def test_WHEN_channel_tolerance_is_set_THEN_it_changes(self):
