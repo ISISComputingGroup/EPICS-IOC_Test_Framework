@@ -8,16 +8,17 @@ class ChannelAccess(object):
     Provides the required channel access commands.
     """
 
-    """Alarm values if their is no alarm"""
-    ALARM_NONE = ["NO_ALARM"]
-    """Alarm values if the record is in major alarm"""
-    ALARM_MAJOR = ["MAJOR"]
-    """Alarm values if the record is in minor alarm"""
-    ALARM_MINOR = ["MINOR"]
-    """Alarm values if the record is disconnected"""
-    ALARM_DISCONNECTED = ["TIMEOUT"]
-    """Alarm values if the record has a calc alarm"""
-    ALARM_CALC = ["CALC"]
+    ALARM_NONE = "NO_ALARM"
+    """Alarm value if there is no alarm"""
+
+    ALARM_MAJOR = "MAJOR"
+    """Alarm value if the record is in major alarm"""
+
+    ALARM_MINOR = "MINOR"
+    """Alarm value if the record is in minor alarm"""
+
+    ALARM_INVALID = "INVALID"
+    """Alarm value if the record has a calc alarm"""
 
     def __init__(self, default_timeout=5):
         """
@@ -256,4 +257,4 @@ class ChannelAccess(object):
         :raises AssertionError: if alarm does not become requested value
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
-        self.assert_that_pv_is_one_of("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
+        self.assert_that_pv_is("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
