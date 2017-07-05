@@ -258,3 +258,25 @@ class ChannelAccess(object):
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
         self.assert_that_pv_is("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
+
+    def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None, expected_alarm=ALARM_NONE, timeout=None):
+        """
+        Set a pv to a value and check that the readback has the expected value and alarm state.
+        :param value: value to set
+        :param readback_pv: the pv for the read back (e.g. IN:INST:TEMP)
+        :param set_point_pv: the pv to check has the correct value; if None use the readback with SP  (e.g. IN:INST:TEMP:SP)
+        :param expected_value: the expected return value; if None use the value
+        :param expected_alarm: the expected alarm status; if not used ALARM_NONE
+        :param timeout: timeout for the pv and alarm to become the expected values
+        :return:
+        :raises AssertionError: if setback does not become expected value or has incorrect alarm state
+        :raises UnableToConnectToPVException: if a pv does not exist within timeout
+        """
+        if set_point_pv is None:
+            set_point_pv = "{0}:SP".format(readback_pv)
+        if expected_value is None:
+            expected_value = value
+
+        self.set_pv_value(set_point_pv, value)
+        self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
+        self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)

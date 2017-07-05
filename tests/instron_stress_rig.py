@@ -13,6 +13,8 @@ class Instron_stress_rigTests(unittest.TestCase):
     Tests for the Instron IOC.
     """
 
+    WAVEFORM_TYPES = ["Ramp", "Dual ramp", "Trapezium", "Absolute ramp", "Absolute hold ramp", "Absolute rate ramp"]
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
 
@@ -111,20 +113,10 @@ class Instron_stress_rigTests(unittest.TestCase):
             _set_and_check(chan, val)
 
     def test_WHEN_the_ramp_waveform_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
-
-        def _set_and_check(chan, set_value, return_value):
-            self.ca.set_pv_value("INSTRON_01:" + chan + ":ABS:SP", set_value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":ABS", return_value)
-
+        pv_name = "INSTRON_01:{0}:RAMP:WFTYP"
         for chan in ["POS", "STRESS", "STRAIN"]:
-            for set_value, return_value in [(0, "Ramp"),
-                                            (1, "Dual ramp"),
-                                            (2, "Trapezium"),
-                                            (3, "Absolute ramp"),
-                                            (4, "Absolute hold ramp"),
-                                            (5, "Absolute rate ramp"),]:
-
-                _set_and_check(chan, set_value, return_value)
+            for set_value, return_value in enumerate(self.WAVEFORM_TYPES):
+                self.ca.assert_setting_setpoint_sets_readback(set_value, pv_name.format(chan), expected_value=return_value)
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
         def _set_and_check(chan, value):
@@ -188,6 +180,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         for chan in ["POS", "STRESS", "STRAIN"]:
             for i in [0.234, 789]:
                 _set_and_check(chan, i)
+
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_ioc_gets_a_raw_position_reading_from_the_device_THEN_it_is_converted_correctly(self):
@@ -333,3 +326,14 @@ class Instron_stress_rigTests(unittest.TestCase):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_2", str(value_2)])
                 self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD", return_value_1)
                 self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE", return_value_2)
+
+    def test_WHEN_waveform_type_abs_set_on_axes_THEN_all_axes_are_set(self):
+        def _set_and_check(set_value, return_value):
+            self.ca.set_pv_value("INSTRON_01:AXES:RAMP:WFTYP:SP", set_value)
+            for chan in ["POS", "STRESS", "STRAIN"]:
+                self.ca.assert_that_pv_is("INSTRON_01:{0}:RAMP:WFTYP".format(chan), return_value)
+                self.ca.assert_pv_alarm_is("INSTRON_01:{0}:RAMP:WFTYP".format(chan), ChannelAccess.ALARM_NONE)
+
+        for set_value, return_value in enumerate(self.WAVEFORM_TYPES):
+            _set_and_check(set_value, return_value)
+
