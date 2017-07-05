@@ -84,33 +84,20 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
-
-        def _set_and_check(set_value, return_value):
-            self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", set_value)
-            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL", return_value)
-
         for set_val, return_val in [(0, "Position"), (1, "Stress"), (2, "Strain")]:
-            _set_and_check(set_val, return_val)
+            self.ca.assert_setting_setpoint_sets_readback(set_val, "INSTRON_01:CHANNEL", expected_value=return_val)
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
             self):
-
-        def _set_and_check(chan, value):
-            self.ca.set_pv_value("INSTRON_01:" + chan + ":STEP:TIME:SP", value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":STEP:TIME", value)
-
         for chan, val in [("POS", 123), ("STRESS", 456), ("STRAIN", 789)]:
-            _set_and_check(chan, val)
+            pv_name = "INSTRON_01:" + chan + ":STEP:TIME"
+            self.ca.assert_setting_setpoint_sets_readback(val, pv_name)
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(
             self):
-
-        def _set_and_check(chan, value):
-            self.ca.set_pv_value("INSTRON_01:" + chan + ":STEP:TIME:SP", value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":STEP:TIME", value)
-
         for chan, val in [("POS", 111.111), ("STRESS", 222.222), ("STRAIN", 333.333)]:
-            _set_and_check(chan, val)
+            pv_name = "INSTRON_01:" + chan + ":STEP:TIME"
+            self.ca.assert_setting_setpoint_sets_readback(val, pv_name)
 
     def test_WHEN_the_ramp_waveform_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
         pv_name = "INSTRON_01:{0}:RAMP:WFTYP"
@@ -119,22 +106,18 @@ class Instron_stress_rigTests(unittest.TestCase):
                 self.ca.assert_setting_setpoint_sets_readback(set_value, pv_name.format(chan), expected_value=return_value)
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
-        def _set_and_check(chan, value):
-            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW:SP:RBV", value)
-
         for chan in ["POS", "STRESS", "STRAIN"]:
-            for i in [0,10,1000,1000000]:
-                _set_and_check(chan, i)
+            for val in [0, 10, 1000, 1000000]:
+                pv_name = "INSTRON_01:" + chan + ":RAW:SP"
+                pv_name_rbv = pv_name + ":RBV"
+                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_rbv, set_point_pv=pv_name)
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(self):
-        def _set_and_check(chan, value):
-            self.ca.set_pv_value("INSTRON_01:" + chan + ":RAW:SP", value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":RAW:SP:RBV", value)
-
         for chan in ["POS", "STRESS", "STRAIN"]:
-            for i in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
-                _set_and_check(chan, i)
+            for val in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
+                pv_name = "INSTRON_01:" + chan + ":RAW:SP"
+                pv_name_rbv = pv_name + ":RBV"
+                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_rbv, set_point_pv=pv_name)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_setpoint_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
@@ -151,14 +134,17 @@ class Instron_stress_rigTests(unittest.TestCase):
             for i in [1.0, 123.456, 555.555, 1000]:
                 _set_and_check(chan, i)
 
-    def test_WHEN_channel_tolerance_is_set_THEN_it_changes(self):
-        def _set_and_check(chan, value):
-            self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", value)
-            self.ca.assert_that_pv_is("INSTRON_01:" + chan + ":TOLERANCE", value)
-
+    def test_WHEN_channel_tolerance_is_set_THEN_it_changes_limits_on_SP_RBV(self):
         for chan in ["POS", "STRESS", "STRAIN"]:
-            for i in [0.1, 1.0, 2.5]:
-                _set_and_check(chan, i)
+            sp_val = 1
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", sp_val)
+            for val in [0.1, 1.0, 2.5]:
+                pv_name = "INSTRON_01:" + chan + ":TOLERANCE"
+                pv_name_high = "INSTRON_01:" + chan + ":SP:RBV.HIGH"
+                pv_name_low = "INSTRON_01:" + chan + ":SP:RBV.LOW"
+                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_high, set_point_pv=pv_name, expected_value=val+sp_val, expected_alarm=None)
+                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_low, set_point_pv=pv_name,
+                                                              expected_value=sp_val - val, expected_alarm=None)
 
     def test_GIVEN_a_big_tolerance_WHEN_the_setpoint_is_set_THEN_the_setpoint_has_no_alarms(self):
         def _set_and_check(chan, value):

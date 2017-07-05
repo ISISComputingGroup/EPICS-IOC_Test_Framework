@@ -266,7 +266,7 @@ class ChannelAccess(object):
         :param readback_pv: the pv for the read back (e.g. IN:INST:TEMP)
         :param set_point_pv: the pv to check has the correct value; if None use the readback with SP  (e.g. IN:INST:TEMP:SP)
         :param expected_value: the expected return value; if None use the value
-        :param expected_alarm: the expected alarm status; if not used ALARM_NONE
+        :param expected_alarm: the expected alarm status, None don't check; defaults to ALARM_NONE
         :param timeout: timeout for the pv and alarm to become the expected values
         :return:
         :raises AssertionError: if setback does not become expected value or has incorrect alarm state
@@ -279,4 +279,5 @@ class ChannelAccess(object):
 
         self.set_pv_value(set_point_pv, value)
         self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
-        self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
+        if expected_alarm is not None:
+            self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
