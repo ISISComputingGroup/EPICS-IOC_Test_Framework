@@ -1,25 +1,33 @@
 import unittest
 from unittest import skipIf
 
+import time
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
 import math
 
+RAMP_WAVEFORM_TYPES = ["Ramp", "Dual ramp", "Trapezium", "Absolute ramp", "Absolute hold ramp",
+                            "Absolute rate ramp"]
+
+POS_STRESS_STRAIN = ["POS", "STRESS", "STRAIN"]
 
 class Instron_stress_rigTests(unittest.TestCase):
     """
     Tests for the Instron IOC.
     """
 
-    WAVEFORM_TYPES = ["Ramp", "Dual ramp", "Trapezium", "Absolute ramp", "Absolute hold ramp", "Absolute rate ramp"]
-
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
 
         self.ca = ChannelAccess(15)
         self.ca.wait_for("INSTRON_01:CHANNEL", timeout=30)
+
+        # Set device types correctly
+        for index, chan_type2 in enumerate((3, 2, 4)):
+            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "type_2", str(chan_type2)])
 
     def test_WHEN_the_rig_is_initialized_THEN_the_status_is_ok(self):
         self.ca.assert_that_pv_is("INSTRON_01:STAT:DISP", "System OK")
@@ -35,6 +43,15 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_that_the_rig_is_not_normally_in_control_mode(self):
         self.ca.assert_that_pv_is("INSTRON_01:STOP:SP", "READY")
+
+    def test_WHEN_init_sequence_run_THEN_waveform_ramp_is_set_the_status_is_ok(self):
+        for chan in POS_STRESS_STRAIN:
+            self.ca.set_pv_value("INSTRON_01:{0}:RAMP:WFTYP:SP".format(chan), 0)
+
+        self.ca.set_pv_value("INSTRON_01:INIT", 1)
+
+        for chan in POS_STRESS_STRAIN:
+            self.ca.assert_that_pv_is("INSTRON_01:{0}:RAMP:WFTYP".format(chan), RAMP_WAVEFORM_TYPES[3])
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
@@ -101,19 +118,19 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_the_ramp_waveform_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
         pv_name = "INSTRON_01:{0}:RAMP:WFTYP"
-        for chan in ["POS", "STRESS", "STRAIN"]:
-            for set_value, return_value in enumerate(self.WAVEFORM_TYPES):
+        for chan in POS_STRESS_STRAIN:
+            for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
                 self.ca.assert_setting_setpoint_sets_readback(set_value, pv_name.format(chan), expected_value=return_value)
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
-        for chan in ["POS", "STRESS", "STRAIN"]:
+        for chan in POS_STRESS_STRAIN:
             for val in [0, 10, 1000, 1000000]:
                 pv_name = "INSTRON_01:" + chan + ":RAW:SP"
                 pv_name_rbv = pv_name + ":RBV"
                 self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_rbv, set_point_pv=pv_name)
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(self):
-        for chan in ["POS", "STRESS", "STRAIN"]:
+        for chan in POS_STRESS_STRAIN:
             for val in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
                 pv_name = "INSTRON_01:" + chan + ":RAW:SP"
                 pv_name_rbv = pv_name + ":RBV"
@@ -130,12 +147,12 @@ class Instron_stress_rigTests(unittest.TestCase):
         self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
         self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
 
-        for chan in ["POS", "STRESS", "STRAIN"]:
+        for chan in POS_STRESS_STRAIN:
             for i in [1.0, 123.456, 555.555, 1000]:
                 _set_and_check(chan, i)
 
     def test_WHEN_channel_tolerance_is_set_THEN_it_changes_limits_on_SP_RBV(self):
-        for chan in ["POS", "STRESS", "STRAIN"]:
+        for chan in POS_STRESS_STRAIN:
             sp_val = 1
             self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", sp_val)
             for val in [0.1, 1.0, 2.5]:
@@ -152,7 +169,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", 9999)
             self.ca.assert_pv_alarm_is("INSTRON_01:" + chan + ":SP:RBV", ChannelAccess.ALARM_NONE)
 
-        for chan in ["POS", "STRESS", "STRAIN"]:
+        for chan in POS_STRESS_STRAIN:
             for i in [0.123, 567]:
                 _set_and_check(chan, i)
 
@@ -163,7 +180,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":TOLERANCE", -1)
             self.ca.assert_pv_alarm_is("INSTRON_01:" + chan + ":SP:RBV", ChannelAccess.ALARM_MINOR)
 
-        for chan in ["POS", "STRESS", "STRAIN"]:
+        for chan in POS_STRESS_STRAIN:
             for i in [0.234, 789]:
                 _set_and_check(chan, i)
 
@@ -310,16 +327,47 @@ class Instron_stress_rigTests(unittest.TestCase):
 
                 self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_1", str(value_1)])
                 self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_2", str(value_2)])
-                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD", return_value_1)
+                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD",return_value_1 )
                 self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE", return_value_2)
 
     def test_WHEN_waveform_type_abs_set_on_axes_THEN_all_axes_are_set(self):
         def _set_and_check(set_value, return_value):
             self.ca.set_pv_value("INSTRON_01:AXES:RAMP:WFTYP:SP", set_value)
-            for chan in ["POS", "STRESS", "STRAIN"]:
+            for chan in POS_STRESS_STRAIN:
                 self.ca.assert_that_pv_is("INSTRON_01:{0}:RAMP:WFTYP".format(chan), return_value)
                 self.ca.assert_pv_alarm_is("INSTRON_01:{0}:RAMP:WFTYP".format(chan), ChannelAccess.ALARM_NONE)
 
-        for set_value, return_value in enumerate(self.WAVEFORM_TYPES):
+        for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
             _set_and_check(set_value, return_value)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
+
+        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
+
+            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "type_2", str(type)])
+
+            self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:CHECK", "FAIL")
+            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL:SP.{}ST".format(index_as_name),
+                                      "{0} - disabled".format(channel_as_name))
+
+            self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", index)
+
+            self.ca.assert_pv_alarm_is("INSTRON_01:CHANNEL:SP", ChannelAccess.ALARM_INVALID)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
+        self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 3)
+        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
+
+            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "type_2", str(type)])
+
+            self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:CHECK", "PASS", timeout=30)
+
+            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
+            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE)
+
+
+            self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", index)
+
+            self.ca.assert_pv_alarm_is("INSTRON_01:CHANNEL:SP", ChannelAccess.ALARM_NONE)
