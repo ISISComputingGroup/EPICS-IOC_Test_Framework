@@ -77,23 +77,28 @@ class IocLauncher(object):
     def _log_filename(self):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
 
+    def _set_environment_vars(self):
+        settings = os.environ.copy()
+        if self.use_rec_sim:
+            # Using record simulation
+            settings['TESTDEVSIM'] = ' '
+            settings['TESTRECSIM'] = 'Yes'
+        else:
+            # Not using record simulation
+            settings['TESTDEVSIM'] = 'Yes'
+            settings['TESTRECSIM'] = ' '
+
+        # Set the port
+        settings['EMULATOR_PORT'] = str(self.port)
+        return settings
+
     def open(self):
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
         print("Starting IOC")
 
-        settings = os.environ.copy()
-        if self.use_rec_sim:
-            # Using record simulation
-            settings['TESTDEVSIM'] = '#'
-            settings['TESTRECSIM'] = ' '
-        else:
-            # Not using record simulation
-            settings['TESTDEVSIM'] = ' '
-            settings['TESTRECSIM'] = '#'
-        # Set the port
-        settings['EMULATOR_PORT'] = str(self.port)
+        settings = self._set_environment_vars()
 
         # create macros
         full_dir = os.path.join(self._var_dir, "tmp")
