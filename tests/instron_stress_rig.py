@@ -55,28 +55,34 @@ class Instron_stress_rigTests(unittest.TestCase):
         for chan in POS_STRESS_STRAIN:
             self.ca.assert_that_pv_is("INSTRON_01:{0}:RAMP:WFTYP".format(chan), RAMP_WAVEFORM_TYPES[3])
 
+    def _switch_to_position_channel_and_change_setpoint(self):
+        # Select position as control channel
+        self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 0)
+        self.ca.assert_that_pv_is("INSTRON_01:CHANNEL", "Position")
+        # Change the setpoint so that movement can be started
+        current_setpoint = float(self.ca.get_pv_value("INSTRON_01:POS:SP"))
+        self.ca.set_pv_value("INSTRON_01:POS:SP", current_setpoint + 123456)
+        self.ca.assert_that_pv_is_number("INSTRON_01:POS:SP:RBV", current_setpoint + 123456, tolerance=1)
+
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
-
-        # Select position as control channel
-        self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 0)
-        # Change the setpoint so that movement can be started
-        current_setpoint = int(self.ca.get_pv_value("INSTRON_01:POS:SP"))
-        self.ca.set_pv_value("INSTRON_01:POS:SP", current_setpoint + 123)
-
+        self._switch_to_position_channel_and_change_setpoint()
         self.ca.set_pv_value("INSTRON_01:MOVE:GO:SP", 1)
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "YES")
         self.ca.set_pv_value("INSTRON_01:STOP:SP", 1)
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+        self.ca.set_pv_value("INSTRON_01:STOP:SP", 0)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_going_and_then_panic_stopping_THEN_going_pv_reflects_the_expected_state(self):
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+        self._switch_to_position_channel_and_change_setpoint()
         self.ca.set_pv_value("INSTRON_01:MOVE:GO:SP", 1)
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "YES")
         self.ca.set_pv_value("INSTRON_01:PANIC:SP", 1)
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+        self.ca.set_pv_value("INSTRON_01:PANIC:SP", 0)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
@@ -156,7 +162,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         # Ensure stress area and strain length are sensible values (i.e. not zero)
         self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
         self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
-		
+
         self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:AREA", 10, tolerance=0.05)
         self.ca.assert_that_pv_is_number("INSTRON_01:STRAIN:LENGTH", 10, tolerance=0.05)
 
@@ -207,7 +213,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
             for raw_value in [0, 123]:
                 self._lewis.backdoor_command(["device", "set_channel_param", "1", "value", str(raw_value)])
-                self.ca.assert_that_pv_is("INSTRON_01:POS:RAW", raw_value)
+                self.ca.assert_that_pv_is("INSTRON_01:POS:RAW", raw_value, timeout=30)
                 self.ca.assert_that_pv_is("INSTRON_01:POS", raw_value * chan_scale * 1000)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
