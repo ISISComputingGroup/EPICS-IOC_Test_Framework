@@ -211,7 +211,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         # Rig must be stopped for this test to work
         if self.ca.get_pv_value("INSTRON_01:GOING") != "NO":
-            self.ca.set_pv_value("INSTRON_01:STOP:SP", 1)
+            self._lewis.backdoor_command(["device", "movement_type", "0"])
 
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
 
