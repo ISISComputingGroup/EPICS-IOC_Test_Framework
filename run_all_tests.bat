@@ -54,3 +54,8 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r
 echo ---------------------------------------
 echo;
 
+echo ---------------------------------------
+echo TESTING XYBEAMSTOP Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d xybeamstop -p %EPICS_KIT_ROOT%\ioc\master\GALIL\iocBoot\iocGALIL-IOC-01
+echo ---------------------------------------
+echo;
