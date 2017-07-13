@@ -29,7 +29,10 @@ class Instron_stress_rigTests(unittest.TestCase):
         # Can't use lewis backdoor commands in recsim so this won't work.
         if not IOCRegister.uses_rec_sim:
             for index, chan_type2 in enumerate((3, 2, 4)):
-                self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "type_2", str(chan_type2)])
+                self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(chan_type2)])
+
+            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL:SP.ZRST", "Position")
+            self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 0)
 
     def test_WHEN_the_rig_is_initialized_THEN_the_status_is_ok(self):
         self.ca.assert_that_pv_is("INSTRON_01:STAT:DISP", "System OK")
