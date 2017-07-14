@@ -25,14 +25,30 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca = ChannelAccess(15)
         self.ca.wait_for("INSTRON_01:CHANNEL", timeout=30)
 
-        # Set device types correctly if we're in devsim mode.
-        # Can't use lewis backdoor commands in recsim so this won't work.
+        # Can't use lewis backdoor commands in recsim
+        # All of the below commands apply to devsim only.
         if not IOCRegister.uses_rec_sim:
             for index, chan_type2 in enumerate((3, 2, 4)):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(chan_type2)])
 
             self.ca.assert_that_pv_is("INSTRON_01:CHANNEL:SP.ZRST", "Position")
             self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 0)
+            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL", "Position")
+
+            # Ensure the rig is stopped
+            self._lewis.backdoor_command(["device", "movement_type", "0"])
+            self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+
+            # Ensure stress area and strain length are sensible values (i.e. not zero)
+            self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
+            self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
+            self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:AREA", 10, tolerance=0.001)
+            self.ca.assert_that_pv_is_number("INSTRON_01:STRAIN:LENGTH", 10, tolerance=0.001)
+
+            # Ensure that all the scales are sensible values (i.e. not zero)
+            for index, channel in enumerate(POS_STRESS_STRAIN, 1):
+                self._lewis.backdoor_command(["device", "set_channel_param", str(index), "scale", "10"])
+                self.ca.assert_that_pv_is_number("INSTRON_01:" + channel + ":SCALE", 10, tolerance=0.001)
 
     def test_WHEN_the_rig_is_initialized_THEN_the_status_is_ok(self):
         self.ca.assert_that_pv_is("INSTRON_01:STAT:DISP", "System OK")
@@ -59,13 +75,17 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INSTRON_01:{0}:RAMP:WFTYP".format(chan), RAMP_WAVEFORM_TYPES[3])
 
     def _switch_to_position_channel_and_change_setpoint(self):
+
+        _amount_to_change_setpoint = 123
+
         # Select position as control channel
         self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 0)
         self.ca.assert_that_pv_is("INSTRON_01:CHANNEL", "Position")
         # Change the setpoint so that movement can be started
         current_setpoint = float(self.ca.get_pv_value("INSTRON_01:POS:SP"))
-        self.ca.set_pv_value("INSTRON_01:POS:SP", current_setpoint + 123456)
-        self.ca.assert_that_pv_is_number("INSTRON_01:POS:SP:RBV", current_setpoint + 123456, tolerance=1)
+        self.ca.set_pv_value("INSTRON_01:POS:SP", current_setpoint + _amount_to_change_setpoint)
+        self.ca.assert_that_pv_is_number("INSTRON_01:POS:SP", current_setpoint + _amount_to_change_setpoint, tolerance=1)
+        self.ca.assert_that_pv_is_number("INSTRON_01:POS:SP:RBV", current_setpoint + _amount_to_change_setpoint, tolerance=1)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
@@ -160,14 +180,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         def _set_and_check(chan, value):
             self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
             self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP", value, tolerance=0.001)
-            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP:RBV", value, tolerance=0.05)
-
-        # Ensure stress area and strain length are sensible values (i.e. not zero)
-        self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
-        self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
-
-        self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:AREA", 10, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("INSTRON_01:STRAIN:LENGTH", 10, tolerance=0.001)
+            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP:RBV", value, tolerance=0.05, timeout=30)
 
         for chan in POS_STRESS_STRAIN:
             for i in [1.0, 123.456, 555.555, 1000]:
@@ -208,12 +221,6 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_ioc_gets_a_raw_position_reading_from_the_device_THEN_it_is_converted_correctly(self):
-
-        # Rig must be stopped for this test to work
-        if self.ca.get_pv_value("INSTRON_01:GOING") != "NO":
-            self._lewis.backdoor_command(["device", "movement_type", "0"])
-
-        self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
 
         for chan_scale in [0.1, 10.0]:
             self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(chan_scale)])
