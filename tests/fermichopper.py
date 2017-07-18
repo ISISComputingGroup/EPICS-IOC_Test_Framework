@@ -21,3 +21,11 @@ class FermichopperTests(unittest.TestCase):
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("FERMCHOP_01:DISABLE", "COMMS ENABLED")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GETTING_THING_RETURNS_1(self):
+        self.ca.assert_that_pv_is("FERMCHOP_01:THING", 3)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_SETTING_THING(self):
+        self.ca.set_pv_value("FERMCHOP_01:SENDTHING", 1)
