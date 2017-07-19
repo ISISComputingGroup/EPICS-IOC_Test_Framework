@@ -28,10 +28,10 @@ class FermichopperTests(unittest.TestCase):
     def test_WHEN_last_command_is_set_via_backdoor_THEN_pv_updates(self):
         for value in self.valid_commands:
             self._lewis.backdoor_command(["device", "last_command", "'" + value + "'"])
-            self.ca.assert_that_pv_is("FERMCHOP_01:THING", value)
+            self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_last_command_is_set_THEN_readback_updates(self):
         for value in self.valid_commands:
-            self.ca.set_pv_value("FERMCHOP_01:SENDTHING", value)
-            self.ca.assert_that_pv_is("FERMCHOP_01:THING", value, timeout=20)
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", value)
+            self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value, timeout=20)
