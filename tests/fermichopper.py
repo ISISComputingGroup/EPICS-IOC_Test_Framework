@@ -23,9 +23,13 @@ class FermichopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FERMCHOP_01:DISABLE", "COMMS ENABLED")
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GETTING_THING_RETURNS_1(self):
-        self.ca.assert_that_pv_is("FERMCHOP_01:THING", 3)
+    def test_WHEN_last_command_is_set_via_backdoor_THEN_pv_updates(self):
+        for value in ["0003", "0004", "0006"]:
+            self._lewis.backdoor_command(["device", "last_command", "'" + value + "'"])
+            self.ca.assert_that_pv_is("FERMCHOP_01:THING", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_SETTING_THING(self):
-        self.ca.set_pv_value("FERMCHOP_01:SENDTHING", 1)
+    def test_WHEN_last_command_is_set_THEN_readback_updates(self):
+        for value in ["0003", "0004", "0006"]:
+            self.ca.set_pv_value("FERMCHOP_01:SENDTHING", value)
+            self.ca.assert_that_pv_is("FERMCHOP_01:THING", value, timeout=20)
