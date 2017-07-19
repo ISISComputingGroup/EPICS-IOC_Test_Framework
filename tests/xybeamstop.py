@@ -1,6 +1,6 @@
 import unittest
 import math
-from unittest import skipIf
+import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
@@ -43,15 +43,22 @@ class XybeamstopTests(unittest.TestCase):
         self._set_x(x)
         self._set_y(y)
 
+        time.sleep(2)
+
         self.ca.assert_that_pv_is_close("MOT:ARM:X", x, 1e-2)
         self.ca.assert_that_pv_is_close("MOT:ARM:Y", y, 1e-2)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", x, 1e-1)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", y, 1e-1)
 
     def test_GIVEN_store_command_WHEN_read_x_y_is_as_expected(self):
         self._set_pv_value("ARM:STORE", 1)
+        time.sleep(1)
 
         self.ca.assert_that_pv_is("MOT:ARM:STORE", "STORED")
         self.ca.assert_that_pv_is_close("MOT:ARM:X", -7.071)
         self.ca.assert_that_pv_is_close("MOT:ARM:Y", 2.929)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", -7.071, 1e-2)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", 2.929, 1e-2)
         self.ca.assert_that_pv_is_close(MTR1, math.pi/2.)
         self.ca.assert_that_pv_is_close(MTR2, 0)
 
@@ -63,9 +70,13 @@ class XybeamstopTests(unittest.TestCase):
         self._set_x(0.2)
         self._set_y(0.2)
 
+        time.sleep(1)
+
         self.ca.assert_that_pv_is("MOT:ARM:STORE", "STORED")
         self.ca.assert_that_pv_is_close("MOT:ARM:X", -7.071)
         self.ca.assert_that_pv_is_close("MOT:ARM:Y", 2.929)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", -7.071, 1e-2)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", 2.929, 1e-2)
         self.ca.assert_that_pv_is_close(MTR1, math.pi/2.)
         self.ca.assert_that_pv_is_close(MTR2, 0)
 
@@ -73,9 +84,13 @@ class XybeamstopTests(unittest.TestCase):
         self._set_pv_value("ARM:STORE", 1)  # First put it into stored mode
         self._set_pv_value("ARM:STORE", 0)  # Then check it comes back out
 
+        time.sleep(2)
+
         self.ca.assert_that_pv_is("MOT:ARM:STORE", "ACTIVE")
-        self.ca.assert_that_pv_is("MOT:ARM:X", 0)
-        self.ca.assert_that_pv_is("MOT:ARM:Y", 0)
+        self.ca.assert_that_pv_is("MOT:ARM:X", 0.)
+        self.ca.assert_that_pv_is("MOT:ARM:Y", 0.)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", 0, 0.6)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", 0, 0.6)
         self.ca.assert_that_pv_is_close(MTR1, math.pi/4., 1e-3)
         self.ca.assert_that_pv_is_close(MTR2, 0, 1e-3)
 
@@ -83,25 +98,65 @@ class XybeamstopTests(unittest.TestCase):
         x_lower = -3.535
         self._set_x(x_lower)
         self._set_x(x_lower - 1.0)
+        time.sleep(1)
         self.ca.assert_that_pv_is("MOT:ARM:X", x_lower)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", x_lower, 1e-1)
 
     def test_GIVEN_set_x_outside_upper_limit_WHEN_read_x_is_not_outside_limit(self):
         x_upper = 3.535
         self._set_x(x_upper)
         self._set_x(x_upper + 1.0)
+        time.sleep(1)
         self.ca.assert_that_pv_is("MOT:ARM:X", x_upper)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", x_upper, 1e-1)
 
     def test_GIVEN_set_y_outside_lower_limit_WHEN_read_y_is_not_outside_limit(self):
         y_lower = -7.071
         self._set_y(y_lower)
         self._set_y(y_lower - 1.0)
+        time.sleep(1)
         self.ca.assert_that_pv_is("MOT:ARM:Y", y_lower)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", y_lower, 1e-1)
 
     def test_GIVEN_set_y_outside_upper_limit_WHEN_read_y_is_not_outside_limit(self):
         y_upper = 2.929
         self._set_y(y_upper)
         self._set_y(y_upper + 1.0)
+        time.sleep(1)
         self.ca.assert_that_pv_is_close("MOT:ARM:Y", y_upper)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", y_upper, 1e-2)
+
+    def test_GIVEN_tweak_x_positive_WHEN_read_x_is_as_expected(self):
+        self._set_x(1.0)
+        self._set_pv_value("ARM:X:TWEAK", 0.1)
+        time.sleep(1)
+
+        self.ca.assert_that_pv_is_close("MOT:ARM:X", 1.1)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", 1.1, 1e-2)
+
+    def test_GIVEN_tweak_y_positive_WHEN_read_y_is_as_expected(self):
+        self._set_y(1.0)
+        self._set_pv_value("ARM:Y:TWEAK", 0.1)
+        time.sleep(1)
+
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y", 1.1)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", 1.1, 1e-2)
+
+    def test_GIVEN_tweak_x_negative_WHEN_read_x_is_as_expected(self):
+        self._set_x(1.0)
+        self._set_pv_value("ARM:X:TWEAK", -0.1)
+        time.sleep(1)
+
+        self.ca.assert_that_pv_is_close("MOT:ARM:X", 0.9)
+        self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", 0.9, 1e-2)
+
+    def test_GIVEN_tweak_y_negative_WHEN_read_y_is_as_expected(self):
+        self._set_y(1.0)
+        self._set_pv_value("ARM:Y:TWEAK", -0.1)
+        time.sleep(1)
+
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y", 0.9)
+        self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", 0.9, 1e-2)
 
     def test_GIVEN_open_shutter_WHEN_read_shutter_is_open(self):
         self._set_pv_value("SHUTTERS:SP", 1)
