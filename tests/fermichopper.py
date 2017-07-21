@@ -37,5 +37,21 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_get_speed_sp_rbv_returns_18k(self):
+    def test_get_speed_sp_rbv_returns_18000(self):
         self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", 18000)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_speed_returns_17999(self):
+        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", 17999)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_delay_sp_rbv_returns_416_and_two_thirds(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY:SP:RBV", 416.67, tolerance=0.01)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_delay_returns_416_and_two_thirds(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY", 416.67, tolerance=0.01)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_gatewidth_returns_833_nsec(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", 0.833, tolerance=0.001)
