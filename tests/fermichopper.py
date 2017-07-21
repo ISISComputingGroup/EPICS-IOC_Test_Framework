@@ -46,12 +46,22 @@ class FermichopperTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_delay_sp_rbv_returns_416_and_two_thirds(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY:SP:RBV", 416.67, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY:SP:RBV", 416.67, tolerance=0.02)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_delay_returns_416_and_two_thirds(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY", 416.67, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY", 416.67, tolerance=0.02)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_gatewidth_returns_833_nsec(self):
         self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", 0.833, tolerance=0.001)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_drive_current(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:DRIVECURRENT", 0.98985, tolerance=0.00005)
+
+    def test_get_autozero_voltages(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:1:UPPER", -0.6, tolerance=0.05)
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:2:UPPER", -0.2, tolerance=0.05)
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:1:LOWER", -0.1, tolerance=0.05)
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:2:LOWER", 0.6, tolerance=0.05)
