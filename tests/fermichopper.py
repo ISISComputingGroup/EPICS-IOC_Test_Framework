@@ -35,3 +35,7 @@ class FermichopperTests(unittest.TestCase):
         for value in self.valid_commands:
             self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", value)
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_speed_sp_rbv_returns_18k(self):
+        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", 18000)
