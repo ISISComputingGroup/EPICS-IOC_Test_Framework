@@ -13,7 +13,7 @@ class FermichopperTests(unittest.TestCase):
     Tests for the Fermi Chopper IOC.
     """
 
-    valid_commands = ["0001", "0002", "0003", "0006", "0007"]
+    valid_commands = ["0001", "0002", "0003","0004", "0005"]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
