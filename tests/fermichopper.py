@@ -76,3 +76,18 @@ class FermichopperTests(unittest.TestCase):
         self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:2:UPPER", self.ca.ALARM_NONE)
         self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:1:LOWER", self.ca.ALARM_NONE)
         self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:1:LOWER", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_voltage(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:VOLTAGE", 282.9, tolerance=0.05)
+        self.ca.assert_pv_alarm_is("FERMCHOP_01:VOLTAGE", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_temperature_electronics(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", 34.8, tolerance=0.05)
+        self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:ELECTRONICS", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_temperature_motor(self):
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", 35.1, tolerance=0.05)
+        self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:MOTOR", self.ca.ALARM_NONE)
