@@ -91,3 +91,23 @@ class FermichopperTests(unittest.TestCase):
     def test_get_temperature_motor(self):
         self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", 35.1, tolerance=0.05)
         self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:MOTOR", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_status(self):
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B0", "1")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B1", "1")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B2", "1")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B4", "1")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B5", "1")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B6", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B7", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B8", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B9", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BA", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BC", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BD", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BE", "0")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BF", "0")
+        self.ca.assert_pv_alarm_is("FERMCHOP_01:STATUS", self.ca.ALARM_NONE)
