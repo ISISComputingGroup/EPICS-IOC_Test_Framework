@@ -14,6 +14,7 @@ class FermichopperTests(unittest.TestCase):
     """
 
     valid_commands = ["0001", "0002", "0003","0004", "0005"]
+    allowed_speeds = [150, 350, 600]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
@@ -37,14 +38,19 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_get_speed_sp_rbv_returns_18000(self):
-        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", 18000)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED:SP:RBV", self.ca.ALARM_NONE)
+    def test_WHEN_speed_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
+        for value in self.allowed_speeds:
+            self._lewis.backdoor_command(["device", "speed_setpoint", str(value)])
+            self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_get_speed_returns_17999(self):
-        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", 17999)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED", self.ca.ALARM_NONE)
+    def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
+        for speed in self.allowed_speeds:
+            self.ca.set_pv_value("FERMCHOP_01:SPEED:SP", speed)
+            self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP", speed)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", speed)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED:SP:RBV", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_delay_sp_rbv_returns_416_and_two_thirds(self):
