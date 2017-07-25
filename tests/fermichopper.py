@@ -14,6 +14,8 @@ class FermichopperTests(unittest.TestCase):
     """
 
     valid_commands = ["0001", "0002", "0003","0004", "0005"]
+
+    # Values that will be tested in the parametrized tests.
     test_chopper_speeds = [150, 350, 600]
     test_delay_durations = [0, 2.5, 18]
     test_gatewidth_values = [0, 0.5, 5]
@@ -34,14 +36,15 @@ class FermichopperTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_last_command_is_set_via_backdoor_THEN_pv_updates(self):
         for value in self.valid_commands:
+            # Doesn't actually execute the commands, so we are safe from entering the "broken" state here.
             self._lewis.backdoor_command(["device", "last_command", "'" + value + "'"])
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_last_command_is_set_THEN_readback_updates(self):
-        for value in self.valid_commands:
-            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", value)
-            self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_WHEN_last_command_is_set_THEN_readback_updates(self):
+    #     for value in self.valid_commands:
+    #         self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", value)
+    #         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_speed_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
