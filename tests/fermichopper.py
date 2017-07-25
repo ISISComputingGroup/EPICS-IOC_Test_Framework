@@ -18,6 +18,9 @@ class FermichopperTests(unittest.TestCase):
     delay_test_durations = [0, 2.5, 18]
     gatewidth_test_values = [0, 0.5, 5]
     temperature_test_values = [20.0, 25.0, 37.5, 47.5]
+    current_test_values = [0, 1.37, 2.22]
+    voltage_test_values = [0, 282.9, 333.3]
+    test_autozero_values = [-5.0, -2.22, 0, 1.23, 5]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
@@ -85,26 +88,27 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", value, tolerance=0.05)
             self.ca.assert_pv_alarm_is("FERMCHOP_01:GATEWIDTH", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_get_drive_current(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:DRIVECURRENT", 0.98985, tolerance=0.00005)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:DRIVECURRENT", self.ca.ALARM_NONE)
-
     def test_get_autozero_voltages(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:1:UPPER", -0.6, tolerance=0.05)
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:2:UPPER", -0.2, tolerance=0.05)
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:1:LOWER", -0.1, tolerance=0.05)
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:2:LOWER", 0.6, tolerance=0.05)
-
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:1:UPPER", self.ca.ALARM_NONE)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:2:UPPER", self.ca.ALARM_NONE)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:1:LOWER", self.ca.ALARM_NONE)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:1:LOWER", self.ca.ALARM_NONE)
+        for number in ["1", "2"]:
+            for boundary in ["upper", "lower"]:
+                for value in self.test_autozero_values:
+                    self._lewis.backdoor_command(["device", "autozero_{n}_{b}".format(n=number, b=boundary), str(value)])
+                    self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), value, tolerance=0.05)
+                    self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_voltage(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:VOLTAGE", 282.9, tolerance=0.05)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:VOLTAGE", self.ca.ALARM_NONE)
+        for voltage in self.voltage_test_values:
+            self._lewis.backdoor_command(["device", "voltage", str(voltage)])
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:VOLTAGE", voltage, tolerance=0.1)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:VOLTAGE", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_get_voltage(self):
+        for current in self.current_test_values:
+            self._lewis.backdoor_command(["device", "current", str(current)])
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:CURRENT", current, tolerance=0.1)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:CURRENT", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_temperature_electronics(self):
