@@ -17,6 +17,7 @@ class FermichopperTests(unittest.TestCase):
     allowed_speeds = [150, 350, 600]
     delay_test_durations = [0, 2.5, 18]
     gatewidth_test_values = [0, 0.5, 5]
+    temperature_test_values = [20.0, 25.0, 37.5, 47.5]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
@@ -107,13 +108,17 @@ class FermichopperTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_temperature_electronics(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", 34.8, tolerance=0.05)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:ELECTRONICS", self.ca.ALARM_NONE)
+        for temp in self.temperature_test_values:
+            self._lewis.backdoor_command(["device", "electronics_temp", str(temp)])
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", temp, tolerance=0.2)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:ELECTRONICS", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_temperature_motor(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", 35.1, tolerance=0.05)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:MOTOR", self.ca.ALARM_NONE)
+        for temp in self.temperature_test_values:
+            self._lewis.backdoor_command(["device", "motor_temp", str(temp)])
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", temp, tolerance=0.2)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:MOTOR", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_status(self):
