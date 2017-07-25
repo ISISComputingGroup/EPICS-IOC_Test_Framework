@@ -15,7 +15,7 @@ class FermichopperTests(unittest.TestCase):
 
     valid_commands = ["0001", "0002", "0003","0004", "0005"]
     allowed_speeds = [150, 350, 600]
-    delay_test_durations = [0, 2, 18]
+    delay_test_durations = [0, 2.5, 18]
     gatewidth_test_values = [0, 0.5, 5]
 
     def setUp(self):
