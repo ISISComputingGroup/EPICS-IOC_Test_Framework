@@ -15,7 +15,8 @@ class FermichopperTests(unittest.TestCase):
 
     valid_commands = ["0001", "0002", "0003","0004", "0005"]
     allowed_speeds = [150, 350, 600]
-    delay_test_durations = [0, 2, 10, 18]
+    delay_test_durations = [0, 2, 18]
+    gatewidth_test_values = [0, 0.5, 5]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
@@ -69,9 +70,19 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is("FERMCHOP_01:DELAY:SP:RBV", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_get_gatewidth_returns_833_nsec(self):
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", 0.833, tolerance=0.001)
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:GATEWIDTH", self.ca.ALARM_NONE)
+    def test_WHEN_gatewidth_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
+        for value in self.gatewidth_test_values:
+            self._lewis.backdoor_command(["device", "gatewidth", str(value)])
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", value, tolerance=0.05)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_gatewidth_is_set_THEN_readback_updates(self):
+        for value in self.gatewidth_test_values:
+            self.ca.set_pv_value("FERMCHOP_01:GATEWIDTH:SP", value)
+            self.ca.assert_that_pv_is("FERMCHOP_01:GATEWIDTH:SP", value)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:GATEWIDTH:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", value, tolerance=0.05)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:GATEWIDTH", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_get_drive_current(self):
