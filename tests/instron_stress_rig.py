@@ -1,6 +1,5 @@
 import unittest
 from unittest import skipIf
-from time import sleep
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
@@ -108,21 +107,6 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
-<<<<<<< HEAD
-        self.ca.assert_that_pv_is("GOING", "NO")
-        self.ca.set_pv_value("MOVE:GO:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "YES")
-        self.ca.set_pv_value("STOP:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "NO")
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_going_and_then_panic_stopping_THEN_going_pv_reflects_the_expected_state(self):
-        self.ca.assert_that_pv_is("GOING", "NO")
-        self.ca.set_pv_value("MOVE:GO:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "YES")
-        self.ca.set_pv_value("PANIC:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "NO")
-=======
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
         self._switch_to_position_channel_and_change_setpoint()
         self.ca.set_pv_value("INSTRON_01:MOVE:GO:SP", 1)
@@ -140,7 +124,6 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.set_pv_value("INSTRON_01:PANIC:SP", 1)
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
         self.ca.set_pv_value("INSTRON_01:PANIC:SP", 0)
->>>>>>> Ticket2112_stress_rig_channel_commands
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
@@ -458,8 +441,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.check_running_state(status="Running", running=True, continuing=True)
         self.ca.set_pv_value(wave_prefixed("STOP"), 1)
         self.check_running_state(status="Finishing", running=True, continuing=False)
-        sleep(5)
-        self.check_running_state(status="Stopped", running=False, continuing=False)
+        self.check_running_state(status="Stopped", running=False, continuing=False, timeout=5)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_started_THEN_it_is_running(self):
@@ -485,17 +467,18 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_waveform_type_is_set_THEN_the_device_reports_it_has_changed(self):
         for index, type in enumerate(["Sine", "Triangle", "Square", "Haversine",
                      "Havetriangle", "Haversquare", "Sensor", "Aux", "Sawtooth"]):
-            self.ca.set_pv_value(wave_prefixed("TYPE:SP"), index)
-            self.ca.assert_that_pv_is(wave_prefixed("TYPE"), type)
+            self.ca.assert_setting_setpoint_sets_readback(index, wave_prefixed("TYPE"), expected_value=type)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Recsim record does not handle multiple channels
     def test_GIVEN_multiple_channels_WHEN_waveform_frequency_is_set_THEN_the_device_is_updated_to_that_value(self):
         expected_values = [123.456, 789.012, 345.678]
         assert len(expected_values) == NUMBER_OF_CHANNELS
 
+        # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", channel)
             self.ca.set_pv_value(wave_prefixed("FREQ:SP"), expected_values[channel])
+
         for channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", channel)
             self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[channel])
@@ -511,9 +494,11 @@ class Instron_stress_rigTests(unittest.TestCase):
         expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
         assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
 
+        # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", channel)
             self.ca.set_pv_value(wave_prefixed("AMP:SP"), input_values[channel])
+
         for channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", channel)
             self.ca.assert_that_pv_is_number(wave_prefixed("AMP"), expected_values[channel], tolerance=0.0005)
@@ -521,8 +506,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_quarter_counter_is_off_THEN_the_number_of_counts_is_and_remains_zero(self):
         self.ca.set_pv_value(quart_prefixed("OFF"), 1)
         self.ca.assert_that_pv_is("QUART", 0)
-        sleep(5)
-        self.ca.assert_that_pv_is("QUART", 0)
+        self.ca.assert_that_pv_is("QUART", 0, timeout=5)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # Status more complicated than RECSIM can handle
     def test_WHEN_the_quarter_counter_is_armed_THEN_the_status_is_armed(self):
@@ -533,10 +517,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_waveform_generator_is_started_THEN_the_quarter_counter_starts_counting_and_keeps_increasing(self):
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
         self.ca.set_pv_value(wave_prefixed("START"), 1)
-        first_count = float(self.ca.get_pv_value("QUART"))
-        sleep(5)
-        second_count = float(self.ca.get_pv_value("QUART"))
-        self.assertGreater(second_count, first_count)
+        self.ca.assert_pv_value_is_increasing("QUART", 5)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")  # Status more complicated than RECSIM can handle
     def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):

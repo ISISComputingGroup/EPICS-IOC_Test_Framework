@@ -1,5 +1,5 @@
 @echo off
-REM Run all known tests using the IOC Testing Framework
+REM Run Instron stress rig tests using the IOC Testing Framework
 
 SET CurrentDir=%~dp0
 
