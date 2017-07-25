@@ -178,12 +178,15 @@ class ChannelAccess(object):
         try:
             pv_value = float(pv_value)
         except ValueError:
-            return "Expected a numeric value but got: {actual}".format(actual=pv_value)
+            return """Value was invalid when reading PV '{PV}'.
+                    Expected a numeric value but got: {actual}""".format(PV=pv, actual=pv_value)
 
         if abs(expected_value - pv_value) < tolerance:
             return None
         else:
-            return "Expected {expected} (tolerance: {tolerance}) but was {actual}".format(expected=expected_value, tolerance=tolerance, actual=pv_value)
+            return """Value was invalid when reading PV '{PV}'.
+                    Expected: {expected} (tolerance: {tolerance}) 
+                    Actual: {actual}""".format(PV=pv, expected=expected_value, tolerance=tolerance, actual=pv_value)
 
     def _value_match_one_of(self, pv, expected_values):
         """

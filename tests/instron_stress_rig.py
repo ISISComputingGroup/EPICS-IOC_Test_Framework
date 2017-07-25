@@ -44,9 +44,30 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca = ChannelAccess(15, device_prefix="INSTRON_01")
         self.ca.wait_for("CHANNEL", timeout=30)
 
-        # Set device types correctly
-        for index, chan_type2 in enumerate((3, 2, 4)):
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "type_2", str(chan_type2)])
+        # Can't use lewis backdoor commands in recsim
+        # All of the below commands apply to devsim only.
+        if not IOCRegister.uses_rec_sim:
+            for index, chan_type2 in enumerate((3, 2, 4)):
+                self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(chan_type2)])
+
+            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL:SP.ZRST", "Position")
+            self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 0)
+            self.ca.assert_that_pv_is("INSTRON_01:CHANNEL", "Position")
+
+            # Ensure the rig is stopped
+            self._lewis.backdoor_command(["device", "movement_type", "0"])
+            self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+
+            # Ensure stress area and strain length are sensible values (i.e. not zero)
+            self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
+            self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
+            self.ca.assert_that_pv_is_number("INSTRON_01:STRESS:AREA", 10, tolerance=0.001)
+            self.ca.assert_that_pv_is_number("INSTRON_01:STRAIN:LENGTH", 10, tolerance=0.001)
+
+            # Ensure that all the scales are sensible values (i.e. not zero)
+            for index, channel in enumerate(POS_STRESS_STRAIN, 1):
+                self._lewis.backdoor_command(["device", "set_channel_param", str(index), "scale", "10"])
+                self.ca.assert_that_pv_is_number("INSTRON_01:" + channel + ":SCALE", 10, tolerance=0.001)
 
     def test_WHEN_the_rig_is_initialized_THEN_the_status_is_ok(self):
         self.ca.assert_that_pv_is("STAT:DISP", "System OK")
@@ -72,8 +93,22 @@ class Instron_stress_rigTests(unittest.TestCase):
         for chan in POS_STRESS_STRAIN:
             self.ca.assert_that_pv_is(channel(chan, "RAMP:WFTYP"), RAMP_WAVEFORM_TYPES[3])
 
+    def _switch_to_position_channel_and_change_setpoint(self):
+
+        _amount_to_change_setpoint = 123
+
+        # Select position as control channel
+        self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", 0)
+        self.ca.assert_that_pv_is("INSTRON_01:CHANNEL", "Position")
+        # Change the setpoint so that movement can be started
+        current_setpoint = float(self.ca.get_pv_value("INSTRON_01:POS:SP"))
+        self.ca.set_pv_value("INSTRON_01:POS:SP", current_setpoint + _amount_to_change_setpoint)
+        self.ca.assert_that_pv_is_number("INSTRON_01:POS:SP", current_setpoint + _amount_to_change_setpoint, tolerance=1)
+        self.ca.assert_that_pv_is_number("INSTRON_01:POS:SP:RBV", current_setpoint + _amount_to_change_setpoint, tolerance=1)
+
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
+<<<<<<< HEAD
         self.ca.assert_that_pv_is("GOING", "NO")
         self.ca.set_pv_value("MOVE:GO:SP", 1)
         self.ca.assert_that_pv_is("GOING", "YES")
@@ -87,6 +122,25 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GOING", "YES")
         self.ca.set_pv_value("PANIC:SP", 1)
         self.ca.assert_that_pv_is("GOING", "NO")
+=======
+        self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+        self._switch_to_position_channel_and_change_setpoint()
+        self.ca.set_pv_value("INSTRON_01:MOVE:GO:SP", 1)
+        self.ca.assert_that_pv_is("INSTRON_01:GOING", "YES")
+        self.ca.set_pv_value("INSTRON_01:STOP:SP", 1)
+        self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+        self.ca.set_pv_value("INSTRON_01:STOP:SP", 0)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_going_and_then_panic_stopping_THEN_going_pv_reflects_the_expected_state(self):
+        self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+        self._switch_to_position_channel_and_change_setpoint()
+        self.ca.set_pv_value("INSTRON_01:MOVE:GO:SP", 1)
+        self.ca.assert_that_pv_is("INSTRON_01:GOING", "YES")
+        self.ca.set_pv_value("INSTRON_01:PANIC:SP", 1)
+        self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
+        self.ca.set_pv_value("INSTRON_01:PANIC:SP", 0)
+>>>>>>> Ticket2112_stress_rig_channel_commands
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
@@ -124,13 +178,14 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_control_channel_is_requested_THEN_an_allowed_value_is_returned(self):
         self.ca.assert_that_pv_is_one_of("CHANNEL", ["Stress", "Strain", "Position"])
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_control_channel_setpoint_is_requested_THEN_it_is_one_of_the_allowed_values(self):
         self.ca.assert_that_pv_is_one_of("CHANNEL:SP", ["Stress", "Strain", "Position"])
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
         for set_val, return_val in [(0, "Position"), (1, "Stress"), (2, "Strain")]:
-            self.ca.assert_setting_setpoint_sets_readback(set_val, "CHANNEL", expected_value=return_val)
+            self.ca.assert_setting_setpoint_sets_readback(set_val, "INSTRON_01:CHANNEL", expected_value=return_val, timeout=30)
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
             self):
@@ -168,13 +223,9 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_setpoint_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
         def _set_and_check(chan, value):
-            self.ca.set_pv_value(channel(chan, "SP"), value)
-            self.ca.assert_that_pv_is_number(channel(chan, "SP"), value, tolerance=0.001)
-            self.ca.assert_that_pv_is_number(channel(chan, "SP:RBV"), value, tolerance=0.05)
-
-        # Ensure stress area and strain length are sensible values (i.e. not zero)
-        self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
-        self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
+            self.ca.set_pv_value("INSTRON_01:" + chan + ":SP", value)
+            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP", value, tolerance=0.001)
+            self.ca.assert_that_pv_is_number("INSTRON_01:" + chan + ":SP:RBV", value, tolerance=0.05, timeout=30)
 
         for chan in POS_STRESS_STRAIN:
             for i in [1.0, 123.456, 555.555, 1000]:
@@ -222,8 +273,9 @@ class Instron_stress_rigTests(unittest.TestCase):
 
             for raw_value in [0, 123]:
                 self._lewis.backdoor_command(["device", "set_channel_param", "1", "value", str(raw_value)])
-                self.ca.assert_that_pv_is("POS:RAW", raw_value)
-                self.ca.assert_that_pv_is("POS", raw_value * chan_scale * 1000)
+                self.ca.assert_that_pv_is_number("INSTRON_01:POS:RAW", raw_value, tolerance=0.01)
+                self.ca.assert_that_pv_is_number("INSTRON_01:POS", raw_value * chan_scale * 1000,
+                                                 tolerance=(0.01 * chan_scale * 1000))
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_ioc_gets_a_raw_stress_reading_from_the_device_THEN_it_is_converted_correctly(self):
@@ -352,12 +404,10 @@ class Instron_stress_rigTests(unittest.TestCase):
             for value_1, value_2, return_value_1, return_value_2 in [
                     (0, 1, "Standard transducer", "Unrecognized"),
                     (1, 10, "User transducer", "Ext. waveform generator")]:
-
-                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_1", str(value_1)])
-                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "type_2", str(value_2)])
-                self.ca.assert_that_pv_is(channel(chan_name,"TYPE:STANDARD"), return_value_1)
-                self.ca.assert_that_pv_is(channel(chan_name,"TYPE"), return_value_2)
-
+                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "transducer_type", str(value_1)])
+                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "channel_type", str(value_2)])
+                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE:STANDARD",return_value_1 )
+                self.ca.assert_that_pv_is("INSTRON_01:"+chan_name+":TYPE", return_value_2)
 
     # Waveform tests
 
@@ -563,7 +613,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
 
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "type_2", str(type)])
+            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
 
             self.ca.assert_that_pv_is(channel(chan_name, "TYPE:CHECK"), "FAIL")
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name),
@@ -578,14 +628,12 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.set_pv_value("CHANNEL:SP", 3)
         for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
 
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "type_2", str(type)])
+            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
 
             self.ca.assert_that_pv_is(channel(chan_name, "TYPE:CHECK"), "PASS", timeout=30)
 
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
             self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE)
 
-
-            self.ca.set_pv_value("CHANNEL:SP", index)
-
+            self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", index)
             self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_NONE)
