@@ -1,26 +1,23 @@
 import unittest
-from unittest import skipIf
-
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
-
 
 
 class OutputMode(object):
     VOLTAGE = "VOLTAGE"
     CURRENT = "CURRENT"
 
-class OutputStatus(object):
+
+class Status(object):
     ON = "ON"
     OFF = "OFF"
+
 
 class UnitFlags(object):
     VOLTAGE = 0
     CURRENT = 1
     ON = 1
     OFF = 0
-
 
 
 class KepcoTests(unittest.TestCase):
@@ -41,6 +38,10 @@ class KepcoTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("current", expected_current)
         self._ioc.set_simulated_value("KEPCO_01:SIM:CURRENT", expected_current)
 
+    def _set_IDN(self, expected_idn):
+        self._lewis.backdoor_set_on_device("idn", expected_idn)
+        self._ioc.set_simulated_value("KEPCO_01:SIM:IDN", expected_idn)
+
     def _set_output_mode(self, expected_output_mode):
         self._lewis.backdoor_set_on_device("output_mode", expected_output_mode)
         self._ioc.set_simulated_value("KEPCO_01:SIM:OUTPUTMODE", expected_output_mode)
@@ -59,7 +60,6 @@ class KepcoTests(unittest.TestCase):
         self.ca.assert_that_pv_is("KEPCO_01:CURRENT", expected_current)
 
     def test_GIVEN_setpoint_voltage_set_WHEN_read_THEN_setpoint_voltage_is_as_expected(self):
-
         # Get current Voltage
         current_voltage = self.ca.get_pv_value("KEPCO_01:VOLTAGE")
         # Set new Voltage via SP
@@ -68,7 +68,6 @@ class KepcoTests(unittest.TestCase):
         self.ca.assert_that_pv_is("KEPCO_01:VOLTAGE:SP:RBV", current_voltage + 5)
 
     def test_GIVEN_setpoint_current_set_WHEN_read_THEN_setpoint_current_is_as_expected(self):
-
         # Get current current
         current_current = self.ca.get_pv_value("KEPCO_01:CURRENT")
         # Set new Current via SP
@@ -79,18 +78,22 @@ class KepcoTests(unittest.TestCase):
     def test_GIVEN_output_mode_set_WHEN_read_THEN_output_mode_is_as_expected(self):
         expected_output_mode_flag = UnitFlags.CURRENT
         expected_output_mode_str =  OutputMode.CURRENT
-
         self._set_output_mode(expected_output_mode_flag)
         # Check OUTPUT MODE matches new OUTPUT MODE
         self.ca.assert_that_pv_is("KEPCO_01:OUTPUTMODE", expected_output_mode_str)
 
     def test_GIVEN_output_status_set_WHEN_read_THEN_output_STATUS_is_as_expected(self):
         expected_output_status_flag = UnitFlags.ON
-        expected_output_status_str = OutputStatus.ON
-
+        expected_output_status_str = Status.ON
         self.ca.set_pv_value("KEPCO_01:OUTPUTSTATUS:SP", expected_output_status_flag)
-
         self.ca.assert_that_pv_is("KEPCO_01:OUTPUTSTATUS:SP:RBV", expected_output_status_str)
+
+    def test_GIVEN_idn_set_WHEN_read_THEN_idn_is_as_expected(self):
+        expected_idn = "000000000000000000111111111111111111111"
+        self._set_IDN(expected_idn)
+        # Made Proc field force scan as IDN scan is passive
+        self.ca.set_pv_value("KEPCO_01:IDN.PROC", 1)
+        self.ca.assert_that_pv_is("KEPCO_01:IDN", expected_idn)
 
 
 
