@@ -33,9 +33,11 @@ class FermichopperTests(unittest.TestCase):
         # Ensure consistent startup state - send command to stop chopper and then switch off mag. bearings
         self._lewis.backdoor_command(["device", "do_command", '"0001"'])
         self._lewis.backdoor_command(["device", "speed_setpoint", "0"])
-        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", 0)
+        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", 0)
         self._lewis.backdoor_command(["device", "magneticbearing", "False"])
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
+        self._lewis.backdoor_command(["device", "speed", "0"])
+        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", 0)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("FERMCHOP_01:DISABLE", "COMMS ENABLED")
@@ -241,6 +243,91 @@ class FermichopperTests(unittest.TestCase):
 
         self._lewis.backdoor_set_on_device("speed", 0)
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "0")
+
+    #
+    #   Mandatory safety tests
+    #
+    #   The following behaviours MUST be implemented by the chopper according to the manual
+    #
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_chopper_speed_is_too_high_THEN_switch_drive_off_is_sent(self):
+        self._lewis.backdoor_set_on_device("magneticbearing", True)
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
+
+        # Reset last command so that we can tell that it's changed later on
+        self._lewis.backdoor_set_on_device("last_command", "0000")
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0000")
+
+        # Speed = 606, this is higher than the maximum allowed speed (600)
+        self._lewis.backdoor_set_on_device("speed", 606)
+
+        # Assert that "switch drive off" was sent
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0002")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_magnetic_bearing_is_off_WHEN_chopper_speed_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
+
+        # Magnetic bearings should have been turned off in setUp
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
+
+        # Reset last command so that we can tell that it's changed later on
+        self._lewis.backdoor_set_on_device("last_command", "0000")
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0000")
+
+        # Speed = 7 because that's higher than the threshold in the IOC (5)
+        # but lower than the threshold in the emulator (10)
+        self._lewis.backdoor_set_on_device("speed", 7)
+
+        # Assert that "switch drive on and stop" was sent
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0001")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
+
+        for number in [1, 2]:
+            for position in ["upper", "lower"]:
+
+                # Reset last command so that we can tell that it's changed later on
+                self._lewis.backdoor_set_on_device("last_command", "0000")
+                self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0000")
+
+                # Set autozero voltage too high and set device moving
+                self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 3.2)
+                self._lewis.backdoor_set_on_device("speed", 7)
+
+                # Assert that "switch drive on and stop" was sent
+                self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0001")
+
+                # Reset relevant autozero voltage back to zero
+                self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+                self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_motor_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):
+
+        # Reset last command so that we can tell that it's changed later on
+        self._lewis.backdoor_set_on_device("last_command", "0000")
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0000")
+
+        # Temperature = 46, this is higher than the allowed value (45)
+        self._lewis.backdoor_set_on_device("motor_temp", 46)
+
+        # Assert that "switch drive off" was sent
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0002")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_electronics_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):
+        # Reset last command so that we can tell that it's changed later on
+        self._lewis.backdoor_set_on_device("last_command", "0000")
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0000")
+
+        # Temperature = 46, this is higher than the allowed value (45)
+        self._lewis.backdoor_set_on_device("electronics_temp", 46)
+
+        # Assert that "switch drive off" was sent
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0002")
+
 
 
 
