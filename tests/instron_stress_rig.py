@@ -394,7 +394,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     # Waveform tests
 
-    def check_running_state(self, status, running, continuing, timeout):
+    def check_running_state(self, status, running, continuing, timeout=None):
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), status, timeout)
         self.ca.assert_that_pv_is(wave_prefixed("RUNNING"), "Running" if running else "Not running", timeout)
         self.ca.assert_that_pv_is(wave_prefixed("CONTINUING"), "Continuing" if continuing else "Not continuing",
