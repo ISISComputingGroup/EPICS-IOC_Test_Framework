@@ -30,13 +30,31 @@ class FermichopperTests(unittest.TestCase):
         self.ca = ChannelAccess(20)
         self.ca.wait_for("FERMCHOP_01:SPEED", timeout=30)
 
-        # Ensure consistent startup state - send command to stop chopper and then switch off mag. bearings
-        self._lewis.backdoor_command(["device", "do_command", '"0001"'])
-        self._lewis.backdoor_command(["device", "speed_setpoint", "0"])
+        # Ensure consistent startup state...
+        self._lewis.backdoor_set_on_device("electronics_temp", 20)
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", 20, tolerance=0.2)
+
+        self._lewis.backdoor_set_on_device("motor_temp", 20)
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", 20, tolerance=0.2)
+
+        for number in [1, 2]:
+            for position in ["upper", "lower"]:
+                self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+                self.ca.assert_that_pv_is_number(
+                    "FERMCHOP_01:AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
+
+        self._lewis.backdoor_set_on_device("speed", 0)
+
+        self._lewis.backdoor_set_on_device("do_command", "0001")
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0001")
+
+        self._lewis.backdoor_set_on_device("speed_setpoint", 0)
         self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", 0)
-        self._lewis.backdoor_command(["device", "magneticbearing", "False"])
+
+        self._lewis.backdoor_set_on_device("magneticbearing", False)
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
-        self._lewis.backdoor_command(["device", "speed", "0"])
+
+        self._lewis.backdoor_set_on_device("speed", 0)
         self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", 0)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
@@ -259,8 +277,8 @@ class FermichopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("last_command", "0000")
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0000")
 
-        # Speed = 606, this is higher than the maximum allowed speed (600)
-        self._lewis.backdoor_set_on_device("speed", 606)
+        # Speed = 610, this is higher than the maximum allowed speed (606)
+        self._lewis.backdoor_set_on_device("speed", 610)
 
         # Assert that "switch drive off" was sent
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0002")
