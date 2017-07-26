@@ -394,10 +394,11 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     # Waveform tests
 
-    def check_running_state(self, status, running, continuing):
-        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), status)
-        self.ca.assert_that_pv_is(wave_prefixed("RUNNING"), "Running" if running else "Not running")
-        self.ca.assert_that_pv_is(wave_prefixed("CONTINUING"), "Continuing" if continuing else "Not continuing")
+    def check_running_state(self, status, running, continuing, timeout):
+        self.ca.assert_that_pv_is(wave_prefixed("STATUS"), status, timeout)
+        self.ca.assert_that_pv_is(wave_prefixed("RUNNING"), "Running" if running else "Not running", timeout)
+        self.ca.assert_that_pv_is(wave_prefixed("CONTINUING"), "Continuing" if continuing else "Not continuing",
+                                  timeout)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor in recsim
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_it_is_started_THEN_it_is_running(self):
@@ -487,9 +488,9 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = [123.456, 789.012, 345.678]
         conversion_factors = [
-            float(self.ca.get_pv_value("POS:SCALE"))*1000.0,
+            float(self.ca.get_pv_value("POS:SCALE")),
             float(self.ca.get_pv_value("STRESS:SCALE"))*float(self.ca.get_pv_value("STRESS:AREA")),
-            float(self.ca.get_pv_value("STRAIN:SCALE"))*100000.0/float(self.ca.get_pv_value("STRAIN:LENGTH"))
+            float(self.ca.get_pv_value("STRAIN:SCALE"))*1000.0/float(self.ca.get_pv_value("STRAIN:LENGTH"))
         ]
         expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
         assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS

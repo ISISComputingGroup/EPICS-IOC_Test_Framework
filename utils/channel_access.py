@@ -297,11 +297,10 @@ class ChannelAccess(object):
         a given time using the comparator.
         :param pv: the PV to check
         :param time: the number of seconds to wait
-        :param comparator: a function taking two arguments; the initial and final values respectively. The return value
-         will be tested for truth
+        :param comparator: a function taking two arguments; the initial and final values respectively. 
+        The function should return true or false.
         :return:
-        :raises AssertionError: if comparator returns false or fails to execute
-        :raises UnableToConnectToPVException: if a pv does not exist within timeout
+        :raises AssertionError: if the value of the pv has not increased
         """
         initial_value = self.get_pv_value(pv)
         time.sleep(time)
@@ -315,66 +314,33 @@ class ChannelAccess(object):
         except Exception as e:
             AssertionError("Comparison function failed to execute: {0}".format(e.message))
 
-
-
-    def assert_pv_value_over_time(self, pv, time, comparator, timeout=None):
-        """
-        Check that a PV satisfies a given function over time. The initial value is compared to the final value after
-        a given time using the comparator.
-        :param pv: the PV to check
-        :param time: the number of seconds to wait
-        :param comparator: a function taking two arguments; the initial and final values respectively. 
-        :param timeout: the maximum time to take getting the values from the pvs
-        The function should return true or false.
-        :return:
-        :raises AssertionError: if the value of the pv has not increased
-        :raises UnableToConnectToPVException: if a pv does not exist within timeout
-        """
-        initial_value = self.get_pv_value(pv, timeout)
-        time.sleep(time)
-        final_value = self.get_pv_value(pv, timeout)
-
-        try:
-            if not comparator(initial_value, final_value):
-                raise AssertionError("Stated behaviour over time for PV {0} was not satisfied. Initial value: {1}, "
-                                     "final value: {2}".format(pv, initial_value, final_value))
-        # Catch general exception since we have no control over comparator
-        except Exception as e:
-            AssertionError("Comparison function failed to execute: {0}".format(e.message))
-
-    def assert_pv_value_is_increasing(self, pv, time, timeout=None):
+    def assert_pv_value_is_increasing(self, pv, wait):
         """
         Check that a PV value has increased after a given time
         :param pv: the PV to check
-        :param time: the number of seconds to wait  
-        :param timeout: the maximum time to take getting the values from the pvs
+        :param wait: the number of seconds to wait  
         :return:
         :raises AssertionError: if comparator returns false or fails to execute
-        :raises UnableToConnectToPVException: if a pv does not exist within timeout
         """
-        self.assert_pv_value_over_time(pv, time, operator.gt, timeout)
+        self.assert_pv_value_over_time(pv, wait, operator.gt)
 
-    def assert_pv_value_is_decreasing(self, pv, time, timeout=None):
+    def assert_pv_value_is_decreasing(self, pv, wait):
         """
         Check that a PV value has decreased after a given time
         :param pv: the PV to check
-        :param time: the number of seconds to wait  
-        :param timeout: the maximum time to take getting the values from the pvs
+        :param wait: the number of seconds to wait  
         :return:
         :raises AssertionError: if the value of the pv has not decreased
-        :raises UnableToConnectToPVException: if a pv does not exist within timeout
         """
-        self.assert_pv_value_over_time(pv, time, operator.lt, timeout)
+        self.assert_pv_value_over_time(pv, wait, operator.lt)
 
-    def assert_pv_value_is_unchanged(self, pv, time, timeout=None):
+    def assert_pv_value_is_unchanged(self, pv, wait):
         """
         Check that a PV value has not changed after a given time. The value is only checked at the start and end of the
         interval.
         :param pv: the PV to check
-        :param time: the number of seconds to wait  
-        :param timeout: the maximum time to take getting the values from the pvs
+        :param wait: the number of seconds to wait  
         :return:
         :raises AssertionError: if the value of the pv has changed
-        :raises UnableToConnectToPVException: if a pv does not exist within timeout
         """
-        self.assert_pv_value_over_time(pv, time, operator.eq, timeout)
+        self.assert_pv_value_over_time(pv, wait, operator.eq)
