@@ -5,7 +5,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
-import math
+from time import sleep
 
 
 class FermichopperTests(unittest.TestCase):
@@ -16,7 +16,7 @@ class FermichopperTests(unittest.TestCase):
     valid_commands = ["0001", "0002", "0003","0004", "0005"]
 
     # Values that will be tested in the parametrized tests.
-    test_chopper_speeds = [150, 350, 600]
+    test_chopper_speeds = [100, 350, 600]
     test_delay_durations = [0, 2.5, 18]
     test_gatewidth_values = [0, 0.5, 5]
     test_temperature_values = [20.0, 25.0, 37.5, 47.5]
@@ -27,8 +27,15 @@ class FermichopperTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
 
-        self.ca = ChannelAccess(15)
-        self.ca.wait_for("FERMCHOP_01:DISABLE", timeout=30)
+        self.ca = ChannelAccess(20)
+        self.ca.wait_for("FERMCHOP_01:SPEED", timeout=30)
+
+        # Ensure consistent startup state - send command to stop chopper and then switch off mag. bearings
+        self._lewis.backdoor_command(["device", "do_command", '"0001"'])
+        self._lewis.backdoor_command(["device", "speed_setpoint", "0"])
+        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", 0)
+        self._lewis.backdoor_command(["device", "magneticbearing", "False"])
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("FERMCHOP_01:DISABLE", "COMMS ENABLED")
@@ -39,12 +46,6 @@ class FermichopperTests(unittest.TestCase):
             # Doesn't actually execute the commands, so we are safe from entering the "broken" state here.
             self._lewis.backdoor_command(["device", "last_command", "'" + value + "'"])
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
-
-    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    # def test_WHEN_last_command_is_set_THEN_readback_updates(self):
-    #     for value in self.valid_commands:
-    #         self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", value)
-    #         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_speed_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
@@ -126,23 +127,105 @@ class FermichopperTests(unittest.TestCase):
             self._lewis.backdoor_command(["device", "motor_temp", str(temp)])
             self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", temp, tolerance=0.2)
             self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:MOTOR", self.ca.ALARM_NONE)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_get_status(self):
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B0", "1")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B1", "1")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B2", "1")
+    #     # self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B4", "1")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B5", "1")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B6", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B7", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B8", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B9", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BA", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BC", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BD", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BE", "0")
+    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BF", "0")
+    #     self.ca.assert_pv_alarm_is("FERMCHOP_01:STATUS", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_get_status(self):
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B0", "1")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B1", "1")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B2", "1")
+    def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_THEN_chopper_goes_to_setpoint(self):
+        for speed in self.test_chopper_speeds:
+            # Setup setpoint speed
+            self._lewis.backdoor_command(["device", "speed_setpoint", str(speed)])
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
+
+            # Switch on magnetic bearings
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4)
+            self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0004")
+            self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
+
+            # Run mode ON
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3)
+            self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0003")
+
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED", speed, tolerance=0.1, timeout=30)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_without_magnetic_bearings_on_THEN_chopper_does_not_go_to_setpoint(self):
+
+        # Switch OFF magnetic bearings
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0005")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
+
+        for speed in self.test_chopper_speeds:
+            # Setup setpoint speed
+            self._lewis.backdoor_command(["device", "speed_setpoint", str(speed)])
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
+
+            # Run mode ON
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3)
+            # Ensure the ON command has been ignored and last command is still "switch off bearings"
+            self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0005")
+
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED", 0, tolerance=0.1, timeout=30)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_a_chopper_at_speed_WHEN_switch_off_magnetic_bearings_command_is_sent_THEN_magnetic_bearings_do_not_switch_off(self):
+
+        speed = 150
+
+        # Switch ON magnetic bearings
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4)
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0004")
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B4", "1")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B5", "1")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B6", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B7", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B8", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B9", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BA", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BC", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BD", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BE", "0")
-        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BF", "0")
-        self.ca.assert_pv_alarm_is("FERMCHOP_01:STATUS", self.ca.ALARM_NONE)
+
+        # Setup setpoint speed
+        self._lewis.backdoor_command(["device", "speed_setpoint", str(speed)])
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
+
+        # Run mode ON
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3)
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0003")
+
+        # Wait for chopper to get up to speed
+        self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED", speed, tolerance=0.1)
+
+        # Attempt to switch OFF magnetic bearings
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
+
+        # Assert that bearings did not switch off
+        sleep(5) # TODO
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0003")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
+        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", speed)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_a_stopped_chopper_WHEN_switch_on_and_off_magnetic_bearings_commands_are_sent_THEN_magnetic_bearings_switch_on_and_off(self):
+
+        # Switch ON magnetic bearings
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4)
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0004")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
+
+        # Switch OFF magnetic bearings
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
+        self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0005")
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
+
