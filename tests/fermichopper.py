@@ -44,13 +44,13 @@ class FermichopperTests(unittest.TestCase):
     def test_WHEN_last_command_is_set_via_backdoor_THEN_pv_updates(self):
         for value in self.valid_commands:
             # Doesn't actually execute the commands, so we are safe from entering the "broken" state here.
-            self._lewis.backdoor_command(["device", "last_command", "'" + value + "'"])
+            self._lewis.backdoor_set_on_device("last_command", value)
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_speed_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
         for value in self.test_chopper_speeds:
-            self._lewis.backdoor_command(["device", "speed_setpoint", str(value)])
+            self._lewis.backdoor_set_on_device("speed_setpoint", value)
             self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -65,7 +65,7 @@ class FermichopperTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_delay_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
         for value in self.test_delay_durations:
-            self._lewis.backdoor_command(["device", "delay", str(value)])
+            self._lewis.backdoor_set_on_device("delay", value)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY:SP:RBV", value, tolerance=0.05)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -80,7 +80,7 @@ class FermichopperTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_gatewidth_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
         for value in self.test_gatewidth_values:
-            self._lewis.backdoor_command(["device", "gatewidth", str(value)])
+            self._lewis.backdoor_set_on_device("gatewidth", value)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", value, tolerance=0.05)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -96,63 +96,44 @@ class FermichopperTests(unittest.TestCase):
         for number in ["1", "2"]:
             for boundary in ["upper", "lower"]:
                 for value in self.test_autozero_values:
-                    self._lewis.backdoor_command(["device", "autozero_{n}_{b}".format(n=number, b=boundary), str(value)])
+                    self._lewis.backdoor_set_on_device("autozero_{n}_{b}".format(n=number, b=boundary), value)
                     self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), value, tolerance=0.05)
                     self.ca.assert_pv_alarm_is("FERMCHOP_01:AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_drive_voltage_is_set_via_backdoor_THEN_pv_updates(self):
         for voltage in self.test_voltage_values:
-            self._lewis.backdoor_command(["device", "voltage", str(voltage)])
+            self._lewis.backdoor_set_on_device("voltage", voltage)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:VOLTAGE", voltage, tolerance=0.1)
             self.ca.assert_pv_alarm_is("FERMCHOP_01:VOLTAGE", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_drive_current_is_set_via_backdoor_THEN_pv_updates(self):
         for current in self.test_current_values:
-            self._lewis.backdoor_command(["device", "current", str(current)])
+            self._lewis.backdoor_set_on_device("current", current)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:CURRENT", current, tolerance=0.1)
             self.ca.assert_pv_alarm_is("FERMCHOP_01:CURRENT", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_electronics_temperature_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in self.test_temperature_values:
-            self._lewis.backdoor_command(["device", "electronics_temp", str(temp)])
+            self._lewis.backdoor_set_on_device("electronics_temp", temp)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", temp, tolerance=0.2)
             self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:ELECTRONICS", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_motor_temperature_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in self.test_temperature_values:
-            self._lewis.backdoor_command(["device", "motor_temp", str(temp)])
+            self._lewis.backdoor_set_on_device("motor_temp", temp)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", temp, tolerance=0.2)
             self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:MOTOR", self.ca.ALARM_NONE)
-    #
-    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    # def test_get_status(self):
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B0", "1")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B1", "1")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B2", "1")
-    #     # self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B4", "1")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B5", "1")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B6", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B7", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B8", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B9", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BA", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BC", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BD", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BE", "0")
-    #     self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BF", "0")
-    #     self.ca.assert_pv_alarm_is("FERMCHOP_01:STATUS", self.ca.ALARM_NONE)
+
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_THEN_chopper_goes_to_setpoint(self):
         for speed in self.test_chopper_speeds:
             # Setup setpoint speed
-            self._lewis.backdoor_command(["device", "speed_setpoint", str(speed)])
+            self._lewis.backdoor_set_on_device("speed_setpoint", speed)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
 
             # Switch on magnetic bearings
@@ -176,7 +157,7 @@ class FermichopperTests(unittest.TestCase):
 
         for speed in self.test_chopper_speeds:
             # Setup setpoint speed
-            self._lewis.backdoor_command(["device", "speed_setpoint", str(speed)])
+            self._lewis.backdoor_set_on_device("speed_setpoint", speed)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
 
             # Run mode ON
@@ -197,7 +178,7 @@ class FermichopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
 
         # Setup setpoint speed
-        self._lewis.backdoor_command(["device", "speed_setpoint", str(speed)])
+        self._lewis.backdoor_set_on_device("speed_setpoint", speed)
         self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
 
         # Run mode ON
@@ -228,4 +209,40 @@ class FermichopperTests(unittest.TestCase):
         self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0005")
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_chopper_speed_is_too_high_THEN_status_updates(self):
+
+        too_fast = 700
+
+        self._lewis.backdoor_set_on_device("speed", too_fast)
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BA", "1")
+
+        self._lewis.backdoor_set_on_device("speed", 0)
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BA", "0")
+
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_chopper_speed_is_too_high_with_magnetic_bearing_off_THEN_status_updates(self):
+
+        too_fast = 15
+
+        # Magnetic bearings should have been turned off in setUp
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
+
+        self._lewis.backdoor_set_on_device("speed", too_fast)
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "1")
+
+        self._lewis.backdoor_set_on_device("magneticbearing", True)
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "0")
+
+        self._lewis.backdoor_set_on_device("magneticbearing", False)
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "1")
+
+        self._lewis.backdoor_set_on_device("speed", 0)
+        self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.BB", "0")
+
+
+
+
 
