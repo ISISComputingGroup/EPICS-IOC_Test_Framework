@@ -291,19 +291,19 @@ class ChannelAccess(object):
         if expected_alarm is not None:
             self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
 
-    def assert_pv_value_over_time(self, pv, time, comparator):
+    def assert_pv_value_over_time(self, pv, wait, comparator):
         """
         Check that a PV satisfies a given function over time. The initial value is compared to the final value after
         a given time using the comparator.
         :param pv: the PV to check
-        :param time: the number of seconds to wait
+        :param wait: the number of seconds to wait
         :param comparator: a function taking two arguments; the initial and final values respectively. 
         The function should return true or false.
         :return:
         :raises AssertionError: if the value of the pv has not increased
         """
         initial_value = self.get_pv_value(pv)
-        time.sleep(time)
+        time.sleep(wait)
         final_value = self.get_pv_value(pv)
 
         try:
