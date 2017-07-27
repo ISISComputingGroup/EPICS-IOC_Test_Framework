@@ -529,6 +529,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
         self.ca.set_pv_value(wave_prefixed("START"), 1)
         self.ca.assert_pv_value_is_increasing("QUART", 5)
+        self.ca.set_pv_value(wave_prefixed("STOP"), 1)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")  # Status more complicated than RECSIM can handle
     def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
