@@ -94,9 +94,3 @@ class KepcoTests(unittest.TestCase):
         # Made Proc field force scan as IDN scan is passive
         self.ca.set_pv_value("KEPCO_01:IDN.PROC", 1)
         self.ca.assert_that_pv_is("KEPCO_01:IDN", expected_idn)
-
-
-
-
-
-
