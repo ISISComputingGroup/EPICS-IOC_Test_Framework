@@ -8,17 +8,17 @@ class ChannelAccess(object):
     Provides the required channel access commands.
     """
 
-    # Alarm value if there is no alarm
     ALARM_NONE = "NO_ALARM"
+    """Alarm value if there is no alarm"""
 
-    # Alarm value if the record is in major alarm
     ALARM_MAJOR = "MAJOR"
+    """Alarm value if the record is in major alarm"""
 
-    # Alarm value if the record is in minor alarm
     ALARM_MINOR = "MINOR"
+    """Alarm value if the record is in minor alarm"""
 
-    # Alarm value if the record has a calc alarm
     ALARM_INVALID = "INVALID"
+    """Alarm value if the record has a calc alarm"""
 
     def __init__(self, default_timeout=5):
         """
@@ -61,6 +61,24 @@ class ChannelAccess(object):
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
         error_message = self._wait_for_pv_lambda(lambda: self._values_match(pv, expected_value), timeout)
+
+        if error_message is None:
+            return
+
+        raise AssertionError(error_message)
+
+    def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None):
+        """
+        Assert that the pv has the expected value or that it becomes the expected value within the timeout
+        :param pv: pv name
+        :param expected_value: expected value
+        :param tolerance: the allowable deviation from the expected value
+        :param timeout: if it hasn't changed within this time raise assertion error
+        :raises AssertionError: if value does not become requested value
+        :raises UnableToConnectToPVException: if pv does not exist within timeout
+        """
+
+        error_message = self._wait_for_pv_lambda(lambda: self._value_is_number(pv, expected_value, tolerance), timeout)
 
         if error_message is None:
             return
@@ -138,7 +156,9 @@ class ChannelAccess(object):
         if pv_value == expected_value:
             return None
         else:
-            return "Expected {expected}: actual {actual}".format(expected=expected_value, actual=pv_value)
+            return """Values didn't match when reading PV '{PV}'.
+                   Expected value: {expected}
+                   Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
 
     def _value_is_close(self, pv, expected_value, delta):
         """
@@ -174,6 +194,26 @@ class ChannelAccess(object):
             return None
         else:
             return "Expected integer between {min} and {max} but was {actual}".format(min=min, max=max, actual=pv_value)
+
+    def _value_is_number(self, pv, expected_value, tolerance):
+        """
+            Check pv can be interpreted as an integer between two bounds
+            :param pv: name of the pv (no prefix)
+            :param expected_value: value that is expected
+            :param tolerance: if the difference between the actual and expected values is less than the tolerance, they are treated as equal
+            :return: None if they match; error string stating the difference if they do not
+            """
+        pv_value = self.get_pv_value(pv)
+
+        try:
+            pv_value = float(pv_value)
+        except ValueError:
+            return "Expected a numeric value but got: {actual}".format(actual=pv_value)
+
+        if abs(expected_value - pv_value) < tolerance:
+            return None
+        else:
+            return "Expected {expected} (tolerance: {tolerance}) but was {actual}".format(expected=expected_value, tolerance=tolerance, actual=pv_value)
 
     def _value_match_one_of(self, pv, expected_values):
         """
