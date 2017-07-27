@@ -213,7 +213,7 @@ class FermichopperTests(unittest.TestCase):
         self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
 
         # Assert that bearings did not switch off
-        sleep(5) # TODO
+        sleep(5)
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0003")
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
         self.ca.assert_that_pv_is("FERMCHOP_01:SPEED", speed)
@@ -337,6 +337,9 @@ class FermichopperTests(unittest.TestCase):
                 # Reset relevant autozero voltage back to zero
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
                 self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
+
+                # Give the IOC time to accept that it is now in a valid state again...
+                sleep(3)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_motor_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):
