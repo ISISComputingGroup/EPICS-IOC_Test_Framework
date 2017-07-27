@@ -35,7 +35,7 @@ def quart_prefixed(val):
     return add_prefix("QUART", val)
 
 
-class InstronStressRigTests(unittest.TestCase):
+class Instron_stress_rigTests(unittest.TestCase):
     """
     Tests for the Instron IOC.
     """
