@@ -30,20 +30,21 @@ class FermichopperTests(unittest.TestCase):
         self.ca = ChannelAccess(20)
         self.ca.wait_for("FERMCHOP_01:SPEED", timeout=30)
 
-        # Ensure consistent startup state...
-        self._lewis.backdoor_set_on_device("electronics_temp", 20)
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", 20, tolerance=0.2)
-
-        self._lewis.backdoor_set_on_device("motor_temp", 20)
-        self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", 20, tolerance=0.2)
-
-        for number in [1, 2]:
-            for position in ["upper", "lower"]:
-                self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
-                self.ca.assert_that_pv_is_number(
-                    "FERMCHOP_01:AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
-
         if not IOCRegister.uses_rec_sim:
+
+            # Ensure consistent startup state...
+            self._lewis.backdoor_set_on_device("electronics_temp", 20)
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", 20, tolerance=0.2)
+
+            self._lewis.backdoor_set_on_device("motor_temp", 20)
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", 20, tolerance=0.2)
+
+            for number in [1, 2]:
+                for position in ["upper", "lower"]:
+                    self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+                    self.ca.assert_that_pv_is_number(
+                        "FERMCHOP_01:AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
+
             self._lewis.backdoor_set_on_device("speed", 0)
 
             self._lewis.backdoor_set_on_device("do_command", "0001")
@@ -74,7 +75,7 @@ class FermichopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("speed_setpoint", value)
             self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", value)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
         for speed in self.test_chopper_speeds:
             self.ca.set_pv_value("FERMCHOP_01:SPEED:SP", speed)
@@ -89,7 +90,7 @@ class FermichopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("delay", value)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:DELAY:SP:RBV", value, tolerance=0.05)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_delay_setpoint_is_set_THEN_readback_updates(self):
         for value in self.test_delay_durations:
             self.ca.set_pv_value("FERMCHOP_01:DELAY:SP", value)
@@ -104,7 +105,7 @@ class FermichopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("gatewidth", value)
             self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", value, tolerance=0.05)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_gatewidth_is_set_THEN_readback_updates(self):
         for value in self.test_gatewidth_values:
             self.ca.set_pv_value("FERMCHOP_01:GATEWIDTH:SP", value)
@@ -113,6 +114,7 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("FERMCHOP_01:GATEWIDTH", value, tolerance=0.05)
             self.ca.assert_pv_alarm_is("FERMCHOP_01:GATEWIDTH", self.ca.ALARM_NONE)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_autozero_voltages_are_set_via_backdoor_THEN_pvs_update(self):
         for number in ["1", "2"]:
             for boundary in ["upper", "lower"]:
