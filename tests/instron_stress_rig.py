@@ -49,6 +49,9 @@ class Instron_stress_rigTests(unittest.TestCase):
         # Can't use lewis backdoor commands in recsim
         # All of the below commands apply to devsim only.
         if not IOCRegister.uses_rec_sim:
+            # Reinitialize the emulator state
+            self._lewis.backdoor_command(["device", "reset"])
+
             for index, chan_type2 in enumerate((3, 2, 4)):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type",
                                               str(chan_type2)])
@@ -66,9 +69,6 @@ class Instron_stress_rigTests(unittest.TestCase):
             self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
             self.ca.assert_that_pv_is_number("STRESS:AREA", 10, tolerance=0.001)
             self.ca.assert_that_pv_is_number("STRAIN:LENGTH", 10, tolerance=0.001)
-
-            # Waveform generator should be stopped to begin with
-            self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_STOPPED])
 
             # Ensure that all the scales are sensible values (i.e. not zero)
             for index, channel in enumerate(POS_STRESS_STRAIN, 1):
@@ -545,14 +545,14 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
         self.ca.set_pv_value(wave_prefixed("HOLD"), 1)
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
-
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")  # No backdoor in LewisNone
     def test_GIVEN_the_waveform_generator_is_running_WHEN_instructed_to_hold_THEN_status_is_holding(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Running")
         self.ca.set_pv_value(wave_prefixed("HOLD"), 1)
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Holding")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")  # No backdoor in LewisNone
     def test_GIVEN_the_waveform_generator_is_holding_WHEN_instructed_to_hold_THEN_status_is_holding(self):
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_HOLDING])
