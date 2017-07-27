@@ -521,16 +521,16 @@ class Instron_stress_rigTests(unittest.TestCase):
 #        self.ca.set_pv_value(wave_prefixed("START"), 1)
 #        self.ca.assert_pv_value_is_increasing("QUART", 5)
 #
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")  # Status more complicated than RECSIM can handle
-    def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
-        cycles = 5
-        self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
-        self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
-        self.ca.set_pv_value(quart_prefixed("ARM"), 1)
-        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
-        while self.ca.get_pv_value(quart_prefixed("STATUS")) == "Armed":
-            self.assertLessEqual(4*float(self.ca.get_pv_value(wave_prefixed("QUART"))), cycles)
-        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Off")
+#    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")  # Status more complicated than RECSIM can handle
+#    def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
+#        cycles = 5
+#        self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
+#        self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
+#        self.ca.set_pv_value(quart_prefixed("ARM"), 1)
+#        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
+#        while self.ca.get_pv_value(quart_prefixed("STATUS")) == "Armed":
+#            self.assertLessEqual(4*float(self.ca.get_pv_value(wave_prefixed("QUART"))), cycles)
+#        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Off")
 #
 #    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails") # No backdoor
 #    def test_GIVEN_the_waveform_generator_is_stopped_WHEN_instructed_to_hold_THEN_status_is_stopped(self):
