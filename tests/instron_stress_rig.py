@@ -528,7 +528,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
         self.ca.set_pv_value(quart_prefixed("ARM"), 1)
         self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
-        while self.ca.get_pv_value(quart_prefixed("ARM")) == "Armed":
+        while self.ca.get_pv_value(quart_prefixed("STATUS")) == "Armed":
             self.assertLessEqual(4*float(self.ca.get_pv_value(wave_prefixed("QUART"))), cycles)
         self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Off")
 #
