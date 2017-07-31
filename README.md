@@ -9,7 +9,7 @@ Note: the unittest module is used for convenience. The tests themselves are not 
 
 NOTE: currently you **must** use the genie_python installation of Python because it allows you to access the python wrapper for EPICS Channel access.
 
-It recommended that you don't have the server side of IBEX running then testing an IOC.
+It recommended that you don't have the server side of IBEX running when testing an IOC.
 
 The command-line options are split into groups:
 
