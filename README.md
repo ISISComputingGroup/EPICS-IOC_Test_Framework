@@ -62,13 +62,13 @@ Note: in this mode the IOC will not automatically terminate after the tests have
 
 For newer IOCs these steps may not be necessary as the st.cmd will be auto-generated to contain them.
 
-st.cmd (or st-common.cmd) should be modified to use the EMULATOR_PORT macro in devsim mode and have macros to stop connections to the real device:
+st.cmd (or st-common.cmd) should be modified to use the EMULATOR_PORT macro in DEVSIM mode:
 ```
 ## For unit testing:
 $(IFDEVSIM) drvAsynIPPortConfigure(
 	"$(DEVICE)", "localhost:$(EMULATOR_PORT=)")
 ```
-The configurating of the real device should have macros guarded it to stop it trying to talk to the real device when under test.
+The configurating of the real device should have macros guarded it to stop it trying to connect to the real device when under test.
 ```
 ## For real device use:
 $(IFNOTDEVSIM) $(IFNOTRECSIM) drvAsynSerialPortConfigure("L0", "$(PORT=NO_PORT_MACRO)", 0, 0, 0, 0)
@@ -103,7 +103,7 @@ class MydeviceTests(unittest.TestCase):
 	      # Assert that a PV has a particular value (prefix prepended automatically)          
         self.ca.assert_that_pv_is(“IOCNAME_01:DISABLE", "COMMS ENABLED")
 ```
-Try to use GIVEN_WHEN_THEN  test naming wherever appropriate
+Try to use GIVEN_WHEN_THEN test naming wherever appropriate
 
 ### Setting values
 
