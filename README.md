@@ -190,4 +190,14 @@ def test_ioc_name(self):
     self.ca.assert_that_pv_is(“MYIOC_01:NAME", “new_name")
 ```
 
+### Logging
+
+The IOC test framework writes logs to C:\Instrument\Var\logs\IOCTestFramework
+
+You can force extra debug output by:
+* Adding @has_log at the top of the class
+* Using self.log.debug(“message”)
+* log.info, log.warning and log.error are also available
+
+
 
