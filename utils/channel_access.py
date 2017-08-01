@@ -173,12 +173,15 @@ class ChannelAccess(object):
         try:
             pv_value = float(pv_value)
         except ValueError:
-            return "Expected a numeric value but got: {actual}".format(actual=pv_value)
+            return """Value was invalid when reading PV '{PV}'.
+                    Expected a numeric value but got: {actual}""".format(PV=pv, actual=pv_value)
 
-        if abs(expected_value - pv_value) < tolerance:
+        if abs(expected_value - pv_value) <= tolerance:
             return None
         else:
-            return "Expected {expected} (tolerance: {tolerance}) but was {actual}".format(expected=expected_value, tolerance=tolerance, actual=pv_value)
+            return """Value was invalid when reading PV '{PV}'.
+                    Expected: {expected} (tolerance: {tolerance}) 
+                    Actual: {actual}""".format(PV=pv, expected=expected_value, tolerance=tolerance, actual=pv_value)
 
     def _value_match_one_of(self, pv, expected_values):
         """
@@ -258,3 +261,26 @@ class ChannelAccess(object):
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
         self.assert_that_pv_is("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
+
+    def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None, expected_alarm=ALARM_NONE, timeout=None):
+        """
+        Set a pv to a value and check that the readback has the expected value and alarm state.
+        :param value: value to set
+        :param readback_pv: the pv for the read back (e.g. IN:INST:TEMP)
+        :param set_point_pv: the pv to check has the correct value; if None use the readback with SP  (e.g. IN:INST:TEMP:SP)
+        :param expected_value: the expected return value; if None use the value
+        :param expected_alarm: the expected alarm status, None don't check; defaults to ALARM_NONE
+        :param timeout: timeout for the pv and alarm to become the expected values
+        :return:
+        :raises AssertionError: if setback does not become expected value or has incorrect alarm state
+        :raises UnableToConnectToPVException: if a pv does not exist within timeout
+        """
+        if set_point_pv is None:
+            set_point_pv = "{0}:SP".format(readback_pv)
+        if expected_value is None:
+            expected_value = value
+
+        self.set_pv_value(set_point_pv, value)
+        self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
+        if expected_alarm is not None:
+            self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
