@@ -28,6 +28,8 @@ class Instron_stress_rigTests(unittest.TestCase):
         # Can't use lewis backdoor commands in recsim
         # All of the below commands apply to devsim only.
         if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_set_on_device("status", 7680)
+
             for index, chan_type2 in enumerate((3, 2, 4)):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(chan_type2)])
 
@@ -50,8 +52,50 @@ class Instron_stress_rigTests(unittest.TestCase):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(index), "scale", "10"])
                 self.ca.assert_that_pv_is_number("INSTRON_01:" + channel + ":SCALE", 10, tolerance=0.001)
 
-    def test_WHEN_the_rig_is_initialized_THEN_the_status_is_ok(self):
-        self.ca.assert_that_pv_is("INSTRON_01:STAT:DISP", "System OK")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
+    def test_WHEN_the_rig_has_no_error_THEN_the_status_is_ok(self):
+        self._lewis.backdoor_set_on_device("status", 7680)
+
+        self.ca.assert_that_pv_is("STAT:DISP", "System OK")
+        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
+    def test_WHEN_the_rig_has_other_no_error_THEN_the_status_is_ok(self):
+        self._lewis.backdoor_set_on_device("status", 0)
+
+        self.ca.assert_that_pv_is("STAT:DISP", "System OK")
+        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
+    def test_WHEN_the_rig_has_error_THEN_the_status_is_emergency_stop_pushed(self):
+        code_and_errors = [
+            ([0, 1, 1, 0], "Emergency stop pushed"),
+            ([0, 0, 0, 1], "Travel limit exceeded"),
+            ([0, 0, 1, 0], "Power amplifier too hot"),
+            ([0, 1, 1, 0], "Emergency stop pushed"),
+            ([0, 1, 0, 1], "Invalid status from rig"),
+            ([0, 1, 0, 0], "Invalid status from rig"),
+            ([0, 1, 1, 0], "Emergency stop pushed"),
+            ([0, 1, 1, 1], "Oil too hot"),
+            ([1, 0, 0, 0], "Oil level too low"),
+            ([1, 0, 0, 1], "Motor too hot"),
+            ([1, 0, 1, 0], "Oil pressure too high"),
+            ([1, 0, 1, 1], "Oil pressure too low"),
+            ([1, 1, 0, 0], "Manifold/pump blocked"),
+            ([1, 1, 0, 1], "Oil level going too low"),
+            ([1, 1, 1, 0], "Manifold low pressure")
+        ]
+
+        for code, error in code_and_errors:
+            code_val = code[0] * 2 ** 12
+            code_val += code[1] * 2 ** 11
+            code_val += code[2] * 2 ** 10
+            code_val += code[3] * 2 ** 9
+
+            self._lewis.backdoor_set_on_device("status", code_val)
+
+            self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val))
+            self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_MAJOR)
 
     def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
@@ -403,5 +447,10 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INSTRON_01:CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE)
 
             self.ca.set_pv_value("INSTRON_01:CHANNEL:SP", index)
-
             self.ca.assert_pv_alarm_is("INSTRON_01:CHANNEL:SP", ChannelAccess.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not disconnect the device from the IOC")
+    def test_WHEN_the_rig_is_not_connected_THEN_the_status_has_alarm(self):
+        self._lewis.backdoor_set_on_device("status", None)
+
+        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_INVALID)
