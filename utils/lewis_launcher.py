@@ -2,6 +2,7 @@ import os
 import subprocess
 
 import sys
+from time import sleep
 
 from utils.free_ports import get_free_ports
 from utils.log_file import log_filename
@@ -196,7 +197,14 @@ class LewisLauncher(object):
         lewis_command_line.extend(lewis_command)
         self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))
         try:
-            subprocess.check_call(lewis_command_line, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT)
+            for i in range(1,30):
+                code = p.poll()
+                if code == 0:
+                    return
+                sleep(0.1)
+            p.terminate()
+            print "Lewis backdoor did not finish!"
         except subprocess.CalledProcessError as ex:
             sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
             sys.stderr.write("Error code {0}\n".format(ex.returncode))

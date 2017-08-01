@@ -198,6 +198,3 @@ You can force extra debug output by:
 * Adding @has_log at the top of the class
 * Using self.log.debug(“message”)
 * log.info, log.warning and log.error are also available
-
-
-
