@@ -56,15 +56,15 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_rig_has_no_error_THEN_the_status_is_ok(self):
         self._lewis.backdoor_set_on_device("status", 7680)
 
-        self.ca.assert_that_pv_is("STAT:DISP", "System OK")
-        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("INSTRON_01:" + "STAT:DISP", "System OK")
+        self.ca.assert_pv_alarm_is("INSTRON_01:" + "STAT:DISP", ChannelAccess.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
     def test_WHEN_the_rig_has_other_no_error_THEN_the_status_is_ok(self):
         self._lewis.backdoor_set_on_device("status", 0)
 
-        self.ca.assert_that_pv_is("STAT:DISP", "System OK")
-        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("INSTRON_01:" + "STAT:DISP", "System OK")
+        self.ca.assert_pv_alarm_is("INSTRON_01:" + "STAT:DISP", ChannelAccess.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
     def test_WHEN_the_rig_has_error_THEN_the_status_is_emergency_stop_pushed(self):
@@ -94,8 +94,8 @@ class Instron_stress_rigTests(unittest.TestCase):
 
             self._lewis.backdoor_set_on_device("status", code_val)
 
-            self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val))
-            self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_MAJOR)
+            self.ca.assert_that_pv_is("INSTRON_01:" + "STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val))
+            self.ca.assert_pv_alarm_is("INSTRON_01:" + "STAT:DISP", ChannelAccess.ALARM_MAJOR)
 
     def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
         self.ca.assert_that_pv_is("INSTRON_01:GOING", "NO")
@@ -453,4 +453,4 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_rig_is_not_connected_THEN_the_status_has_alarm(self):
         self._lewis.backdoor_set_on_device("status", None)
 
-        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_pv_alarm_is("INSTRON_01:" + "STAT:DISP", ChannelAccess.ALARM_INVALID)
