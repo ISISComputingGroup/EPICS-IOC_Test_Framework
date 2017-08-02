@@ -11,25 +11,24 @@ class OutputMode(object):
     VOLTAGE = "VOLTAGE"
     CURRENT = "CURRENT"
 
-    
+
 class TdklambdagenesysTests(unittest.TestCase):
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("TDKLambdaGenesys")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("TDKLambdaGenesys") # emulator name (\EPICS\support\DeviceEmulator)
         self.ca = ChannelAccess(default_timeout=10)
         self.ca.wait_for("GENESYS_01:1:VOLT", timeout=10)
 
-    def _write_voltage(self, voltage):
-        self._lewis.backdoor_set_on_device("voltage", voltage)
-        self.ca.set_pv_value("GENESYS_01:1:VOLT", voltage)
+    def _write_voltage(self, expected_voltage):
+        self._lewis.backdoor_set_on_device("voltage", expected_voltage)
+        self.ca.set_pv_value("GENESYS_01:1:VOLT", expected_voltage)
 
-    def _write_current(self, current):
-        self._lewis.backdoor_set_on_device("current", current)
-        self.ca.set_pv_value("GENESYS_01:1:CURR", current)
+    def _write_current(self, expected_current):
+        self._lewis.backdoor_set_on_device("current", expected_current)
+        self.ca.set_pv_value("GENESYS_01:1:CURR", expected_current)
 
-    def _set_powerstate(self, power):
-        self._lewis.backdoor_set_on_device("powerstate", power)
-        self.ca.set_pv_value("GENESYS_01:1:POWER", power)
+    def _set_powerstate(self, expected_power):
+        self._lewis.backdoor_set_on_device("powerstate", expected_power)
 
     def test_GIVEN_voltage_set_WHEN_read_THEN_voltage_is_as_expected(self):
         expected_voltage = 4.3
@@ -42,9 +41,9 @@ class TdklambdagenesysTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GENESYS_01:1:CURR", expected_current)
 
     def test_GIVEN_setpoint_voltage_set_WHEN_read_THEN_setpoint_voltage_is_as_expected(self):
-        current_voltage = self.ca.get_pv_value("GENESYS_01:1:VOLT")
+        current_voltage = self.ca.get_pv_value("GENESYS_01:1:VOLT:SP")
         self.ca.set_pv_value("GENESYS_01:1:VOLT:SP", current_voltage + 2.5)
-        self.ca.assert_that_pv_is("GENESYS_01:1:VOLT:SP", current_voltage + 2.5)
+        self.ca.assert_that_pv_is("GENESYS_01:1:VOLT:SP:RBV", current_voltage + 2.5)
 
     def test_GIVEN_setpoint_current_set_when_read_THEN_setpoint_current_is_as_expected(self):
         current_current = self.ca.get_pv_value("GENESYS_01:1:CURR")
@@ -52,11 +51,16 @@ class TdklambdagenesysTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GENESYS_01:1:CURR:SP", current_current + 5)
 
     def test_GIVEN_powerstate_set_WHEN_read_THEN_powerstate_is_as_expected_ON(self):
-        expected_power = 1
+        expected_power = "ON"
         self._set_powerstate(expected_power)
         self.ca.assert_that_pv_is("GENESYS_01:1:POWER", "On")
 
     def test_GIVEN_powerstate_set_WHEN_read_THEN_powerstate_is_as_expected_OFF(self):
-        expected_power = 0
+        expected_power = "OFF"
         self._set_powerstate(expected_power)
         self.ca.assert_that_pv_is("GENESYS_01:1:POWER", "Off")
+
+    def test_GIVEN_powerstate_set__pv_WHEN_read_THEN_pwoerstate_is_as_expected(self):
+        expected_power = 1
+        self.ca.set_pv_value("GENESYS_01:1:POWER", expected_power)
+        self.ca.assert_that_pv_is("GENESYS_01:1:POWER", "On")
