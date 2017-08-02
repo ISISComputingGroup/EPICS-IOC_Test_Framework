@@ -1,8 +1,3 @@
-'''
-Tests for the TDK Genesys PSU
-@author Eilidh Southren
-'''
-
 import unittest
 from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
