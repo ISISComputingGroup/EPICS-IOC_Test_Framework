@@ -46,9 +46,9 @@ class TdklambdagenesysTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GENESYS_01:1:VOLT:SP:RBV", current_voltage + 2.5)
 
     def test_GIVEN_setpoint_current_set_when_read_THEN_setpoint_current_is_as_expected(self):
-        current_current = self.ca.get_pv_value("GENESYS_01:1:CURR")
+        current_current = self.ca.get_pv_value("GENESYS_01:1:CURR:SP")
         self.ca.set_pv_value("GENESYS_01:1:CURR:SP", current_current + 5)
-        self.ca.assert_that_pv_is("GENESYS_01:1:CURR:SP", current_current + 5)
+        self.ca.assert_that_pv_is("GENESYS_01:1:CURR:SP:RBV", current_current + 5)
 
     def test_GIVEN_powerstate_set_WHEN_read_THEN_powerstate_is_as_expected_ON(self):
         expected_power = "ON"
