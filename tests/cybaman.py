@@ -28,14 +28,14 @@ class CybamanTests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("CYBAMAN_01:DISABLE", "COMMS ENABLED")
 
-    @skipIf(True or IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_position_setpoints_are_set_via_backdoor_THEN_positions_move_towards_setpoints(self):
         for axis in self.AXES:
             for pos in self.test_positions:
                 self._lewis.backdoor_set_on_device("{}_setpoint".format(axis.lower()), pos)
                 self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis), pos, tolerance=0.01)
 
-    @skipIf(True or IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_GIVEN_home_position_is_set_WHEN_home_pv_is_set_THEN_position_moves_towards_home(self):
         for axis in self.AXES:
             for pos in self.test_positions:
@@ -43,7 +43,7 @@ class CybamanTests(unittest.TestCase):
                 self.ca.set_pv_value("CYBAMAN_01:{}:HOME".format(axis), 1)
                 self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis), pos, tolerance=0.01)
 
-    @skipIf(True or IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_GIVEN_a_device_in_some_other_state_WHEN_reset_command_is_sent_THEN_device_is_reset_to_original_state(self):
 
         modifier = 12.34
@@ -73,11 +73,11 @@ class CybamanTests(unittest.TestCase):
         for axis in self.AXES:
             self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), original[axis], tolerance=0.001)
 
-    @skipIf(IOCRegister.uses_rec_sim, ".")
     def test_GIVEN_a_device_in_initialized_state_WHEN_setpoints_are_sent_THEN_device_goes_to_setpoint(self):
-        for pos in self.test_positions:
-            self.ca.set_pv_value("CYBAMAN_01:A:SP", pos)
-            self.ca.assert_that_pv_is_number("CYBAMAN_01:A", pos)
+        for axis in self.AXES:
+            for pos in self.test_positions:
+                self.ca.set_pv_value("CYBAMAN_01:{}:SP".format(axis.upper()), pos)
+                self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), pos)
 
 
 
