@@ -80,6 +80,9 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
     except AttributeError:
         ioc_launcher.macros = {}
 
+    # Override any emulator port that might be set elsewhere
+    ioc_launcher.macros['EMULATOR_PORT'] = port
+
     settings = dict()
     # Need to set epics address list to local broadcast otherwise channel access won't work
     settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
