@@ -15,9 +15,9 @@ class OutputMode(object):
 class TdklambdagenesysTests(unittest.TestCase):
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("TDKLambdaGenesys") # emulator name (\EPICS\support\DeviceEmulator)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("TDKLambdaGenesys")
         self.ca = ChannelAccess(default_timeout=10)
-        self.ca.wait_for("GENESYS_01:1:VOLT", timeout=10)
+        self.ca.wait_for("GENESYS_01:1:VOLT", timeout=30)
 
     def _write_voltage(self, expected_voltage):
         self._lewis.backdoor_set_on_device("voltage", expected_voltage)
