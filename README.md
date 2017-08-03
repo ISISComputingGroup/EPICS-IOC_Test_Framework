@@ -92,15 +92,15 @@ To add a another suite of tests:
 class MydeviceTests(unittest.TestCase):
     # Runs before every test
     def setUp(self):
-	      # Grab a reference to the ioc and lewis
+	    # Grab a reference to the ioc and lewis
         self._lewis, self._ioc = get_running_lewis_and_ioc(“mydevice")
-	      # Setup channel access with a default timeout of 20 seconds
+	    # Setup channel access with a default timeout of 20 seconds
         self.ca = ChannelAccess(20)
         # Wait for a PV to be available – the IOC may take some time to start
         self.ca.wait_for(“IOCNAME_01:DISABLE", timeout=30)
         
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
-	      # Assert that a PV has a particular value (prefix prepended automatically)          
+	    # Assert that a PV has a particular value (prefix prepended automatically)          
         self.ca.assert_that_pv_is(“IOCNAME_01:DISABLE", "COMMS ENABLED")
 ```
 Try to use GIVEN_WHEN_THEN test naming wherever appropriate
