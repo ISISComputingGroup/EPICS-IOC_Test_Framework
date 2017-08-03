@@ -32,3 +32,12 @@ class CybamanTests(unittest.TestCase):
                 self._lewis.backdoor_set_on_device("{}".format(axis.lower()), pos)
                 self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis), pos, tolerance=0.01)
 
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_GIVEN_home_position_is_set_WHEN_home_pv_is_set_THEN_position_moves_towards_home(self):
+        for axis in self.AXES:
+            for pos in self.test_positions:
+                self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), pos)
+                self.ca.set_pv_value("CYBAMAN_01:{}:HOME".format(axis), 1)
+                self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis), pos, tolerance=0.01)
+
