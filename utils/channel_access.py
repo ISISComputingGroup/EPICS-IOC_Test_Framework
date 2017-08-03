@@ -183,7 +183,7 @@ class ChannelAccess(object):
             return """Value was invalid when reading PV '{PV}'.
                     Expected a numeric value but got: {actual}""".format(PV=pv, actual=pv_value)
 
-        if abs(expected_value - pv_value) < tolerance:
+        if abs(expected_value - pv_value) <= tolerance:
             return None
         else:
             return """Value was invalid when reading PV '{PV}'.
