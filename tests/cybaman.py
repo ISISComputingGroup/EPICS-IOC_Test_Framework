@@ -14,7 +14,7 @@ class CybamanTests(unittest.TestCase):
     """
 
     AXES = ["A", "B", "C"]
-    test_positions = [-100, -1.23, 0, 180.0]
+    test_positions = [-200, -1.23, 0, 180.0]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("cybaman")
