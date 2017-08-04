@@ -5,14 +5,6 @@ SET CurrentDir=%~dp0
 
 call "%~dp0..\..\..\config_env.bat"
 
-
-@echo off
-REM Run all known tests using the IOC Testing Framework
-
-SET CurrentDir=%~dp0
-
-call "%~dp0..\..\..\config_env.bat"
-
 echo ---------------------------------------
 echo TESTING JULABO Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d julabo -p %EPICS_KIT_ROOT%\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e %PYTHONDIR%\Scripts -ep julabo-version-1
