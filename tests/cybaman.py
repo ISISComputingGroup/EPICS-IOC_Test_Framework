@@ -24,6 +24,7 @@ class CybamanTests(unittest.TestCase):
 
         # Initialize the device, do this in setup to avoid doing it in every test
         self.ca.set_pv_value("CYBAMAN_01:INITIALIZE", 1)
+        self.ca.assert_that_pv_is("CYBAMAN_01:INITIALIZED", "TRUE")
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("CYBAMAN_01:DISABLE", "COMMS ENABLED")
@@ -142,5 +143,15 @@ class CybamanTests(unittest.TestCase):
             # Assert that the TM val calculation record contains the correct value
             # Tolerance is 1001 because rounding errors would get multiplied by 1000
             self.ca.assert_that_pv_is_number("CYBAMAN_01:_CALC_TM_AND_SET", case["expected_tm_val"], tolerance=1001)
+
+    def test_GIVEN_an_initialized_ioc_WHEN_reset_pv_is_processed_THEN_ioc_is_still_initialized(self):
+        self.ca.set_pv_value("CYBAMAN_01:RESET", 1)
+        self.ca.assert_that_pv_is("CYBAMAN_01:INITIALIZED", "TRUE")
+
+    def test_GIVEN_an_initialized_ioc_WHEN_stop_and_then_initialize_pvs_are_processed_THEN_initialized_pv_is_false_then_true(self):
+        self.ca.set_pv_value("CYBAMAN_01:STOP", 1)
+        self.ca.assert_that_pv_is("CYBAMAN_01:INITIALIZED", "FALSE")
+        self.ca.set_pv_value("CYBAMAN_01:INITIALIZE", 1)
+        self.ca.assert_that_pv_is("CYBAMAN_01:INITIALIZED", "TRUE")
 
 
