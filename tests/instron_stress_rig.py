@@ -10,7 +10,7 @@ from utils.testing import get_running_lewis_and_ioc
 import math
 
 RAMP_WAVEFORM_TYPES = ["Ramp", "Dual ramp", "Trapezium", "Absolute ramp", "Absolute hold ramp",
-                            "Absolute rate ramp"]
+                       "Absolute rate ramp"]
 
 POS_STRESS_STRAIN = ["POS", "STRESS", "STRAIN"]
 NUMBER_OF_CHANNELS = len(POS_STRESS_STRAIN)
@@ -54,7 +54,8 @@ class Instron_stress_rigTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("status", 7680)
 
             for index, chan_type2 in enumerate((3, 2, 4)):
-                self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(chan_type2)])
+                self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1),
+                                              "channel_type", str(chan_type2)])
 
             self.ca.assert_that_pv_is("CHANNEL:SP.ZRST", "Position")
             self.ca.set_pv_value("CHANNEL:SP", 0)
@@ -143,18 +144,18 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def _switch_to_position_channel_and_change_setpoint(self):
 
-        _amount_to_change_setpoint = 123
+        # It has to be big or the set point will be reached before the test completes
+        _big_set_point = 999999999999
 
         # Select position as control channel
         self.ca.set_pv_value("CHANNEL:SP", 0)
         self.ca.assert_that_pv_is("CHANNEL", "Position")
         # Change the setpoint so that movement can be started
-        current_setpoint = float(self.ca.get_pv_value("POS:SP"))
-        self.ca.set_pv_value("POS:SP", current_setpoint + _amount_to_change_setpoint)
-        self.ca.assert_that_pv_is_number("POS:SP", current_setpoint + _amount_to_change_setpoint, tolerance=1)
-        self.ca.assert_that_pv_is_number("POS:SP:RBV", current_setpoint + _amount_to_change_setpoint, tolerance=1)
+        self.ca.set_pv_value("POS:SP", _big_set_point)
+        self.ca.assert_that_pv_is_number("POS:SP", _big_set_point, tolerance=1)
+        self.ca.assert_that_pv_is_number("POS:SP:RBV", _big_set_point, tolerance=1)
 
-    @skipIf(True, "Fails intermittently because change to setpoint to quickly. Use waveform generator when available #2113")
+    @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
     def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
         self.ca.assert_that_pv_is("GOING", "NO")
         self._switch_to_position_channel_and_change_setpoint()
@@ -164,7 +165,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GOING", "NO")
         self.ca.set_pv_value("STOP:SP", 0)
 
-    @skipIf(True, "Fails intermittently because change to setpoint to quickly. Use waveform generator when available #2113")
+    @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
     def test_WHEN_going_and_then_panic_stopping_THEN_going_pv_reflects_the_expected_state(self):
         self.ca.assert_that_pv_is("GOING", "NO")
         self._switch_to_position_channel_and_change_setpoint()
@@ -261,7 +262,8 @@ class Instron_stress_rigTests(unittest.TestCase):
                 pv_name = chan + ":TOLERANCE"
                 pv_name_high = chan + ":SP:RBV.HIGH"
                 pv_name_low = chan + ":SP:RBV.LOW"
-                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_high, set_point_pv=pv_name, expected_value=val+sp_val, expected_alarm=None)
+                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_high, set_point_pv=pv_name,
+                                                              expected_value=val+sp_val, expected_alarm=None)
                 self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_low, set_point_pv=pv_name,
                                                               expected_value=sp_val - val, expected_alarm=None)
 
@@ -317,7 +319,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_strain_length_updates_on_device_THEN_pv_updates(self):
-        for value in [1,123]:
+        for value in [1, 123]:
             self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", str(value)])
             self.ca.assert_that_pv_is("STRAIN:LENGTH", value)
 
@@ -427,8 +429,10 @@ class Instron_stress_rigTests(unittest.TestCase):
                     (0, 1, "Standard transducer", "Unrecognized"),
                     (1, 10, "User transducer", "Ext. waveform generator")]:
 
-                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "transducer_type", str(value_1)])
-                self._lewis.backdoor_command(["device", "set_channel_param", str(chan_num), "channel_type", str(value_2)])
+                self._lewis.backdoor_command(["device", "set_channel_param",
+                                              str(chan_num), "transducer_type", str(value_1)])
+                self._lewis.backdoor_command(["device", "set_channel_param",
+                                              str(chan_num), "channel_type", str(value_2)])
                 self.ca.assert_that_pv_is(""+chan_name+":TYPE:STANDARD",return_value_1 )
                 self.ca.assert_that_pv_is(""+chan_name+":TYPE", return_value_2)
 
