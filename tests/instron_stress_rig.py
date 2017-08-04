@@ -572,10 +572,8 @@ class Instron_stress_rigTests(unittest.TestCase):
         input_values = [123.4, 567.8, 91.2]
         conversion_factors = [
             float(self.ca.get_pv_value("POS:SCALE"))*1000,
-            float(self.ca.get_pv_value("STRESS:SCALE"))/float(
-                self.ca.get_pv_value("STRESS:AREA")),
-            float(self.ca.get_pv_value("STRAIN:SCALE"))*100000*float(
-                self.ca.get_pv_value("STRAIN:LENGTH"))
+            float(self.ca.get_pv_value("STRESS:SCALE"))/float(self.ca.get_pv_value("STRESS:AREA")),
+            float(self.ca.get_pv_value("STRAIN:SCALE"))*100000*float(self.ca.get_pv_value("STRAIN:LENGTH"))
         ]
         expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
         assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
