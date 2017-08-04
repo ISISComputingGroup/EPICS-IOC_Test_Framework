@@ -1,4 +1,5 @@
 import unittest
+from time import sleep
 from unittest import skipIf
 
 import operator
@@ -50,6 +51,7 @@ class CybamanTests(unittest.TestCase):
 
         # Reset cybaman
         self.ca.set_pv_value("RESET", 1)
+        self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
         self.ca.set_pv_value("INITIALIZE", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
         self.ca.assert_pv_value_over_time("INITIALIZED", 10, operator.eq)
@@ -139,17 +141,40 @@ class CybamanTests(unittest.TestCase):
 
             # Assert that the TM val calculation record contains the correct value
             # Tolerance is 1001 because rounding errors would get multiplied by 1000
-            self.ca.assert_that_pv_is_number("_CALC_TM_AND_SET", case["expected_tm_val"], tolerance=1001)
+            self.ca.assert_that_pv_is_number("{}:_CALC_TM_AND_SET".format(case["axis_to_change"].upper()), case["expected_tm_val"], tolerance=1001)
 
-    def test_GIVEN_an_initialized_ioc_WHEN_reset_pv_is_processed_THEN_ioc_is_still_initialized(self):
+    def test_GIVEN_an_initialized_ioc_WHEN_reset_then_initialized_THEN_initialized_pv_is_false_then_true(self):
         self.ca.set_pv_value("RESET", 1)
+        self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
+        self.ca.set_pv_value("INITIALIZE", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
-        self.ca.assert_pv_value_over_time("INITIALIZED", 5, operator.eq)
 
     def test_GIVEN_an_initialized_ioc_WHEN_stop_and_then_initialize_pvs_are_processed_THEN_initialized_pv_is_false_then_true(self):
         self.ca.set_pv_value("STOP", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
         self.ca.set_pv_value("INITIALIZE", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
+
+    @skipIf(IOCRegister.uses_rec_sim, "Homing not implemented in recsim")
+    def test_GIVEN_one_axis_is_homed_WHEN_another_axis_has_its_setpoint_set_THEN_the_homed_axis_does_not_move(self):
+        # Put all setpoints to zero
+        for axis in self.AXES:
+            self.ca.set_pv_value("{}:SP".format(axis.upper()), 0)
+            self.ca.assert_that_pv_is("{}".format(axis.upper()), 0)
+
+        self.ca.set_pv_value("A:HOME", 1)
+        # Wait for homing to start
+        sleep(2)
+        # Assert that A has stopped moving (i.e. homing is finished)
+        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
+        home_position = self.ca.get_pv_value("A")
+
+        # Modify an unrelated setpoint
+        self.ca.set_pv_value("B:SP", 5)
+        self.ca.assert_that_pv_is_number("B", 5, tolerance=0.01)
+
+        # Verify that A has not changed from it's home position
+        self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
+        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
 
 
