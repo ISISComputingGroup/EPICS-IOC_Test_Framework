@@ -79,5 +79,68 @@ class CybamanTests(unittest.TestCase):
                 self.ca.set_pv_value("CYBAMAN_01:{}:SP".format(axis.upper()), pos)
                 self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), pos)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_GIVEN_a_device_with_a_setpoint_less_than_minus_150_WHEN_homed_THEN_setpoint_is_set_to_minus_150_before_home(self):
+        for axis in self.AXES:
+            # Ensure home position is known
+            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100)
+
+            # Ensure setpoint and readback are less than -150
+            self.ca.set_pv_value("CYBAMAN_01:{}:SP".format(axis.upper()), -155)
+            self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), -155, tolerance=0.01)
+
+            # Tell axis to home
+            self.ca.set_pv_value("CYBAMAN_01:{}:HOME".format(axis.upper()), 1)
+
+            # Ensure that setpoint is updated to -150 before home
+            self.ca.assert_that_pv_is_number("CYBAMAN_01:{}:SP".format(axis.upper()), -150, tolerance=0.01)
+
+            # Let device actually reach home position
+            self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), 100)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_GIVEN_a_device_with_a_setpoint_more_than_minus_150_WHEN_homed_THEN_setpoint_is_not_set_before_home(self):
+        for axis in self.AXES:
+            # Ensure home position is known
+            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100)
+
+            # Ensure setpoint and readback are more than -150
+            self.ca.set_pv_value("CYBAMAN_01:{}:SP".format(axis.upper()), -145)
+            self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), -145, tolerance=0.01)
+
+            # Tell axis to home
+            self.ca.set_pv_value("CYBAMAN_01:{}:HOME".format(axis.upper()), 1)
+
+            # Ensure that setpoint has not been updated
+            self.ca.assert_that_pv_is_number("CYBAMAN_01:{}:SP".format(axis.upper()), -145, tolerance=0.01)
+
+            # Let device actually reach home position
+            self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), 100)
+
+    def test_GIVEN_a_device_at_a_specific_position_WHEN_setpoint_is_updated_THEN_tm_val_is_calculated_correctly(self):
+
+        test_cases = (
+            # No change in setpoint, TM val should be 4000
+            {"old_pos": (-1, -2, -3),  "axis_to_change": "A", "new_setpoint": -1, "expected_tm_val": 4000},
+            # Test case provided from flowchart specification
+            {"old_pos": (0, 0, 0),     "axis_to_change": "A", "new_setpoint": 30, "expected_tm_val": 6000},
+            # Test case provided from flowchart specification
+            {"old_pos": (11, -5, 102), "axis_to_change": "C", "new_setpoint": 50, "expected_tm_val": 10000},
+            # Very small change, TM val should be 4000
+            {"old_pos": (10, 20, 30),  "axis_to_change": "B", "new_setpoint": 21, "expected_tm_val": 4000},
+        )
+
+        for case in test_cases:
+            # Ensure original position is what it's meant to be
+            for axis, setpoint in zip(self.AXES, case["old_pos"]):
+                self.ca.set_pv_value("CYBAMAN_01:{}:SP".format(axis.upper()), setpoint)
+                self.ca.assert_that_pv_is_number("CYBAMAN_01:{}".format(axis.upper()), setpoint, tolerance = 0.01)
+
+            # Change the relevant axis to a new setpoint
+            self.ca.set_pv_value("CYBAMAN_01:{}:SP".format(case["axis_to_change"].upper()), case["new_setpoint"])
+
+            # Assert that the TM val calculation record contains the correct value
+            # Tolerance is 1001 because rounding errors would get multiplied by 1000
+            self.ca.assert_that_pv_is_number("CYBAMAN_01:_CALC_TM_AND_SET", case["expected_tm_val"], tolerance=1001)
 
 
