@@ -88,3 +88,11 @@ echo TESTING TDK_LAMBDA_GENESYS Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d tdk_lambda_genesys -p %EPICS_KIT_ROOT%\ioc\master\TDK_LAMBDA_GENESYS\iocBoot\iocGENESYS-IOC-01
 echo ---------------------------------------
 echo;
+
+REM SAMPOS has no dev sim as it is an LvDCOM IOC
+
+echo ---------------------------------------
+echo TESTING SAMPOS Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d sampos -p %EPICS_KIT_ROOT%\ioc\master\SAMPOS\iocBoot\iocSAMPOS
+echo ---------------------------------------
+echo;
