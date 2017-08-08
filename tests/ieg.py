@@ -100,3 +100,13 @@ class IegTests(unittest.TestCase):
                 self._lewis.backdoor_set_on_device("sample_pressure_low_limit", lower_limit)
                 self.ca.assert_that_pv_is("IEG_01:PRESSURE:LOW", 1 if pressure < lower_limit else 0)
                 self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:LOW", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_buffer_pressure_high_is_changed_on_device_THEN_buffer_pressure_high_pv_updates(self):
+        for value in [True, False]:
+            self._lewis.backdoor_set_on_device("buffer_pressure_high", value)
+
+            # Intentionally this way round - the manual
+            # says that 0 means 'above high threshold' and 1 is 'below high threshold'
+            self.ca.assert_that_pv_is("IEG_01:PRESSURE:BUFFER:HIGH", 0 if value else 1)
+            self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:BUFFER:HIGH", self.ca.ALARM_NONE)
