@@ -33,6 +33,7 @@ class IegTests(unittest.TestCase):
                    (13, "Sensor broken/disconnect")]
 
     test_device_ids = [0, 123, 255]
+    test_pressures = [0, 10, 1024]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ieg")
@@ -74,3 +75,28 @@ class IegTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("error", error_num)
             self.ca.assert_that_pv_is("IEG_01:ERROR", error)
             self.ca.assert_pv_alarm_is("IEG_01:ERROR", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_pressure_is_changed_on_device_THEN_raw_pressure_pv_updates(self):
+        for pressure in self.test_pressures:
+            self._lewis.backdoor_set_on_device("sample_pressure", pressure)
+            self.ca.assert_that_pv_is("IEG_01:PRESSURE:RAW", pressure)
+            self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:RAW", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_pressure_and_upper_limit_are_changed_on_device_THEN_pressure_high_pv_updates(self):
+        for pressure in self.test_pressures:
+            self._lewis.backdoor_set_on_device("sample_pressure", pressure)
+            for upper_limit in [pressure - 1, pressure + 1]:
+                self._lewis.backdoor_set_on_device("sample_pressure_high_limit", upper_limit)
+                self.ca.assert_that_pv_is("IEG_01:PRESSURE:HIGH", 1 if pressure > upper_limit else 0)
+                self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:HIGH", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_pressure_and_lower_limit_are_changed_on_device_THEN_pressure_low_pv_updates(self):
+        for pressure in self.test_pressures:
+            self._lewis.backdoor_set_on_device("sample_pressure", pressure)
+            for lower_limit in [pressure - 1, pressure + 1]:
+                self._lewis.backdoor_set_on_device("sample_pressure_low_limit", lower_limit)
+                self.ca.assert_that_pv_is("IEG_01:PRESSURE:LOW", 1 if pressure < lower_limit else 0)
+                self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:LOW", self.ca.ALARM_NONE)
