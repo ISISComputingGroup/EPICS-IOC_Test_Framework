@@ -18,6 +18,20 @@ class IegTests(unittest.TestCase):
                        (3, "Gas Flow"),
                        (4, "Gas - Single Shot"),]
 
+    error_codes = [(0, "No error"),
+                   (2, "Samp vol: leak detected"),
+                   (3, "Samp vol: no vacuum"),
+                   (4, "Samp vol: pump timeout"),
+                   (5, "Buff vol: did not fill"),
+                   (6, "Samp vol: fill iterations"),
+                   (7, "Samp vol: fill timeout"),
+                   (8, "Buff or samp vol leak"),
+                   (9, "Shot didn't raise press."),
+                   (10, "Manual stop"),
+                   (11, "Vacuum tank interlock"),
+                   (12, "Samp vol: leak detected"),
+                   (13, "Sensor broken/disconnect")]
+
     test_device_ids = [0, 123, 255]
 
     def setUp(self):
@@ -53,3 +67,10 @@ class IegTests(unittest.TestCase):
                     self.ca.assert_that_pv_is_number("IEG_01:VALVESTATE.B1", 1 if buffer_valve_state is True else 0)
                     self.ca.assert_that_pv_is_number("IEG_01:VALVESTATE.B2", 1 if gas_valve_state is True else 0)
                     self.ca.assert_pv_alarm_is("IEG_01:VALVESTATE", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_valve_states_are_changed_on_device_THEN_valve_state_pv_updates(self):
+        for error_num, error in self.error_codes:
+            self._lewis.backdoor_set_on_device("error", error_num)
+            self.ca.assert_that_pv_is("IEG_01:ERROR", error)
+            self.ca.assert_pv_alarm_is("IEG_01:ERROR", self.ca.ALARM_NONE)
