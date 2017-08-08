@@ -88,3 +88,15 @@ echo TESTING TDK_LAMBDA_GENESYS Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d tdk_lambda_genesys -p %EPICS_KIT_ROOT%\ioc\master\TDK_LAMBDA_GENESYS\iocBoot\iocGENESYS-IOC-01
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING IEG Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d ieg -p %EPICS_KIT_ROOT%\ioc\master\IEG\iocBoot\iocIEG-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING IEG Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d ieg -p %EPICS_KIT_ROOT%\ioc\master\IEG\iocBoot\iocIEG-IOC-01
+echo ---------------------------------------
+echo;
