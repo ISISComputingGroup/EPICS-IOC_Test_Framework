@@ -106,3 +106,4 @@ class Ag33220aTests(unittest.TestCase):
         self.ca.assert_that_pv_is("AG33220A_01:AMPLITUDE", 6)
         self.ca.assert_that_pv_is("AG33220A_01:VOLT:LOW", -1)
         self.ca.assert_that_pv_is("AG33220A_01:VOLT:HIGH", 5)
+        
