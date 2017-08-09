@@ -44,12 +44,11 @@ class IegTests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("IEG_01:DISABLE", "COMMS ENABLED")
 
-    @skipIf(IOCRegister.uses_rec_sim, "Recsim not implemented yet")
     def test_WHEN_mode_setpoint_is_set_THEN_readback_updates(self):
         for set_val, return_val in self.operation_modes:
             self.ca.assert_setting_setpoint_sets_readback(set_val, set_point_pv="IEG_01:MODE:SP", readback_pv="IEG_01:MODE", expected_value=return_val)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Recsim not implemented yet")
+    @skipIf(IOCRegister.uses_rec_sim, "Not implemented in recsim")
     def test_GIVEN_device_not_in_dormant_state_WHEN_kill_command_is_sent_THEN_device_goes_to_dormant_state(self):
         set_val, return_val = self.operation_modes[0]
         self.ca.assert_setting_setpoint_sets_readback(set_val, set_point_pv="IEG_01:MODE:SP", readback_pv="IEG_01:MODE", expected_value=return_val)
