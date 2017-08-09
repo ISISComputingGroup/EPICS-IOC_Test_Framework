@@ -49,6 +49,14 @@ class IegTests(unittest.TestCase):
         for set_val, return_val in self.operation_modes:
             self.ca.assert_setting_setpoint_sets_readback(set_val, set_point_pv="IEG_01:MODE:SP", readback_pv="IEG_01:MODE", expected_value=return_val)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Recsim not implemented yet")
+    def test_GIVEN_device_not_in_dormant_state_WHEN_kill_command_is_sent_THEN_device_goes_to_dormant_state(self):
+        set_val, return_val = self.operation_modes[0]
+        self.ca.assert_setting_setpoint_sets_readback(set_val, set_point_pv="IEG_01:MODE:SP", readback_pv="IEG_01:MODE", expected_value=return_val)
+
+        self.ca.set_pv_value("IEG_01:ABORT", 1)
+        self.ca.assert_that_pv_is("IEG_01:MODE", "Dormant")
+
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_device_id_is_changed_on_device_THEN_device_id_pv_updates(self):
         for val in self.test_device_ids:
