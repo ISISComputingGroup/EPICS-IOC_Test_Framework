@@ -30,7 +30,7 @@ class ChannelAccess(object):
         if not self.prefix.endswith(':'):
             self.prefix += ':'
 
-    def set_pv_value(self, pv, value):
+    def set_pv_value(self, pv, value, is_enum=False):
         """
         Sets the specified PV to the supplied value.
 
