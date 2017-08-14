@@ -11,7 +11,7 @@ ADR1 = "001"
 ID1 = "RQ1"
 ADR2 = "002"
 ID2 = "RB1"
-CLEAR_STATUS = "........................"
+CLEAR_STATUS = "."*24
 IDS = [ID1, ID2]
 
 # MACROS to use for the IOC
@@ -32,17 +32,21 @@ class RknpsTests(unittest.TestCase):
         """
         Activate both interlocks in the emulator.
         """
-        self._lewis.backdoor_set_on_device("set_both_interlocks", "active")
-        for IDN in IDS:
-            self._ioc.set_simulated_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), ".........!..............")
+        if IOCRegister.uses_rec_sim:
+            for IDN in IDS:
+                self._ioc.set_simulated_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), ".........!..............")
+        else:
+            self._lewis.backdoor_set_on_device("set_both_interlocks", "active")
 
     def _disable_interlocks(self):
         """
         Deactivate both interlocks in the emulator.
         """
-        self._lewis.backdoor_set_on_device("set_both_interlocks", "inactive")
-        for IDN in IDS:
-            self._ioc.set_simulated_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), CLEAR_STATUS)
+        if IOCRegister.uses_rec_sim:
+            for IDN in IDS:
+                self._ioc.set_simulated_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), CLEAR_STATUS)
+        else:
+            self._lewis.backdoor_set_on_device("set_both_interlocks", "inactive")
 
     def test_WHEN_intelocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
@@ -54,7 +58,8 @@ class RknpsTests(unittest.TestCase):
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "OK")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as recsim does not set any of the related values "
+                                      "which are set by the emulator")
     def test_WHEN_reset_is_sent_THEN_readbacks_and_power_are_off(self):
         for IDN in IDS:
             self.ca.set_pv_value("{0}:{1}:RESET".format(PREFIX, IDN), 1)
@@ -62,55 +67,56 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), 0)
             self.ca.assert_that_pv_is("{0}:{1}:VOLT".format(PREFIX, IDN), 0)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as there is no link between the status and power")
     def test_GIVEN_emulator_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:POWER:SP".format(PREFIX, IDN), 1)
-            self.ca.assert_that_pv_is("{0}:{1}:POWER".format(PREFIX, IDN), "On")
+            self.ca.assert_setting_setpoint_sets_readback(1,"{0}:{1}:POWER".format(PREFIX, IDN),
+                                                          "{0}:{1}:POWER:SP".format(PREFIX, IDN),"On")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as there is no link between the status and power")
     def test_GIVEN_emulator_in_use_WHEN_power_is_turned_off_THEN_value_is_as_expected(self):
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:POWER:SP".format(PREFIX, IDN), 0)
-            self.ca.assert_that_pv_is("{0}:{1}:POWER".format(PREFIX, IDN), "Off")
+            self.ca.assert_setting_setpoint_sets_readback(0, "{0}:{1}:POWER".format(PREFIX, IDN),
+                                                          "{0}:{1}:POWER:SP".format(PREFIX, IDN), "Off")
 
-    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails")
+    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the status is maintained by the emulator")
     def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "........................")
-            self.ca.assert_that_pv_is("{0}:{1}:POWER".format(PREFIX, IDN), "On")
+            self.ca.assert_setting_setpoint_sets_readback("........................", "{0}:{1}:POWER".format(PREFIX, IDN),
+                                                          "{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "On")
 
-    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails")
+    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the status is maintained by the emulator")
     def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_off_THEN_value_is_as_expected(self):
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "!.......................")
-            self.ca.assert_that_pv_is("{0}:{1}:POWER".format(PREFIX, IDN), "Off")
+            self.ca.assert_setting_setpoint_sets_readback("!.......................",
+                                                          "{0}:{1}:POWER".format(PREFIX, IDN),
+                                                          "{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "Off")
 
     def test_WHEN_polarity_is_positive_THEN_value_is_as_expected(self):
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:POL:SP".format(PREFIX, IDN), 0)
-            self.ca.assert_that_pv_is("{0}:{1}:POL".format(PREFIX, IDN), "+")
+            self.ca.assert_setting_setpoint_sets_readback(0, "{0}:{1}:POL".format(PREFIX, IDN),
+                                                          "{0}:{1}:POL:SP".format(PREFIX, IDN), "+")
 
     def test_WHEN_polarity_is_negative_THEN_value_is_as_expected(self):
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:POL:SP".format(PREFIX, IDN), 1)
-            self.ca.assert_that_pv_is("{0}:{1}:POL".format(PREFIX, IDN), "-")
+            self.ca.assert_setting_setpoint_sets_readback(1, "{0}:{1}:POL".format(PREFIX, IDN),
+                                                          "{0}:{1}:POL:SP".format(PREFIX, IDN), "-")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as it requires a lewis backdoor command")
     def test_GIVEN_emulator_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
         expected_value = 22
         self._lewis.backdoor_set_on_device("set_both_volt_values", expected_value)
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:{1}:VOLT".format(PREFIX, IDN), expected_value)
 
-    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails")
+    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the simulated records are not used")
     def test_GIVEN_emulator_not_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
         expected_value = 12
         for IDN in IDS:
             self.ca.set_pv_value("{0}:{1}:SIM:VOLT".format(PREFIX, IDN), expected_value)
             self.ca.assert_that_pv_is("{0}:{1}:VOLT".format(PREFIX, IDN), expected_value)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as the changes are not propagated to all appropriate PVs")
     def test_GIVEN_a_positive_value_and_emulator_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
         expected_value = 480
         for IDN in IDS:
@@ -119,7 +125,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), expected_value)
             self.ca.assert_that_pv_is("{0}:{1}:POL".format(PREFIX, IDN), "+")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as the changes are not propagated to all appropriate PVs")
     def test_GIVEN_a_negative_value_and_emulator_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
         expected_value = -123
         for IDN in IDS:
@@ -128,20 +134,22 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), abs(expected_value))
             self.ca.assert_that_pv_is("{0}:{1}:POL".format(PREFIX, IDN), "-")
 
-    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails")
+    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the emulator handles the difference in values "
+                                          "between write and read")
     def test_GIVEN_a_positive_value_and_emulator_not_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
-        expected_value = 480
-        check_value = expected_value*1000
+        set_value = 480
+        return_value = set_value*1000
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), expected_value)
-            self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), check_value)
-            self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), check_value)
+            self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), set_value)
+            self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), return_value)
+            self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), return_value)
 
-    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails")
+    @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the emulator handles the difference in values "
+                                          "between write and read")
     def test_GIVEN_a_negative_value_and_emulator_not_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
-        expected_value = -123
-        check_value = expected_value*1000
+        set_value = -123
+        return_value = set_value*1000
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), expected_value)
-            self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), check_value)
-            self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), check_value)
+            self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), set_value)
+            self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), return_value)
+            self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), return_value)
