@@ -134,7 +134,7 @@ class IegTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_pressure_is_over_350_THEN_displayed_as_greater_than_350_mBar(self):
         self._lewis.backdoor_set_on_device("sample_pressure", self._get_raw_from_actual(400))
-        self.ca.assert_that_pv_is("IEG_01:PRESSURE:GUI.OSV", "> 350 mBar")
+        self.ca.assert_that_pv_is("IEG_01:PRESSURE:GUI.OSV", "> 350 mbar")
         self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:GUI", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
