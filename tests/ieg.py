@@ -8,6 +8,11 @@ from utils.testing import get_running_lewis_and_ioc
 from time import sleep
 
 
+CALIBRATION_A = 1.23
+CALIBRATION_B = -4.56
+
+MACROS = { "CALIBRATION_A": str(CALIBRATION_A), "CALIBRATION_B": str(CALIBRATION_B)}
+
 class IegTests(unittest.TestCase):
     """
     Tests for the IEG IOC.
@@ -34,6 +39,14 @@ class IegTests(unittest.TestCase):
 
     test_device_ids = [0, 123, 255]
     test_pressures = [0, 10, 1024]
+
+    @staticmethod
+    def _get_actual_from_raw(value):
+        return value * CALIBRATION_A + CALIBRATION_B
+
+    @staticmethod
+    def _get_raw_from_actual(value):
+        return int(round((value - CALIBRATION_B) - CALIBRATION_A))
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ieg")
@@ -117,3 +130,16 @@ class IegTests(unittest.TestCase):
             # says that 0 means 'above high threshold' and 1 is 'below high threshold'
             self.ca.assert_that_pv_is("IEG_01:PRESSURE:BUFFER:HIGH", 0 if value else 1)
             self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:BUFFER:HIGH", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_pressure_is_over_350_THEN_displayed_as_greater_than_350_mBar(self):
+        self._lewis.backdoor_set_on_device("sample_pressure", self._get_raw_from_actual(400))
+        self.ca.assert_that_pv_is("IEG_01:PRESSURE:GUI.OSV", "> 350 mBar")
+        self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:GUI", self.ca.ALARM_NONE)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_pressure_is_set_THEN_it_is_converted_correctly_using_the_calibration(self):
+        for pressure in self.test_pressures:
+            self._lewis.backdoor_set_on_device("sample_pressure", pressure)
+            self.ca.assert_that_pv_is_number("IEG_01:PRESSURE", self._get_actual_from_raw(pressure), tolerance=0.05)
+            self.ca.assert_pv_alarm_is("IEG_01:PRESSURE", self.ca.ALARM_NONE)
