@@ -117,14 +117,14 @@ class Lakeshore460Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("LKSH460_01:SOURCE", "XZ")
 
     def test_GIVEN_channel_set_WHEN_read_THEN_channel_is_as_expected(self):
-        inputs = [1, 2, 3 ,4]
+        sample_data = [1, 2, 3,4]
         expected_range = ["Channel X", "Channel Y", "Channel Z", "Vector Magnitude Channel"]
-        for input, output in zip(inputs, expected_range):
+        for input, output in zip(sample_data, expected_range):
             self.ca.set_pv_value("LKSH460_01:CHANNEL:SP", input)
             self.ca.assert_that_pv_is("LKSH460_01:CHANNEL", output)
 
     def test_GIVEN_filter_window_set_WHEN_read_THEN_filter_window_is_as_expected_AND_within_range(self):
-        expected_window_percentage = [1,11, 10, 22]
+        expected_window_percentage = [1, 11, 10, 22]
         alarm_state = [ChannelAccess.ALARM_NONE, ChannelAccess.ALARM_MAJOR, ChannelAccess.ALARM_NONE, ChannelAccess.ALARM_MAJOR]
         for input, output in zip(expected_window_percentage, alarm_state):
             self.ca.set_pv_value("LKSH460_01:FWIN:SP", input)
@@ -140,9 +140,9 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_pv_alarm_is("LKSH460_01:FNUM", output)
 
     def test_GIVEN_range_set_manually_WHEN_read_THEN_range_is_as_expected(self):
-        inputs = [0,1,2,3]
+        sample_data = [0, 1, 2, 3]
         expected_range = ["First Range", "Second Range", "Third Range", "Fourth Range"]
-        for input, output in zip(inputs, expected_range):
+        for input, output in zip(sample_data, expected_range):
             self.ca.set_pv_value("LKSH460_01:RANGE:SP", input)
             self.ca.assert_that_pv_is("LKSH460_01:RANGE", output)
 
@@ -153,9 +153,9 @@ class Lakeshore460Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_max_reading_unit_set_WHEN_read_THEN_max_reading_unit_is_as_expected(self):
-        inputs = [0, 1, 2, 3]
+        sample_data = [0, 1, 2, 3]
         expected_unit = ["uG", "mG", "G", "kG"]
-        for input, output in zip(inputs, expected_unit):
+        for input, output in zip(sample_data, expected_unit):
             self.ca.set_pv_value("LKSH460_01:MAX:MULTIPLIER", input)
             self.ca.assert_that_pv_is("LKSH460_01:MAXREADING.EGU", output)
 
@@ -166,9 +166,9 @@ class Lakeshore460Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_relative_mode_set_point_unit_set_WHEN_read_THEN_relative_mode_set_point_unit_is_as_expected(self):
-        inputs = [0, 1, 2, 3]
+        sample_data = [0, 1, 2, 3]
         expected_unit = ["uG", "mG", "G", "kG"]
-        for input, output in zip(inputs, expected_unit):
+        for input, output in zip(sample_data, expected_unit):
             self.ca.set_pv_value("LKSH460_01:RELS:MULTIPLIER", input)
             self.ca.assert_that_pv_is("LKSH460_01:RELSMODE.EGU", output)
 
@@ -179,9 +179,9 @@ class Lakeshore460Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_relative_mode_reading_unit_set_WHEN_read_THEN_relative_mode_reading_unit_is_as_expected(self):
-        inputs = [0, 1, 2, 3]
+        sample_data = [0, 1, 2, 3]
         expected_unit = ["uG", "mG", "G", "kG"]
-        for input, output in zip(inputs, expected_unit):
+        for input, output in zip(sample_data, expected_unit):
             self.ca.set_pv_value("LKSH460_01:RELRM:MULTIPLIER", input)
             self.ca.assert_that_pv_is("LKSH460_01:RELMODEREADING.EGU", output)
 
@@ -192,9 +192,9 @@ class Lakeshore460Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_magnetic_field_reading_unit_set_WHEN_read_THEN_magnetic_field_reading_unit_is_as_expected(self):
-        inputs = [0, 1, 2, 3]
+        sample_data = [0, 1, 2, 3]
         expected_unit = ["uG", "mG", "G", "kG"]
-        for input, output in zip(inputs, expected_unit):
+        for input, output in zip(sample_data, expected_unit):
             self.ca.set_pv_value("LKSH460_01:FIELD:MULTIPLIER", input)
             self.ca.assert_that_pv_is("LKSH460_01:FIELDREADING.EGU", output)
 
