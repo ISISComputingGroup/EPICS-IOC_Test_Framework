@@ -43,13 +43,19 @@ echo;
 
 echo ---------------------------------------
 echo TESTING INSTRON Dev Sim
-REM call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d instron_stress_rig -p %EPICS_KIT_ROOT%\ioc\master\INSTRON\iocBoot\iocINSTRON-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d instron_stress_rig -p %EPICS_KIT_ROOT%\ioc\master\INSTRON\iocBoot\iocINSTRON-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
 
 echo ---------------------------------------
 echo TESTING INSTRON Rec Sim
-REM call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d instron_stress_rig -p %EPICS_KIT_ROOT%\ioc\master\INSTRON\iocBoot\iocINSTRON-IOC-01
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d instron_stress_rig -p %EPICS_KIT_ROOT%\ioc\master\INSTRON\iocBoot\iocINSTRON-IOC-01
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING AG33220A Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d ag33220a -p %EPICS_KIT_ROOT%\ioc\master\AG33220A\iocBoot\iocAG33220A-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
 
@@ -73,10 +79,41 @@ echo;
 
 echo ---------------------------------------
 echo TESTING KEPCO Rec Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d kepco -p %EPICS_KIT_ROOT%\ioc\master\KEPCO\iocBoot\iocKEPCO-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d kepco -p %EPICS_KIT_ROOT%\ioc\master\KEPCO\iocBoot\iocKEPCO-IOC-01
 echo ---------------------------------------
 echo;
 
+echo ---------------------------------------
+echo TESTING TDK_LAMBDA_GENESYS Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d tdk_lambda_genesys -p %EPICS_KIT_ROOT%\ioc\master\TDK_LAMBDA_GENESYS\iocBoot\iocGENESYS-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING TDK_LAMBDA_GENESYS Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d tdk_lambda_genesys -p %EPICS_KIT_ROOT%\ioc\master\TDK_LAMBDA_GENESYS\iocBoot\iocGENESYS-IOC-01
+echo ---------------------------------------
+echo;
+
+REM SAMPOS has no dev sim as it is an LvDCOM IOC
+
+echo ---------------------------------------
+echo TESTING SAMPOS Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d sampos -p %EPICS_KIT_ROOT%\ioc\master\SAMPOS\iocBoot\iocSAMPOS
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING RKNPS Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d rknps -p %EPICS_KIT_ROOT%\ioc\master\RKNPS\iocBoot\iocRKNPS-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING RKNPS Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d rknps -p %EPICS_KIT_ROOT%\ioc\master\RKNPS\iocBoot\iocRKNPS-IOC-01
+echo ---------------------------------------
+echo;
 echo ---------------------------------------
 echo TESTING CYBAMAN Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d cybaman -p %EPICS_KIT_ROOT%\ioc\master\CYBAMAN\iocBoot\iocCYBAMAN-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
