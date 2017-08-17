@@ -1,4 +1,3 @@
-@echo off
 REM Run all known tests using the IOC Testing Framework
 
 SET CurrentDir=%~dp0
@@ -54,12 +53,6 @@ echo ---------------------------------------
 echo;
 
 echo ---------------------------------------
-echo TESTING AG33220A Dev Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d ag33220a -p %EPICS_KIT_ROOT%\ioc\master\AG33220A\iocBoot\iocAG33220A-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
-echo ---------------------------------------
-echo;
-
-echo ---------------------------------------
 echo TESTING FERMI CHOPPER Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d fermichopper -p %EPICS_KIT_ROOT%\ioc\master\FERMCHOP\iocBoot\iocFERMCHOP-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
@@ -95,10 +88,16 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -p
 echo ---------------------------------------
 echo;
 
-REM SAMPOS has no dev sim as it is an LvDCOM IOC
-
 echo ---------------------------------------
-echo TESTING SAMPOS Rec Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d sampos -p %EPICS_KIT_ROOT%\ioc\master\SAMPOS\iocBoot\iocSAMPOS
+echo TESTING HIFI_CRYOMAG_PSU Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d HFMAGPSU -p %EPICS_KIT_ROOT%\ioc\master\HFMAGPSU\iocboot\iocHFMAGPSU-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING HIFI_CRYOMAG_PSU Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d HFMAGPSU -p %EPICS_KIT_ROOT%\ioc\master\HFMAGPSU\iocboot\iocHFMAGPSU-IOC-01
+echo ---------------------------------------
+echo;
+
+
