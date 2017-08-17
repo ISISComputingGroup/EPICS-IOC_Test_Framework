@@ -540,7 +540,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.set_pv_value(wave_prefixed("START"), 1)
         self.check_running_state(status="Running", running=True, continuing=True)
 
-        # We need to make sure it can keep running for a few scans. The IOC could feasibly stop the IOC shortly
+        # We need to make sure it can keep running for a few scans. The IOC could feasibly stop the generator shortly
         # after it is started
         time.sleep(5)
         self.check_running_state(status="Running", running=True, continuing=True)
