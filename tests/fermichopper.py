@@ -341,7 +341,7 @@ class FermichopperTests(unittest.TestCase):
                 self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
 
                 # Give the IOC time to accept that it is now in a valid state again...
-                sleep(3)
+                sleep(15)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_motor_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):
