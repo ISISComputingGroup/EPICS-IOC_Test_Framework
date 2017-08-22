@@ -37,7 +37,7 @@ class XybeamstopTests(unittest.TestCase):
     def _set_y(self, value):
         self._set_pv_value("ARM:Y", value)
 
-    def test_GIVEN_x_y_WHEN_read_x_y_THEN_x_y_is_as_expected(self):
+    def test_WHEN_set_x_y_THEN_beamstop_moves_to_set_position(self):
         x = 1.0
         y = 2.0
         self._set_x(x)
@@ -50,7 +50,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", x, 1e-1)
         self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", y, 1e-1)
 
-    def test_GIVEN_store_command_WHEN_read_x_y_is_as_expected(self):
+    def test_WHEN_set_to_store_state_THEN_beamstop_move_to_store_position(self):
         self._set_pv_value("ARM:STORE", 1)
         time.sleep(1)
 
@@ -62,7 +62,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca.assert_that_pv_is_close(MTR1, math.pi/2.)
         self.ca.assert_that_pv_is_close(MTR2, 0)
 
-    def test_GIVEN_store_command_THEN_cannot_move_arm(self):
+    def test_GIVEN_beamstop_in_stored_state_WHEN_try_to_move_beamstop_THEN_beamstop_cannot_be_move(self):
         # store the arm
         self._set_pv_value("ARM:STORE:SP", 1)
 
@@ -80,7 +80,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca.assert_that_pv_is_close(MTR1, math.pi/2.)
         self.ca.assert_that_pv_is_close(MTR2, 0)
 
-    def test_GIVEN_activate_command_sent_in_stored_mode_WHEN_read_x_y_is_as_expected(self):
+    def test_GIVEN_beamstop_in_stored_state_WHEN_set_to_active_state_THEN_beamstop_moves_to_active_position(self):
         self._set_pv_value("ARM:STORE", 1)  # First put it into stored mode
         self._set_pv_value("ARM:STORE", 0)  # Then check it comes back out
 
@@ -126,7 +126,7 @@ class XybeamstopTests(unittest.TestCase):
     #     self.ca.assert_that_pv_is_close("MOT:ARM:Y", y_upper)
     #     self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", y_upper, 1e-2)
 
-    def test_GIVEN_tweak_x_positive_WHEN_read_x_is_as_expected(self):
+    def test_WHEN_tweak_x_in_positive_direction_THEN_x_is_offset_relative_to_current_position_by_given_amount(self):
         self._set_x(1.0)
         self._set_pv_value("ARM:X:TWEAK", 0.1)
         time.sleep(1)
@@ -134,7 +134,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca.assert_that_pv_is_close("MOT:ARM:X", 1.1)
         self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", 1.1, 1e-2)
 
-    def test_GIVEN_tweak_y_positive_WHEN_read_y_is_as_expected(self):
+    def test_WHEN_tweak_y_in_positive_direction_THEN_y_is_offset_relative_to_current_position_by_given_amount(self):
         self._set_y(1.0)
         self._set_pv_value("ARM:Y:TWEAK", 0.1)
         time.sleep(1)
@@ -142,7 +142,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca.assert_that_pv_is_close("MOT:ARM:Y", 1.1)
         self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", 1.1, 1e-2)
 
-    def test_GIVEN_tweak_x_negative_WHEN_read_x_is_as_expected(self):
+    def test_WHEN_tweak_x_in_negative_direction_THEN_x_is_offset_relative_to_current_position_by_given_amount(self):
         self._set_x(1.0)
         self._set_pv_value("ARM:X:TWEAK", -0.1)
         time.sleep(1)
@@ -150,7 +150,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca.assert_that_pv_is_close("MOT:ARM:X", 0.9)
         self.ca.assert_that_pv_is_close("MOT:ARM:X.RBV", 0.9, 1e-2)
 
-    def test_GIVEN_tweak_y_negative_WHEN_read_y_is_as_expected(self):
+    def test_WHEN_tweak_y_in_negative_direction_THEN_y_is_offset_relative_to_current_position_by_given_amount(self):
         self._set_y(1.0)
         self._set_pv_value("ARM:Y:TWEAK", -0.1)
         time.sleep(1)
@@ -158,7 +158,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca.assert_that_pv_is_close("MOT:ARM:Y", 0.9)
         self.ca.assert_that_pv_is_close("MOT:ARM:Y.RBV", 0.9, 1e-2)
 
-    def test_GIVEN_open_shutter_WHEN_read_shutter_is_open(self):
+    def test_WHEN_set_shutter_to_open_THEN_shutter_is_set_to_open_state(self):
         self._set_pv_value("SHUTTERS:SP", 1)
 
         self.ca.assert_that_pv_is("MOT:SHUTTERS", "OPEN")
