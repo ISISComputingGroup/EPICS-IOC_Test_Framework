@@ -124,26 +124,6 @@ class ChannelAccess(object):
 
         raise AssertionError(error_message)
 
-    def assert_that_pv_is_close(self, pv, expected_value, delta=1e-6, timeout=None):
-        """
-        Assert that the pv has one of the expected values or that it becomes one of the expected value within the
-        timeout
-
-        :param pv: pv name
-        :param expected_value: value to compare to
-        :param delta: maximum acceptable absolute difference between the two values
-        :param timeout: if it hasn't changed within this time raise assertion error
-        :return:
-        :raises AssertionError: if value does not become within tolerance of the requested value
-        :raises UnableToConnectToPVException: if pv does not exist within timeout
-        """
-        error_message = self._wait_for_pv_lambda(lambda: self._value_is_close(pv, expected_value, delta), timeout)
-
-        if error_message is None:
-            return
-
-        raise AssertionError(error_message)
-
     def _values_match(self, pv, expected_value):
         """
         Check pv matches a value.
@@ -159,21 +139,6 @@ class ChannelAccess(object):
             return """Values didn't match when reading PV '{PV}'.
                    Expected value: {expected}
                    Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
-
-    def _value_is_close(self, pv, expected_value, delta):
-        """
-        Check pv is close to a value.
-
-        :param pv: name of the pv (no prefix)
-        :param expected_value: value that is expected
-        :param delta: maximum acceptable absolute difference between the values
-        :return: None if they match; error string stating the difference if they do not
-        """
-        pv_value = self.get_pv_value(pv)
-        if abs(pv_value - expected_value) < delta:
-            return None
-        else:
-            return "Expected {expected}: actual {actual}".format(expected=expected_value, actual=pv_value)
 
     def _value_is_an_integer_between(self, pv, min, max):
         """
