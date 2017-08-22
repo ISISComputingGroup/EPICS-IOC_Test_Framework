@@ -81,12 +81,12 @@ class IocLauncher(object):
         settings = os.environ.copy()
         if self.use_rec_sim:
             # Using record simulation
-            settings['TESTDEVSIM'] = ' '
-            settings['TESTRECSIM'] = 'Yes'
+            settings['TESTDEVSIM'] = ''
+            settings['TESTRECSIM'] = 'yes'
         else:
             # Not using record simulation
-            settings['TESTDEVSIM'] = 'Yes'
-            settings['TESTRECSIM'] = ' '
+            settings['TESTDEVSIM'] = 'yes'
+            settings['TESTRECSIM'] = ''
 
         # Set the port
         settings['EMULATOR_PORT'] = str(self.port)

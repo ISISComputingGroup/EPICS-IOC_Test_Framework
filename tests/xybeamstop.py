@@ -6,10 +6,10 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 
 # Internal Address of device (must be 2 characters)
-ADDRESS = "01"
+GALIL_ADDR = "128.0.0.0"
 
 # MACROS to use for the IOC
-MACROS = {"ADDR": ADDRESS}
+MACROS = {"GALILADDR01": GALIL_ADDR}
 
 PREFIX = "MOT"
 MTR1 = "MOT:MTR0101"
