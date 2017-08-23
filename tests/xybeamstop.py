@@ -66,9 +66,7 @@ class XybeamstopTests(unittest.TestCase):
         self.ca = ChannelAccess()
         self.ca.wait_for(MOTOR_X, timeout=30)
         self._set_pv_value(STORE_SP, ACTIVE)
-
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, ACTIVE_X, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, ACTIVE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self._assert_setpoint_and_readback_reached(ACTIVE_X, ACTIVE_Y)
 
     def _set_pv_value(self, pv_name, value):
         self.ca.set_pv_value("{0}:{1}".format(PREFIX, pv_name), value)
@@ -79,28 +77,35 @@ class XybeamstopTests(unittest.TestCase):
     def _set_y(self, value):
         self._set_pv_value("ARM:Y:SP", value)
 
+    def _assert_setpoint_and_readback_reached(self, x_position, y_position):
+        """
+        Check that both the setpoint for has been set and the readback value reaches that setpoint
+        :param x_position: the expected value to move the x axis to
+        :param y_position: the expected value to move the y axis to
+        :return:
+        """
+        self.ca.assert_that_pv_is_number(MOTOR_X, x_position, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_Y, y_position, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, x_position, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, y_position, TOLERANCE, timeout=RBV_TIMEOUT)
+
     def test_WHEN_set_x_y_THEN_beamstop_moves_to_set_position(self):
         x = 1.0
         y = 2.0
         self._set_x(x)
         self._set_y(y)
 
-        self.ca.assert_that_pv_is_number(MOTOR_X, x, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y, y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, x, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self._assert_setpoint_and_readback_reached(x, y)
 
     def test_WHEN_set_to_store_state_THEN_beamstop_move_to_store_position(self):
         self._set_pv_value(STORE_SP, STORE)
 
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self._assert_setpoint_and_readback_reached(STORE_X, STORE_Y)
 
         self.ca.assert_that_pv_is(STORE_PV, "STORED")
-        self.ca.assert_that_pv_is_number(MOTOR_X, STORE_X, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y, STORE_Y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+
+        self._assert_setpoint_and_readback_reached(STORE_X, STORE_Y)
+
         self.ca.assert_that_pv_is_number(MTR1, THETA_STORED_POS, TOLERANCE)
         self.ca.assert_that_pv_is_number(MTR2, W_STORED_POS, TOLERANCE)
 
@@ -108,8 +113,7 @@ class XybeamstopTests(unittest.TestCase):
         # store the arm
         self._set_pv_value(STORE_SP, STORE)
 
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self._assert_setpoint_and_readback_reached(STORE_X, STORE_Y)
 
         # Now try and move it. This should not move as the motor has put access disabled.
         attempted_move_x = 0.2
@@ -118,10 +122,8 @@ class XybeamstopTests(unittest.TestCase):
         self._set_y(attempted_move_y)
 
         self.ca.assert_that_pv_is(STORE_PV, "STORED")
-        self.ca.assert_that_pv_is_number(MOTOR_X, STORE_X, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y, STORE_Y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self._assert_setpoint_and_readback_reached(STORE_X, STORE_Y)
+
         self.ca.assert_that_pv_is_number(MTR1, THETA_STORED_POS, TOLERANCE)
         self.ca.assert_that_pv_is_number(MTR2, W_STORED_POS, TOLERANCE)
 
@@ -129,19 +131,14 @@ class XybeamstopTests(unittest.TestCase):
         # First put it into stored mode
         self._set_pv_value(STORE_SP, STORE)
 
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self._assert_setpoint_and_readback_reached(STORE_X, STORE_Y)
 
         # Then check it comes back out
         self._set_pv_value(STORE_SP, ACTIVE)
 
         self.ca.assert_that_pv_is(STORE_PV, "ACTIVE")
 
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, ACTIVE_X, TOLERANCE, timeout=RBV_TIMEOUT)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, ACTIVE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
-
-        self.ca.assert_that_pv_is_number(MOTOR_X, ACTIVE_X, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y, ACTIVE_Y, TOLERANCE)
+        self._assert_setpoint_and_readback_reached(ACTIVE_X, ACTIVE_Y)
 
         self.ca.assert_that_pv_is_number(MTR1, THETA_ACTIVE_POS, TOLERANCE)
         self.ca.assert_that_pv_is_number(MTR2, W_ACTIVE_POS, TOLERANCE)
