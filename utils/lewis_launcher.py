@@ -2,6 +2,7 @@ import os
 import subprocess
 
 import sys
+from time import sleep
 
 from utils.free_ports import get_free_ports
 from utils.log_file import log_filename
@@ -82,11 +83,12 @@ class LewisLauncher(object):
     Launches Lewis.
     """
 
-    def __init__(self, device, lewis_path, var_dir, lewis_protocol=None, lewis_additional_path=None, lewis_package=None):
+    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol=None, lewis_additional_path=None, lewis_package=None):
         """
         Constructor that also launches Lewis.
 
         :param device: device to start
+        :param python_path: path to python.exe
         :param lewis_path: path to lewis
         :param var_dir: location of directory to write log file and macros directories
         :param lewis_protocol: protocol to use; None let Lewis use the default protocol
@@ -94,6 +96,7 @@ class LewisLauncher(object):
         :param lewis_package: package to use by lewis
         """
         self._lewis_path = lewis_path
+        self._python_path = python_path
         self._lewis_protocol = lewis_protocol
         self._device = device
         self._process = None
@@ -132,7 +135,7 @@ class LewisLauncher(object):
         """
 
         self._control_port = str(get_free_ports(1)[0])
-        lewis_command_line = [os.path.join(self._lewis_path, "lewis"),
+        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         if self._lewis_protocol is not None:
             lewis_command_line.extend(["-p", self._lewis_protocol])
@@ -190,13 +193,20 @@ class LewisLauncher(object):
         :param lewis_command: array of command line arguments to send
         :return:
         """
-        lewis_command_line = [
+        lewis_command_line = [self._python_path,
             os.path.join(self._lewis_path, "lewis-control.exe"),
             "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
         self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))
         try:
-            subprocess.check_call(lewis_command_line, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT)
+            for i in range(1,30):
+                code = p.poll()
+                if code == 0:
+                    return
+                sleep(0.1)
+            p.terminate()
+            print "Lewis backdoor did not finish!"
         except subprocess.CalledProcessError as ex:
             sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
             sys.stderr.write("Error code {0}\n".format(ex.returncode))

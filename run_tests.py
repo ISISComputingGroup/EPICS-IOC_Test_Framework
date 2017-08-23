@@ -80,6 +80,9 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
     except AttributeError:
         ioc_launcher.macros = {}
 
+    # Override any emulator port that might be set elsewhere
+    ioc_launcher.macros['EMULATOR_PORT'] = port
+
     settings = dict()
     # Need to set epics address list to local broadcast otherwise channel access won't work
     settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
@@ -103,6 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--device', default=None, help="Device type to test.")
     parser.add_argument('-p', '--ioc-path', default=None, help="The path to the folder containing the IOC's st.cmd")
     parser.add_argument('-e', '--emulator-path', default=None, help="The path of the lewis.py file")
+    parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe", help="The path of python.exe")
     parser.add_argument('-ep', '--emulator-protocol', default=None, help="The Lewis protocal to use (optional)")
     parser.add_argument('-r', '--record-simulation', default=False, action="count",
                         help="Use record simulation rather than emulation (optional)")
@@ -139,10 +143,10 @@ if __name__ == '__main__':
             run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
         elif arguments.device and arguments.ioc_path:
             print("Running using device emulation")
-
             if arguments.emulator_path:
                 lewis = LewisLauncher(
                     device=arguments.device,
+                    python_path=os.path.abspath(arguments.python_path),
                     lewis_path=os.path.abspath(arguments.emulator_path),
                     lewis_protocol=arguments.emulator_protocol,
                     lewis_additional_path=arguments.emulator_add_path,
