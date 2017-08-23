@@ -1,6 +1,7 @@
 import unittest
 import math
 import time
+from itertools import starmap
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
@@ -12,13 +13,17 @@ GALIL_ADDR = "128.0.0.0"
 MACROS = {"GALILADDR01": GALIL_ADDR}
 
 PREFIX = "MOT"
-MTR1 = "MOT:MTR0101"
-MTR2 = "MOT:MTR0102"
 
 # These are the coordinates for the stored position of the beamstop are for the test configuration. These coordinates
 # are the position in the X-Y plane that the arm will be at when it is pointing vertically upwards and at zero on the
 # W axis.
-STORE_X, STORE_Y = -7.071, 2.929
+STORE_X, STORE_Y = -6.8, 2.7
+
+# Stored positions of theta / w motors. These are the expected position of the two "real" motors
+THETA_STORED_POS = math.pi/2.-0.2  # Bit less than 90 degrees to avoid going out of range
+THETA_ACTIVE_POS = math.pi/4.      # Active position has the arm at 45 degrees.
+W_STORED_POS = -2.0                # Bit less than 0 for the horizontal motor position
+W_ACTIVE_POS = 0.                  # Active position has the arm at the position the motor started at
 
 # These are the coordinates for the active position of the beamstop are for the test configuration. These coordinates
 # are the position in the X-Y plane that the arm will be at when it is pointing diagonally at 45 degrees and at zero
@@ -29,12 +34,27 @@ ACTIVE_X, ACTIVE_Y = 0., 0.
 ACTIVE, STORE = 0, 1
 
 # Motor position tolerance
-TOLERANCE = 1e-2
+TOLERANCE = 2e-1
+# Length of time to wait for RBV to reach setpoint
+RBV_TIMEOUT = 50
 
+# PV names for X/Y motors
 MOTOR_X = "MOT:ARM:X"
 MOTOR_Y = "MOT:ARM:Y"
 MOTOR_X_RBV = "MOT:ARM:X.RBV"
 MOTOR_Y_RBV = "MOT:ARM:Y.RBV"
+
+# PV names for "real" motors
+MTR1 = "MOT:MTR0101"
+MTR2 = "MOT:MTR0102"
+
+# PV for store/active command
+STORE_PV = "MOT:ARM:STORE"
+STORE_SP = "ARM:STORE:SP"
+
+# PV for tweaking X/Y position
+TWEAK_X = "ARM:X:TWEAK"
+TWEAK_Y = "ARM:Y:TWEAK"
 
 
 class XybeamstopTests(unittest.TestCase):
@@ -45,18 +65,19 @@ class XybeamstopTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("xyBeamstop")
         self.ca = ChannelAccess()
         self.ca.wait_for(MOTOR_X, timeout=30)
-        self._set_pv_value("ARM:STORE", ACTIVE)
-        self._set_x(0.1)
-        self._set_y(0.1)
+        self._set_pv_value(STORE_SP, ACTIVE)
+
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, ACTIVE_X, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, ACTIVE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
 
     def _set_pv_value(self, pv_name, value):
         self.ca.set_pv_value("{0}:{1}".format(PREFIX, pv_name), value)
 
     def _set_x(self, value):
-        self._set_pv_value("ARM:X", value)
+        self._set_pv_value("ARM:X:SP", value)
 
     def _set_y(self, value):
-        self._set_pv_value("ARM:Y", value)
+        self._set_pv_value("ARM:Y:SP", value)
 
     def test_WHEN_set_x_y_THEN_beamstop_moves_to_set_position(self):
         x = 1.0
@@ -66,77 +87,109 @@ class XybeamstopTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_number(MOTOR_X, x, TOLERANCE)
         self.ca.assert_that_pv_is_number(MOTOR_Y, y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, x, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, y, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, x, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, y, TOLERANCE, timeout=RBV_TIMEOUT)
 
     def test_WHEN_set_to_store_state_THEN_beamstop_move_to_store_position(self):
-        self._set_pv_value("ARM:STORE", STORE)
+        self._set_pv_value(STORE_SP, STORE)
 
-        self.ca.assert_that_pv_is("MOT:ARM:STORE", "STORED")
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+
+        self.ca.assert_that_pv_is(STORE_PV, "STORED")
         self.ca.assert_that_pv_is_number(MOTOR_X, STORE_X, TOLERANCE)
         self.ca.assert_that_pv_is_number(MOTOR_Y, STORE_Y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MTR1, math.pi/2., TOLERANCE)
-        self.ca.assert_that_pv_is_number(MTR2, 0, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MTR1, THETA_STORED_POS, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MTR2, W_STORED_POS, TOLERANCE)
 
     def test_GIVEN_beamstop_in_stored_state_WHEN_try_to_move_beamstop_THEN_beamstop_cannot_be_move(self):
         # store the arm
-        self._set_pv_value("ARM:STORE:SP", STORE)
+        self._set_pv_value(STORE_SP, STORE)
+
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
 
         # Now try and move it. This should not move as the motor has put access disabled.
-        self._set_x(0.2)
-        self._set_y(0.2)
+        attempted_move_x = 0.2
+        attempted_move_y = 0.2
+        self._set_x(attempted_move_x)
+        self._set_y(attempted_move_y)
 
-        self.ca.assert_that_pv_is("MOT:ARM:STORE", "STORED")
+        self.ca.assert_that_pv_is(STORE_PV, "STORED")
         self.ca.assert_that_pv_is_number(MOTOR_X, STORE_X, TOLERANCE)
         self.ca.assert_that_pv_is_number(MOTOR_Y, STORE_Y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MTR1, math.pi/2., TOLERANCE)
-        self.ca.assert_that_pv_is_number(MTR2, 0, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MTR1, THETA_STORED_POS, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MTR2, W_STORED_POS, TOLERANCE)
 
     def test_GIVEN_beamstop_in_stored_state_WHEN_set_to_active_state_THEN_beamstop_moves_to_active_position(self):
-        self._set_pv_value("ARM:STORE", STORE)  # First put it into stored mode
-        self._set_pv_value("ARM:STORE", ACTIVE)  # Then check it comes back out
+        # First put it into stored mode
+        self._set_pv_value(STORE_SP, STORE)
 
-        self.ca.assert_that_pv_is("MOT:ARM:STORE", "ACTIVE")
-        self.ca.assert_that_pv_is(MOTOR_X, ACTIVE_X)
-        self.ca.assert_that_pv_is(MOTOR_Y, ACTIVE_Y)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, ACTIVE_X, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, ACTIVE_Y, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MTR1, math.pi/4., TOLERANCE)
-        self.ca.assert_that_pv_is_number(MTR2, 0, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, STORE_X, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, STORE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+
+        # Then check it comes back out
+        self._set_pv_value(STORE_SP, ACTIVE)
+
+        self.ca.assert_that_pv_is(STORE_PV, "ACTIVE")
+
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, ACTIVE_X, TOLERANCE, timeout=RBV_TIMEOUT)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, ACTIVE_Y, TOLERANCE, timeout=RBV_TIMEOUT)
+
+        self.ca.assert_that_pv_is_number(MOTOR_X, ACTIVE_X, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_Y, ACTIVE_Y, TOLERANCE)
+
+        self.ca.assert_that_pv_is_number(MTR1, THETA_ACTIVE_POS, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MTR2, W_ACTIVE_POS, TOLERANCE)
 
     def test_WHEN_tweak_x_in_positive_direction_THEN_x_is_offset_relative_to_current_position_by_given_amount(self):
-        self._set_x(1.0)
-        self._set_pv_value("ARM:X:TWEAK", 0.1)
+        start_x = 1.0
+        tweak_x = 0.1
+        expected_x = 1.1
 
-        self.ca.assert_that_pv_is_number(MOTOR_X, 1.1, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, 1.1, TOLERANCE)
+        self._set_x(start_x)
+        self._set_pv_value(TWEAK_X, tweak_x)
+
+        self.ca.assert_that_pv_is_number(MOTOR_X, expected_x, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, expected_x, TOLERANCE)
 
     def test_WHEN_tweak_y_in_positive_direction_THEN_y_is_offset_relative_to_current_position_by_given_amount(self):
-        self._set_y(1.0)
-        self._set_pv_value("ARM:Y:TWEAK", 0.1)
+        start_y = 1.0
+        tweak_y = 0.1
+        expected_y = 1.1
 
-        self.ca.assert_that_pv_is_number(MOTOR_Y, 1.1, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, 1.1, TOLERANCE)
+        self._set_y(start_y)
+        self._set_pv_value(TWEAK_Y, tweak_y)
+
+        self.ca.assert_that_pv_is_number(MOTOR_Y, expected_y, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, expected_y, TOLERANCE)
 
     def test_WHEN_tweak_x_in_negative_direction_THEN_x_is_offset_relative_to_current_position_by_given_amount(self):
-        self._set_x(1.0)
-        self._set_pv_value("ARM:X:TWEAK", -0.1)
+        start_x = 1.0
+        tweak_x = -0.1
+        expected_x = 0.9
 
-        self.ca.assert_that_pv_is_number(MOTOR_X, 0.9, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, 0.9, TOLERANCE)
+        self._set_x(start_x)
+        self._set_pv_value(TWEAK_X, tweak_x)
+
+        self.ca.assert_that_pv_is_number(MOTOR_X, expected_x, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_X_RBV, expected_x, TOLERANCE)
 
     def test_WHEN_tweak_y_in_negative_direction_THEN_y_is_offset_relative_to_current_position_by_given_amount(self):
-        self._set_y(1.0)
-        self._set_pv_value("ARM:Y:TWEAK", -0.1)
+        start_y = 1.0
+        tweak_y = -0.1
+        expected_y = 0.9
 
-        self.ca.assert_that_pv_is_number(MOTOR_Y, 0.9, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, 0.9, TOLERANCE)
+        self._set_y(start_y)
+        self._set_pv_value(TWEAK_Y, tweak_y)
+
+        self.ca.assert_that_pv_is_number(MOTOR_Y, expected_y, TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR_Y_RBV, expected_y, TOLERANCE)
 
     def test_WHEN_set_shutter_to_open_THEN_shutter_is_set_to_open_state(self):
         self._set_pv_value("SHUTTERS:SP", 1)
-
         self.ca.assert_that_pv_is("MOT:SHUTTERS", "OPEN")
