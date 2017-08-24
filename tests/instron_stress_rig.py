@@ -622,17 +622,16 @@ class Instron_stress_rigTests(unittest.TestCase):
         cycles = 5
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
         self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
-        self.ca.set_pv_value(quart_prefixed("ARM"), 1)
-        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
+        self.ca.set_pv_value(wave_prefixed("START"), 1)
         while self.ca.get_pv_value(quart_prefixed("STATUS")) == "Armed":
-            self.assertLessEqual(4*float(self.ca.get_pv_value("QUART")), cycles)
-        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Off")
+            self.assertLessEqual(float(self.ca.get_pv_value("QUART")/4.0), cycles)
+        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Tripped")
 
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_instructed_to_hold_THEN_status_is_stopped(self):
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
         self.ca.set_pv_value(wave_prefixed("HOLD"), 1)
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
-        
+
     @skipIf(IOCRegister.uses_rec_sim, "No backdoor in LewisNone")
     def test_GIVEN_the_waveform_generator_is_running_WHEN_instructed_to_hold_THEN_status_is_holding(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
