@@ -57,12 +57,12 @@ TWEAK_X = "ARM:X:TWEAK"
 TWEAK_Y = "ARM:Y:TWEAK"
 
 
-class XybeamstopTests(unittest.TestCase):
+class XyarmbeamstopTests(unittest.TestCase):
     """
     Tests for the Larmor X-Y Beamstop
     """
     def setUp(self):
-        self._ioc = IOCRegister.get_running("xyBeamstop")
+        self._ioc = IOCRegister.get_running("xyarmbeamstop")
         self.ca = ChannelAccess()
         self.ca.wait_for(MOTOR_X, timeout=30)
         self._set_pv_value(STORE_SP, ACTIVE)
