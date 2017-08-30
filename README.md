@@ -93,14 +93,14 @@ class MydeviceTests(unittest.TestCase):
     def setUp(self):
         # Grab a reference to the ioc and lewis
         self._lewis, self._ioc = get_running_lewis_and_ioc(“mydevice")
-        # Setup channel access with a default timeout of 20 seconds
-        self.ca = ChannelAccess(20)
+        # Setup channel access with a default timeout of 20 seconds and a IOC prefix of "IOCNAME_01"
+        self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01")
         # Wait for a PV to be available – the IOC may take some time to start
-        self.ca.wait_for(“IOCNAME_01:DISABLE", timeout=30)
+        self.ca.wait_for(“DISABLE", timeout=30)
         
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         # Assert that a PV has a particular value (prefix prepended automatically)          
-        self.ca.assert_that_pv_is(“IOCNAME_01:DISABLE", "COMMS ENABLED")
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 ```
 Try to use GIVEN_WHEN_THEN test naming wherever appropriate
 
@@ -108,7 +108,7 @@ Try to use GIVEN_WHEN_THEN test naming wherever appropriate
 
 1) Set via channel access:
 ```python
-self.ca.set_pv_value(“MYIOC_01:PRESSURE:SP", value)
+self.ca.set_pv_value("PRESSURE:SP", value)
 ```
 
 2) Set via Lewis backdoor:
@@ -161,8 +161,8 @@ You can create tests which check a few values, e.g. boundaries, negative numbers
 ```python
 def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
     for speed in [0, 0.65, 600]:
-        self.ca.set_pv_value(“MYIOC_01:SPEED:SP", speed)
-        self.ca.assert_that_pv_is(“MYIOC_01:SPEED:SP:RBV", speed)
+        self.ca.set_pv_value("SPEED:SP", speed)
+        self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
 ```
 Testing different types of values can quickly catch simple errors in the IOC’s records or protocol file, for example accidentally having a %i (integer) instead of %d (double) format converter.
 
@@ -172,8 +172,8 @@ For a non-trivial IOC you might get rounding errors, e.g. setpoint = 2.5, readba
 
 ```python
 def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
-    self.ca.set_pv_value(“MYIOC_01:SPEED:SP", speed)
-    self.ca.assert_that_pv_is_number(“MYIOC_01:SPEED:SP:RBV", speed, tolerance=0.01)
+    self.ca.set_pv_value("SPEED:SP", speed)
+    self.ca.assert_that_pv_is_number("SPEED:SP:RBV", speed, tolerance=0.01)
 
 ```
 
@@ -183,10 +183,10 @@ If you have a record which is only processed at initialization (i.e. PINI=Yes, S
 
 ```python
 def test_ioc_name(self):
-    self._lewis.backdoor_set_on_device(“name", “new_name”)
+    self._lewis.backdoor_set_on_device("name", “new_name”)
     # Force record to process and therefore get new value from emulator:
-    self.ca.set_pv_value(“MYIOC_01:NAME.PROC", 1)
-    self.ca.assert_that_pv_is(“MYIOC_01:NAME", “new_name")
+    self.ca.set_pv_value(“NAME.PROC", 1)
+    self.ca.assert_that_pv_is(“NAME", “new_name")
 ```
 
 ### Logging
