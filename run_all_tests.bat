@@ -126,3 +126,14 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -p
 echo ---------------------------------------
 echo;
 
+echo ---------------------------------------
+echo TESTING HLG Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d hlg -p %EPICS_KIT_ROOT%\ioc\master\HLG\iocBoot\iocHLG-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING HLG Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d hlg -p %EPICS_KIT_ROOT%\ioc\master\HLG\iocBoot\iocHLG-IOC-01
+echo ---------------------------------------
+echo;
