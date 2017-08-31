@@ -94,7 +94,7 @@ class IegTests(unittest.TestCase):
         for error_num, error in self.error_codes:
             self._lewis.backdoor_set_on_device("error", error_num)
             self.ca.assert_that_pv_is("IEG_01:ERROR", error)
-            self.ca.assert_pv_alarm_is("IEG_01:ERROR", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("IEG_01:ERROR", self.ca.ALARM_MAJOR if error_num else self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_pressure_is_changed_on_device_THEN_raw_pressure_pv_updates(self):
@@ -109,8 +109,10 @@ class IegTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("sample_pressure", pressure)
             for upper_limit in [pressure - 1, pressure + 1]:
                 self._lewis.backdoor_set_on_device("sample_pressure_high_limit", upper_limit)
-                self.ca.assert_that_pv_is("IEG_01:PRESSURE:HIGH", 1 if pressure > upper_limit else 0)
-                self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:HIGH", self.ca.ALARM_NONE)
+                self.ca.assert_that_pv_is("IEG_01:PRESSURE:HIGH",
+                                          "Out of range" if pressure > upper_limit else "In range")
+                self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:HIGH",
+                                           self.ca.ALARM_MINOR if pressure > upper_limit else self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_pressure_and_lower_limit_are_changed_on_device_THEN_pressure_low_pv_updates(self):
@@ -118,8 +120,10 @@ class IegTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("sample_pressure", pressure)
             for lower_limit in [pressure - 1, pressure + 1]:
                 self._lewis.backdoor_set_on_device("sample_pressure_low_limit", lower_limit)
-                self.ca.assert_that_pv_is("IEG_01:PRESSURE:LOW", 1 if pressure < lower_limit else 0)
-                self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:LOW", self.ca.ALARM_NONE)
+                self.ca.assert_that_pv_is("IEG_01:PRESSURE:LOW",
+                                          "Out of range" if pressure < lower_limit else "In range")
+                self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:LOW",
+                                           self.ca.ALARM_MINOR if pressure < lower_limit else self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_buffer_pressure_high_is_changed_on_device_THEN_buffer_pressure_high_pv_updates(self):
@@ -128,18 +132,22 @@ class IegTests(unittest.TestCase):
 
             # Intentionally this way round - the manual
             # says that 0 means 'above high threshold' and 1 is 'below high threshold'
-            self.ca.assert_that_pv_is("IEG_01:PRESSURE:BUFFER:HIGH", 0 if value else 1)
-            self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:BUFFER:HIGH", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("IEG_01:PRESSURE:BUFFER:HIGH",
+                                      "Out of range" if value else "In range")
+            self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:BUFFER:HIGH",
+                                       self.ca.ALARM_MINOR if value else self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_pressure_is_over_350_THEN_displayed_as_greater_than_350_mBar(self):
         self._lewis.backdoor_set_on_device("sample_pressure", self._get_raw_from_actual(400))
         self.ca.assert_that_pv_is("IEG_01:PRESSURE:GUI.OSV", "> 350 mbar")
-        self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:GUI", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("IEG_01:PRESSURE:GUI", self.ca.ALARM_MAJOR)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_pressure_is_set_THEN_it_is_converted_correctly_using_the_calibration(self):
-        for pressure in self.test_pressures:
-            self._lewis.backdoor_set_on_device("sample_pressure", pressure)
-            self.ca.assert_that_pv_is_number("IEG_01:PRESSURE", self._get_actual_from_raw(pressure), tolerance=0.05)
-            self.ca.assert_pv_alarm_is("IEG_01:PRESSURE", self.ca.ALARM_NONE)
+        for raw_pressure in self.test_pressures:
+            actual_pressure = self._get_actual_from_raw(raw_pressure)
+
+            self._lewis.backdoor_set_on_device("sample_pressure", raw_pressure)
+            self.ca.assert_that_pv_is_number("IEG_01:PRESSURE", actual_pressure, tolerance=0.05)
+            self.ca.assert_pv_alarm_is("IEG_01:PRESSURE", self.ca.ALARM_NONE if .0 < actual_pressure < 350 else self.ca.ALARM_MAJOR)
