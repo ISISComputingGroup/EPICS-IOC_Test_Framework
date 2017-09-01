@@ -63,6 +63,8 @@ class IocLauncher(object):
         self.port = None
         # macros to use for the ioc
         self.macros = None
+        # prefix for the ioc
+        self.device_prefix = None
 
     def __enter__(self):
         self.open()
@@ -85,6 +87,14 @@ class IocLauncher(object):
             print("Run IOC path not found: '{0}'".format(run_ioc_path))
         if not os.path.isfile(st_cmd_path):
             print("St.cmd path not found: '{0}'".format(st_cmd_path))
+
+        if self.device_prefix is not None:
+            print("Check IOC is not running")
+            ca = self._get_channel_access()
+            try:
+                ca.assert_pv_does_not_exist("DISABLE")
+            except AssertionError as ex:
+                raise AssertionError("IOC appears to already be running {0}".format(ex))
 
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
         print("Starting IOC")
@@ -118,6 +128,14 @@ class IocLauncher(object):
         self._process = subprocess.Popen(ioc_run_commandline, creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          cwd=self._directory, stdin=subprocess.PIPE, stdout=self._logFile,
                                          stderr=subprocess.STDOUT, env=settings)
+
+        if self.device_prefix is not None:
+            ca = self._get_channel_access()
+            try:
+                ca.wait_for("DISABLE", timeout=30)
+            except AssertionError as ex:
+                raise AssertionError("IOC appears not to have started {0}".format(ex))
+
         IOCRegister.add_ioc(self._device, self)
 
     def close(self):
@@ -145,9 +163,9 @@ class IocLauncher(object):
 
     def _get_channel_access(self):
         """
-        :return: the channel access component
+        :return (ChannelAccess): the channel access component
         """
         if self._ca is None:
-            self._ca = ChannelAccess()
+            self._ca = ChannelAccess(device_prefix=self.device_prefix)
 
         return self._ca

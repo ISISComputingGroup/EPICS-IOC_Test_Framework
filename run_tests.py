@@ -79,6 +79,10 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
         ioc_launcher.macros = m.MACROS
     except AttributeError:
         ioc_launcher.macros = {}
+    try:
+        ioc_launcher.device_prefix = m.DEVICE_PREFIX
+    except AttributeError:
+        ioc_launcher.device_prefix = None
 
     # Override any emulator port that might be set elsewhere
     ioc_launcher.macros['EMULATOR_PORT'] = port

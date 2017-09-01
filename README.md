@@ -19,6 +19,7 @@ The command-line options are split into groups:
 - `-pf PREFIX`, `--prefix PREFIX` The instrument prefix which will be prefixed to all PVs; e.g. TE:NDW1373
 - `-d DEVICE`, `--device DEVICE` Device type to test.
 - `-p IOC_PATH`, `--ioc-path IOC_PATH` The path to the folder containing the IOC's st.cmd. It will run runIOC.bat st.cmd.
+- `--var-dir VAR_DIR` Directory in which to create a log dir to write log file to and directory in which to create tmp dir which contains environments variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.
 
 ### Dev simulation mode
 - `-e EMULATOR_PATH`, `--emulator-path EMULATOR_PATH` The path which contains lewis and lewis-control executables
@@ -29,7 +30,6 @@ The command-line options are split into groups:
 ### Rec simulation mode
 
 - `-r`, `--record-simulation` Use record simulation rather than emulation (optional)
-- `--var-dir VAR_DIR` Directory in which to create a log dir to write log file to and directory in which to create tmp dir which contains environments variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.
 
 ### Emulation mode:
 
@@ -188,6 +188,38 @@ def test_ioc_name(self):
     self.ca.set_pv_value(“NAME.PROC", 1)
     self.ca.assert_that_pv_is(“NAME", “new_name")
 ```
+
+### Macros
+
+If your IOC needs a macro or macros set up in the test this is easy to do. Add to the test file the constant `MACROS` 
+which should be a dictionary of macro names and their values. 
+ For instance the amint2l needs an internal address set the macro for this is `ADDR` and the address is a number so at the top of
+  the test file the following appears:
+
+    # MACROS to use for the IOC
+    MACROS = {"ADDR": ADDRESS}
+
+The way this works in the test framework is that when the test is loaded the macros are handed to the ioc
+launcher. The launcher writes them into a file placed in the var dir and the ioc reads them from there.
+
+### Wait For IOC to Start and IOC Prefix
+
+When the IOC is started it can be made to wait until the pv `DISABLE` exist; if it doesn't exist after 30s then the 
+tests will be stopped. To enable this option simply place in the test file the constant `DEVICE_PREFIX` which has the IOC
+ prefix in. So for instance in the amint2l the device prefix is `AMINT2l_01` so in the header:
+ 
+     # Device prefix
+     DEVICE_PREFIX = "AMINT2L_01"
+
+If you want this in all your `ChannelAccess` interaction then I suggest passing it into the constructor, eg:
+ 
+     def setUp(self):
+        ...
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+
+Then to assert that the pv `<inst prefix>:AMINT2L_01:PRESSURE` is 1 use:
+ 
+    self.ca.assert_that_pv_is("PRESSURE", 1)
 
 ### Logging
 
