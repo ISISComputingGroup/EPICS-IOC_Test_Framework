@@ -90,13 +90,13 @@ echo;
 
 echo ---------------------------------------
 echo TESTING HIFI_CRYOMAG_PSU Dev Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d hifi_cryomag_psu -p %EPICS_KIT_ROOT%\ioc\master\HIFICRYOMAG\iocboot\iocHIFICRYOMAG-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d HFMAGPSU -p %EPICS_KIT_ROOT%\ioc\master\HFMAGPSU\iocboot\iocHFMAGPSU-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
 
 echo ---------------------------------------
 echo TESTING HIFI_CRYOMAG_PSU Rec Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d hifi_cryomag_psu -p %EPICS_KIT_ROOT%\ioc\master\HIFICRYOMAG\iocboot\iocHIFICRYOMAG-IOC-01
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d HFMAGPSU -p %EPICS_KIT_ROOT%\ioc\master\HFMAGPSU\iocboot\iocHFMAGPSU-IOC-01
 echo ---------------------------------------
 echo;
 
