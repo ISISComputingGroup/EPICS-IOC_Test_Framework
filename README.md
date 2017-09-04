@@ -195,10 +195,10 @@ If your IOC needs a macro or macros set up in the test this is easy to do. Add t
 which should be a dictionary of macro names and their values. 
  For instance the amint2l needs an internal address set the macro for this is `ADDR` and the address is a number so at the top of
   the test file the following appears:
-
+```python
     # MACROS to use for the IOC
     MACROS = {"ADDR": ADDRESS}
-
+```
 The way this works in the test framework is that when the test is loaded the macros are handed to the ioc
 launcher. The launcher writes them into a file placed in the var dir and the ioc reads them from there.
 
@@ -207,25 +207,25 @@ launcher. The launcher writes them into a file placed in the var dir and the ioc
 When the IOC is started it can be made to wait until the pv `DISABLE` exist; if it doesn't exist after 30s then the 
 tests will be stopped. To enable this option simply place in the test file the constant `DEVICE_PREFIX` which has the IOC
  prefix in. So for instance in the amint2l the device prefix is `AMINT2l_01` so in the header:
- 
+ ```python
      # Device prefix
      DEVICE_PREFIX = "AMINT2L_01"
-
+```
 If you want this in all your `ChannelAccess` interaction then I suggest passing it into the constructor, eg:
- 
+ ```python
      def setUp(self):
         ...
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-
+```
 Then to assert that the pv `<inst prefix>:AMINT2L_01:PRESSURE` is 1 use:
- 
+```python
     self.ca.assert_that_pv_is("PRESSURE", 1)
-
+```
 ### Logging
 
 The IOC test framework writes logs to C:\Instrument\Var\logs\IOCTestFramework
 
 You can force extra debug output by:
-* Adding @has_log at the top of the class
-* Using self.log.debug(“message”)
-* log.info, log.warning and log.error are also available
+* Adding `@has_log` at the top of the class
+* Using `self.log.debug("message")`
+* `log.info`, `log.warning` and `log.error` are also available
