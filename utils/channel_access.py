@@ -220,17 +220,18 @@ class ChannelAccess(object):
         if not self.ca.pv_exists(self._create_pv_with_prefix(pv), timeout=timeout):
             raise AssertionError("PV {pv} does not exist".format(pv=self._create_pv_with_prefix(pv)))
 
-    def assert_pv_does_not_exist(self, pv):
+    def assert_pv_does_not_exist(self, pv, timeout=2):
         """
         Asserts that a pv does not exist.
 
         :param pv: pv to wait for
+        :param timeout: amount of time to wait for
         :return:
-        :raises AssertionException: if pv exists
+        :raises AssertionError: if pv exists
         """
 
         pv_name = self._create_pv_with_prefix(pv)
-        if self.ca.pv_exists(pv_name, timeout=2):
+        if self.ca.pv_exists(pv_name, timeout):
             raise AssertionError("PV {pv} exists".format(pv=pv_name))
 
 
