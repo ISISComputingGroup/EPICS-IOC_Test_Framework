@@ -21,7 +21,7 @@ DEVICE_PREFIX = "HLG_01"
 
 class HlgTests(unittest.TestCase):
     """
-    Tests for the HGL
+    Tests for the HLG
     """
 
     def setUp(self):
