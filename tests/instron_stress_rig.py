@@ -20,6 +20,7 @@ WAVEFORM_ABORTED = "4"
 WAVEFORM_HOLDING = "2"
 WAVEFORM_FINISHING = "3"
 LOTS_OF_CYCLES = 999999
+CHANNELS = {"Position": 1, "Stress": 2, "Strain": 3}
 
 
 def add_prefix(prefix, root):
@@ -38,6 +39,15 @@ class Instron_stress_rigTests(unittest.TestCase):
     """
     Tests for the Instron IOC.
     """
+
+    def _change_channel(self, name):
+        # Setpoint is zero-indexed
+        self.ca.set_pv_value("CHANNEL:SP", CHANNELS[name] - 1)
+        self.ca.assert_that_pv_is("CHANNEL.RVAL", CHANNELS[name])
+        self.ca.assert_pv_alarm_is("CHANNEL", self.ca.ALARM_NONE)
+        self.ca.assert_that_pv_is("CHANNEL:GUI", name)
+        self.ca.assert_pv_alarm_is("CHANNEL:GUI", self.ca.ALARM_NONE)
+
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
@@ -58,8 +68,8 @@ class Instron_stress_rigTests(unittest.TestCase):
                                               "channel_type", str(chan_type2)])
 
             self.ca.assert_that_pv_is("CHANNEL:SP.ZRST", "Position")
-            self.ca.set_pv_value("CHANNEL:SP", 0)
-            self.ca.assert_that_pv_is("CHANNEL", "Position")
+
+            self._change_channel("Position")
 
             # Ensure the rig is stopped
             self._lewis.backdoor_command(["device", "movement_type", "0"])
@@ -151,8 +161,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         _big_set_point = 999999999999
 
         # Select position as control channel
-        self.ca.set_pv_value("CHANNEL:SP", 0)
-        self.ca.assert_that_pv_is("CHANNEL", "Position")
+        self._change_channel("Position")
         # Change the setpoint so that movement can be started
         self.ca.set_pv_value("POS:SP", _big_set_point)
         self.ca.assert_that_pv_is_number("POS:SP", _big_set_point, tolerance=1)
@@ -203,16 +212,17 @@ class Instron_stress_rigTests(unittest.TestCase):
             _set_and_check(v)
 
     def test_WHEN_control_channel_is_requested_THEN_an_allowed_value_is_returned(self):
-        self.ca.assert_that_pv_is_one_of("CHANNEL", ["Stress", "Strain", "Position"])
+        self.ca.assert_that_pv_is_one_of("CHANNEL", CHANNELS.keys())
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_control_channel_setpoint_is_requested_THEN_it_is_one_of_the_allowed_values(self):
-        self.ca.assert_that_pv_is_one_of("CHANNEL:SP", ["Stress", "Strain", "Position"])
+        self.ca.assert_that_pv_is_one_of("CHANNEL:SP", CHANNELS.keys())
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
-        for set_val, return_val in [(0, "Position"), (1, "Stress"), (2, "Strain")]:
-            self.ca.assert_setting_setpoint_sets_readback(set_val, "CHANNEL", expected_value=return_val, timeout=30)
+        for channel in CHANNELS.keys():
+            # change channel function contains the relevant assertions.
+            self._change_channel(channel)
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
             self):
@@ -622,17 +632,16 @@ class Instron_stress_rigTests(unittest.TestCase):
         cycles = 5
         self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
         self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
-        self.ca.set_pv_value(quart_prefixed("ARM"), 1)
-        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Armed")
+        self.ca.set_pv_value(wave_prefixed("START"), 1)
         while self.ca.get_pv_value(quart_prefixed("STATUS")) == "Armed":
-            self.assertLessEqual(4*float(self.ca.get_pv_value("QUART")), cycles)
-        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Off")
+            self.assertLessEqual(float(self.ca.get_pv_value("QUART")/4.0), cycles)
+        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Tripped")
 
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_instructed_to_hold_THEN_status_is_stopped(self):
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
         self.ca.set_pv_value(wave_prefixed("HOLD"), 1)
         self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
-        
+
     @skipIf(IOCRegister.uses_rec_sim, "No backdoor in LewisNone")
     def test_GIVEN_the_waveform_generator_is_running_WHEN_instructed_to_hold_THEN_status_is_holding(self):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])

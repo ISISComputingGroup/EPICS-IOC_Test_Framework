@@ -126,7 +126,6 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -p
 echo ---------------------------------------
 echo;
 
-
 REM EGXCOLIM has no dev sim as it is an LvDCOM IOC
 
 echo ---------------------------------------
@@ -135,3 +134,25 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r
 echo ---------------------------------------
 echo;
 
+echo ---------------------------------------
+echo TESTING IEG Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d ieg -p %EPICS_KIT_ROOT%\ioc\master\IEG\iocBoot\iocIEG-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+
+echo ---------------------------------------
+echo TESTING IEG Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d ieg -p %EPICS_KIT_ROOT%\ioc\master\IEG\iocBoot\iocIEG-IOC-01
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING HLG Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d hlg -p %EPICS_KIT_ROOT%\ioc\master\HLG\iocBoot\iocHLG-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING HLG Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d hlg -p %EPICS_KIT_ROOT%\ioc\master\HLG\iocBoot\iocHLG-IOC-01
+echo ---------------------------------------
+echo;
