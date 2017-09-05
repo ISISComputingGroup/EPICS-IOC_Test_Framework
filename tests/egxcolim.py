@@ -15,7 +15,7 @@ class EgxcolimTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("egxcolim")
 
-        self.ca = ChannelAccess(20, device_prefix="EGXCOLIM")
+        self.ca = ChannelAccess(20, device_prefix="EGXCOLIM_01")
         self.ca.wait_for("DISABLE", timeout=30)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
