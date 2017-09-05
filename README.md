@@ -19,6 +19,7 @@ The command-line options are split into groups:
 - `-pf PREFIX`, `--prefix PREFIX` The instrument prefix which will be prefixed to all PVs; e.g. TE:NDW1373
 - `-d DEVICE`, `--device DEVICE` Device type to test.
 - `-p IOC_PATH`, `--ioc-path IOC_PATH` The path to the folder containing the IOC's st.cmd. It will run runIOC.bat st.cmd.
+- `--var-dir VAR_DIR` Directory in which to create a log dir to write log file to and directory in which to create tmp dir which contains environments variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.
 
 ### Dev simulation mode
 - `-e EMULATOR_PATH`, `--emulator-path EMULATOR_PATH` The path which contains lewis and lewis-control executables
@@ -29,7 +30,6 @@ The command-line options are split into groups:
 ### Rec simulation mode
 
 - `-r`, `--record-simulation` Use record simulation rather than emulation (optional)
-- `--var-dir VAR_DIR` Directory in which to create a log dir to write log file to and directory in which to create tmp dir which contains environments variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.
 
 ### Emulation mode:
 
@@ -93,14 +93,14 @@ class MydeviceTests(unittest.TestCase):
     def setUp(self):
         # Grab a reference to the ioc and lewis
         self._lewis, self._ioc = get_running_lewis_and_ioc(“mydevice")
-        # Setup channel access with a default timeout of 20 seconds
-        self.ca = ChannelAccess(20)
+        # Setup channel access with a default timeout of 20 seconds and a IOC prefix of "IOCNAME_01"
+        self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01")
         # Wait for a PV to be available – the IOC may take some time to start
-        self.ca.wait_for(“IOCNAME_01:DISABLE", timeout=30)
+        self.ca.wait_for(“DISABLE", timeout=30)
         
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         # Assert that a PV has a particular value (prefix prepended automatically)          
-        self.ca.assert_that_pv_is(“IOCNAME_01:DISABLE", "COMMS ENABLED")
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 ```
 Try to use GIVEN_WHEN_THEN test naming wherever appropriate
 
@@ -108,7 +108,7 @@ Try to use GIVEN_WHEN_THEN test naming wherever appropriate
 
 1) Set via channel access:
 ```python
-self.ca.set_pv_value(“MYIOC_01:PRESSURE:SP", value)
+self.ca.set_pv_value("PRESSURE:SP", value)
 ```
 
 2) Set via Lewis backdoor:
@@ -161,8 +161,8 @@ You can create tests which check a few values, e.g. boundaries, negative numbers
 ```python
 def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
     for speed in [0, 0.65, 600]:
-        self.ca.set_pv_value(“MYIOC_01:SPEED:SP", speed)
-        self.ca.assert_that_pv_is(“MYIOC_01:SPEED:SP:RBV", speed)
+        self.ca.set_pv_value("SPEED:SP", speed)
+        self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
 ```
 Testing different types of values can quickly catch simple errors in the IOC’s records or protocol file, for example accidentally having a %i (integer) instead of %d (double) format converter.
 
@@ -172,8 +172,8 @@ For a non-trivial IOC you might get rounding errors, e.g. setpoint = 2.5, readba
 
 ```python
 def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
-    self.ca.set_pv_value(“MYIOC_01:SPEED:SP", speed)
-    self.ca.assert_that_pv_is_number(“MYIOC_01:SPEED:SP:RBV", speed, tolerance=0.01)
+    self.ca.set_pv_value("SPEED:SP", speed)
+    self.ca.assert_that_pv_is_number("SPEED:SP:RBV", speed, tolerance=0.01)
 
 ```
 
@@ -183,17 +183,49 @@ If you have a record which is only processed at initialization (i.e. PINI=Yes, S
 
 ```python
 def test_ioc_name(self):
-    self._lewis.backdoor_set_on_device(“name", “new_name”)
+    self._lewis.backdoor_set_on_device("name", “new_name”)
     # Force record to process and therefore get new value from emulator:
-    self.ca.set_pv_value(“MYIOC_01:NAME.PROC", 1)
-    self.ca.assert_that_pv_is(“MYIOC_01:NAME", “new_name")
+    self.ca.set_pv_value(“NAME.PROC", 1)
+    self.ca.assert_that_pv_is(“NAME", “new_name")
 ```
 
+### Macros
+
+If your IOC needs a macro or macros set up in the test this is easy to do. Add to the test file the constant `MACROS` 
+which should be a dictionary of macro names and their values. 
+ For instance the amint2l needs an internal address set the macro for this is `ADDR` and the address is a number so at the top of
+  the test file the following appears:
+```python
+    # MACROS to use for the IOC
+    MACROS = {"ADDR": ADDRESS}
+```
+The way this works in the test framework is that when the test is loaded the macros are handed to the ioc
+launcher. The launcher writes them into a file placed in the var dir and the ioc reads them from there.
+
+### Wait For IOC to Start and IOC Prefix
+
+When the IOC is started it can be made to wait until the pv `DISABLE` exist; if it doesn't exist after 30s then the 
+tests will be stopped. To enable this option simply place in the test file the constant `DEVICE_PREFIX` which has the IOC
+ prefix in. So for instance in the amint2l the device prefix is `AMINT2l_01` so in the header:
+ ```python
+     # Device prefix
+     DEVICE_PREFIX = "AMINT2L_01"
+```
+If you want this in all your `ChannelAccess` interaction then I suggest passing it into the constructor, eg:
+ ```python
+     def setUp(self):
+        ...
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+```
+Then to assert that the pv `<inst prefix>:AMINT2L_01:PRESSURE` is 1 use:
+```python
+    self.ca.assert_that_pv_is("PRESSURE", 1)
+```
 ### Logging
 
 The IOC test framework writes logs to C:\Instrument\Var\logs\IOCTestFramework
 
 You can force extra debug output by:
-* Adding @has_log at the top of the class
-* Using self.log.debug(“message”)
-* log.info, log.warning and log.error are also available
+* Adding `@has_log` at the top of the class
+* Using `self.log.debug("message")`
+* `log.info`, `log.warning` and `log.error` are also available

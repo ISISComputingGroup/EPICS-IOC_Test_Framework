@@ -63,6 +63,8 @@ class IocLauncher(object):
         self.port = None
         # macros to use for the ioc
         self.macros = None
+        # prefix for the ioc
+        self.device_prefix = None
 
     def __enter__(self):
         self.open()
@@ -72,7 +74,7 @@ class IocLauncher(object):
         self.close()
         if self._logFile is not None:
             self._logFile.close()
-            print "Lewis log written to {0}".format(self._log_filename())
+            print("Lewis log written to {0}".format(self._log_filename()))
 
     def _log_filename(self):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
@@ -95,6 +97,20 @@ class IocLauncher(object):
     def open(self):
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
+
+        if not os.path.isfile(run_ioc_path):
+            print("Run IOC path not found: '{0}'".format(run_ioc_path))
+        if not os.path.isfile(st_cmd_path):
+            print("St.cmd path not found: '{0}'".format(st_cmd_path))
+
+        if self.device_prefix is not None:
+            print("Check IOC is not running")
+            ca = self._get_channel_access()
+            try:
+                ca.assert_pv_does_not_exist("DISABLE")
+            except AssertionError as ex:
+                raise AssertionError("IOC appears to already be running {0}".format(ex))
+
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
         print("Starting IOC")
 
@@ -104,19 +120,27 @@ class IocLauncher(object):
         full_dir = os.path.join(self._var_dir, "tmp")
         if not os.path.exists(full_dir):
             os.makedirs(full_dir)
-        with file(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
-            for macro, value in self.macros.iteritems():
+        with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
+            for macro, value in self.macros.items():
                 f.write("epicsEnvSet {macro} {value}\n".format(macro=macro, value=value))
 
         # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
         # This does mean that the IOC will need to be closed manually after the tests.
         # Make sure to revert before checking code in
-        self._logFile = file(self._log_filename(), "w")
+        self._logFile = open(self._log_filename(), "w")
         self._logFile.write("Started IOC with '{0}'".format(" ".join(ioc_run_commandline)))
 
         self._process = subprocess.Popen(ioc_run_commandline, creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          cwd=self._directory, stdin=subprocess.PIPE, stdout=self._logFile,
                                          stderr=subprocess.STDOUT, env=settings)
+
+        if self.device_prefix is not None:
+            ca = self._get_channel_access()
+            try:
+                ca.wait_for("DISABLE", timeout=30)
+            except AssertionError as ex:
+                raise AssertionError("IOC appears not to have started {0}".format(ex))
+
         IOCRegister.add_ioc(self._device, self)
 
     def close(self):
@@ -144,9 +168,9 @@ class IocLauncher(object):
 
     def _get_channel_access(self):
         """
-        :return: the channel access component
+        :return (ChannelAccess): the channel access component
         """
         if self._ca is None:
-            self._ca = ChannelAccess()
+            self._ca = ChannelAccess(device_prefix=self.device_prefix)
 
         return self._ca
