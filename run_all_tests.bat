@@ -66,6 +66,12 @@ echo ---------------------------------------
 echo;
 
 echo ---------------------------------------
+echo TESTING XYARMBEAMSTOP Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d xyarmbeamstop -p %EPICS_KIT_ROOT%\ioc\master\GALIL\iocBoot\iocGALIL-IOC-01
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
 echo TESTING FERMI CHOPPER Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d fermichopper -p %EPICS_KIT_ROOT%\ioc\master\FERMCHOP\iocBoot\iocFERMCHOP-IOC-01
 echo ---------------------------------------
