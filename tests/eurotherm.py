@@ -1,8 +1,10 @@
 import unittest
+from unittest import skipIf
 
 import time
 from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
@@ -43,16 +45,19 @@ class EurothermTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("current_temperature", temperature)
         self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
         expected_temperature = 10.0
         self._set_setpoint_and_current_temperature(expected_temperature)
         self.ca.assert_that_pv_is(RBV_PV, expected_temperature)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_a_sp_WHEN_sp_read_rbv_temperature_THEN_rbv_value_is_same_as_sp(self):
         expected_temperature = 10.0
         self.ca.set_pv_value("SP", expected_temperature)
         self.ca.assert_that_pv_is("SP:RBV", expected_temperature)
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_set_ramp_rate_in_K_per_min_THEN_current_temperature_reaches_set_point_in_expected_time(self):
         start_temperature = 5.0
         ramp_on = 1
