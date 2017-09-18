@@ -48,6 +48,11 @@ class EurothermTests(unittest.TestCase):
         self._set_setpoint_and_current_temperature(expected_temperature)
         self.ca.assert_that_pv_is(RBV_PV, expected_temperature)
 
+    def test_GIVEN_a_sp_WHEN_sp_read_rbv_temperature_THEN_rbv_value_is_same_as_sp(self):
+        expected_temperature = 10.0
+        self.ca.set_pv_value("SP", expected_temperature)
+        self.ca.assert_that_pv_is("SP:RBV", expected_temperature)
+
     def test_WHEN_set_ramp_rate_in_K_per_min_THEN_current_temperature_reaches_set_point_in_expected_time(self):
         start_temperature = 5.0
         ramp_on = 1
@@ -64,4 +69,4 @@ class EurothermTests(unittest.TestCase):
         start = time.time()
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, timeout=60)
         end = time.time()
-        self.assertAlmostEquals(end-start, 22.5, delta=1)
+        self.assertAlmostEquals(end-start, 20, delta=1)
