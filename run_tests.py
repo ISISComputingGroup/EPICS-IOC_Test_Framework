@@ -79,6 +79,10 @@ def run_test(prefix, device, ioc_launcher, lewis_launcher):
         ioc_launcher.macros = m.MACROS
     except AttributeError:
         ioc_launcher.macros = {}
+    try:
+        ioc_launcher.device_prefix = m.DEVICE_PREFIX
+    except AttributeError:
+        ioc_launcher.device_prefix = None
 
     # Override any emulator port that might be set elsewhere
     ioc_launcher.macros['EMULATOR_PORT'] = port
@@ -141,16 +145,20 @@ if __name__ == '__main__':
                 use_rec_sim=True,
                 var_dir=var_dir)
             run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
-        elif arguments.device and arguments.ioc_path and arguments.emulator_path:
+        elif arguments.device and arguments.ioc_path:
             print("Running using device emulation")
-            lewis = LewisLauncher(
-                device=arguments.device,
-                python_path=os.path.abspath(arguments.python_path),
-                lewis_path=os.path.abspath(arguments.emulator_path),
-                lewis_protocol=arguments.emulator_protocol,
-                lewis_additional_path=arguments.emulator_add_path,
-                lewis_package=arguments.emulator_device_package,
-                var_dir=var_dir)
+            if arguments.emulator_path:
+                lewis = LewisLauncher(
+                    device=arguments.device,
+                    python_path=os.path.abspath(arguments.python_path),
+                    lewis_path=os.path.abspath(arguments.emulator_path),
+                    lewis_protocol=arguments.emulator_protocol,
+                    lewis_additional_path=arguments.emulator_add_path,
+                    lewis_package=arguments.emulator_device_package,
+                    var_dir=var_dir)
+            else:
+                lewis = LewisNone(arguments.device)
+
             iocLauncher = IocLauncher(
                 device=arguments.device,
                 directory=os.path.abspath(arguments.ioc_path),
