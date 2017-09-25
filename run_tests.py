@@ -2,12 +2,11 @@ import os
 import imp
 import importlib
 import unittest
-import time
 import xmlrunner
 import argparse
 from contextlib import contextmanager
 from utils.lewis_launcher import LewisLauncher, LewisNone
-from utils.ioc_launcher import IocLauncher, IOCRegister
+from utils.ioc_launcher import IocLauncher
 from utils.free_ports import get_free_ports
 
 
@@ -111,7 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--ioc-path', default=None, help="The path to the folder containing the IOC's st.cmd")
     parser.add_argument('-e', '--emulator-path', default=None, help="The path of the lewis.py file")
     parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe", help="The path of python.exe")
-    parser.add_argument('-ep', '--emulator-protocol', default=None, help="The Lewis protocal to use (optional)")
+    parser.add_argument('-ep', '--emulator-protocol', default='stream', help="The Lewis protocal to use (optional)")
     parser.add_argument('-r', '--record-simulation', default=False, action="count",
                         help="Use record simulation rather than emulation (optional)")
     parser.add_argument('-ea', '--emulator-add-path', default=None, help="Add path where device packages exist for the emulator.")
