@@ -139,7 +139,7 @@ class LewisLauncher(object):
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         if self._lewis_protocol is not None:
             lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
-                                      .format(protocol=self._lewis_protocol, port=self.port)])
+                                      .format(protocol=self._lewis_protocol, port=port)])
         if self._lewis_additional_path is not None:
             lewis_command_line.extend(["-a", self._lewis_additional_path])
         if self._lewis_package is not None:
