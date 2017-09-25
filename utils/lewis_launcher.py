@@ -138,13 +138,13 @@ class LewisLauncher(object):
         lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         if self._lewis_protocol is not None:
-            lewis_command_line.extend(["-p", self._lewis_protocol])
+            lewis_command_line.extend(["-p", "\"{protocol}: {bind_address: 127.0.0.1, port: {port}}\""
+                                      .format(protocol=self._lewis_protocol, port=self.port)])
         if self._lewis_additional_path is not None:
             lewis_command_line.extend(["-a", self._lewis_additional_path])
         if self._lewis_package is not None:
             lewis_command_line.extend(["-k", self._lewis_package])
-        lewis_command_line.extend(
-            ["-e", "100", self._device, "--", "--bind-address", "127.0.0.1", "--port", port])
+        lewis_command_line.extend(["-e", "100", self._device])
 
         print("Starting Lewis")
         self._logFile = file(self._log_filename(), "w")
