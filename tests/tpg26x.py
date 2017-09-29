@@ -52,7 +52,7 @@ class Tpg26xTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tpg26x")
 
-        self.ca = ChannelAccess()
+        self.ca = ChannelAccess(20)
         self.ca.wait_for("TPG26X_01:1:PRESSURE")
         # Reset and error flags and alarms
         self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_ONE)
