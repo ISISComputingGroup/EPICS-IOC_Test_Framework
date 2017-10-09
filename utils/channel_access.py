@@ -74,6 +74,25 @@ class ChannelAccess(object):
 
         raise AssertionError(str(msg) + error_message)
 
+    def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
+        """
+        Assert that the pv does not have a particular value and optionally it does not become that value within the
+        timeout.
+
+        :param pv: pv name
+        :param restricted_value: value the PV shouldn't become
+        :param timeout: if it becomes the value within this time, raise an assertion error
+        :param msg: Extra message to print
+        :raises AssertionError: if value has the restricted value
+        :raises UnableToConnectToPVException: if pv does not exist within timeout
+        """
+        error_message = self._wait_for_pv_lambda(lambda: self._values_do_not_match(pv, restricted_value), timeout)
+
+        if error_message is None:
+            return
+
+        raise AssertionError("{0}: {1}".format(msg, error_message))
+
     def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout
@@ -90,7 +109,7 @@ class ChannelAccess(object):
         if error_message is None:
             return
 
-        raise AssertionError(error_message)
+        raise AssertionError("{0}: {1}".format(msg, error_message))
 
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=None):
         """
@@ -146,6 +165,22 @@ class ChannelAccess(object):
             return """Values didn't match when reading PV '{PV}'.
                    Expected value: {expected}
                    Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
+
+    def _values_do_not_match(self, pv, restricted_value):
+        """
+        Check pv matches a value.
+
+        :param pv: name of the pv (no prefix)
+        :param restricted_value: value PV should not have
+        :return: None if they don't match; error string stating the difference if they do
+        """
+        pv_value = self.get_pv_value(pv)
+        if pv_value != restricted_value:
+            return None
+        else:
+            return """Values match when reading PV '{PV}'.
+                   Restricted value: {restricted}
+                   Actual value: {actual}""".format(PV=pv, restricted=restricted_value, actual=pv_value)
 
     def _value_is_an_integer_between(self, pv, min, max):
         """

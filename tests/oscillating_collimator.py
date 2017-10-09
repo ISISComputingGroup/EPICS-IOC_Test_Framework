@@ -30,7 +30,7 @@ class Oscillating_collimatorTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=PREFIX)
         self.ca.wait_for("VEL:SP", timeout=30)
 
-    def test_GIVEN_angle_frequency_and_radius_WHEN_set_THEN_distance_and_velocity_match_LV_generated_values(self):
+    def test_GIVEN_angle_frequency_and_radius_WHEN_set_THEN_distance_and_velocity_match_LabView_generated_values(self):
 
         # Arrange
         # Dictionary outputs[(angle, frequency, radius)] = (distance, velocity)
@@ -53,7 +53,7 @@ class Oscillating_collimatorTests(unittest.TestCase):
         outputs[(1, 0.1, 50)] = (699, 140)
         outputs[(0.5, 0.1, 50)] = (349, 70)
 
-        tolerance = 2
+        tolerance = 0.5
 
         for key in outputs.keys():
             # Act
@@ -113,5 +113,7 @@ class Oscillating_collimatorTests(unittest.TestCase):
     def test_WHEN_input_values_cause_discriminant_to_be_zero_THEN_discriminant_pv_is_zero(self):
         pass
 
-    def test_WHEN_collimator_running_THEN_thread_is_set_to_two(self):
-        self.ca.assert_that_pv_is("THREAD", "2")
+    def test_WHEN_collimator_running_THEN_thread_is_not_on_reserved_thread(self):
+        # Threads 0 and 1 are reserved for homing under IBEX
+        self.ca.assert_that_pv_is_not("THREAD", "0")
+        self.ca.assert_that_pv_is_not("THREAD", "1")
