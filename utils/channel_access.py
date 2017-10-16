@@ -43,7 +43,10 @@ class ChannelAccess(object):
         :param pv: the EPICS PV name
         :param value: the value to set
         """
-        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=True, timeout=None)
+        # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
+        # In that case the test should fail (because the correct value is not set)
+        # but it should not hold up all the other tests
+        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
         # Need to give Lewis time to process
         time.sleep(1)
 
