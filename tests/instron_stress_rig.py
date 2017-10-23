@@ -205,8 +205,10 @@ class Instron_stress_rigTests(unittest.TestCase):
         def _set_and_check(value):
             self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value))
             self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value))
+            # No response from arbitrary command causes record to be TIMEOUT INVALID - this is expected.
+            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_INVALID)
             self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
-            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.0001)
+            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001)
 
         for v in [0, 1, 0]:
             _set_and_check(v)
@@ -356,7 +358,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_area_setpoint_is_set_THEN_the_area_readback_updates(self):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:AREA:SP", value)
-            self.ca.assert_that_pv_is("STRESS:AREA", value)
+            self.ca.assert_that_pv_is_number("STRESS:AREA", value, tolerance=0.01)
             self.ca.assert_pv_alarm_is("STRESS:AREA", ChannelAccess.ALARM_NONE)
 
         for val in [0.234, 789]:
@@ -365,7 +367,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_area_setpoint_is_set_THEN_the_diameter_readback_updates(self):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:AREA:SP", value)
-            self.ca.assert_that_pv_is("STRESS:DIAMETER", (2*math.sqrt(value/math.pi)))
+            self.ca.assert_that_pv_is_number("STRESS:DIAMETER", (2*math.sqrt(value/math.pi)), tolerance=0.01)
             self.ca.assert_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
 
         for val in [0.234, 789]:
