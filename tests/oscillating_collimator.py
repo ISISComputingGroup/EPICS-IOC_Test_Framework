@@ -3,7 +3,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 
-# Internal Address of device (must be 2 characters)
+# IP address of device
 GALIL_ADDR = "128.0.0.0"
 
 # MACROS to use for the IOC
