@@ -18,9 +18,10 @@ VELOCITY = "VEL:SP"
 DISTANCE = "DIST:SP"
 DISCRIMINANT = "VEL:SP:DISC:CHECK"
 
+
 class Oscillating_collimatorTests(unittest.TestCase):
     """
-    Tests for the Larmor X-Y Beamstop
+    Tests for the LET Oscillating collimator
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("oscillating_collimator")
@@ -106,7 +107,8 @@ class Oscillating_collimatorTests(unittest.TestCase):
         # Assert
         self.ca.assert_that_pv_is_number(DISCRIMINANT, 0)
 
-    # Generating a zero discriminant is practically impossible owing to floating point rounding and trigonometric functions
+    # Generating a zero discriminant is practically impossible owing to floating point rounding and trigonometric
+    # functions
     def test_WHEN_input_values_cause_discriminant_to_be_zero_THEN_discriminant_pv_is_zero(self):
         pass
 
