@@ -26,8 +26,8 @@ class Skf_mb350_chopperTests(unittest.TestCase):
             self.ca.wait_for("{}:FREQ".format(crate), timeout=30)
 
     def test_fail(self):
-        self.assertFalse(True)
+        self.ca.assert_that_pv_is_number("1:FREQ", 2.1, 0.01)
 
     def test_pass(self):
-        self.assertFalse(False)
+        self.ca.assert_that_pv_is_number("1:FREQ", 2.0, 0.01)
 
