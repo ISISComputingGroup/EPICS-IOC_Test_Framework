@@ -93,13 +93,14 @@ class ChannelAccess(object):
 
         raise AssertionError("{0}: {1}".format(msg, error_message))
 
-    def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None):
+    def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None, msg=""):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout
         :param pv: pv name
         :param expected_value: expected value
         :param tolerance: the allowable deviation from the expected value
         :param timeout: if it hasn't changed within this time raise assertion error
+        :param msg: Extra message to print
         :raises AssertionError: if value does not become requested value
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
