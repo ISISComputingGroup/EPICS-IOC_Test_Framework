@@ -159,12 +159,13 @@ class IocLauncher(object):
 
         :param pv_name: name of the pv value
         :param value: value to set
+        :param wait: wait for the PV to equal the set value
         :return:
         """
 
         if self.use_rec_sim:
             ca = self._get_channel_access()
-            ca.set_pv_value(pv_name, value)
+            ca.set_pv_value(pv_name, value, wait=False)
 
     def _get_channel_access(self):
         """

@@ -23,18 +23,18 @@ STORE_X, STORE_Y = -6.8, 2.7
 THETA_STORED_POS = math.pi/2.-0.2  # Bit less than 90 degrees to avoid going out of range
 THETA_ACTIVE_POS = math.pi/4.      # Active position has the arm at 45 degrees.
 W_STORED_POS = -2.0                # Bit less than 0 for the horizontal motor position
-W_ACTIVE_POS = 0.                  # Active position has the arm at the position the motor started at
+W_ACTIVE_POS = 0.0                 # Active position has the arm at the position the motor started at
 
 # These are the coordinates for the active position of the beamstop are for the test configuration. These coordinates
 # are the position in the X-Y plane that the arm will be at when it is pointing diagonally at 45 degrees and at zero
 # in the W axis.
-ACTIVE_X, ACTIVE_Y = 0., 0.
+ACTIVE_X, ACTIVE_Y = 0.0, 0.0
 
 # Flags for whether the arm should be active or stored
 ACTIVE, STORE = 0, 1
 
 # Motor position tolerance
-TOLERANCE = 2e-1
+TOLERANCE = 2.0e-1
 # Length of time to wait for RBV to reach setpoint
 RBV_TIMEOUT = 50
 
@@ -68,8 +68,8 @@ class XyarmbeamstopTests(unittest.TestCase):
         self._set_pv_value(STORE_SP, ACTIVE)
         self._assert_setpoint_and_readback_reached(ACTIVE_X, ACTIVE_Y)
 
-    def _set_pv_value(self, pv_name, value):
-        self.ca.set_pv_value("{0}:{1}".format(PREFIX, pv_name), value)
+    def _set_pv_value(self, pv_name, value, wait=False):
+        self.ca.set_pv_value("{0}:{1}".format(PREFIX, pv_name), value, wait)
 
     def _set_x(self, value):
         self._set_pv_value("ARM:X:SP", value)

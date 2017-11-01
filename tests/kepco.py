@@ -63,17 +63,17 @@ class KepcoTests(unittest.TestCase):
         # Get current Voltage
         current_voltage = self.ca.get_pv_value("KEPCO_01:VOLTAGE")
         # Set new Voltage via SP
-        self.ca.set_pv_value("KEPCO_01:VOLTAGE:SP", current_voltage + 5)
+        self.ca.set_pv_value("KEPCO_01:VOLTAGE:SP", current_voltage + 5.0)
         # Check SP RBV matches new current
-        self.ca.assert_that_pv_is("KEPCO_01:VOLTAGE:SP:RBV", current_voltage + 5)
+        self.ca.assert_that_pv_is("KEPCO_01:VOLTAGE:SP:RBV", current_voltage + 5.0)
 
     def test_GIVEN_setpoint_current_set_WHEN_read_THEN_setpoint_current_is_as_expected(self):
         # Get current current
         current_current = self.ca.get_pv_value("KEPCO_01:CURRENT")
         # Set new Current via SP
-        self.ca.set_pv_value("KEPCO_01:CURRENT:SP", current_current + 5)
+        self.ca.set_pv_value("KEPCO_01:CURRENT:SP", current_current + 5.0)
         # Check SP RBV matches new current
-        self.ca.assert_that_pv_is("KEPCO_01:CURRENT:SP:RBV", current_current + 5)
+        self.ca.assert_that_pv_is("KEPCO_01:CURRENT:SP:RBV", current_current + 5.0)
 
     def test_GIVEN_output_mode_set_WHEN_read_THEN_output_mode_is_as_expected(self):
         expected_output_mode_flag = UnitFlags.CURRENT
@@ -85,12 +85,12 @@ class KepcoTests(unittest.TestCase):
     def test_GIVEN_output_status_set_WHEN_read_THEN_output_STATUS_is_as_expected(self):
         expected_output_status_flag = UnitFlags.ON
         expected_output_status_str = Status.ON
-        self.ca.set_pv_value("KEPCO_01:OUTPUTSTATUS:SP", expected_output_status_flag)
+        self.ca.set_pv_value("KEPCO_01:OUTPUTSTATUS:SP", expected_output_status_flag, wait=False)
         self.ca.assert_that_pv_is("KEPCO_01:OUTPUTSTATUS:SP:RBV", expected_output_status_str)
 
     def test_GIVEN_idn_set_WHEN_read_THEN_idn_is_as_expected(self):
         expected_idn = "000000000000000000111111111111111111111"
         self._set_IDN(expected_idn)
         # Made Proc field force scan as IDN scan is passive
-        self.ca.set_pv_value("KEPCO_01:IDN.PROC", 1)
+        self.ca.set_pv_value("KEPCO_01:IDN.PROC", 1, wait=False)
         self.ca.assert_that_pv_is("KEPCO_01:IDN", expected_idn)

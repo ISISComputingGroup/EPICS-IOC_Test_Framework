@@ -16,13 +16,13 @@ class FermichopperTests(unittest.TestCase):
     valid_commands = ["0001", "0002", "0003","0004", "0005"]
 
     # Values that will be tested in the parametrized tests.
-    test_chopper_speeds = [100, 350, 600]
+    test_chopper_speeds = [100.0, 350.0, 600.0]
     test_delay_durations = [0, 2.5, 18]
     test_gatewidth_values = [0, 0.5, 5]
     test_temperature_values = [20.0, 25.0, 37.5, 47.5]
-    test_current_values = [0, 1.37, 2.22]
-    test_voltage_values = [0, 282.9, 333.3]
-    test_autozero_values = [-5.0, -2.22, 0, 1.23, 5]
+    test_current_values = [0.0, 1.37, 2.22]
+    test_voltage_values = [0.0, 282.9, 333.3]
+    test_autozero_values = [-5.0, -2.22, 0.0, 1.23, 5]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
@@ -160,12 +160,12 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
 
             # Switch on magnetic bearings
-            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4)
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4, wait=False)
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0004")
             self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
 
             # Run mode ON
-            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3)
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3, wait=False)
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0003")
 
             self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED", speed, tolerance=0.1, timeout=30)
@@ -174,7 +174,7 @@ class FermichopperTests(unittest.TestCase):
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_without_magnetic_bearings_on_THEN_chopper_does_not_go_to_setpoint(self):
 
         # Switch OFF magnetic bearings
-        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5, wait=False)
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0005")
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
 
@@ -184,7 +184,7 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
 
             # Run mode ON
-            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3)
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3, wait=False)
             # Ensure the ON command has been ignored and last command is still "switch off bearings"
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0005")
 
@@ -196,7 +196,7 @@ class FermichopperTests(unittest.TestCase):
         speed = 150
 
         # Switch ON magnetic bearings
-        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4)
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4, wait=False)
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0004")
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
 
@@ -205,14 +205,14 @@ class FermichopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED:SP:RBV", speed)
 
         # Run mode ON
-        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3)
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 3, wait=False)
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0003")
 
         # Wait for chopper to get up to speed
         self.ca.assert_that_pv_is_number("FERMCHOP_01:SPEED", speed, tolerance=0.1)
 
         # Attempt to switch OFF magnetic bearings
-        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5, wait=False)
 
         # Assert that bearings did not switch off
         sleep(5)
@@ -224,12 +224,12 @@ class FermichopperTests(unittest.TestCase):
     def test_GIVEN_a_stopped_chopper_WHEN_switch_on_and_off_magnetic_bearings_commands_are_sent_THEN_magnetic_bearings_switch_on_and_off(self):
 
         # Switch ON magnetic bearings
-        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4)
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 4, wait=False)
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0004")
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "1")
 
         # Switch OFF magnetic bearings
-        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5)
+        self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", 5, wait=False)
         self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0005")
         self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
 
@@ -273,7 +273,7 @@ class FermichopperTests(unittest.TestCase):
             # Magnetic bearings should have been turned off in setUp
             self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B3", "0")
 
-            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", command_number)
+            self.ca.set_pv_value("FERMCHOP_01:COMMAND:SP", command_number, wait=False)
             self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "000{}".format(command_number))
 
             self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B6", "{}".format(b6))

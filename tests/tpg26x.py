@@ -55,8 +55,8 @@ class Tpg26xTests(unittest.TestCase):
         self.ca = ChannelAccess(20)
         self.ca.wait_for("TPG26X_01:1:PRESSURE")
         # Reset and error flags and alarms
-        self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_ONE)
-        self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_TWO)
+        self._set_error(ErrorStrings.NO_ERROR, self.CHANNEL_ONE)
+        self._set_error(ErrorStrings.NO_ERROR, self.CHANNEL_TWO)
 
     def _set_pressure(self, expected_pressure, channel):
         pv = "TPG26X_01:SIM:{0:d}:PRESSURE".format(channel)
@@ -233,5 +233,5 @@ class Tpg26xTests(unittest.TestCase):
         expected_units = UnitFlags.PA
         expected_unit_str = UnitStrings.PA
 
-        self.ca.set_pv_value("TPG26X_01:UNITS:SP", expected_units)
+        self.ca.set_pv_value("TPG26X_01:UNITS:SP", expected_units, wait=False)
         self.ca.assert_that_pv_is("TPG26X_01:UNITS", expected_unit_str)

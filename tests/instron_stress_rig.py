@@ -42,7 +42,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def _change_channel(self, name):
         # Setpoint is zero-indexed
-        self.ca.set_pv_value("CHANNEL:SP", CHANNELS[name] - 1)
+        self.ca.set_pv_value("CHANNEL:SP", CHANNELS[name] - 1, wait=False)
         self.ca.assert_that_pv_is("CHANNEL.RVAL", CHANNELS[name])
         self.ca.assert_pv_alarm_is("CHANNEL", self.ca.ALARM_NONE)
         self.ca.assert_that_pv_is("CHANNEL:GUI", name)
@@ -148,7 +148,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_init_sequence_run_THEN_waveform_ramp_is_set_the_status_is_ok(self):
         for chan in POS_STRESS_STRAIN:
-            self.ca.set_pv_value("{0}:RAMP:WFTYP:SP".format(chan), 0)
+            self.ca.set_pv_value("{0}:RAMP:WFTYP:SP".format(chan), "Ramp")
 
         self.ca.set_pv_value("INIT", 1)
 
@@ -171,21 +171,21 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
         self.ca.assert_that_pv_is("GOING", "NO")
         self._switch_to_position_channel_and_change_setpoint()
-        self.ca.set_pv_value("MOVE:GO:SP", 1)
+        self.ca.set_pv_value("MOVE:GO:SP", 1, wait=False)
         self.ca.assert_that_pv_is("GOING", "YES")
-        self.ca.set_pv_value("STOP:SP", 1)
+        self.ca.set_pv_value("STOP:SP", 1, wait=False)
         self.ca.assert_that_pv_is("GOING", "NO")
-        self.ca.set_pv_value("STOP:SP", 0)
+        self.ca.set_pv_value("STOP:SP", 0, wait=False)
 
     @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
     def test_WHEN_going_and_then_panic_stopping_THEN_going_pv_reflects_the_expected_state(self):
         self.ca.assert_that_pv_is("GOING", "NO")
         self._switch_to_position_channel_and_change_setpoint()
-        self.ca.set_pv_value("MOVE:GO:SP", 1)
+        self.ca.set_pv_value("MOVE:GO:SP", 1, wait=False)
         self.ca.assert_that_pv_is("GOING", "YES")
-        self.ca.set_pv_value("PANIC:SP", 1)
+        self.ca.set_pv_value("PANIC:SP", 1, wait=False)
         self.ca.assert_that_pv_is("GOING", "NO")
-        self.ca.set_pv_value("PANIC:SP", 0)
+        self.ca.set_pv_value("PANIC:SP", 0, wait=False)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
@@ -228,7 +228,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
             self):
-        for chan, val in [("POS", 123), ("STRESS", 456), ("STRAIN", 789)]:
+        for chan, val in [("POS", 123.0), ("STRESS", 456.0), ("STRAIN", 789.0)]:
             pv_name = chan + ":STEP:TIME"
             self.ca.assert_setting_setpoint_sets_readback(val, pv_name)
 
@@ -246,7 +246,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
         for chan in POS_STRESS_STRAIN:
-            for val in [0, 10, 1000, 1000000]:
+            for val in [0.0, 10.0, 1000.0, 1000000.0]:
                 pv_name = chan + ":RAW:SP"
                 pv_name_rbv = pv_name + ":RBV"
                 self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_rbv, set_point_pv=pv_name)
@@ -266,7 +266,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number(chan + ":SP:RBV", value, tolerance=0.05, timeout=30)
 
         for chan in POS_STRESS_STRAIN:
-            for i in [1.0, 123.456, 555.555, 1000]:
+            for i in [1.0, 123.456, 555.555, 1000.0]:
                 _set_and_check(chan, i)
 
     def test_WHEN_channel_tolerance_is_set_THEN_it_changes_limits_on_SP_RBV(self):

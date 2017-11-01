@@ -54,7 +54,7 @@ class ChannelAccess(object):
         # Wait for the PV value to change
         wait_interval = 0.1
         if wait:
-            for i in range(int(wait/wait_interval)):
+            for _ in range(int(wait/wait_interval)):
                 time.sleep(wait_interval)
                 if self.ca.get_pv_value(prefixed_pv) == value:
                     break
@@ -353,7 +353,7 @@ class ChannelAccess(object):
         if expected_value is None:
             expected_value = value
 
-        self.set_pv_value(set_point_pv, value)
+        self.set_pv_value(set_point_pv, value, wait=False)
         self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
         if expected_alarm is not None:
             self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
