@@ -36,19 +36,33 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += "{0}:".format(device_prefix)
 
-    def set_pv_value(self, pv, value):
+    def set_pv_value(self, pv, value, wait=5):
         """
         Sets the specified PV to the supplied value.
 
         :param pv: the EPICS PV name
         :param value: the value to set
+        :param wait: How long to wait for the PV to match the input value.
         """
-        # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
-        # In that case the test should fail (because the correct value is not set)
-        # but it should not hold up all the other tests
-        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
-        # Need to give Lewis time to process
-        time.sleep(1)
+        # Don't use wait=True because some IOCs (e.g. Galil) do not provide a callback, causing tests to wait
+        # indefinitely. Instead, set the PV and assert the value changes to the desired value within the default
+        # timeout
+        prefixed_pv = self._create_pv_with_prefix(pv)
+        self.ca.set_pv_value(prefixed_pv, value, wait=False, timeout=self._default_timeout)
+
+        # Wait for the PV value to change
+        wait_interval = 0.1
+        if wait:
+            print "Waiting for PV to set {}".format(prefixed_pv)
+            for i in range(int(wait/wait_interval)):
+                current_value = self.ca.get_pv_value(prefixed_pv)
+                print "{} - Current: {}. Expected {}".format(i, current_value, value)
+                if current_value == value:
+                    break
+                time.sleep(wait_interval)
+            else:
+                raise AssertionError("Unable to set PV {}. Expected value: {}. Current value: {}".format(
+                    prefixed_pv, value, self.ca.get_pv_value(prefixed_pv)))
 
     def get_pv_value(self, pv):
         """
