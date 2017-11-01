@@ -48,8 +48,8 @@ class Oscillating_collimatorTests(unittest.TestCase):
         outputs[(1.0, 0.5, 50.0)] = (709, 719)
         outputs[(0.5, 0.5, 50.0)] = (352, 354)
 
-        outputs[(2, 0.1, 50.0)] = (1398, 280)
-        outputs[(1, 0.1, 50.0)] = (699, 140)
+        outputs[(2.0, 0.1, 50.0)] = (1398, 280)
+        outputs[(1.0, 0.1, 50.0)] = (699, 140)
         outputs[(0.5, 0.1, 50.0)] = (349, 70)
 
         tolerance = 0.5
