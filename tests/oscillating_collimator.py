@@ -25,6 +25,7 @@ class Oscillating_collimatorTests(unittest.TestCase):
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("oscillating_collimator")
+        ChannelAccess().wait_for("MOT:MTR0101", timeout=30)
         self.ca = ChannelAccess(device_prefix=PREFIX)
         self.ca.wait_for("VEL:SP", timeout=30)
 
