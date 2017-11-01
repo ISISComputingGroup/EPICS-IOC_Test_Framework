@@ -42,8 +42,7 @@ class ChannelAccess(object):
 
         :param pv: the EPICS PV name
         :param value: the value to set
-        :param wait: How long to wait for the PV to match the input value. If wait=0/False/None, then no check will be
-        performed against the set value
+        :param wait: The maximum time to wait for the PV to match the input value. No wait on 0/False/None
         """
         # Don't use wait=True because some IOCs (e.g. Galil) do not provide a callback, causing tests to wait
         # indefinitely. Instead, set the PV and assert the value changes to the desired value within the default
@@ -59,8 +58,8 @@ class ChannelAccess(object):
                 if self.ca.get_pv_value(prefixed_pv) == value:
                     break
             else:
-                raise AssertionError("Unable to set PV {}. Expected value: {}. Current value: {}".format(
-                    prefixed_pv, value, self.ca.get_pv_value(prefixed_pv)))
+                print "Warning: New PV value does not match the set value. PV: {}. Set value: {}. Current value: {}".\
+                    format(prefixed_pv, value, self.ca.get_pv_value(prefixed_pv))
 
     def get_pv_value(self, pv):
         """
