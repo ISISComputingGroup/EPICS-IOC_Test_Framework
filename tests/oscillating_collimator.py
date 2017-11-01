@@ -24,7 +24,7 @@ class Oscillating_collimatorTests(unittest.TestCase):
     Tests for the LET Oscillating collimator.
 
     The CA.Client.Exceptions these tests generate are expected because of a workaround we had to make in the DB
-    file to prevent a hang in the case of using asynFloat64 for the SP types.
+    file to prevent a hang in the case of using asynFloat64 for the SP types. Issue described in ticket #2736
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("oscillating_collimator")
