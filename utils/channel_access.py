@@ -54,7 +54,7 @@ class ChannelAccess(object):
         # Wait for the PV value to change
         wait_interval = 0.1
         if wait:
-            for i in range(int(wait/wait_interval)):
+            for _ in range(int(wait/wait_interval)):
                 time.sleep(wait_interval)
                 if self.ca.get_pv_value(prefixed_pv) == value:
                     break
