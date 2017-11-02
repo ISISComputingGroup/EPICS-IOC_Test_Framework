@@ -50,17 +50,14 @@ class ChannelAccess(object):
         prefixed_pv = self._create_pv_with_prefix(pv)
         self.ca.set_pv_value(prefixed_pv, value, wait=False, timeout=self._default_timeout)
 
-        # Wait for the PV value to change. Tried this with smaller intervals and it caused issues communicating
-        # between the test framework and the emulators
-        wait_interval = 1
+        # Wait for PV to be set
         if wait:
-            for _ in range(int(wait/wait_interval)):
-                sleep(wait_interval)
-                if self.ca.get_pv_value(prefixed_pv) == value:
-                    break
-            else:
-                print "Warning: New PV value does not match the set value. PV: {}. Set value: {}. Current value: {}".\
-                    format(prefixed_pv, value, self.ca.get_pv_value(prefixed_pv))
+            msg = self._wait_for_pv_lambda(
+                lambda: self._values_match(prefixed_pv, value, tolerance=0.0001),
+                timeout=wait)
+            if msg is not None:
+                print msg
+
 
     def get_pv_value(self, pv):
         """
@@ -166,7 +163,7 @@ class ChannelAccess(object):
 
         raise AssertionError(error_message)
 
-    def _values_match(self, pv, expected_value):
+    def _values_match(self, pv, expected_value, tolerance=0.0):
         """
         Check pv matches a value.
 
@@ -175,7 +172,7 @@ class ChannelAccess(object):
         :return: None if they match; error string stating the difference if they do not
         """
         pv_value = self.get_pv_value(pv)
-        if pv_value == expected_value:
+        if pv_value == expected_value or (isinstance(pv_value, float) and abs(pv_value-expected_value) <= tolerance):
             return None
         else:
             return """Values didn't match when reading PV '{PV}'.
@@ -316,7 +313,8 @@ class ChannelAccess(object):
                     return lambda_value
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
-            sleep(0.5)
+            # 1s is minimum safe interval for Lewis and IOC test framework to play nice
+            sleep(1)
             current_time = time()
 
         # last try
