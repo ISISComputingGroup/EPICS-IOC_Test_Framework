@@ -1,6 +1,6 @@
 import os
-import time
-import operator
+from time import sleep, time
+from operator import gt, lt, eq
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 
@@ -55,7 +55,7 @@ class ChannelAccess(object):
         wait_interval = 1
         if wait:
             for _ in range(int(wait/wait_interval)):
-                time.sleep(wait_interval)
+                sleep(wait_interval)
                 if self.ca.get_pv_value(prefixed_pv) == value:
                     break
             else:
@@ -303,7 +303,7 @@ class ChannelAccess(object):
         :param timeout: time out period
         :return: final value of lambda
         """
-        start_time = time.time()
+        start_time = time()
         current_time = start_time
 
         if timeout is None:
@@ -316,8 +316,8 @@ class ChannelAccess(object):
                     return lambda_value
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
-            time.sleep(0.5)
-            current_time = time.time()
+            sleep(0.5)
+            current_time = time()
 
         # last try
         return wait_for_lambda()
@@ -370,7 +370,7 @@ class ChannelAccess(object):
         :raises AssertionError: if the value of the pv has not increased
         """
         initial_value = self.get_pv_value(pv)
-        time.sleep(wait)
+        sleep(wait)
         final_value = self.get_pv_value(pv)
 
         try:
@@ -389,7 +389,7 @@ class ChannelAccess(object):
         :return:
         :raises AssertionError: if comparator returns false or fails to execute
         """
-        self.assert_pv_value_over_time(pv, wait, operator.gt)
+        self.assert_pv_value_over_time(pv, wait, gt)
 
     def assert_pv_value_is_decreasing(self, pv, wait):
         """
@@ -399,7 +399,7 @@ class ChannelAccess(object):
         :return:
         :raises AssertionError: if the value of the pv has not decreased
         """
-        self.assert_pv_value_over_time(pv, wait, operator.lt)
+        self.assert_pv_value_over_time(pv, wait, lt)
 
     def assert_pv_value_is_unchanged(self, pv, wait):
         """
@@ -410,4 +410,4 @@ class ChannelAccess(object):
         :return:
         :raises AssertionError: if the value of the pv has changed
         """
-        self.assert_pv_value_over_time(pv, wait, operator.eq)
+        self.assert_pv_value_over_time(pv, wait, eq)
