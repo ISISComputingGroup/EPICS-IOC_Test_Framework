@@ -47,13 +47,12 @@ class ChannelAccess(object):
         # Don't use wait=True because some IOCs (e.g. Galil) do not provide a callback, causing tests to wait
         # indefinitely. Instead, set the PV and assert the value changes to the desired value within the default
         # timeout
-        prefixed_pv = self._create_pv_with_prefix(pv)
-        self.ca.set_pv_value(prefixed_pv, value, wait=False, timeout=self._default_timeout)
+        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
 
         # Wait for PV to be set
         if wait:
             msg = self._wait_for_pv_lambda(
-                lambda: self._values_match(prefixed_pv, value, tolerance=0.0001),
+                lambda: self._values_match(pv, value, tolerance=0.0001),
                 timeout=wait)
             if msg is not None:
                 print msg
