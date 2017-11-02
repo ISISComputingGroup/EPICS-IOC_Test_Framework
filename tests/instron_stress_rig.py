@@ -289,7 +289,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is(chan + ":SP:RBV", ChannelAccess.ALARM_NONE)
 
         for chan in POS_STRESS_STRAIN:
-            for i in [0.123, 567]:
+            for i in [0.123, 567.0]:
                 _set_and_check(chan, i)
 
     def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_is_set_THEN_the_setpoint_readback_has_alarms(
@@ -300,7 +300,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is(chan + ":SP:RBV", ChannelAccess.ALARM_MINOR)
 
         for chan in POS_STRESS_STRAIN:
-            for i in [0.234, 789]:
+            for i in [0.234, 789.0]:
                 _set_and_check(chan, i)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -310,7 +310,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(chan_scale)])
             self.ca.assert_that_pv_is("POS:SCALE", chan_scale)
 
-            for raw_value in [0, 123]:
+            for raw_value in [0, 123.0]:
                 self._lewis.backdoor_command(["device", "set_channel_param", "1", "value", str(raw_value)])
                 self.ca.assert_that_pv_is_number("POS:RAW", raw_value, tolerance=0.01)
                 self.ca.assert_that_pv_is_number("POS", raw_value * chan_scale * 1000,
@@ -361,7 +361,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("STRESS:AREA", value, tolerance=0.01)
             self.ca.assert_pv_alarm_is("STRESS:AREA", ChannelAccess.ALARM_NONE)
 
-        for val in [0.234, 789]:
+        for val in [0.234, 789.0]:
             _set_and_check(val)
 
     def test_WHEN_the_area_setpoint_is_set_THEN_the_diameter_readback_updates(self):
@@ -370,7 +370,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("STRESS:DIAMETER", (2*math.sqrt(value/math.pi)), tolerance=0.01)
             self.ca.assert_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
 
-        for val in [0.234, 789]:
+        for val in [0.234, 789.0]:
             _set_and_check(val)
 
     def test_WHEN_the_diameter_setpoint_is_set_THEN_the_diameter_readback_updates(self):
@@ -379,7 +379,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("STRESS:DIAMETER", value, tolerance=0.0005)
             self.ca.assert_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
 
-        for val in [0.234, 789]:
+        for val in [0.234, 789.0]:
             _set_and_check(val)
 
     def test_WHEN_the_diameter_setpoint_is_set_THEN_the_area_readback_updates(self):
@@ -388,7 +388,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("STRESS:AREA", ((value/2.0)**2 * math.pi), tolerance=0.0005)
             self.ca.assert_pv_alarm_is("STRESS:AREA", ChannelAccess.ALARM_NONE)
 
-        for val in [0.234, 789]:
+        for val in [0.234, 789.0]:
             _set_and_check(val)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -405,7 +405,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_a_stress_setpoint_is_set_THEN_it_is_converted_correctly(self):
 
-        for area in [789, 543.21]:
+        for area in [789.0, 543.21]:
             self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", str(area)])
             self.ca.assert_that_pv_is("STRESS:AREA", area)
 
@@ -422,7 +422,7 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_a_strain_setpoint_is_set_THEN_it_is_converted_correctly(self):
 
-        for length in [789, 543.21]:
+        for length in [789.0, 543.21]:
             self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", str(length)])
             self.ca.assert_that_pv_is("STRAIN:LENGTH", length)
 
@@ -453,7 +453,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_waveform_type_abs_set_on_axes_THEN_all_axes_are_set(self):
         def _set_and_check(set_value, return_value):
-            self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value)
+            self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value, wait=False)
             for chan in POS_STRESS_STRAIN:
                 self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), return_value)
                 self.ca.assert_pv_alarm_is("{0}:RAMP:WFTYP".format(chan), ChannelAccess.ALARM_NONE)
@@ -593,6 +593,8 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "Conversion factors initialized to 0")
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = [123.4, 567.8, 91.2]
+        self.ca.assert_that_pv_is_not(self.ca.get_pv_value("STRESS:AREA"), 0.0)
+        self.ca.assert_that_pv_is_not(self.ca.get_pv_value("STRAIN:LENGTH"), 0.0)
         conversion_factors = [
             float(self.ca.get_pv_value("POS:SCALE"))*1000,
             float(self.ca.get_pv_value("STRESS:SCALE"))/float(self.ca.get_pv_value("STRESS:AREA")),
