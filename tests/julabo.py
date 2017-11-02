@@ -27,7 +27,7 @@ class JulaboTests(unittest.TestCase):
         # Set new temp via SP
         self.ca.set_pv_value("TEMP:SP", start_t + 5)
         # Check SP RBV matches new temp
-        self.assertEqual(start_t + 5, self.ca.get_pv_value("TEMP:SP:RBV"))
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", start_t + 5)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_temperature_above_high_limit_does_not_set_value(self):
@@ -38,7 +38,7 @@ class JulaboTests(unittest.TestCase):
         # Set new temp to above high limit
         self.ca.set_pv_value("TEMP:SP", high_t + 5)
         # Check SP RBV hasn't changed
-        self.assertEqual(start_t, self.ca.get_pv_value("TEMP:SP:RBV"))
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", start_t)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_temperature_below_low_limit_does_not_set_value(self):
@@ -49,7 +49,7 @@ class JulaboTests(unittest.TestCase):
         # Set new temp to above high limit
         self.ca.set_pv_value("TEMP:SP", low_t - 5)
         # Check SP RBV hasn't changed
-        self.assertEqual(start_t, self.ca.get_pv_value("TEMP:SP:RBV"))
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", start_t)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_set_new_temperature_with_circulate_off_means_temperature_remains_unchanged(self):
@@ -58,7 +58,7 @@ class JulaboTests(unittest.TestCase):
         # Set new temp via SP
         self.ca.set_pv_value("TEMP:SP", start_t + 5)
         # Check temp hasn't changed
-        self.assertEqual(start_t, self.ca.get_pv_value("TEMP"))
+        self.ca.assert_that_pv_is_number("TEMP", start_t)
 
     def test_set_new_temperature_with_circulate_on_changes_temperature(self):
         # Get current temp plus a bit
@@ -68,7 +68,7 @@ class JulaboTests(unittest.TestCase):
         # Turn on circulate
         self.ca.set_pv_value("MODE:SP", "ON")
         # Check temp has changed
-        self.ca.assert_that_pv_is_number("TEMP", new_t, tolerance=0.01, timeout=10)
+        self.ca.assert_that_pv_is_number("TEMP", new_t, timeout=10)
 
     def test_setting_external_PID_sets_values_correctly(self):
         # Get initial values and add to them
@@ -80,9 +80,9 @@ class JulaboTests(unittest.TestCase):
         self.ca.set_pv_value("EXTI:SP", i)
         self.ca.set_pv_value("EXTD:SP", d)
         # Check values have changed
-        self.assertEqual(p, self.ca.get_pv_value("EXTP"))
-        self.assertEqual(i, self.ca.get_pv_value("EXTI"))
-        self.assertEqual(d, self.ca.get_pv_value("EXTD"))
+        self.ca.assert_that_pv_is_number("EXTP", p)
+        self.ca.assert_that_pv_is_number("EXTI", i)
+        self.ca.assert_that_pv_is_number("EXTD", d)
 
     def test_setting_internal_PID_sets_values_correctly(self):
         # Get initial values and add to them
@@ -94,66 +94,66 @@ class JulaboTests(unittest.TestCase):
         self.ca.set_pv_value("INTI:SP", i)
         self.ca.set_pv_value("INTD:SP", d)
         # Check values have changed
-        self.assertEqual(p, self.ca.get_pv_value("INTP"))
-        self.assertEqual(i, self.ca.get_pv_value("INTI"))
-        self.assertEqual(d, self.ca.get_pv_value("INTD"))
+        self.ca.assert_that_pv_is_number("INTP", p)
+        self.ca.assert_that_pv_is_number("INTI", i)
+        self.ca.assert_that_pv_is_number("INTD", d)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_internal_PID_above_limit_does_nothing(self):
         # Get initial values
-        start_p = self.ca.get_pv_value("INTP")
-        start_i = self.ca.get_pv_value("INTI")
-        start_d = self.ca.get_pv_value("INTD")
+        p = self.ca.get_pv_value("INTP")
+        i = self.ca.get_pv_value("INTI")
+        d = self.ca.get_pv_value("INTD")
         # Set outside of range
         self.ca.set_pv_value("INTP:SP", TOO_HIGH_PID_VALUE)
         self.ca.set_pv_value("INTI:SP", TOO_HIGH_PID_VALUE)
         self.ca.set_pv_value("INTD:SP", TOO_HIGH_PID_VALUE)
         # Check values have not changed
-        self.assertEqual(start_p, self.ca.get_pv_value("INTP"))
-        self.assertEqual(start_i, self.ca.get_pv_value("INTI"))
-        self.assertEqual(start_d, self.ca.get_pv_value("INTD"))
+        self.ca.assert_that_pv_is_number("INTP", p)
+        self.ca.assert_that_pv_is_number("INTI", i)
+        self.ca.assert_that_pv_is_number("INTD", d)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_internal_PID_below_limit_does_nothing(self):
         # Get initial values
-        start_p = self.ca.get_pv_value("INTP")
-        start_i = self.ca.get_pv_value("INTI")
-        start_d = self.ca.get_pv_value("INTD")
+        p = self.ca.get_pv_value("INTP")
+        i = self.ca.get_pv_value("INTI")
+        d = self.ca.get_pv_value("INTD")
         # Set outside of range
         self.ca.set_pv_value("INTP:SP", TOO_LOW_PID_VALUE)
         self.ca.set_pv_value("INTI:SP", TOO_LOW_PID_VALUE)
         self.ca.set_pv_value("INTD:SP", TOO_LOW_PID_VALUE)
         # Check values have not changed
-        self.assertEqual(start_p, self.ca.get_pv_value("INTP"))
-        self.assertEqual(start_i, self.ca.get_pv_value("INTI"))
-        self.assertEqual(start_d, self.ca.get_pv_value("INTD"))
+        self.ca.assert_that_pv_is_number("INTP", p)
+        self.ca.assert_that_pv_is_number("INTI", i)
+        self.ca.assert_that_pv_is_number("INTD", d)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_external_PID_above_limit_does_nothing(self):
         # Get initial values
-        start_p = self.ca.get_pv_value("EXTP")
-        start_i = self.ca.get_pv_value("EXTI")
-        start_d = self.ca.get_pv_value("EXTD")
+        p = self.ca.get_pv_value("EXTP")
+        i = self.ca.get_pv_value("EXTI")
+        d = self.ca.get_pv_value("EXTD")
         # Set outside of range
         self.ca.set_pv_value("EXTP:SP", TOO_HIGH_PID_VALUE)
         self.ca.set_pv_value("EXTI:SP", TOO_HIGH_PID_VALUE)
         self.ca.set_pv_value("EXTD:SP", TOO_HIGH_PID_VALUE)
         # Check values have not changed
-        self.assertEqual(start_p, self.ca.get_pv_value("EXTP"))
-        self.assertEqual(start_i, self.ca.get_pv_value("EXTI"))
-        self.assertEqual(start_d, self.ca.get_pv_value("EXTD"))
+        self.ca.assert_that_pv_is_number("EXTP", p)
+        self.ca.assert_that_pv_is_number("EXTI", i)
+        self.ca.assert_that_pv_is_number("EXTD", d)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_setting_external_PID_below_limit_does_nothing(self):
         # Get initial values
-        start_p = self.ca.get_pv_value("EXTP")
-        start_i = self.ca.get_pv_value("EXTI")
-        start_d = self.ca.get_pv_value("EXTD")
+        p = self.ca.get_pv_value("EXTP")
+        i = self.ca.get_pv_value("EXTI")
+        d = self.ca.get_pv_value("EXTD")
         # Set outside of range
         self.ca.set_pv_value("EXTP:SP", TOO_LOW_PID_VALUE)
         self.ca.set_pv_value("EXTI:SP", TOO_LOW_PID_VALUE)
         self.ca.set_pv_value("EXTD:SP", TOO_LOW_PID_VALUE)
         # Check values have not changed
-        self.assertEqual(start_p, self.ca.get_pv_value("EXTP"))
-        self.assertEqual(start_i, self.ca.get_pv_value("EXTI"))
-        self.assertEqual(start_d, self.ca.get_pv_value("EXTD"))
+        self.ca.assert_that_pv_is_number("EXTP", p)
+        self.ca.assert_that_pv_is_number("EXTI", i)
+        self.ca.assert_that_pv_is_number("EXTD", d)
