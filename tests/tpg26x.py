@@ -57,13 +57,13 @@ class Tpg26xTests(unittest.TestCase):
 
     def _set_pressure(self, expected_pressure, channel):
         pv = "SIM:{0:d}:PRESSURE".format(channel)
-        prop = "pressure%d" % channel
+        prop = "pressure{}".format(channel)
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
     def _set_error(self, expected_error, channel):
         pv = "SIM:{0:d}:ERROR".format(channel)
-        prop = "error%d" % channel
+        prop = "error{}".format(channel)
         self._lewis.backdoor_set_on_device(prop, expected_error)
         self._ioc.set_simulated_value(pv, expected_error)
 
