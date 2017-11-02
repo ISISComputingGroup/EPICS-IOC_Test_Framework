@@ -121,20 +121,19 @@ class CybamanTests(unittest.TestCase):
 
         test_cases = (
             # No change in setpoint, TM val should be 4000
-            {"old_pos": (-1.0, -2.0, -3.0),  "axis_to_change": "A", "new_setpoint": -1.0, "expected_tm_val": 4000.0},
+            {"old_pos": (-1, -2, -3),  "axis_to_change": "A", "new_setpoint": -1, "expected_tm_val": 4000},
             # Test case provided from flowchart specification
-            {"old_pos": (0.0, 0.0, 0.0),     "axis_to_change": "A", "new_setpoint": 30.0, "expected_tm_val": 6000.0},
+            {"old_pos": (0, 0, 0),     "axis_to_change": "A", "new_setpoint": 30, "expected_tm_val": 6000},
             # Test case provided from flowchart specification
-            {"old_pos": (11.0, -5.0, 102.0), "axis_to_change": "C", "new_setpoint": 50.0, "expected_tm_val": 10000.0},
+            {"old_pos": (11, -5, 102), "axis_to_change": "C", "new_setpoint": 50, "expected_tm_val": 10000},
             # Very small change, TM val should be 4000
-            {"old_pos": (10.0, 20.0, 30.0),  "axis_to_change": "B", "new_setpoint": 21.0, "expected_tm_val": 4000.0},
+            {"old_pos": (10, 20, 30),  "axis_to_change": "B", "new_setpoint": 21, "expected_tm_val": 4000},
         )
 
         for case in test_cases:
             # Ensure original position is what it's meant to be
             for axis, setpoint in zip(self.AXES, case["old_pos"]):
                 self.ca.set_pv_value("{}:SP".format(axis.upper()), setpoint)
-                self.ca.assert_that_pv_is_number("{}".format(axis.upper()), setpoint, tolerance = 0.01)
 
             # Change the relevant axis to a new setpoint
             self.ca.set_pv_value("{}:SP".format(case["axis_to_change"].upper()), case["new_setpoint"])
@@ -160,7 +159,7 @@ class CybamanTests(unittest.TestCase):
         # Put all setpoints to zero
         for axis in self.AXES:
             self.ca.set_pv_value("{}:SP".format(axis.upper()), 0, wait=False)
-            self.ca.assert_that_pv_is("{}".format(axis.upper()), 0, wait=False)
+            self.ca.assert_that_pv_is("{}".format(axis.upper()), 0)
 
         self.ca.set_pv_value("A:HOME", 1, wait=False)
         # Wait for homing to start

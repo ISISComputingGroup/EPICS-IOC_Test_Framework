@@ -50,8 +50,9 @@ class ChannelAccess(object):
         prefixed_pv = self._create_pv_with_prefix(pv)
         self.ca.set_pv_value(prefixed_pv, value, wait=False, timeout=self._default_timeout)
 
-        # Wait for the PV value to change
-        wait_interval = 0.1
+        # Wait for the PV value to change. Tried this with smaller intervals and it caused issues communicating
+        # between the test framework and the emulators
+        wait_interval = 1
         if wait:
             for _ in range(int(wait/wait_interval)):
                 time.sleep(wait_interval)
