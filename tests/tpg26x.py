@@ -50,26 +50,26 @@ class Tpg26xTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tpg26x")
 
         self.ca = ChannelAccess(device_prefix="TPG26X_01")
-        self.ca.wait_for("1:PRESSURE")
+        self.ca.wait_for("1:PRESSURE", 30)
         # Reset and error flags and alarms
-        self._set_error(ErrorStrings.NO_ERROR, self.CHANNEL_ONE)
-        self._set_error(ErrorStrings.NO_ERROR, self.CHANNEL_TWO)
+        self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_ONE)
+        self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_TWO)
 
     def _set_pressure(self, expected_pressure, channel):
-        pv = "SIM:{0:d}:PRESSURE".format(channel)
+        pv = "TPG26X_01:SIM:{0:d}:PRESSURE".format(channel)
         prop = "pressure{0:d}".format(channel)
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
     def _set_error(self, expected_error, channel):
-        pv = "SIM:{0:d}:ERROR".format(channel)
+        pv = "TPG26X_01:SIM:{0:d}:ERROR".format(channel)
         prop = "error{0:d}".format(channel)
         self._lewis.backdoor_set_on_device(prop, expected_error)
         self._ioc.set_simulated_value(pv, expected_error)
 
     def _set_units(self, expected_units):
         self._lewis.backdoor_set_on_device("units", expected_units)
-        self._ioc.set_simulated_value("SIM:UNITS", expected_units)
+        self._ioc.set_simulated_value("TPG26X_01:SIM:UNITS", expected_units)
 
     def test_GIVEN_pressure1_set_WHEN_read_THEN_pressure_is_as_expected(self):
         expected_pressure = 1.23
