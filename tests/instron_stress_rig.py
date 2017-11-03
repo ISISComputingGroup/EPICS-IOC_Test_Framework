@@ -21,7 +21,6 @@ WAVEFORM_HOLDING = "2"
 WAVEFORM_FINISHING = "3"
 LOTS_OF_CYCLES = 999999
 CHANNELS = {"Position": 1, "Stress": 2, "Strain": 3}
-TIMEOUT = 2
 
 
 def add_prefix(prefix, root):
@@ -44,10 +43,10 @@ class Instron_stress_rigTests(unittest.TestCase):
     def _change_channel(self, name):
         # Setpoint is zero-indexed
         self.ca.set_pv_value("CHANNEL:SP", name)
-        self.ca.assert_that_pv_is("CHANNEL.RVAL", CHANNELS[name], timeout=TIMEOUT)
-        self.ca.assert_pv_alarm_is("CHANNEL", self.ca.ALARM_NONE, timeout=TIMEOUT)
-        self.ca.assert_that_pv_is("CHANNEL:GUI", name, timeout=TIMEOUT)
-        self.ca.assert_pv_alarm_is("CHANNEL:GUI", self.ca.ALARM_NONE, timeout=TIMEOUT)
+        self.ca.assert_that_pv_is("CHANNEL.RVAL", CHANNELS[name])
+        self.ca.assert_pv_alarm_is("CHANNEL", self.ca.ALARM_NONE)
+        self.ca.assert_that_pv_is("CHANNEL:GUI", name)
+        self.ca.assert_pv_alarm_is("CHANNEL:GUI", self.ca.ALARM_NONE)
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
@@ -164,9 +163,9 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GOING", "NO")
         self._switch_to_position_channel_and_change_setpoint()
         self.ca.set_pv_value("MOVE:GO:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "YES", timeout=TIMEOUT)
+        self.ca.assert_that_pv_is("GOING", "YES")
         self.ca.set_pv_value("STOP:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "NO", timeout=TIMEOUT)
+        self.ca.assert_that_pv_is("GOING", "NO")
         self.ca.set_pv_value("STOP:SP", 0)
 
     @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
@@ -174,9 +173,9 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GOING", "NO")
         self._switch_to_position_channel_and_change_setpoint()
         self.ca.set_pv_value("MOVE:GO:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "YES", timeout=TIMEOUT)
+        self.ca.assert_that_pv_is("GOING", "YES")
         self.ca.set_pv_value("PANIC:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "NO", timeout=TIMEOUT)
+        self.ca.assert_that_pv_is("GOING", "NO")
         self.ca.set_pv_value("PANIC:SP", 0)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -196,12 +195,12 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         def _set_and_check(value):
             self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value))
-            self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value), timeout=TIMEOUT)
+            self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value))
             # No response from arbitrary command causes record to be TIMEOUT INVALID - this is expected.
-            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_INVALID, timeout=TIMEOUT)
+            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_INVALID)
             time.sleep(1)  # Arbitrary commands too fast upset the emulator
             self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
-            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001, timeout=TIMEOUT)
+            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001)
             time.sleep(1)  # Arbitrary commands too fast upset the emulator
 
         for v in [0, 1, 0]:
@@ -235,9 +234,8 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_ramp_waveform_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
         pv_name = "{0}:RAMP:WFTYP"
         for chan in POS_STRESS_STRAIN:
-            for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
-                self.ca.assert_setting_setpoint_sets_readback(set_value, pv_name.format(chan),
-                                                              expected_value=return_value)
+            for waveform_type in RAMP_WAVEFORM_TYPES:
+                self.ca.assert_setting_setpoint_sets_readback(waveform_type, pv_name.format(chan))
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
         for chan in POS_STRESS_STRAIN:
@@ -258,7 +256,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         def _set_and_check(chan, value):
             self.ca.set_pv_value(chan + ":SP", value)
             self.ca.assert_that_pv_is_number(chan + ":SP", value, tolerance=0.001)
-            self.ca.assert_that_pv_is_number(chan + ":SP:RBV", value, tolerance=0.05, timeout=30)
+            self.ca.assert_that_pv_is_number(chan + ":SP:RBV", value, tolerance=0.05)
 
         for chan in POS_STRESS_STRAIN:
             for i in [1.0, 123.456, 555.555, 1000.0]:
@@ -447,14 +445,14 @@ class Instron_stress_rigTests(unittest.TestCase):
                 self.ca.assert_that_pv_is("{}:TYPE".format(chan_name), return_value_2)
 
     def test_WHEN_waveform_type_abs_set_on_axes_THEN_all_axes_are_set(self):
-        def _set_and_check(set_value, return_value):
-            self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value)
+        def _set_and_check():
+            self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", waveform_type)
             for chan in POS_STRESS_STRAIN:
-                self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), return_value)
+                self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), waveform_type)
                 self.ca.assert_pv_alarm_is("{0}:RAMP:WFTYP".format(chan), ChannelAccess.ALARM_NONE)
 
-        for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
-            _set_and_check(set_value, return_value)
+        for waveform_type in RAMP_WAVEFORM_TYPES:
+            _set_and_check()
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
@@ -465,13 +463,13 @@ class Instron_stress_rigTests(unittest.TestCase):
             self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type",
                                           str(type_index)])
 
-            self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "FAIL", timeout=TIMEOUT)
+            self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "FAIL")
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name),
-                                      "{0} - disabled".format(channel_as_name), timeout=TIMEOUT)
+                                      "{0} - disabled".format(channel_as_name))
 
             self._change_channel(channel_as_name)
 
-            self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_INVALID, timeout=TIMEOUT)
+            self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_INVALID)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
@@ -482,14 +480,13 @@ class Instron_stress_rigTests(unittest.TestCase):
             self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type",
                                           str(type_index)])
 
-            self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "PASS", timeout=30)
+            self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "PASS")
 
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name, timeout=TIMEOUT)
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE,
-                                      timeout=TIMEOUT)
+            self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
+            self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE)
 
             self._change_channel(channel_as_name)
-            self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_NONE, timeout=TIMEOUT)
+            self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not disconnect the device from the IOC")
     def test_WHEN_the_rig_is_not_connected_THEN_the_status_has_alarm(self):
@@ -543,7 +540,7 @@ class Instron_stress_rigTests(unittest.TestCase):
         self.check_running_state(status="Running", running=True, continuing=True)
         self.ca.set_pv_value(wave_prefixed("STOP"), 1, wait=False)
         self.check_running_state(status="Finishing", running=True, continuing=False)
-        self.check_running_state(status="Stopped", running=False, continuing=False, timeout=5)
+        self.check_running_state(status="Stopped", running=False, continuing=False)
 
     @skipIf(IOCRegister.uses_rec_sim, "No backdoor in LewisNone")
     def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_started_THEN_it_is_running_and_keeps_running(self):
@@ -588,7 +585,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         for channel in CHANNELS.keys():
             self._change_channel(channel)
-            self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[channel], timeout=TIMEOUT)
+            self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[channel])
 
     @skipIf(IOCRegister.uses_rec_sim, "Conversion factors initialized to 0")
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
@@ -596,11 +593,11 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         # Scales occasionally get dropped by get_pv. Do this to confirm values and avoid 0s
         default_scale = 10.0
-        self.ca.assert_that_pv_is_number("STRESS:AREA", default_scale, tolerance=0.01, timeout=TIMEOUT)
-        self.ca.assert_that_pv_is_number("STRAIN:LENGTH", default_scale, tolerance=0.01, timeout=TIMEOUT)
-        self.ca.assert_that_pv_is_number("POS:SCALE", default_scale, tolerance=0.01, timeout=TIMEOUT)
-        self.ca.assert_that_pv_is_number("STRESS:SCALE", default_scale, tolerance=0.01, timeout=TIMEOUT)
-        self.ca.assert_that_pv_is_number("STRAIN:SCALE", default_scale, tolerance=0.01, timeout=TIMEOUT)
+        self.ca.assert_that_pv_is_number("STRESS:AREA", default_scale, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("STRAIN:LENGTH", default_scale, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("POS:SCALE", default_scale, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("STRESS:SCALE", default_scale, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("STRAIN:SCALE", default_scale, tolerance=0.01)
 
         conversion_factors = {
             "Position": default_scale*1000,
@@ -625,7 +622,6 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_the_quarter_counter_is_off_THEN_the_number_of_counts_is_and_remains_zero(self):
         self.ca.set_pv_value(quart_prefixed("OFF"), 1, wait=False)
         self.ca.assert_that_pv_is("QUART", 0)
-        self.ca.assert_that_pv_is("QUART", 0, timeout=5)
 
     @skipIf(IOCRegister.uses_rec_sim, "Status more complicated than RECSIM can handle")
     def test_WHEN_the_quarter_counter_is_armed_THEN_the_status_is_armed(self):
