@@ -48,5 +48,10 @@ class Skf_mb350_chopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("phase_percent_ok", percentage)
             self.ca.assert_that_pv_is_number("1:PHAS:PERCENTOK", percentage, 0.01)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_interlock(self):
-        self.ca.assert_that_pv_is_number("1:STAT:ILK", 1, 0.01)
+        self.ca.assert_that_pv_is("1:STAT:ILK", 0)
+        self._lewis.backdoor_command(["device", "set_interlock_state", "TEST_MODE", "True"])
+        self.ca.assert_that_pv_is("1:STAT:ILK", 1)
+        self._lewis.backdoor_command(["device", "set_interlock_state", "TEST_MODE", "False"])
+        self.ca.assert_that_pv_is("1:STAT:ILK", 0)
