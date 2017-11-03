@@ -9,7 +9,7 @@ from utils.testing import get_running_lewis_and_ioc
 DEVICE_PREFIX = "SKFMB350_01"
 
 TEST_FREQUENCIES = [0, 17, 258, 10000]
-TEST_PHASES = [0, 17, 258, 10000]
+TEST_PHASES = [0, 17.3, 258.65, 10000.765]
 
 
 class Skf_mb350_chopperTests(unittest.TestCase):
@@ -32,6 +32,12 @@ class Skf_mb350_chopperTests(unittest.TestCase):
 
     def test_WHEN_phase_setpoint_is_set_THEN_actual_phase_gets_to_the_phase_just_set(self):
         for phase in TEST_PHASES:
-            self.ca.set_pv_value("1:PHAS:SP", phase)
-            self.ca.assert_that_pv_is_number("1:PHAS:SP", phase, 0.01)
+            self.ca.set_pv_value("1:PHAS:SP", phase * 1000)
+            self.ca.assert_that_pv_is_number("1:PHAS:SP", phase*1000, 0.01)
             self.ca.assert_that_pv_is_number("1:PHAS", phase, 0.01)
+
+    def test_WHEN_get_phase_repeatability_it_is_100(self):
+        self.ca.assert_that_pv_is_number("1:PHAS:REPEATABILITY", 100, 0.01)
+
+    def test_WHEN_get_phase_percent_ok_it_is_100(self):
+        self.ca.assert_that_pv_is_number("1:PHAS:PERCENTOK", 100, 0.01)
