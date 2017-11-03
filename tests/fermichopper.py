@@ -13,7 +13,7 @@ class FermichopperTests(unittest.TestCase):
     Tests for the Fermi Chopper IOC.
     """
 
-    valid_commands = ["0001", "0002", "0003","0004", "0005"]
+    valid_commands = ["0001", "0002", "0003", "0004", "0005"]
 
     # Values that will be tested in the parametrized tests.
     test_chopper_speeds = [100, 350, 600]
@@ -155,7 +155,6 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("TEMP:MOTOR", temp, tolerance=0.2, timeout=self.timeout)
             self.ca.assert_pv_alarm_is("TEMP:MOTOR", self.ca.ALARM_NONE, timeout=self.timeout)
 
-
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_THEN_chopper_goes_to_setpoint(self):
         for speed in self.test_chopper_speeds:
@@ -248,7 +247,6 @@ class FermichopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("speed", 0)
         self.ca.assert_that_pv_is("STATUS.BA", "0", timeout=self.timeout)
 
-
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_chopper_speed_is_too_high_with_magnetic_bearing_off_THEN_status_updates(self):
 
@@ -321,7 +319,6 @@ class FermichopperTests(unittest.TestCase):
                 self._lewis.backdoor_set_on_device("voltage", voltage)
                 self._lewis.backdoor_set_on_device("current", current)
                 self.ca.assert_that_pv_is_number("POWER", current * voltage, tolerance=0.5, timeout=self.timeout)
-
 
     #
     #   Mandatory safety tests
