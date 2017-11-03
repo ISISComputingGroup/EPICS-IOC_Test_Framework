@@ -77,7 +77,6 @@ class FermichopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("speed_setpoint", value)
             self.ca.assert_that_pv_is("SPEED:SP:RBV", value, timeout=self.timeout)
 
-    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
         for speed in self.test_chopper_speeds:
             self.ca.set_pv_value("SPEED:SP", speed)
@@ -92,7 +91,6 @@ class FermichopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("delay", value)
             self.ca.assert_that_pv_is_number("DELAY:SP:RBV", value, tolerance=0.05, timeout=self.timeout)
 
-    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_delay_setpoint_is_set_THEN_readback_updates(self):
         for value in self.test_delay_durations:
             self.ca.set_pv_value("DELAY:SP", value)
@@ -107,7 +105,6 @@ class FermichopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("gatewidth", value)
             self.ca.assert_that_pv_is_number("GATEWIDTH", value, tolerance=0.05, timeout=self.timeout)
 
-    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_gatewidth_is_set_THEN_readback_updates(self):
         for value in self.test_gatewidth_values:
             self.ca.set_pv_value("GATEWIDTH:SP", value)
