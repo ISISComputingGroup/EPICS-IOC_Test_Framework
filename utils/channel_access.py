@@ -168,10 +168,24 @@ class ChannelAccess(object):
 
         :param pv: name of the pv (no prefix)
         :param expected_value: value that is expected
+        :param tolerance: the tolerance when comparing floating point values
         :return: None if they match; error string stating the difference if they do not
         """
         pv_value = self.get_pv_value(pv)
-        if pv_value == expected_value or (isinstance(pv_value, float) and abs(pv_value-expected_value) <= tolerance):
+
+        def perfect_match(v1, v2):
+            return v1==v2
+
+        def close_floats(actual, expected, tolerance):
+            isinstance(actual, float) and abs(actual - expected) <= tolerance
+
+        def raw_values_match(pv, actual, expected):
+            return isinstance(actual, basestring) and isinstance(expected, int) and \
+                   self.ca.get_pv_value("{}.RVAL".format(pv)) == expected
+
+        if (perfect_match(pv_value, expected_value)
+            or close_floats(pv_value, expected_value)
+            or raw_values_match(pv, pv_value, expected_value)):
             return None
         else:
             return """Values didn't match when reading PV '{PV}'.

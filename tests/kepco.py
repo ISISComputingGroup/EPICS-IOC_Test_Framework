@@ -85,7 +85,7 @@ class KepcoTests(unittest.TestCase):
     def test_GIVEN_output_status_set_WHEN_read_THEN_output_STATUS_is_as_expected(self):
         expected_output_status_flag = UnitFlags.ON
         expected_output_status_str = Status.ON
-        self.ca.set_pv_value("OUTPUTSTATUS:SP", expected_output_status_flag, wait=False)
+        self.ca.set_pv_value("OUTPUTSTATUS:SP", expected_output_status_flag)
         self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", expected_output_status_str)
 
     def test_GIVEN_idn_set_WHEN_read_THEN_idn_is_as_expected(self):

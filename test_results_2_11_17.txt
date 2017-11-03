@@ -1,0 +1,93 @@
+Skipping config_env - already run previously
+---------------------------------------
+TESTING JULABO Dev Sim
+Running using device emulation
+Starting Lewis
+Starting IOC
+Terminating IOC
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_julabo_devsim_ioc.log
+Terminating Lewis
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_julabo_devsim_lewis.log
+---------------------------------------
+
+---------------------------------------
+TESTING JULABO Rec Sim
+Running using record simulation
+Starting IOC
+Terminating IOC
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_julabo_recsim_ioc.log
+---------------------------------------
+
+---------------------------------------
+TESTING TPG26X Dev Sim
+Running using device emulation
+Starting Lewis
+Starting IOC
+Terminating IOC
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_tpg26x_devsim_ioc.log
+Terminating Lewis
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_tpg26x_devsim_lewis.log
+---------------------------------------
+
+---------------------------------------
+TESTING TPG26X Rec Sim
+Running using record simulation
+Starting IOC
+Terminating IOC
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_tpg26x_recsim_ioc.log
+---------------------------------------
+
+---------------------------------------
+TESTING AMINT2L Dev Sim
+Running using device emulation
+Starting Lewis
+Check IOC is not running
+Starting IOC
+Terminating IOC
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_amint2l_devsim_ioc.log
+Terminating Lewis
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_amint2l_devsim_lewis.log
+---------------------------------------
+
+---------------------------------------
+TESTING AMINT2L Rec Sim
+Running using record simulation
+Check IOC is not running
+Starting IOC
+Terminating IOC
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_amint2l_recsim_ioc.log
+---------------------------------------
+
+---------------------------------------
+TESTING INSTRON Dev Sim
+Traceback (most recent call last):
+  File "C:\Instrument\Apps\Python\lib\runpy.py", line 174, in _run_module_as_main
+    "__main__", fname, loader, pkg_name)
+  File "C:\Instrument\Apps\Python\lib\runpy.py", line 72, in _run_code
+    exec code in run_globals
+  File "C:\Instrument\Apps\Python\Scripts\lewis-control.exe\__main__.py", line 9, in <module>
+  File "C:\Instrument\Apps\Python\lib\site-packages\lewis\scripts\control.py", line 143, in control_simulation
+    timeout=args.timeout).get_object_collection()
+  File "C:\Instrument\Apps\Python\lib\site-packages\lewis\core\control_client.py", line 155, in get_object_collection
+    return {obj: self.get_object(obj) for obj in object_names}
+  File "C:\Instrument\Apps\Python\lib\site-packages\lewis\core\control_client.py", line 155, in <dictcomp>
+    return {obj: self.get_object(obj) for obj in object_names}
+  File "C:\Instrument\Apps\Python\lib\site-packages\lewis\core\control_client.py", line 130, in get_object
+    api, request_id = self.json_rpc(object_name + ':api')
+  File "C:\Instrument\Apps\Python\lib\site-packages\lewis\core\control_client.py", line 123, in json_rpc
+    return self._socket.recv_json(), request_id
+  File "C:\Instrument\Apps\Python\lib\site-packages\zmq\sugar\socket.py", line 526, in recv_json
+    msg = self.recv(flags)
+  File "zmq\backend\cython\socket.pyx", line 693, in zmq.backend.cython.socket.Socket.recv (zmq\backend\cython\socket.c:7683)
+  File "zmq\backend\cython\socket.pyx", line 727, in zmq.backend.cython.socket.Socket.recv (zmq\backend\cython\socket.c:7460)
+  File "zmq\backend\cython\socket.pyx", line 145, in zmq.backend.cython.socket._recv_copy (zmq\backend\cython\socket.c:2344)
+  File "zmq\backend\cython\checkrc.pxd", line 12, in zmq.backend.cython.checkrc._check_rc (zmq\backend\cython\socket.c:7998)
+KeyboardInterrupt
+Running using device emulation
+Starting Lewis
+Starting IOC
+Terminating IOC
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_instron_stress_rig_devsim_ioc.log
+Terminating Lewis
+Lewis log written to C:/Instrument/Var\logs\IOCTestFramework\log_instron_stress_rig_devsim_lewis.log
+Terminate batch job (Y/N)? 

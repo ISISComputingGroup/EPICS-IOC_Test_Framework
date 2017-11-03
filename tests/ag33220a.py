@@ -22,13 +22,13 @@ class Ag33220aTests(unittest.TestCase):
         self.ca.assert_that_pv_is("AG33220A_01:AMPLITUDE", 5.0)
 
     def test_WHEN_units_changed_to_1_THEN_vrms_is_returned(self):
-        self.ca.set_pv_value("AG33220A_01:UNITS:SP", 1, wait=False)
+        self.ca.set_pv_value("AG33220A_01:UNITS:SP", 1)
         self.ca.assert_that_pv_is("AG33220A_01:UNITS", "VRMS")
 
     def test_WHEN_output_changed_THEN_the_expected_output_string_is_read_back(self):
-        self.ca.set_pv_value("AG33220A_01:OUTPUT:SP", 1, wait=False)
+        self.ca.set_pv_value("AG33220A_01:OUTPUT:SP", 1)
         self.ca.assert_that_pv_is("AG33220A_01:OUTPUT", "ON")
-        self.ca.set_pv_value("AG33220A_01:OUTPUT:SP", 0, wait=False)
+        self.ca.set_pv_value("AG33220A_01:OUTPUT:SP", 0)
         self.ca.assert_that_pv_is("AG33220A_01:OUTPUT", "OFF")
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")

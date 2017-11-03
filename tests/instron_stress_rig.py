@@ -42,7 +42,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def _change_channel(self, name):
         # Setpoint is zero-indexed
-        self.ca.set_pv_value("CHANNEL:SP", CHANNELS[name] - 1, wait=False)
+        self.ca.set_pv_value("CHANNEL:SP", CHANNELS[name] - 1)
         self.ca.assert_that_pv_is("CHANNEL.RVAL", CHANNELS[name])
         self.ca.assert_pv_alarm_is("CHANNEL", self.ca.ALARM_NONE)
         self.ca.assert_that_pv_is("CHANNEL:GUI", name)
@@ -453,7 +453,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_waveform_type_abs_set_on_axes_THEN_all_axes_are_set(self):
         def _set_and_check(set_value, return_value):
-            self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value, wait=False)
+            self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value)
             for chan in POS_STRESS_STRAIN:
                 self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), return_value)
                 self.ca.assert_pv_alarm_is("{0}:RAMP:WFTYP".format(chan), ChannelAccess.ALARM_NONE)
@@ -472,13 +472,13 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name),
                                       "{0} - disabled".format(channel_as_name))
 
-            self.ca.set_pv_value("CHANNEL:SP", index, wait=False)
+            self.ca.set_pv_value("CHANNEL:SP", index)
 
             self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_INVALID)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
-        self.ca.set_pv_value("CHANNEL:SP", 3, wait=False)
+        self.ca.set_pv_value("CHANNEL:SP", 3)
         for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
 
             self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
@@ -488,7 +488,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
             self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE)
 
-            self.ca.set_pv_value("CHANNEL:SP", index, wait=False)
+            self.ca.set_pv_value("CHANNEL:SP", index)
             self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not disconnect the device from the IOC")
@@ -583,11 +583,11 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP", device_channel, wait=False)
+            self.ca.set_pv_value("CHANNEL:SP", device_channel)
             self.ca.set_pv_value(wave_prefixed("FREQ:SP"), expected_values[device_channel])
 
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP", device_channel, wait=False)
+            self.ca.set_pv_value("CHANNEL:SP", device_channel)
             self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[device_channel])
 
     @skipIf(IOCRegister.uses_rec_sim, "Conversion factors initialized to 0")
@@ -605,13 +605,13 @@ class Instron_stress_rigTests(unittest.TestCase):
 
         # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP.RVAL", device_channel, wait=False)
+            self.ca.set_pv_value("CHANNEL:SP.RVAL", device_channel)
             self.ca.set_pv_value(wave_prefixed("AMP:SP"), input_values[device_channel])
             self.ca.assert_that_pv_is(wave_prefixed("AMP"), expected_values[device_channel])
             self.ca.assert_that_pv_is(wave_prefixed("AMP:SP:RBV"), input_values[device_channel])
 
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP.RVAL", device_channel, wait=False)
+            self.ca.set_pv_value("CHANNEL:SP.RVAL", device_channel)
             self.ca.assert_that_pv_is(wave_prefixed("AMP"), expected_values[device_channel])
             self.ca.assert_that_pv_is(wave_prefixed("AMP:SP:RBV"), input_values[device_channel])
 

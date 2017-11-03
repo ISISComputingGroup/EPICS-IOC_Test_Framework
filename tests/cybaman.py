@@ -158,7 +158,7 @@ class CybamanTests(unittest.TestCase):
     def test_GIVEN_one_axis_is_homed_WHEN_another_axis_has_its_setpoint_set_THEN_the_homed_axis_does_not_move(self):
         # Put all setpoints to zero
         for axis in self.AXES:
-            self.ca.set_pv_value("{}:SP".format(axis.upper()), 0, wait=False)
+            self.ca.set_pv_value("{}:SP".format(axis.upper()), 0)
             self.ca.assert_that_pv_is("{}".format(axis.upper()), 0)
 
         self.ca.set_pv_value("A:HOME", 1, wait=False)

@@ -66,5 +66,5 @@ class Tdk_lambda_genesysTests(unittest.TestCase):
         self.ca.assert_that_pv_is("GENESYS_01:1:POWER", "OFF")
 
     def test_GIVEN_state_set_via_number_WHEN_read_THEN_state_is_as_expected(self):
-        self.ca.set_pv_value("GENESYS_01:1:POWER:SP", 1, wait=False)
+        self.ca.set_pv_value("GENESYS_01:1:POWER:SP", 1)
         self.ca.assert_that_pv_is("GENESYS_01:1:POWER", "ON")

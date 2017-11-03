@@ -68,7 +68,7 @@ class EurothermTests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:SP", start_temperature)
 
         self.ca.set_pv_value("RATE:SP", ramp_rate)
-        self.ca.set_pv_value("RAMPON:SP", ramp_on, wait=False)
+        self.ca.set_pv_value("RAMPON:SP", ramp_on)
         self.ca.set_pv_value("TEMP:SP", setpoint_temperature)
 
         start = time.time()
