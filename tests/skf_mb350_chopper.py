@@ -9,6 +9,7 @@ from utils.testing import get_running_lewis_and_ioc
 DEVICE_PREFIX = "SKFMB350_01"
 
 TEST_FREQUENCIES = [0, 17, 258, 10000]
+TEST_PHASES = [0, 17, 258, 10000]
 
 
 class Skf_mb350_chopperTests(unittest.TestCase):
@@ -27,3 +28,10 @@ class Skf_mb350_chopperTests(unittest.TestCase):
             self.ca.set_pv_value("1:FREQ:SP", frequency)
             self.ca.assert_that_pv_is_number("1:FREQ:SP", frequency, 0.01)
             self.ca.assert_that_pv_is_number("1:FREQ", frequency, 0.01)
+
+
+    def test_WHEN_phase_setpoint_is_set_THEN_actual_phase_gets_to_the_phase_just_set(self):
+        for phase in TEST_PHASES:
+            self.ca.set_pv_value("1:PHAS:SP", phase)
+            self.ca.assert_that_pv_is_number("1:PHAS:SP", phase, 0.01)
+            self.ca.assert_that_pv_is_number("1:PHAS", phase, 0.01)
