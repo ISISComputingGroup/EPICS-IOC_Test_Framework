@@ -39,7 +39,7 @@ class Ag33220aTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_a_change_in_function_over_the_maximum_THEN_the_frequency_is_changed(self):
         self.ca.set_pv_value("AG33220A_01:FREQUENCY:SP", 1.0e8)
-        self.ca.set_pv_value("AG33220A_01:FUNCTION:SP", 2.0)
+        self.ca.set_pv_value("AG33220A_01:FUNCTION:SP", 2)
         self.ca.assert_that_pv_is("AG33220A_01:FREQUENCY", 2.0*10**5)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
