@@ -17,8 +17,8 @@ class FermichopperTests(unittest.TestCase):
 
     # Values that will be tested in the parametrized tests.
     test_chopper_speeds = [100.0, 350.0, 600.0]
-    test_delay_durations = [0, 2.5, 18]
-    test_gatewidth_values = [0, 0.5, 5]
+    test_delay_durations = [0.0, 2.5, 18]
+    test_gatewidth_values = [0.0, 0.5, 5]
     test_temperature_values = [20.0, 25.0, 37.5, 47.5]
     test_current_values = [0.0, 1.37, 2.22]
     test_voltage_values = [0.0, 282.9, 333.3]
