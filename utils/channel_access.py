@@ -36,18 +36,22 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += "{0}:".format(device_prefix)
 
-    def set_pv_value(self, pv, value, wait=5):
+    def set_pv_value(self, pv, value, wait=None):
         """
         Sets the specified PV to the supplied value.
 
         :param pv: the EPICS PV name
         :param value: the value to set
-        :param wait: The maximum time to wait for the PV to match the input value. No wait on 0/False/None
+        :param wait: The maximum time to wait for the PV to match the input value. No wait on 0/False. Default timeout
+        used if None
         """
         # Don't use wait=True because some IOCs (e.g. Galil) do not provide a callback, causing tests to wait
         # indefinitely. Instead, set the PV and assert the value changes to the desired value within the default
         # timeout
         self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
+
+        if wait is None:
+            wait = self._default_timeout
 
         # Wait for PV to be set
         if wait:
@@ -56,6 +60,9 @@ class ChannelAccess(object):
                 timeout=wait)
             if msg is not None:
                 print msg
+
+        # Rapid input can put some emulators into a corrupt state. This slows down the maximal rate of input
+        sleep(0.5)
 
     def get_pv_value(self, pv):
         """
