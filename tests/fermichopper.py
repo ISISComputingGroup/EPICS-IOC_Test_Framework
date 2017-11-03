@@ -34,10 +34,8 @@ class FermichopperTests(unittest.TestCase):
 
             # Ensure consistent startup state...
             self._lewis.backdoor_set_on_device("electronics_temp", 20)
-            self.ca.assert_that_pv_is_number("TEMP:ELECTRONICS", 20, tolerance=0.2)
 
             self._lewis.backdoor_set_on_device("motor_temp", 20)
-            self.ca.assert_that_pv_is_number("TEMP:MOTOR", 20, tolerance=0.2)
 
             for number in [1, 2]:
                 for position in ["upper", "lower"]:
@@ -46,18 +44,10 @@ class FermichopperTests(unittest.TestCase):
                         "AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
 
             self._lewis.backdoor_set_on_device("speed", 0)
-
             self._lewis.backdoor_set_on_device("do_command", "0001")
-            self.ca.assert_that_pv_is("LASTCOMMAND", "0001")
-
             self._lewis.backdoor_set_on_device("speed_setpoint", 0)
-            self.ca.assert_that_pv_is("SPEED:SP:RBV", 0)
-
             self._lewis.backdoor_set_on_device("magneticbearing", False)
-            self.ca.assert_that_pv_is("STATUS.B3", "0")
-
             self._lewis.backdoor_set_on_device("speed", 0)
-            self.ca.assert_that_pv_is("SPEED", 0)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
