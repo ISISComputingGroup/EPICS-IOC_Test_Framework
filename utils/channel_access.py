@@ -181,7 +181,7 @@ class ChannelAccess(object):
 
         def raw_values_match_expected():
             return isinstance(pv_value, basestring) and isinstance(expected_value, int) and \
-                   self.get_pv_value("{}.RVAL".format(pv)) == expected_value
+                   int(self.get_pv_value("{}.RVAL".format(pv))) == expected_value
 
         if perfect_match_with_expected() or float_close_to_expected() or raw_values_match_expected():
             return None
