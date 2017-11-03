@@ -24,7 +24,7 @@ class FermichopperTests(unittest.TestCase):
     test_voltage_values = [0.0, 282.9, 333.3]
     test_autozero_values = [-5.0, -2.22, 0.0, 1.23, 5]
 
-    timeout = 5
+    timeout = 1
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper")
