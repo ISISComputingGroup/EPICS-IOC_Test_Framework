@@ -1,7 +1,5 @@
 import unittest
 import math
-import time
-from itertools import starmap
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
