@@ -42,12 +42,11 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def _change_channel(self, name):
         # Setpoint is zero-indexed
-        self.ca.set_pv_value("CHANNEL:SP", CHANNELS[name] - 1)
+        self.ca.set_pv_value("CHANNEL:SP.RVAL", CHANNELS[name])
         self.ca.assert_that_pv_is("CHANNEL.RVAL", CHANNELS[name])
         self.ca.assert_pv_alarm_is("CHANNEL", self.ca.ALARM_NONE)
         self.ca.assert_that_pv_is("CHANNEL:GUI", name)
         self.ca.assert_pv_alarm_is("CHANNEL:GUI", self.ca.ALARM_NONE)
-
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig")
@@ -131,7 +130,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
             self._lewis.backdoor_set_on_device("status", code_val)
 
-            self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val))
+            self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {} = {}".format(code, code_val))
             self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_MAJOR)
 
     def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
@@ -191,13 +190,13 @@ class Instron_stress_rigTests(unittest.TestCase):
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
         self.ca.set_pv_value("ARBITRARY:SP", "Q22")
         # Assert that the response to Q22 is a status code
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min=0, max=65535)
+        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_val=0, max_val=65535)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q300_is_sent_THEN_the_response_is_a_number_between_1_and_3(self):
         self.ca.set_pv_value("ARBITRARY:SP", "Q300")
         # Assert that the response to Q300 is between 1 and 3
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min=1, max=3)
+        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_val=1, max_val=3)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
@@ -242,7 +241,8 @@ class Instron_stress_rigTests(unittest.TestCase):
         pv_name = "{0}:RAMP:WFTYP"
         for chan in POS_STRESS_STRAIN:
             for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
-                self.ca.assert_setting_setpoint_sets_readback(set_value, pv_name.format(chan), expected_value=return_value)
+                self.ca.assert_setting_setpoint_sets_readback(set_value, pv_name.format(chan),
+                                                              expected_value=return_value)
 
     def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
         for chan in POS_STRESS_STRAIN:
@@ -448,8 +448,8 @@ class Instron_stress_rigTests(unittest.TestCase):
                                               str(chan_num), "transducer_type", str(value_1)])
                 self._lewis.backdoor_command(["device", "set_channel_param",
                                               str(chan_num), "channel_type", str(value_2)])
-                self.ca.assert_that_pv_is(""+chan_name+":TYPE:STANDARD",return_value_1 )
-                self.ca.assert_that_pv_is(""+chan_name+":TYPE", return_value_2)
+                self.ca.assert_that_pv_is("{}:TYPE:STANDARD".format(chan_name), return_value_1)
+                self.ca.assert_that_pv_is("{}:TYPE".format(chan_name), return_value_2)
 
     def test_WHEN_waveform_type_abs_set_on_axes_THEN_all_axes_are_set(self):
         def _set_and_check(set_value, return_value):
@@ -464,7 +464,8 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
 
-        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
+        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(
+                zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
 
             self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
 
@@ -472,14 +473,15 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name),
                                       "{0} - disabled".format(channel_as_name))
 
-            self.ca.set_pv_value("CHANNEL:SP", index)
+            self.ca.set_pv_value("CHANNEL:SP.RVAL", index+1)
 
             self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_INVALID)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
-        self.ca.set_pv_value("CHANNEL:SP", 3)
-        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
+        self.ca.set_pv_value("CHANNEL:SP.RVAL", 3)
+        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(
+                zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
 
             self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
 
@@ -488,7 +490,7 @@ class Instron_stress_rigTests(unittest.TestCase):
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
             self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE)
 
-            self.ca.set_pv_value("CHANNEL:SP", index)
+            self.ca.set_pv_value("CHANNEL:SP.RVAL", index)
             self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not disconnect the device from the IOC")
@@ -573,7 +575,7 @@ class Instron_stress_rigTests(unittest.TestCase):
 
     def test_WHEN_waveform_type_is_set_THEN_the_device_reports_it_has_changed(self):
         for index, wave_type in enumerate(["Sine", "Triangle", "Square", "Haversine",
-                     "Havetriangle", "Haversquare", "Sensor", "Aux", "Sawtooth"]):
+                                           "Havetriangle", "Haversquare", "Sensor", "Aux", "Sawtooth"]):
             self.ca.assert_setting_setpoint_sets_readback(index, wave_prefixed("TYPE"), expected_value=wave_type)
 
     @skipIf(IOCRegister.uses_rec_sim, "Recsim record does not handle multiple channels ")
@@ -582,12 +584,12 @@ class Instron_stress_rigTests(unittest.TestCase):
         assert len(expected_values) == NUMBER_OF_CHANNELS
 
         # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
-        for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP", device_channel)
+        for device_channel in range(1, NUMBER_OF_CHANNELS+1):
+            self.ca.set_pv_value("CHANNEL:SP.RVAL", device_channel)
             self.ca.set_pv_value(wave_prefixed("FREQ:SP"), expected_values[device_channel])
 
-        for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP", device_channel)
+        for device_channel in range(1, NUMBER_OF_CHANNELS+1):
+            self.ca.set_pv_value("CHANNEL:SP.RVAL", device_channel)
             self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[device_channel])
 
     @skipIf(IOCRegister.uses_rec_sim, "Conversion factors initialized to 0")
