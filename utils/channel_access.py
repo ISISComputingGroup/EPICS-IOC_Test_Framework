@@ -177,7 +177,7 @@ class ChannelAccess(object):
             return pv_value == expected_value
 
         def float_close_to_expected():
-            isinstance(pv_value, float) and abs(pv_value - expected_value) <= tolerance
+            isinstance(expected_value, float) and abs(pv_value - expected_value) <= tolerance
 
         def raw_values_match_expected():
             return isinstance(pv_value, basestring) and isinstance(expected_value, int) and \
