@@ -89,142 +89,144 @@ class Instron_stress_rigTests(unittest.TestCase):
             # Always set the waveform generator to run for lots of cycles so it only stops if we want it to
             self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
-    def test_WHEN_the_rig_has_no_error_THEN_the_status_is_ok(self):
-        self._lewis.backdoor_set_on_device("status", 7680)
-
-        self.ca.assert_that_pv_is("STAT:DISP", "System OK")
-        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
-    def test_WHEN_the_rig_has_other_no_error_THEN_the_status_is_ok(self):
-        self._lewis.backdoor_set_on_device("status", 0)
-
-        self.ca.assert_that_pv_is("STAT:DISP", "System OK")
-        self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
-    def test_WHEN_the_rig_has_error_THEN_the_status_is_emergency_stop_pushed(self):
-        code_and_errors = [
-            ([0, 1, 1, 0], "Emergency stop pushed"),
-            ([0, 0, 0, 1], "Travel limit exceeded"),
-            ([0, 0, 1, 0], "Power amplifier too hot"),
-            ([0, 1, 1, 0], "Emergency stop pushed"),
-            ([0, 1, 0, 1], "Invalid status from rig"),
-            ([0, 1, 0, 0], "Invalid status from rig"),
-            ([0, 1, 1, 0], "Emergency stop pushed"),
-            ([0, 1, 1, 1], "Oil too hot"),
-            ([1, 0, 0, 0], "Oil level too low"),
-            ([1, 0, 0, 1], "Motor too hot"),
-            ([1, 0, 1, 0], "Oil pressure too high"),
-            ([1, 0, 1, 1], "Oil pressure too low"),
-            ([1, 1, 0, 0], "Manifold/pump blocked"),
-            ([1, 1, 0, 1], "Oil level going too low"),
-            ([1, 1, 1, 0], "Manifold low pressure")
-        ]
-
-        for code, error in code_and_errors:
-            code_val = code[0] * 2 ** 12
-            code_val += code[1] * 2 ** 11
-            code_val += code[2] * 2 ** 10
-            code_val += code[3] * 2 ** 9
-
-            self._lewis.backdoor_set_on_device("status", code_val)
-
-            self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {} = {}".format(code, code_val))
-            self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_MAJOR)
-
-    def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
-        self.ca.assert_that_pv_is("GOING", "NO")
-
-    def test_WHEN_the_rig_is_initialized_THEN_it_is_not_panic_stopping(self):
-        self.ca.assert_that_pv_is("PANIC:SP", "READY")
-
-    def test_WHEN_the_rig_is_initialized_THEN_it_is_not_stopping(self):
-        self.ca.assert_that_pv_is("STOP:SP", "READY")
-
-    def test_that_the_rig_is_not_normally_in_control_mode(self):
-        self.ca.assert_that_pv_is("STOP:SP", "READY")
-
-    def test_WHEN_init_sequence_run_THEN_waveform_ramp_is_set_the_status_is_ok(self):
-        for chan in POS_STRESS_STRAIN:
-            self.ca.set_pv_value("{0}:RAMP:WFTYP:SP".format(chan), "Ramp")
-
-        self.ca.set_pv_value("INIT", 1)
-
-        for chan in POS_STRESS_STRAIN:
-            self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), RAMP_WAVEFORM_TYPES[3])
-
-    def _switch_to_position_channel_and_change_setpoint(self):
-
-        # It has to be big or the set point will be reached before the test completes
-        _big_set_point = 999999999999
-
-        # Select position as control channel
-        self._change_channel("Position")
-        # Change the setpoint so that movement can be started
-        self.ca.set_pv_value("POS:SP", _big_set_point)
-        self.ca.assert_that_pv_is_number("POS:SP", _big_set_point, tolerance=1)
-        self.ca.assert_that_pv_is_number("POS:SP:RBV", _big_set_point, tolerance=1)
-
-    @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
-    def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
-        self.ca.assert_that_pv_is("GOING", "NO")
-        self._switch_to_position_channel_and_change_setpoint()
-        self.ca.set_pv_value("MOVE:GO:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "YES", timeout=TIMEOUT)
-        self.ca.set_pv_value("STOP:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "NO", timeout=TIMEOUT)
-        self.ca.set_pv_value("STOP:SP", 0)
-
-    @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
-    def test_WHEN_going_and_then_panic_stopping_THEN_going_pv_reflects_the_expected_state(self):
-        self.ca.assert_that_pv_is("GOING", "NO")
-        self._switch_to_position_channel_and_change_setpoint()
-        self.ca.set_pv_value("MOVE:GO:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "YES", timeout=TIMEOUT)
-        self.ca.set_pv_value("PANIC:SP", 1)
-        self.ca.assert_that_pv_is("GOING", "NO", timeout=TIMEOUT)
-        self.ca.set_pv_value("PANIC:SP", 0)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
-        self.ca.set_pv_value("ARBITRARY:SP", "Q22")
-        # Assert that the response to Q22 is a status code
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_val=0, max_val=65535)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_arbitrary_command_Q300_is_sent_THEN_the_response_is_a_number_between_1_and_3(self):
-        self.ca.set_pv_value("ARBITRARY:SP", "Q300")
-        # Assert that the response to Q300 is between 1 and 3
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_val=1, max_val=3)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
-
-        def _set_and_check(value):
-            self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value))
-            self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value))
-            # No response from arbitrary command causes record to be TIMEOUT INVALID - this is expected.
-            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_INVALID)
-            self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
-            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001)
-
-        for v in [0, 1, 0]:
-            _set_and_check(v)
-
-    def test_WHEN_control_channel_is_requested_THEN_an_allowed_value_is_returned(self):
-        self.ca.assert_that_pv_is_one_of("CHANNEL", CHANNELS.keys())
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_control_channel_setpoint_is_requested_THEN_it_is_one_of_the_allowed_values(self):
-        self.ca.assert_that_pv_is_one_of("CHANNEL:SP", CHANNELS.keys())
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
-        for channel in CHANNELS.keys():
-            # change channel function contains the relevant assertions.
-            self._change_channel(channel)
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
+    # def test_WHEN_the_rig_has_no_error_THEN_the_status_is_ok(self):
+    #     self._lewis.backdoor_set_on_device("status", 7680)
+    #
+    #     self.ca.assert_that_pv_is("STAT:DISP", "System OK")
+    #     self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
+    # def test_WHEN_the_rig_has_other_no_error_THEN_the_status_is_ok(self):
+    #     self._lewis.backdoor_set_on_device("status", 0)
+    #
+    #     self.ca.assert_that_pv_is("STAT:DISP", "System OK")
+    #     self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim we can not set the code easily")
+    # def test_WHEN_the_rig_has_error_THEN_the_status_is_emergency_stop_pushed(self):
+    #     code_and_errors = [
+    #         ([0, 1, 1, 0], "Emergency stop pushed"),
+    #         ([0, 0, 0, 1], "Travel limit exceeded"),
+    #         ([0, 0, 1, 0], "Power amplifier too hot"),
+    #         ([0, 1, 1, 0], "Emergency stop pushed"),
+    #         ([0, 1, 0, 1], "Invalid status from rig"),
+    #         ([0, 1, 0, 0], "Invalid status from rig"),
+    #         ([0, 1, 1, 0], "Emergency stop pushed"),
+    #         ([0, 1, 1, 1], "Oil too hot"),
+    #         ([1, 0, 0, 0], "Oil level too low"),
+    #         ([1, 0, 0, 1], "Motor too hot"),
+    #         ([1, 0, 1, 0], "Oil pressure too high"),
+    #         ([1, 0, 1, 1], "Oil pressure too low"),
+    #         ([1, 1, 0, 0], "Manifold/pump blocked"),
+    #         ([1, 1, 0, 1], "Oil level going too low"),
+    #         ([1, 1, 1, 0], "Manifold low pressure")
+    #     ]
+    #
+    #     for code, error in code_and_errors:
+    #         code_val = code[0] * 2 ** 12
+    #         code_val += code[1] * 2 ** 11
+    #         code_val += code[2] * 2 ** 10
+    #         code_val += code[3] * 2 ** 9
+    #
+    #         self._lewis.backdoor_set_on_device("status", code_val)
+    #
+    #         self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {} = {}".format(code, code_val))
+    #         self.ca.assert_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_MAJOR)
+    #
+    # def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
+    #     self.ca.assert_that_pv_is("GOING", "NO")
+    #
+    # def test_WHEN_the_rig_is_initialized_THEN_it_is_not_panic_stopping(self):
+    #     self.ca.assert_that_pv_is("PANIC:SP", "READY")
+    #
+    # def test_WHEN_the_rig_is_initialized_THEN_it_is_not_stopping(self):
+    #     self.ca.assert_that_pv_is("STOP:SP", "READY")
+    #
+    # def test_that_the_rig_is_not_normally_in_control_mode(self):
+    #     self.ca.assert_that_pv_is("STOP:SP", "READY")
+    #
+    # def test_WHEN_init_sequence_run_THEN_waveform_ramp_is_set_the_status_is_ok(self):
+    #     for chan in POS_STRESS_STRAIN:
+    #         self.ca.set_pv_value("{0}:RAMP:WFTYP:SP".format(chan), "Ramp")
+    #
+    #     self.ca.set_pv_value("INIT", 1)
+    #
+    #     for chan in POS_STRESS_STRAIN:
+    #         self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), RAMP_WAVEFORM_TYPES[3])
+    #
+    # def _switch_to_position_channel_and_change_setpoint(self):
+    #
+    #     # It has to be big or the set point will be reached before the test completes
+    #     _big_set_point = 999999999999
+    #
+    #     # Select position as control channel
+    #     self._change_channel("Position")
+    #     # Change the setpoint so that movement can be started
+    #     self.ca.set_pv_value("POS:SP", _big_set_point)
+    #     self.ca.assert_that_pv_is_number("POS:SP", _big_set_point, tolerance=1)
+    #     self.ca.assert_that_pv_is_number("POS:SP:RBV", _big_set_point, tolerance=1)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
+    # def test_WHEN_going_and_then_stopping_THEN_going_pv_reflects_the_expected_state(self):
+    #     self.ca.assert_that_pv_is("GOING", "NO")
+    #     self._switch_to_position_channel_and_change_setpoint()
+    #     self.ca.set_pv_value("MOVE:GO:SP", 1)
+    #     self.ca.assert_that_pv_is("GOING", "YES", timeout=TIMEOUT)
+    #     self.ca.set_pv_value("STOP:SP", 1)
+    #     self.ca.assert_that_pv_is("GOING", "NO", timeout=TIMEOUT)
+    #     self.ca.set_pv_value("STOP:SP", 0)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "Dynamic behaviour not captured in RECSIM")
+    # def test_WHEN_going_and_then_panic_stopping_THEN_going_pv_reflects_the_expected_state(self):
+    #     self.ca.assert_that_pv_is("GOING", "NO")
+    #     self._switch_to_position_channel_and_change_setpoint()
+    #     self.ca.set_pv_value("MOVE:GO:SP", 1)
+    #     self.ca.assert_that_pv_is("GOING", "YES", timeout=TIMEOUT)
+    #     self.ca.set_pv_value("PANIC:SP", 1)
+    #     self.ca.assert_that_pv_is("GOING", "NO", timeout=TIMEOUT)
+    #     self.ca.set_pv_value("PANIC:SP", 0)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
+    #     self.ca.set_pv_value("ARBITRARY:SP", "Q22")
+    #     # Assert that the response to Q22 is a status code
+    #     self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_val=0, max_val=65535)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_WHEN_arbitrary_command_Q300_is_sent_THEN_the_response_is_a_number_between_1_and_3(self):
+    #     self.ca.set_pv_value("ARBITRARY:SP", "Q300")
+    #     # Assert that the response to Q300 is between 1 and 3
+    #     self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_val=1, max_val=3)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
+    #
+    #     def _set_and_check(value):
+    #         self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value))
+    #         self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value), timeout=TIMEOUT)
+    #         # No response from arbitrary command causes record to be TIMEOUT INVALID - this is expected.
+    #         self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_INVALID, timeout=TIMEOUT)
+    #         time.sleep(1)  # Arbitrary commands too fast upset the emulator
+    #         self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
+    #         self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001, timeout=TIMEOUT)
+    #         time.sleep(1)  # Arbitrary commands too fast upset the emulator
+    #
+    #     for v in [0, 1, 0]:
+    #         _set_and_check(v)
+    #
+    # def test_WHEN_control_channel_is_requested_THEN_an_allowed_value_is_returned(self):
+    #     self.ca.assert_that_pv_is_one_of("CHANNEL", CHANNELS.keys())
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_WHEN_control_channel_setpoint_is_requested_THEN_it_is_one_of_the_allowed_values(self):
+    #     self.ca.assert_that_pv_is_one_of("CHANNEL:SP", CHANNELS.keys())
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    #     for channel in CHANNELS.keys():
+    #         # change channel function contains the relevant assertions.
+    #         self._change_channel(channel)
 
     # def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
     #         self):
@@ -579,25 +581,25 @@ class Instron_stress_rigTests(unittest.TestCase):
     #                                        "Havetriangle", "Haversquare", "Sensor", "Aux", "Sawtooth"]):
     #         self.ca.assert_setting_setpoint_sets_readback(index, wave_prefixed("TYPE"), expected_value=wave_type)
     #
-    @skipIf(IOCRegister.uses_rec_sim, "Recsim record does not handle multiple channels ")
-    def test_GIVEN_multiple_channels_WHEN_waveform_frequency_is_set_THEN_the_device_is_updated_to_that_value(self):
-        expected_values = {"Position": 123.456, "Stress": 789.012, "Strain": 345.678}
-        assert len(expected_values) == NUMBER_OF_CHANNELS
-
-        # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
-        for channel in CHANNELS.keys():
-            self._change_channel(channel)
-            self.ca.set_pv_value(wave_prefixed("FREQ:SP"), expected_values[channel])
-
-        for channel in CHANNELS.keys():
-            self._change_channel(channel)
-            self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[channel], timeout=TIMEOUT)
+    # @skipIf(IOCRegister.uses_rec_sim, "Recsim record does not handle multiple channels ")
+    # def test_GIVEN_multiple_channels_WHEN_waveform_frequency_is_set_THEN_the_device_is_updated_to_that_value(self):
+    #     expected_values = {"Position": 123.456, "Stress": 789.012, "Strain": 345.678}
+    #     assert len(expected_values) == NUMBER_OF_CHANNELS
+    #
+    #     # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
+    #     for channel in CHANNELS.keys():
+    #         self._change_channel(channel)
+    #         self.ca.set_pv_value(wave_prefixed("FREQ:SP"), expected_values[channel])
+    #
+    #     for channel in CHANNELS.keys():
+    #         self._change_channel(channel)
+    #         self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[channel], timeout=TIMEOUT)
 
     @skipIf(IOCRegister.uses_rec_sim, "Conversion factors initialized to 0")
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = {"Position": 123.4, "Stress": 567.8, "Strain": 91.2}
-        self.ca.assert_that_pv_is_not(self.ca.get_pv_value("STRESS:AREA"), 0.0)
-        self.ca.assert_that_pv_is_not(self.ca.get_pv_value("STRAIN:LENGTH"), 0.0)
+        self.ca.assert_that_pv_is_not("STRESS:AREA", 0.0)
+        self.ca.assert_that_pv_is_not("STRAIN:LENGTH", 0.0)
         conversion_factors = {
             "Position": float(self.ca.get_pv_value("POS:SCALE"))*1000,
             "Stress": float(self.ca.get_pv_value("STRESS:SCALE"))/float(self.ca.get_pv_value("STRESS:AREA")),
