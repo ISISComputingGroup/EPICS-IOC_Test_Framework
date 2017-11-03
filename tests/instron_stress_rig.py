@@ -453,22 +453,22 @@ class Instron_stress_rigTests(unittest.TestCase):
     #
     #     for waveform_type in RAMP_WAVEFORM_TYPES:
     #         _set_and_check()
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
-
-        for index, (chan_name, type_index, index_as_name, channel_as_name) in enumerate(
-                zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
-
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type",
-                                          str(type_index)])
-
-            self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "FAIL")
-            disabled_channel_name = "{} - disabled".format(channel_as_name)
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), disabled_channel_name)
-            self.ca.set_pv_value("CHANNEL:SP", disabled_channel_name)
-            self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_INVALID)
-
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    # def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
+    #
+    #     for index, (chan_name, type_index, index_as_name, channel_as_name) in enumerate(
+    #             zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
+    #
+    #         self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type",
+    #                                       str(type_index)])
+    #
+    #         self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "FAIL")
+    #         disabled_channel_name = "{} - disabled".format(channel_as_name)
+    #         self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), disabled_channel_name)
+    #         self.ca.set_pv_value("CHANNEL:SP", disabled_channel_name)
+    #         self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_INVALID)
+    #
     # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     # def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
     #     self._change_channel("Strain")
@@ -630,17 +630,18 @@ class Instron_stress_rigTests(unittest.TestCase):
     # def test_WHEN_the_waveform_generator_is_started_THEN_the_quarter_counter_starts_counting_and_keeps_increasing(self):
     #     self.ca.set_pv_value(wave_prefixed("START"), 1, wait=False)
     #     self.ca.assert_pv_value_is_increasing("QUART", 5)
-    #
-    # @skipIf(IOCRegister.uses_rec_sim, "Status more complicated than RECSIM can handle")
-    # def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
-    #     cycles = 5
-    #     self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
-    #     self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
-    #     self.ca.set_pv_value(wave_prefixed("START"), 1, wait=False)
-    #     while self.ca.get_pv_value(quart_prefixed("STATUS")) == "Armed":
-    #         self.assertLessEqual(float(self.ca.get_pv_value("QUART")/4.0), cycles)
-    #     self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Tripped")
-    #
+
+    @skipIf(IOCRegister.uses_rec_sim, "Status more complicated than RECSIM can handle")
+    def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
+        cycles = 5
+        self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), cycles)
+        self.ca.assert_that_pv_is(quart_prefixed("SP"), cycles*4)
+        self.ca.set_pv_value(wave_prefixed("START"), 1, wait=False)
+        while self.ca.get_pv_value(quart_prefixed("STATUS")) == "Armed":
+            self.assertLessEqual(float(self.ca.get_pv_value("QUART")/4.0), cycles)
+        # The emulator enters a TRIPPED state but the IOC actively turns the counter OFF
+        self.ca.assert_that_pv_is(quart_prefixed("STATUS"), "Off")
+
     # def test_GIVEN_the_waveform_generator_is_stopped_WHEN_instructed_to_hold_THEN_status_is_stopped(self):
     #     self.ca.assert_that_pv_is(wave_prefixed("STATUS"), "Stopped")
     #     self.ca.set_pv_value(wave_prefixed("HOLD"), 1, wait=False)
