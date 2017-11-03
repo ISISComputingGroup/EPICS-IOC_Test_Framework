@@ -60,31 +60,23 @@ class Instron_stress_rigTests(unittest.TestCase):
         if not IOCRegister.uses_rec_sim:
             # Reinitialize the emulator state
             self._lewis.backdoor_command(["device", "reset"])
-
             self._lewis.backdoor_set_on_device("status", 7680)
-
             for index, chan_type2 in enumerate((3, 2, 4)):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1),
                                               "channel_type", str(chan_type2)])
-
-            self.ca.assert_that_pv_is("CHANNEL:SP.ZRST", "Position")
 
             self._change_channel("Position")
 
             # Ensure the rig is stopped
             self._lewis.backdoor_command(["device", "movement_type", "0"])
-            self.ca.assert_that_pv_is("GOING", "NO")
 
             # Ensure stress area and strain length are sensible values (i.e. not zero)
             self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", "10"])
             self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", "10"])
-            self.ca.assert_that_pv_is_number("STRESS:AREA", 10, tolerance=0.001)
-            self.ca.assert_that_pv_is_number("STRAIN:LENGTH", 10, tolerance=0.001)
 
             # Ensure that all the scales are sensible values (i.e. not zero)
             for index, channel in enumerate(POS_STRESS_STRAIN, 1):
                 self._lewis.backdoor_command(["device", "set_channel_param", str(index), "scale", "10"])
-                self.ca.assert_that_pv_is_number(channel + ":SCALE", 10, tolerance=0.001)
 
             # Always set the waveform generator to run for lots of cycles so it only stops if we want it to
             self.ca.set_pv_value(quart_prefixed("CYCLE:SP"), LOTS_OF_CYCLES)
