@@ -230,5 +230,6 @@ class Tpg26xTests(unittest.TestCase):
         expected_units = UnitFlags.PA
         expected_unit_str = UnitStrings.PA
 
-        self.ca.set_pv_value("UNITS:SP", expected_units)
+        # The RVAL for this PV doesn't update as expected so don't wait
+        self.ca.set_pv_value("UNITS:SP", expected_units, wait=False)
         self.ca.assert_that_pv_is("UNITS", expected_unit_str)
