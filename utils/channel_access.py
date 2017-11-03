@@ -61,8 +61,8 @@ class ChannelAccess(object):
             if msg is not None:
                 print msg
 
-        # Rapid input can put some emulators into a corrupt state. This slows down the maximal rate of input
-        sleep(0.5)
+        # Need to give Lewis time to process
+        sleep(1)
 
     def get_pv_value(self, pv):
         """
