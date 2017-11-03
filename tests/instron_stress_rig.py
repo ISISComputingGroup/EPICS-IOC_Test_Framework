@@ -467,10 +467,11 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
 
-        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(
+        for index, (chan_name, type_index, index_as_name, channel_as_name) in enumerate(
                 zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
 
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
+            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type",
+                                          str(type_index)])
 
             self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "FAIL", timeout=TIMEOUT)
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name),
@@ -483,15 +484,17 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
         self._change_channel("Strain")
-        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(
+        for index, (chan_name, type_index, index_as_name, channel_as_name) in enumerate(
                 zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
 
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
+            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type",
+                                          str(type_index)])
 
             self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "PASS", timeout=30)
 
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name, timeout=TIMEOUT)
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE, timeout=TIMEOUT)
+            self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE,
+                                      timeout=TIMEOUT)
 
             self._change_channel(channel_as_name)
             self.ca.assert_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_NONE, timeout=TIMEOUT)
@@ -598,12 +601,19 @@ class Instron_stress_rigTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "Conversion factors initialized to 0")
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = {"Position": 123.4, "Stress": 567.8, "Strain": 91.2}
-        self.ca.assert_that_pv_is_number("STRESS:AREA", 10.0, tolerance=0.01, timeout=TIMEOUT)
-        self.ca.assert_that_pv_is_number("STRAIN:LENGTH", 10.0, tolerance=0.01, timeout=TIMEOUT)
+
+        # Scales occasionally get dropped by get_pv. Do this to confirm values and avoid 0s
+        default_scale = 10.0
+        self.ca.assert_that_pv_is_number("STRESS:AREA", default_scale, tolerance=0.01, timeout=TIMEOUT)
+        self.ca.assert_that_pv_is_number("STRAIN:LENGTH", default_scale, tolerance=0.01, timeout=TIMEOUT)
+        self.ca.assert_that_pv_is_number("POS:SCALE", default_scale, tolerance=0.01, timeout=TIMEOUT)
+        self.ca.assert_that_pv_is_number("STRESS:SCALE", default_scale, tolerance=0.01, timeout=TIMEOUT)
+        self.ca.assert_that_pv_is_number("STRAIN:SCALE", default_scale, tolerance=0.01, timeout=TIMEOUT)
+
         conversion_factors = {
-            "Position": float(self.ca.get_pv_value("POS:SCALE"))*1000,
-            "Stress": float(self.ca.get_pv_value("STRESS:SCALE"))/float(self.ca.get_pv_value("STRESS:AREA")),
-            "Strain": float(self.ca.get_pv_value("STRAIN:SCALE"))*100000*float(self.ca.get_pv_value("STRAIN:LENGTH"))
+            "Position": default_scale*1000,
+            "Stress": 1.0,
+            "Strain": default_scale*default_scale*100000
         }
         expected_values = {c: input_values[c]/conversion_factors[c] for c in CHANNELS}
 
