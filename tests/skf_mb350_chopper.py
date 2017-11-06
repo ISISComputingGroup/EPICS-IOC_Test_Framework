@@ -72,10 +72,11 @@ class Skf_mb350_chopperTests(unittest.TestCase):
 
         def _set_and_assert_interlock_state(interlock, on):
             self._lewis.backdoor_command(["device", "set_interlock_state", interlock, "True" if on else "False"])
-            self.ca.assert_that_pv_is("STAT:ILK:{}".format(interlock), "Active" if on else "Inactive")
+            self.ca.assert_that_pv_is("ILK:{}".format(interlock), "Active" if on else "Inactive")
 
         for interlock in INTERLOCKS:
             _set_and_assert_interlock_state(interlock, True)
+            _set_and_assert_interlock_state(interlock, False)
 
     def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
         self.ca.set_pv_value("START", 1)
