@@ -31,17 +31,6 @@ INTERLOCKS = [
     "TEST_MODE",
 ]
 
-STATUSES = [
-    "OK",
-    "UP_TO_SPEED",
-    "RUN",
-    "SHUTDOWN",
-    "LEVITATION_COMPLETE",
-    "PHASE_LOCKED",
-    "DIRECTION",
-    "AVC_ON",
-]
-
 
 class Skf_mb350_chopperTests(unittest.TestCase):
     """
@@ -88,5 +77,8 @@ class Skf_mb350_chopperTests(unittest.TestCase):
         for interlock in INTERLOCKS:
             _set_and_assert_interlock_state(interlock, True)
 
-    def test_device_stopped(self):
-        self.ca.assert_that_pv_is("STAT:OK", "OK")
+    def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
+        self.ca.set_pv_value("START", 1)
+        self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "YES")
+        self.ca.set_pv_value("STOP", 1)
+        self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "NO")
