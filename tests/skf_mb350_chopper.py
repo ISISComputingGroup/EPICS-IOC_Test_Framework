@@ -51,8 +51,8 @@ class Skf_mb350_chopperTests(unittest.TestCase):
 
     def test_WHEN_phase_setpoint_is_set_THEN_actual_phase_gets_to_the_phase_just_set(self):
         for phase in TEST_PHASES:
-            self.ca.set_pv_value("PHAS:SP", phase * 1000)
-            self.ca.assert_that_pv_is_number("PHAS:SP", phase*1000, 0.01)
+            self.ca.set_pv_value("PHAS:SP", phase)
+            self.ca.assert_that_pv_is_number("PHAS:SP", phase, 0.01)
             self.ca.assert_that_pv_is_number("PHAS", phase, 0.01)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
