@@ -9,7 +9,7 @@ from utils.testing import get_running_lewis_and_ioc
 DEVICE_PREFIX = "SKFMB350_01"
 
 TEST_FREQUENCIES = [0, 17, 258, 1000]
-TEST_PHASES = [0, 17.3, 258.65, 10000.765]
+TEST_PHASES = [0, 258.65, 10000.765]
 TEST_PERCENTAGES = [0, 17.3, 99.8, 100]
 TEST_GATE_WIDTHS = [0.0, 0.2, 66.6, 100.0]
 TEST_ANGLES = [0, 2, 90, 355]
@@ -49,13 +49,20 @@ class Skf_mb350_chopperTests(unittest.TestCase):
         for frequency in TEST_FREQUENCIES:
             self.ca.set_pv_value("FREQ:SP", frequency)
             self.ca.assert_that_pv_is_number("FREQ:SP", frequency, 0.01)
+            self.ca.set_pv_value("START", 1)  # Actually start the chopper.
             self.ca.assert_that_pv_is_number("FREQ", frequency, 0.01)
 
     def test_WHEN_phase_setpoint_is_set_THEN_actual_phase_gets_to_the_phase_just_set(self):
         for phase in TEST_PHASES:
             self.ca.set_pv_value("PHAS:SP", phase)
-            self.ca.assert_that_pv_is_number("PHAS:SP", phase, 0.01)
-            self.ca.assert_that_pv_is_number("PHAS", phase, 0.01)
+            self.ca.assert_that_pv_is_number("PHAS:SP", phase, 0.1)
+            self.ca.assert_that_pv_is_number("PHAS", phase, 0.1)
+
+    def test_WHEN_phase_setpoint_is_set_THEN_phase_sp_rbv_gets_to_the_phase_just_set(self):
+        for phase in TEST_PHASES:
+            self.ca.set_pv_value("PHAS:SP", phase)
+            self.ca.assert_that_pv_is_number("PHAS:SP", phase, 0.1)
+            self.ca.assert_that_pv_is_number("PHAS:SP:RBV", phase, 0.1)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_phase_repeatability_is_set_via_backdoor_THEN_the_repeatability_pv_updates_with_the_same_value(self):
