@@ -8,9 +8,10 @@ from utils.testing import get_running_lewis_and_ioc
 # Device prefix
 DEVICE_PREFIX = "SKFMB350_01"
 
-TEST_FREQUENCIES = [0, 17, 258, 10000]
+TEST_FREQUENCIES = [0, 17, 258, 1000]
 TEST_PHASES = [0, 17.3, 258.65, 10000.765]
 TEST_PERCENTAGES = [0.0, 0.2, 66.6, 100.0]
+TEST_ANGLES = [0, 0.5, 90, 355,]
 
 INTERLOCKS = [
     "DSP_WD_FAIL",
@@ -83,3 +84,8 @@ class Skf_mb350_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "YES")
         self.ca.set_pv_value("STOP", 1)
         self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "NO")
+
+    def test_WHEN_rotator_angle_is_set_via_backdoor_THEN_rotator_angle_pv_updates_with_the_angle_just_set(self):
+        for angle in TEST_ANGLES:
+            self._lewis.backdoor_set_on_device("rotator_angle", angle)
+            self.ca.assert_that_pv_is_number("ANGLE:ROTATOR", angle, 0.01)
