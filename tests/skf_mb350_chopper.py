@@ -10,8 +10,9 @@ DEVICE_PREFIX = "SKFMB350_01"
 
 TEST_FREQUENCIES = [0, 17, 258, 1000]
 TEST_PHASES = [0, 17.3, 258.65, 10000.765]
-TEST_PERCENTAGES = [0.0, 0.2, 66.6, 100.0]
-TEST_ANGLES = [0, 0.5, 90, 355,]
+TEST_PERCENTAGES = [0, 17.3, 99.8, 100]
+TEST_GATE_WIDTHS = [0.0, 0.2, 66.6, 100.0]
+TEST_ANGLES = [0, 2, 90, 355]
 
 INTERLOCKS = [
     "DSP_WD_FAIL",
@@ -58,9 +59,15 @@ class Skf_mb350_chopperTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_phase_repeatability_is_set_via_backdoor_THEN_the_repeatability_pv_updates_with_the_same_value(self):
-        for percentage in TEST_PERCENTAGES:
-            self._lewis.backdoor_set_on_device("phase_repeatability", percentage)
-            self.ca.assert_that_pv_is_number("PHAS:REPEATABILITY", percentage, 0.01)
+        for gate_width in TEST_GATE_WIDTHS:
+            self._lewis.backdoor_set_on_device("phase_repeatability", gate_width)
+            self.ca.assert_that_pv_is_number("GATE", gate_width, 0.01)
+
+    def test_WHEN_gate_width_is_set_via_pv_THEN_gate_width_pv_updates(self):
+        for gate_width in TEST_GATE_WIDTHS:
+            self.ca.set_pv_value("GATE:SP", gate_width)
+            self.ca.assert_that_pv_is_number("GATE:SP", gate_width, 0.01)
+            self.ca.assert_that_pv_is_number("GATE", gate_width, 0.01)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_phase_percent_ok_is_set_via_backdoor_THEN_the_percent_ok_pv_updates_with_the_same_value(self):
