@@ -34,10 +34,10 @@ class FermichopperTests(unittest.TestCase):
 
             # Ensure consistent startup state...
             self._lewis.backdoor_set_on_device("electronics_temp", 20)
-            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", 20, tolerance=0.2)
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMP:ELECTRONICS", 20, tolerance=0.2)
 
             self._lewis.backdoor_set_on_device("motor_temp", 20)
-            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", 20, tolerance=0.2)
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMP:MOTOR", 20, tolerance=0.2)
 
             for number in [1, 2]:
                 for position in ["upper", "lower"]:
@@ -141,15 +141,15 @@ class FermichopperTests(unittest.TestCase):
     def test_WHEN_the_electronics_temperature_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in self.test_temperature_values:
             self._lewis.backdoor_set_on_device("electronics_temp", temp)
-            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:ELECTRONICS", temp, tolerance=0.2)
-            self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:ELECTRONICS", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMP:ELECTRONICS", temp, tolerance=0.2)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMP:ELECTRONICS", self.ca.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_the_motor_temperature_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in self.test_temperature_values:
             self._lewis.backdoor_set_on_device("motor_temp", temp)
-            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMPERATURE:MOTOR", temp, tolerance=0.2)
-            self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMPERATURE:MOTOR", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is_number("FERMCHOP_01:TEMP:MOTOR", temp, tolerance=0.2)
+            self.ca.assert_pv_alarm_is("FERMCHOP_01:TEMP:MOTOR", self.ca.ALARM_NONE)
 
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
@@ -280,6 +280,44 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B8", "{}".format(b8))
             self.ca.assert_that_pv_is("FERMCHOP_01:STATUS.B9", "{}".format(b9))
 
+        @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor")
+        def test_WHEN_electronics_temperature_is_too_high_THEN_over_temperature_is_true(self):
+            self.ca.assert_that_pv_is("FERMCHOP_01:TEMP:RANGECHECK", 0)
+            self._lewis.backdoor_set_on_device("electronics_temp", 46)
+            self.ca.assert_that_pv_is("FERMCHOP_01:TEMP:RANGECHECK", 1)
+
+        @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor")
+        def test_WHEN_motor_temperature_is_too_high_THEN_over_temperature_is_true(self):
+            self.ca.assert_that_pv_is("FERMCHOP_01:TEMP:RANGECHECK", 0)
+            self._lewis.backdoor_set_on_device("motor_temp", 46)
+            self.ca.assert_that_pv_is("FERMCHOP_01:TEMP:RANGECHECK", 1)
+
+        @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor")
+        def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(
+                self):
+            for number in [1, 2]:
+                for position in ["upper", "lower"]:
+                    self.ca.assert_that_pv_is("FERMCHOP_01:AUTOZERO:RANGECHECK", 0)
+
+                    # Set autozero voltage too high
+                    self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 3.2)
+
+                    # Assert
+                    self.ca.assert_that_pv_is("FERMCHOP_01:AUTOZERO:RANGECHECK", 1)
+
+                    # Reset relevant autozero voltage back to zero
+                    self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+                    self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:{n}:{p}"
+                                                     .format(n=number, p=position.upper()), 0, tolerance=0.1)
+
+        @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor")
+        def test_WHEN_voltage_and_current_are_varied_THEN_power_pv_is_the_product_of_current_and_voltage(self):
+            for voltage in self.test_voltage_values:
+                for current in self.test_current_values:
+                    self._lewis.backdoor_set_on_device("voltage", voltage)
+                    self._lewis.backdoor_set_on_device("current", current)
+                    self.ca.assert_that_pv_is_number("FERMCHOP_01:POWER", current * voltage, tolerance=0.5)
+
 
     #
     #   Mandatory safety tests
@@ -321,13 +359,18 @@ class FermichopperTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
-
         for number in [1, 2]:
             for position in ["upper", "lower"]:
 
                 # Reset last command so that we can tell that it's changed later on
-                self._lewis.backdoor_set_on_device("last_command", "0000")
+                while not self.ca.get_pv_value("FERMCHOP_01:LASTCOMMAND") == "0000":
+                    self._lewis.backdoor_set_on_device("last_command", "0000")
+                    sleep(0.1)
+
+                # Assert that the last command is zero as expected
                 self.ca.assert_that_pv_is("FERMCHOP_01:LASTCOMMAND", "0000")
+                # Check that the last command is not being set to something else by the IOC
+                self.ca.assert_pv_value_is_unchanged("FERMCHOP_01:LASTCOMMAND", wait=10)
 
                 # Set autozero voltage too high and set device moving
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 3.2)
@@ -339,9 +382,6 @@ class FermichopperTests(unittest.TestCase):
                 # Reset relevant autozero voltage back to zero
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
                 self.ca.assert_that_pv_is_number("FERMCHOP_01:AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
-
-                # Give the IOC time to accept that it is now in a valid state again...
-                sleep(3)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_motor_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):

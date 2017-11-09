@@ -1,5 +1,6 @@
 import os
 import time
+import operator
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 
@@ -20,15 +21,20 @@ class ChannelAccess(object):
     ALARM_INVALID = "INVALID"
     """Alarm value if the record has a calc alarm"""
 
-    def __init__(self, default_timeout=5):
+    def __init__(self, default_timeout=5, device_prefix=None):
         """
         Constructor.
+
+        :param device_prefix: the device prefix which will be added to the start of all pvs
+        :param default_timeout: the default tie out to wait for
         """
         self.ca = CaChannelWrapper()
         self.prefix = os.environ["testing_prefix"]
         self._default_timeout = default_timeout
         if not self.prefix.endswith(':'):
             self.prefix += ':'
+        if device_prefix is not None:
+            self.prefix += "{0}:".format(device_prefix)
 
     def set_pv_value(self, pv, value):
         """
@@ -37,7 +43,10 @@ class ChannelAccess(object):
         :param pv: the EPICS PV name
         :param value: the value to set
         """
-        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=True, timeout=None)
+        # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
+        # In that case the test should fail (because the correct value is not set)
+        # but it should not hold up all the other tests
+        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
         # Need to give Lewis time to process
         time.sleep(1)
 
@@ -212,7 +221,22 @@ class ChannelAccess(object):
             timeout = self._default_timeout
 
         if not self.ca.pv_exists(self._create_pv_with_prefix(pv), timeout=timeout):
-            AssertionError("PV {pv} does not exist".format(pv=self._create_pv_with_prefix(pv)))
+            raise AssertionError("PV {pv} does not exist".format(pv=self._create_pv_with_prefix(pv)))
+
+    def assert_pv_does_not_exist(self, pv, timeout=2):
+        """
+        Asserts that a pv does not exist.
+
+        :param pv: pv to wait for
+        :param timeout: amount of time to wait for
+        :return:
+        :raises AssertionError: if pv exists
+        """
+
+        pv_name = self._create_pv_with_prefix(pv)
+        if self.ca.pv_exists(pv_name, timeout):
+            raise AssertionError("PV {pv} exists".format(pv=pv_name))
+
 
     def _create_pv_with_prefix(self, pv):
         """
@@ -285,3 +309,57 @@ class ChannelAccess(object):
         self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
         if expected_alarm is not None:
             self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
+
+    def assert_pv_value_over_time(self, pv, wait, comparator):
+        """
+        Check that a PV satisfies a given function over time. The initial value is compared to the final value after
+        a given time using the comparator.
+        :param pv: the PV to check
+        :param wait: the number of seconds to wait
+        :param comparator: a function taking two arguments; the initial and final values respectively. 
+        The function should return true or false.
+        :return:
+        :raises AssertionError: if the value of the pv has not increased
+        """
+        initial_value = self.get_pv_value(pv)
+        time.sleep(wait)
+        final_value = self.get_pv_value(pv)
+
+        try:
+            if not comparator(initial_value, final_value):
+                raise AssertionError("Stated behaviour over time for PV {0} was not satisfied. Initial value: {1}, "
+                                     "final value: {2}".format(pv, initial_value, final_value))
+        # Catch general exception since we have no control over comparator
+        except Exception as e:
+            AssertionError("Comparison function failed to execute: {0}".format(e.message))
+
+    def assert_pv_value_is_increasing(self, pv, wait):
+        """
+        Check that a PV value has increased after a given time
+        :param pv: the PV to check
+        :param wait: the number of seconds to wait  
+        :return:
+        :raises AssertionError: if comparator returns false or fails to execute
+        """
+        self.assert_pv_value_over_time(pv, wait, operator.gt)
+
+    def assert_pv_value_is_decreasing(self, pv, wait):
+        """
+        Check that a PV value has decreased after a given time
+        :param pv: the PV to check
+        :param wait: the number of seconds to wait  
+        :return:
+        :raises AssertionError: if the value of the pv has not decreased
+        """
+        self.assert_pv_value_over_time(pv, wait, operator.lt)
+
+    def assert_pv_value_is_unchanged(self, pv, wait):
+        """
+        Check that a PV value has not changed after a given time. The value is only checked at the start and end of the
+        interval.
+        :param pv: the PV to check
+        :param wait: the number of seconds to wait  
+        :return:
+        :raises AssertionError: if the value of the pv has changed
+        """
+        self.assert_pv_value_over_time(pv, wait, operator.eq)
