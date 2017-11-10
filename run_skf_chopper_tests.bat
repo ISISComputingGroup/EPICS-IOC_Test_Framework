@@ -13,6 +13,6 @@ echo;
 
 echo ---------------------------------------
 echo TESTING SKF MB350 Rec Sim
-REM call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d skf_mb350_chopper -p %EPICS_KIT_ROOT%\ioc\master\SKFMB350\iocBoot\iocSKFMB350-IOC-01
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d skf_mb350_chopper -p %EPICS_KIT_ROOT%\ioc\master\SKFMB350\iocBoot\iocSKFMB350-IOC-01
 echo ---------------------------------------
 echo;

@@ -33,6 +33,11 @@ INTERLOCKS = [
     "TEST_MODE",
 ]
 
+MACROS = {
+    "PARKPOS": 1,
+    "PARKOPEN": 123,
+}
+
 
 class Skf_mb350_chopperTests(unittest.TestCase):
     """
@@ -93,18 +98,20 @@ class Skf_mb350_chopperTests(unittest.TestCase):
             _set_and_assert_interlock_state(interlock, True)
             _set_and_assert_interlock_state(interlock, False)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Depends on state which is not implemented in recsim")
     def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
         self.ca.set_pv_value("START", 1)
         self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "YES")
         self.ca.set_pv_value("STOP", 1)
         self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "NO")
 
-    def test_WHEN_rotator_angle_is_set_via_backdoor_THEN_rotator_angle_pv_updates_with_the_angle_just_set(self):
-        for angle in TEST_ANGLES:
-            self._lewis.backdoor_set_on_device("rotator_angle", angle)
-            self.ca.assert_that_pv_is_number("ANGLE:ROTATOR", angle, 0.01)
-
     def test_WHEN_rotator_angle_is_set_via_pv_THEN_rotator_angle_pv_updates_with_the_angle_just_set(self):
+
+        # Check initial angle was the park open position - i.e. it was sent at IOC startup
+        # This is the only test that sets the rotator angle so run this here - it's the only place which guarantees
+        # running this test before the value is overwritten
+        self.ca.assert_that_pv_is_number("ANGLE:ROTATOR", MACROS["PARKOPEN"], 0.01)
+
         for angle in TEST_ANGLES:
             self.ca.set_pv_value("ANGLE:ROTATOR:SP", angle)
             self.ca.assert_that_pv_is_number("ANGLE:ROTATOR", angle, 0.01)
