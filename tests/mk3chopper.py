@@ -5,7 +5,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
-MACROS = {"NUM_CHANNELS": 2}
+MACROS = {"NUM_CHANNELS": 1}
 
 class Mk3chopperTests(unittest.TestCase):
 
