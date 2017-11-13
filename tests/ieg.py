@@ -64,7 +64,7 @@ class IegTests(unittest.TestCase):
         set_val, return_val = self.operation_modes[0]
         self.ca.assert_setting_setpoint_sets_readback(set_val, set_point_pv="MODE:SP", readback_pv="MODE", expected_value=return_val)
 
-        self.ca.set_pv_value("ABORT", 1)
+        self.ca.set_pv_value("ABORT", 1, wait=False)
         self.ca.assert_that_pv_is("MODE", "Dormant")
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")

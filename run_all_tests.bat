@@ -120,6 +120,7 @@ echo TESTING RKNPS Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d rknps -p %EPICS_KIT_ROOT%\ioc\master\RKNPS\iocBoot\iocRKNPS-IOC-01
 echo ---------------------------------------
 echo;
+
 echo ---------------------------------------
 echo TESTING CYBAMAN Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d cybaman -p %EPICS_KIT_ROOT%\ioc\master\CYBAMAN\iocBoot\iocCYBAMAN-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
@@ -168,3 +169,10 @@ echo TESTING EUROTHRM Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d eurotherm -p %EPICS_KIT_ROOT%\ioc\master\EUROTHRM\iocBoot\iocEUROTHRM-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING OSCILLATING COLLIMATOR Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d oscillating_collimator -p %EPICS_KIT_ROOT%\ioc\master\GALIL\iocBoot\iocGALIL-IOC-01
+echo ---------------------------------------
+echo;
+

@@ -62,7 +62,7 @@ class RknpsTests(unittest.TestCase):
                                       "which are set by the emulator")
     def test_WHEN_reset_is_sent_THEN_readbacks_and_power_are_off(self):
         for IDN in IDS:
-            self.ca.set_pv_value("{0}:{1}:RESET".format(PREFIX, IDN), 1)
+            self.ca.set_pv_value("{0}:{1}:RESET".format(PREFIX, IDN), 1, wait=False)
             self.ca.assert_that_pv_is("{0}:{1}:POWER".format(PREFIX, IDN), "Off")
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), 0)
             self.ca.assert_that_pv_is("{0}:{1}:VOLT".format(PREFIX, IDN), 0)
@@ -104,21 +104,21 @@ class RknpsTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as it requires a lewis backdoor command")
     def test_GIVEN_emulator_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
-        expected_value = 22
+        expected_value = 22.0
         self._lewis.backdoor_set_on_device("set_both_volt_values", expected_value)
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:{1}:VOLT".format(PREFIX, IDN), expected_value)
 
     @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the simulated records are not used")
     def test_GIVEN_emulator_not_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
-        expected_value = 12
+        expected_value = 12.0
         for IDN in IDS:
             self.ca.set_pv_value("{0}:{1}:SIM:VOLT".format(PREFIX, IDN), expected_value)
             self.ca.assert_that_pv_is("{0}:{1}:VOLT".format(PREFIX, IDN), expected_value)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as the changes are not propagated to all appropriate PVs")
     def test_GIVEN_a_positive_value_and_emulator_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
-        expected_value = 480
+        expected_value = 480.0
         for IDN in IDS:
             self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), expected_value)
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), expected_value)
@@ -127,7 +127,7 @@ class RknpsTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails as the changes are not propagated to all appropriate PVs")
     def test_GIVEN_a_negative_value_and_emulator_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
-        expected_value = -123
+        expected_value = -123.0
         for IDN in IDS:
             self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), expected_value)
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), expected_value)
@@ -137,8 +137,8 @@ class RknpsTests(unittest.TestCase):
     @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the emulator handles the difference in values "
                                           "between write and read")
     def test_GIVEN_a_positive_value_and_emulator_not_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
-        set_value = 480
-        return_value = set_value*1000
+        set_value = 480.0
+        return_value = set_value*1000.0
         for IDN in IDS:
             self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), set_value)
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), return_value)
@@ -147,8 +147,8 @@ class RknpsTests(unittest.TestCase):
     @skipIf(not IOCRegister.uses_rec_sim, "In dev sim this test fails as the emulator handles the difference in values "
                                           "between write and read")
     def test_GIVEN_a_negative_value_and_emulator_not_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
-        set_value = -123
-        return_value = set_value*1000
+        set_value = -123.0
+        return_value = set_value*1000.0
         for IDN in IDS:
             self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), set_value)
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), return_value)

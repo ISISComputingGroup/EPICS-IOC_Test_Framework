@@ -41,7 +41,7 @@ class Tdk_lambda_genesysTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor")
     def test_GIVEN_current_set_WHEN_read_THEN_current_is_as_expected(self):
-        expected_current = 2
+        expected_current = 2.0
         self._write_current(expected_current)
         self.ca.assert_that_pv_is("GENESYS_01:1:CURR", expected_current)
 
@@ -51,7 +51,7 @@ class Tdk_lambda_genesysTests(unittest.TestCase):
                                                       "GENESYS_01:1:VOLT:SP")
 
     def test_GIVEN_setpoint_current_set_when_read_THEN_setpoint_current_is_as_expected(self):
-        expected_current = self.ca.get_pv_value("GENESYS_01:1:CURR:SP") + 5
+        expected_current = self.ca.get_pv_value("GENESYS_01:1:CURR:SP") + 5.0
         self.ca.assert_setting_setpoint_sets_readback(expected_current, "GENESYS_01:1:CURR:SP:RBV",
                                                       "GENESYS_01:1:CURR:SP")
 

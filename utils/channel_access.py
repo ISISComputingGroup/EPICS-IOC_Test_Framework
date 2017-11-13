@@ -1,6 +1,6 @@
 import os
-import time
-import operator
+from time import sleep, time
+from operator import gt, lt, eq
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 
@@ -36,19 +36,33 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += "{0}:".format(device_prefix)
 
-    def set_pv_value(self, pv, value):
+    def set_pv_value(self, pv, value, wait=None):
         """
         Sets the specified PV to the supplied value.
 
         :param pv: the EPICS PV name
         :param value: the value to set
+        :param wait: The maximum time to wait for the PV to match the input value. No wait on 0/False. Default timeout
+        used if None
         """
-        # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
-        # In that case the test should fail (because the correct value is not set)
-        # but it should not hold up all the other tests
+        # Don't use wait=True because some IOCs (e.g. Galil) do not provide a callback, causing tests to wait
+        # indefinitely. Instead, set the PV and assert the value changes to the desired value within the default
+        # timeout
         self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
+
+        if wait is None:
+            wait = self._default_timeout
+
+        # Wait for PV to be set
+        if wait:
+            msg = self._wait_for_pv_lambda(
+                lambda: self._values_match(pv, value, tolerance=0.0001),
+                timeout=wait)
+            if msg is not None:
+                print msg
+
         # Need to give Lewis time to process
-        time.sleep(1)
+        sleep(1)
 
     def get_pv_value(self, pv):
         """
@@ -77,13 +91,33 @@ class ChannelAccess(object):
 
         raise AssertionError(str(msg) + error_message)
 
-    def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None):
+    def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
+        """
+        Assert that the pv does not have a particular value and optionally it does not become that value within the
+        timeout.
+
+        :param pv: pv name
+        :param restricted_value: value the PV shouldn't become
+        :param timeout: if it becomes the value within this time, raise an assertion error
+        :param msg: Extra message to print
+        :raises AssertionError: if value has the restricted value
+        :raises UnableToConnectToPVException: if pv does not exist within timeout
+        """
+        error_message = self._wait_for_pv_lambda(lambda: self._values_do_not_match(pv, restricted_value), timeout)
+
+        if error_message is None:
+            return
+
+        raise AssertionError("{0}: {1}".format(msg, error_message))
+
+    def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None, msg=""):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout
         :param pv: pv name
         :param expected_value: expected value
         :param tolerance: the allowable deviation from the expected value
         :param timeout: if it hasn't changed within this time raise assertion error
+        :param msg: Extra message to print
         :raises AssertionError: if value does not become requested value
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
@@ -93,7 +127,7 @@ class ChannelAccess(object):
         if error_message is None:
             return
 
-        raise AssertionError(error_message)
+        raise AssertionError("{0}: {1}".format(msg, error_message))
 
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=None):
         """
@@ -114,48 +148,77 @@ class ChannelAccess(object):
 
         raise AssertionError(error_message)
 
-    def assert_that_pv_is_an_integer_between(self, pv, min, max, timeout=None):
+    def assert_that_pv_is_an_integer_between(self, pv, min_val, max_val, timeout=None):
         """
         Assert that the pv has one of the expected values or that it becomes one of the expected value within the
         timeout
 
         :param pv: pv name
-        :param min: minimum value (inclusive)
-        :param max: maximum value (inclusive)
+        :param min_val: minimum value (inclusive)
+        :param max_val: maximum value (inclusive)
         :param timeout: if it hasn't changed within this time raise assertion error
         :return:
         :raises AssertionError: if value does not become requested value
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
-        error_message = self._wait_for_pv_lambda(lambda: self._value_is_an_integer_between(pv, min, max), timeout)
+        error_message = self._wait_for_pv_lambda(lambda: self._value_is_an_integer_between(pv, min_val, max_val),
+                                                 timeout)
 
         if error_message is None:
             return
 
         raise AssertionError(error_message)
 
-    def _values_match(self, pv, expected_value):
+    def _values_match(self, pv, expected_value, tolerance=0.0001):
         """
         Check pv matches a value.
 
         :param pv: name of the pv (no prefix)
         :param expected_value: value that is expected
+        :param tolerance: the tolerance when comparing floating point values
         :return: None if they match; error string stating the difference if they do not
         """
         pv_value = self.get_pv_value(pv)
-        if pv_value == expected_value:
+
+        def perfect_match_with_expected():
+            return pv_value == expected_value
+
+        def float_close_to_expected():
+            isinstance(expected_value, float) and abs(pv_value - expected_value) <= tolerance
+
+        def raw_values_match_expected():
+            return isinstance(pv_value, basestring) and isinstance(expected_value, int) and \
+                   int(self.get_pv_value("{}.RVAL".format(pv))) == expected_value
+
+        if perfect_match_with_expected() or float_close_to_expected() or raw_values_match_expected():
             return None
         else:
             return """Values didn't match when reading PV '{PV}'.
                    Expected value: {expected}
                    Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
 
-    def _value_is_an_integer_between(self, pv, min, max):
+    def _values_do_not_match(self, pv, restricted_value):
+        """
+        Check pv matches a value.
+
+        :param pv: name of the pv (no prefix)
+        :param restricted_value: value PV should not have
+        :return: None if they don't match; error string stating the difference if they do
+        """
+        pv_value = self.get_pv_value(pv)
+        if pv_value != restricted_value:
+            return None
+        else:
+            return """Values match when reading PV '{PV}'.
+                   Restricted value: {restricted}
+                   Actual value: {actual}""".format(PV=pv, restricted=restricted_value, actual=pv_value)
+
+    def _value_is_an_integer_between(self, pv, min_val, max_val):
         """
             Check pv can be interpreted as an integer between two bounds
             :param pv: name of the pv (no prefix)
-            :param min: minimum numeric value (inclusive)
-            :param max: minimum numeric value (inclusive)
+            :param min_val: minimum numeric value (inclusive)
+            :param max_val: minimum numeric value (inclusive)
             :return: None if they match; error string stating the difference if they do not
         """
         pv_value = self.get_pv_value(pv)
@@ -165,17 +228,19 @@ class ChannelAccess(object):
         except ValueError:
             return "Expected a numeric value but got: {actual}".format(actual=pv_value)
 
-        if min <= int_pv_value <= max:
+        if min_val <= int_pv_value <= max_val:
             return None
         else:
-            return "Expected integer between {min} and {max} but was {actual}".format(min=min, max=max, actual=pv_value)
+            return "Expected integer between {min} and {max} but was {actual}".format(
+                min=min_val, max=max_val, actual=pv_value)
 
     def _value_is_number(self, pv, expected_value, tolerance):
         """
             Check pv can be interpreted as an integer between two bounds
             :param pv: name of the pv (no prefix)
             :param expected_value: value that is expected
-            :param tolerance: if the difference between the actual and expected values is less than the tolerance, they are treated as equal
+            :param tolerance: if the difference between the actual and expected values is less than the tolerance, they
+            are treated as equal
             :return: None if they match; error string stating the difference if they do not
             """
         pv_value = self.get_pv_value(pv)
@@ -237,7 +302,6 @@ class ChannelAccess(object):
         if self.ca.pv_exists(pv_name, timeout):
             raise AssertionError("PV {pv} exists".format(pv=pv_name))
 
-
     def _create_pv_with_prefix(self, pv):
         """
         Create the full pv name with instrument prefix.
@@ -255,7 +319,7 @@ class ChannelAccess(object):
         :param timeout: time out period
         :return: final value of lambda
         """
-        start_time = time.time()
+        start_time = time()
         current_time = start_time
 
         if timeout is None:
@@ -268,8 +332,9 @@ class ChannelAccess(object):
                     return lambda_value
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
-            time.sleep(0.5)
-            current_time = time.time()
+            # 1s is minimum safe interval for Lewis and IOC test framework to play nice
+            sleep(1)
+            current_time = time()
 
         # last try
         return wait_for_lambda()
@@ -287,12 +352,14 @@ class ChannelAccess(object):
         """
         self.assert_that_pv_is("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
 
-    def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None, expected_alarm=ALARM_NONE, timeout=None):
+    def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None,
+                                              expected_alarm=ALARM_NONE, timeout=None):
         """
         Set a pv to a value and check that the readback has the expected value and alarm state.
         :param value: value to set
         :param readback_pv: the pv for the read back (e.g. IN:INST:TEMP)
-        :param set_point_pv: the pv to check has the correct value; if None use the readback with SP  (e.g. IN:INST:TEMP:SP)
+        :param set_point_pv: the pv to check has the correct value; if None use the readback with SP
+        (e.g. IN:INST:TEMP:SP)
         :param expected_value: the expected return value; if None use the value
         :param expected_alarm: the expected alarm status, None don't check; defaults to ALARM_NONE
         :param timeout: timeout for the pv and alarm to become the expected values
@@ -305,7 +372,7 @@ class ChannelAccess(object):
         if expected_value is None:
             expected_value = value
 
-        self.set_pv_value(set_point_pv, value)
+        self.set_pv_value(set_point_pv, value, wait=False)
         self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
         if expected_alarm is not None:
             self.assert_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
@@ -322,7 +389,7 @@ class ChannelAccess(object):
         :raises AssertionError: if the value of the pv has not increased
         """
         initial_value = self.get_pv_value(pv)
-        time.sleep(wait)
+        sleep(wait)
         final_value = self.get_pv_value(pv)
 
         try:
@@ -341,7 +408,7 @@ class ChannelAccess(object):
         :return:
         :raises AssertionError: if comparator returns false or fails to execute
         """
-        self.assert_pv_value_over_time(pv, wait, operator.gt)
+        self.assert_pv_value_over_time(pv, wait, gt)
 
     def assert_pv_value_is_decreasing(self, pv, wait):
         """
@@ -351,7 +418,7 @@ class ChannelAccess(object):
         :return:
         :raises AssertionError: if the value of the pv has not decreased
         """
-        self.assert_pv_value_over_time(pv, wait, operator.lt)
+        self.assert_pv_value_over_time(pv, wait, lt)
 
     def assert_pv_value_is_unchanged(self, pv, wait):
         """
@@ -362,4 +429,4 @@ class ChannelAccess(object):
         :return:
         :raises AssertionError: if the value of the pv has changed
         """
-        self.assert_pv_value_over_time(pv, wait, operator.eq)
+        self.assert_pv_value_over_time(pv, wait, eq)

@@ -14,7 +14,7 @@ class CybamanTests(unittest.TestCase):
     """
 
     AXES = ["A", "B", "C"]
-    test_positions = [-200, -1.23, 0, 180.0]
+    test_positions = [-200.0, -1.23, 0.0, 180.0]
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("cybaman")
@@ -23,7 +23,7 @@ class CybamanTests(unittest.TestCase):
         self.ca.wait_for("INITIALIZE", timeout=30)
 
         # Initialize the device, do this in setup to avoid doing it in every test
-        self.ca.set_pv_value("INITIALIZE", 1)
+        self.ca.set_pv_value("INITIALIZE", 1, wait=False)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
@@ -41,7 +41,7 @@ class CybamanTests(unittest.TestCase):
         for axis in self.AXES:
             for pos in self.test_positions:
                 self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), pos)
-                self.ca.set_pv_value("{}:HOME".format(axis), 1)
+                self.ca.set_pv_value("{}:HOME".format(axis), 1, wait=False)
                 self.ca.assert_that_pv_is_number("{}".format(axis), pos, tolerance=0.01)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
@@ -50,9 +50,9 @@ class CybamanTests(unittest.TestCase):
         modifier = 12.34
 
         # Reset cybaman
-        self.ca.set_pv_value("RESET", 1)
+        self.ca.set_pv_value("RESET", 1, wait=False)
         self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
-        self.ca.set_pv_value("INITIALIZE", 1)
+        self.ca.set_pv_value("INITIALIZE", 1, wait=False)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
         self.ca.assert_pv_value_over_time("INITIALIZED", 10, operator.eq)
 
@@ -67,7 +67,7 @@ class CybamanTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("{}".format(axis.upper()), original[axis] + modifier, tolerance=0.001)
 
         # Reset cybaman
-        self.ca.set_pv_value("RESET", 1)
+        self.ca.set_pv_value("RESET", 1, wait=False)
 
         # Check that a, b and c values are now at original values
         for axis in self.AXES:
@@ -83,39 +83,39 @@ class CybamanTests(unittest.TestCase):
     def test_GIVEN_a_device_with_a_setpoint_less_than_minus_150_WHEN_homed_THEN_setpoint_is_set_to_minus_150_before_home(self):
         for axis in self.AXES:
             # Ensure home position is known
-            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100)
+            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100.0)
 
             # Ensure setpoint and readback are less than -150
-            self.ca.set_pv_value("{}:SP".format(axis.upper()), -155)
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), -155, tolerance=0.01)
+            self.ca.set_pv_value("{}:SP".format(axis.upper()), -155.0)
+            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), -155.0, tolerance=0.01)
 
             # Tell axis to home
-            self.ca.set_pv_value("{}:HOME".format(axis.upper()), 1)
+            self.ca.set_pv_value("{}:HOME".format(axis.upper()), 1, wait=False)
 
             # Ensure that setpoint is updated to -150 before home
-            self.ca.assert_that_pv_is_number("{}:SP".format(axis.upper()), -150, tolerance=0.01)
+            self.ca.assert_that_pv_is_number("{}:SP".format(axis.upper()), -150.0, tolerance=0.01)
 
             # Let device actually reach home position
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), 100)
+            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), 100.0)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_GIVEN_a_device_with_a_setpoint_more_than_minus_150_WHEN_homed_THEN_setpoint_is_not_set_before_home(self):
         for axis in self.AXES:
             # Ensure home position is known
-            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100)
+            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100.0)
 
             # Ensure setpoint and readback are more than -150
-            self.ca.set_pv_value("{}:SP".format(axis.upper()), -145)
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), -145, tolerance=0.01)
+            self.ca.set_pv_value("{}:SP".format(axis.upper()), -145.0)
+            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), -145.0, tolerance=0.01)
 
             # Tell axis to home
-            self.ca.set_pv_value("{}:HOME".format(axis.upper()), 1)
+            self.ca.set_pv_value("{}:HOME".format(axis.upper()), 1, wait=False)
 
             # Ensure that setpoint has not been updated
-            self.ca.assert_that_pv_is_number("{}:SP".format(axis.upper()), -145, tolerance=0.01)
+            self.ca.assert_that_pv_is_number("{}:SP".format(axis.upper()), -145.0, tolerance=0.01)
 
             # Let device actually reach home position
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), 100)
+            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), 100.0)
 
     def test_GIVEN_a_device_at_a_specific_position_WHEN_setpoint_is_updated_THEN_tm_val_is_calculated_correctly(self):
 
@@ -134,7 +134,6 @@ class CybamanTests(unittest.TestCase):
             # Ensure original position is what it's meant to be
             for axis, setpoint in zip(self.AXES, case["old_pos"]):
                 self.ca.set_pv_value("{}:SP".format(axis.upper()), setpoint)
-                self.ca.assert_that_pv_is_number("{}".format(axis.upper()), setpoint, tolerance = 0.01)
 
             # Change the relevant axis to a new setpoint
             self.ca.set_pv_value("{}:SP".format(case["axis_to_change"].upper()), case["new_setpoint"])
@@ -144,15 +143,15 @@ class CybamanTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("{}:_CALC_TM_AND_SET".format(case["axis_to_change"].upper()), case["expected_tm_val"], tolerance=1001)
 
     def test_GIVEN_an_initialized_ioc_WHEN_reset_then_initialized_THEN_initialized_pv_is_false_then_true(self):
-        self.ca.set_pv_value("RESET", 1)
+        self.ca.set_pv_value("RESET", 1, wait=False)
         self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
-        self.ca.set_pv_value("INITIALIZE", 1)
+        self.ca.set_pv_value("INITIALIZE", 1, wait=False)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
 
     def test_GIVEN_an_initialized_ioc_WHEN_stop_and_then_initialize_pvs_are_processed_THEN_initialized_pv_is_false_then_true(self):
-        self.ca.set_pv_value("STOP", 1)
+        self.ca.set_pv_value("STOP", 1, wait=False)
         self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
-        self.ca.set_pv_value("INITIALIZE", 1)
+        self.ca.set_pv_value("INITIALIZE", 1, wait=False)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
 
     @skipIf(IOCRegister.uses_rec_sim, "Homing not implemented in recsim")
@@ -162,19 +161,19 @@ class CybamanTests(unittest.TestCase):
             self.ca.set_pv_value("{}:SP".format(axis.upper()), 0)
             self.ca.assert_that_pv_is("{}".format(axis.upper()), 0)
 
-        self.ca.set_pv_value("A:HOME", 1)
+        self.ca.set_pv_value("A:HOME", 1, wait=False)
         # Wait for homing to start
         sleep(2)
         # Assert that A has stopped moving (i.e. homing is finished)
-        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
+        self.ca.assert_pv_value_over_time("A", 5.0, operator.eq)
         home_position = self.ca.get_pv_value("A")
 
         # Modify an unrelated setpoint
-        self.ca.set_pv_value("B:SP", 5)
-        self.ca.assert_that_pv_is_number("B", 5, tolerance=0.01)
+        self.ca.set_pv_value("B:SP", 5.0)
+        self.ca.assert_that_pv_is_number("B", 5.0, tolerance=0.01)
 
         # Verify that A has not changed from it's home position
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
-        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
+        self.ca.assert_pv_value_over_time("A", 5.0, operator.eq)
 
 
