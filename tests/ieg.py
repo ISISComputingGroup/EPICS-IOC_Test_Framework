@@ -44,7 +44,7 @@ class IegTests(unittest.TestCase):
 
     @staticmethod
     def _get_raw_from_actual(value):
-        return int(round((value - CALIBRATION_B) - CALIBRATION_A))
+        return int(round((value - CALIBRATION_B) / CALIBRATION_A))
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ieg")
