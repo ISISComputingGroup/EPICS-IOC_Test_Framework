@@ -175,7 +175,7 @@ class ChannelAccess(object):
 
         :param pv: name of the pv (no prefix)
         :param restricted_value: value PV should not have
-        :return: None if they don't match; error string stating the difference if they do
+        :return: None if they don't match; error string if they do
         """
         pv_value = self.get_pv_value(pv)
         if pv_value != restricted_value:
