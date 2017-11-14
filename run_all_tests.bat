@@ -174,3 +174,9 @@ echo TESTING OSCILLATING COLLIMATOR Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d oscillating_collimator -p %EPICS_KIT_ROOT%\ioc\master\GALIL\iocBoot\iocGALIL-IOC-01
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING FERMI CHOPPER LIFTER Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d FermiChopperLifter -p %EPICS_KIT_ROOT%\ioc\master\GALIL\iocBoot\iocGALIL-IOC-01
+echo ---------------------------------------
+echo;
