@@ -14,7 +14,7 @@ DEVICE_PREFIX = "FZJDDFCH_01"
 
 class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     """
-    Tests for the 
+    Tests for the FZJ Digital Drive Fermi Chopper Controller
     """
 
     def setUp(self):
@@ -25,11 +25,11 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def _set_state(self, expected_state):
         self._lewis.backdoor_set_on_device("magnetic_bearing_state", expected_state)
-        self._ioc.set_simulated_value("SIM:MB:STATE", expected_state)
+        self._ioc.set_simulated_value("SIM:MB:STATUS", expected_state)
 
     def test_GIVEN_magnetic_bearings_state_WHEN_read_THEN_state_is_as_expected(self):
         expected_state = "ON"
         self._set_state(expected_state)
 
-        self.ca.assert_that_pv_is("MB:STATE", expected_state)
-        self.ca.assert_pv_alarm_is("MB:STATE", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("MB:STATUS", expected_state)
+        self.ca.assert_pv_alarm_is("MB:STATUS", ChannelAccess.ALARM_NONE)
