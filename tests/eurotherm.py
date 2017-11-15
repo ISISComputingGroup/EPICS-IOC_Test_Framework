@@ -28,6 +28,7 @@ class EurothermTests(unittest.TestCase):
     def setUp(self):
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
+        time.sleep(1)
 
     def _setup_lewis_and_channel_access(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm")
@@ -36,9 +37,9 @@ class EurothermTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _reset_device_state(self):
+        self.ca.set_pv_value("TEMP:SP", 0.0)
         self._lewis.backdoor_set_on_device("ramping_on", False)
         self._lewis.backdoor_set_on_device("ramp_rate", 1.0)
-        self.ca.set_pv_value("TEMP:SP", 0.0)
         self._set_setpoint_and_current_temperature(0.0)
 
     def _set_setpoint_and_current_temperature(self, temperature):
@@ -72,6 +73,54 @@ class EurothermTests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:SP", setpoint_temperature)
 
         start = time.time()
-        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, timeout=60)
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, tolerance=0.02, timeout=60)
         end = time.time()
         self.assertAlmostEquals(end-start, 20, delta=1)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
+        sensor_disconnected_value = 1529
+
+        self._lewis.backdoor_set_on_device("current_temperature", sensor_disconnected_value)
+
+        self.ca.assert_that_pv_is_number("RAMPON:SP.DISP", 1)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_sensor_disconnected_WHEN_sensor_reconnected_THEN_ramp_setting_is_enabled(self):
+        sensor_disconnected_value = 1529
+        self._lewis.backdoor_set_on_device("current_temperature", sensor_disconnected_value)
+
+        self._lewis.backdoor_set_on_device("current_temperature", 0)
+
+        self.ca.assert_that_pv_is_number("RAMPON:SP.DISP", 0)
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_ramp_was_off_WHEN_sensor_disconnected_THEN_ramp_is_off_and_cached_ramp_value_is_off(self):
+        self.ca.set_pv_value("RAMPON:SP", 0)
+        sensor_disconnected_value = 1529
+
+        self._lewis.backdoor_set_on_device("current_temperature", sensor_disconnected_value)
+
+        self.ca.assert_that_pv_is("RAMPON", "OFF")
+        self.ca.assert_that_pv_is("RAMPON:CACHE", "OFF")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_ramp_was_on_WHEN_sensor_disconnected_THEN_ramp_is_off_and_cached_ramp_value_is_on(self):
+        self.ca.set_pv_value("RAMPON:SP", 1)
+        sensor_disconnected_value = 1529
+
+        self._lewis.backdoor_set_on_device("current_temperature", sensor_disconnected_value)
+
+        self.ca.assert_that_pv_is("RAMPON", "OFF")
+        self.ca.assert_that_pv_is("RAMPON:CACHE", "ON")
+
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_ramp_was_on_WHEN_sensor_disconnected_and_reconnected_THEN_ramp_is_on(self):
+        self.ca.set_pv_value("RAMPON:SP", 1)
+        sensor_disconnected_value = 1529
+
+        self._lewis.backdoor_set_on_device("current_temperature", sensor_disconnected_value)
+        self.ca.assert_that_pv_is("RAMPON", "OFF")
+        self._lewis.backdoor_set_on_device("current_temperature", 0)
+
+        self.ca.assert_that_pv_is("RAMPON", "ON")
