@@ -133,6 +133,7 @@ class IocLauncher(object):
         self._process = subprocess.Popen(ioc_run_commandline, creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          cwd=self._directory, stdin=subprocess.PIPE, stdout=self._logFile,
                                          stderr=subprocess.STDOUT, env=settings)
+										 
 
         if self.device_prefix is not None:
             ca = self._get_channel_access()
