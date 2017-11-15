@@ -28,7 +28,6 @@ class EurothermTests(unittest.TestCase):
     def setUp(self):
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
-        time.sleep(1)
 
     def _setup_lewis_and_channel_access(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm")
@@ -37,10 +36,10 @@ class EurothermTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _reset_device_state(self):
-        self.ca.set_pv_value("TEMP:SP", 0.0)
+        self._set_setpoint_and_current_temperature(0.0)
         self._lewis.backdoor_set_on_device("ramping_on", False)
         self._lewis.backdoor_set_on_device("ramp_rate", 1.0)
-        self._set_setpoint_and_current_temperature(0.0)
+        self.ca.set_pv_value("RAMPON:SP", 0)
 
     def _set_setpoint_and_current_temperature(self, temperature):
         self._lewis.backdoor_set_on_device("current_temperature", temperature)
@@ -73,7 +72,7 @@ class EurothermTests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:SP", setpoint_temperature)
 
         start = time.time()
-        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, tolerance=0.02, timeout=60)
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, timeout=60)
         end = time.time()
         self.assertAlmostEquals(end-start, 20, delta=1)
 
