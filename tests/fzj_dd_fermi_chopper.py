@@ -48,8 +48,18 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ:SP:RBV", expected_value)
         self.ca.assert_pv_alarm_is("FREQ:SP:RBV", ChannelAccess.ALARM_NONE)
 
-    def _set_all_status(self, reference_frequency=10,frequency_setpoint=10):
+    def test_GIVEN_frequency_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 35
+        self._set_all_status(frequency=expected_value)
+
+        self.ca.assert_that_pv_is("FREQ", expected_value)
+        self.ca.assert_pv_alarm_is("FREQ", ChannelAccess.ALARM_NONE)
+
+    def _set_all_status(self, reference_frequency=10, frequency_setpoint=10, frequency=10):
         self._lewis.backdoor_set_on_device("reference_frequency", reference_frequency)
         self._lewis.backdoor_set_on_device("frequency_setpoint", frequency_setpoint)
+        self._lewis.backdoor_set_on_device("frequency", frequency)
+
         self._ioc.set_simulated_value("SIM:FREQ:REF", reference_frequency)
         self._ioc.set_simulated_value("SIM:FREQ:SP:RBV", frequency_setpoint)
+        self._ioc.set_simulated_value("SIM:FREQ", frequency)
