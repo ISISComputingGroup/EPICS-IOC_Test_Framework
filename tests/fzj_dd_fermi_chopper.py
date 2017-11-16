@@ -23,15 +23,31 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         # self._lewis.backdoor_set_on_device("address", ADDRESS)
 
-    def _set_state(self, expected_state):
-        self._lewis.backdoor_set_on_device("magnetic_bearing_status", expected_state)
-        self._ioc.set_simulated_value("SIM:MB:STATUS", expected_state)
+    def _set_value(self, expected_value):
+        self._lewis.backdoor_set_on_device("magnetic_bearing_status", expected_value)
+        self._ioc.set_simulated_value("SIM:MB:STATUS", expected_value)
+
+    def _set_all_status(self, reference_frequency=10, frequency_setpoint=10, frequency=10, phase_setpoint=10,
+                        phase=10, phase_status="NOK"):
+        self._lewis.backdoor_set_on_device("reference_frequency", reference_frequency)
+        self._lewis.backdoor_set_on_device("frequency_setpoint", frequency_setpoint)
+        self._lewis.backdoor_set_on_device("frequency", frequency)
+        self._lewis.backdoor_set_on_device("phase_setpoint", phase_setpoint)
+        self._lewis.backdoor_set_on_device("phase", phase)
+        self._lewis.backdoor_set_on_device("phase_status", phase_status)
+
+        self._ioc.set_simulated_value("SIM:FREQ:REF", reference_frequency)
+        self._ioc.set_simulated_value("SIM:FREQ:SP:RBV", frequency_setpoint)
+        self._ioc.set_simulated_value("SIM:FREQ", frequency)
+        self._ioc.set_simulated_value("SIM:PHAS:SP:RBV", phase_setpoint)
+        self._ioc.set_simulated_value("SIM:PHAS", phase)
+        self._ioc.set_simulated_value("SIM:PHAS:STATUS", phase_status)
 
     def test_GIVEN_magnetic_bearings_state_WHEN_read_THEN_state_is_as_expected(self):
-        expected_state = "ON"
-        self._set_state(expected_state)
+        expected_value = "ON"
+        self._set_value(expected_value)
 
-        self.ca.assert_that_pv_is("MB:STATUS", expected_state)
+        self.ca.assert_that_pv_is("MB:STATUS", expected_value)
         self.ca.assert_pv_alarm_is("MB:STATUS", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_reference_frequency_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -55,11 +71,23 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ", expected_value)
         self.ca.assert_pv_alarm_is("FREQ", ChannelAccess.ALARM_NONE)
 
-    def _set_all_status(self, reference_frequency=10, frequency_setpoint=10, frequency=10):
-        self._lewis.backdoor_set_on_device("reference_frequency", reference_frequency)
-        self._lewis.backdoor_set_on_device("frequency_setpoint", frequency_setpoint)
-        self._lewis.backdoor_set_on_device("frequency", frequency)
+    def test_GIVEN_phase_setpoint_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 45
+        self._set_all_status(phase_setpoint=expected_value)
 
-        self._ioc.set_simulated_value("SIM:FREQ:REF", reference_frequency)
-        self._ioc.set_simulated_value("SIM:FREQ:SP:RBV", frequency_setpoint)
-        self._ioc.set_simulated_value("SIM:FREQ", frequency)
+        self.ca.assert_that_pv_is("PHAS:SP:RBV", expected_value)
+        self.ca.assert_pv_alarm_is("PHAS:SP:RBV", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_phase_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 65
+        self._set_all_status(phase=expected_value)
+
+        self.ca.assert_that_pv_is("PHAS", expected_value)
+        self.ca.assert_pv_alarm_is("PHAS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_phase_status_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = "OK"
+        self._set_all_status(phase_status=expected_value)
+
+        self.ca.assert_that_pv_is("PHAS:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("PHAS:STATUS", ChannelAccess.ALARM_NONE)
