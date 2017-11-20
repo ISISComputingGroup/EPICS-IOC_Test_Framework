@@ -19,14 +19,14 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     Tests for the FZJ Digital Drive Fermi Chopper Controller
     """
 
-#   Command definitions:
-
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fzj_dd_fermi_chopper")
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         # self._lewis.backdoor_set_on_device("address", ADDRESS)
         self._lewis.backdoor_command(["device", "reset"])
+
+#   Command definitions:
 
     def _set_value(self, expected_value):
 
@@ -106,6 +106,30 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     def _set_input_clock(self, input_clock):
         self._lewis.backdoor_set_on_device("input_clock", input_clock)
         self._ioc.set_simulated_value("SIM:INPUTCLOCK", input_clock)
+
+    def _set_phase_outage(self, phase_outage):
+        self._lewis.backdoor_set_on_device("phase_outage", phase_outage)
+        self._ioc.set_simulated_value("SIM:PHAS:OUTAGE", phase_outage)
+
+    def _set_master_chopper(self, master_chopper):
+        self._lewis.backdoor_set_on_device("master_chopper", master_chopper)
+        self._ioc.set_simulated_value("SIM:MASTER", master_chopper)
+
+    def _set_logging(self, logging):
+        self._lewis.backdoor_set_on_device("logging", logging)
+        self._ioc.set_simulated_value("SIM:LOGGING", logging)
+
+    def _set_lmsr_status(self, lmsr_status):
+        self._lewis.backdoor_set_on_device("lmsr_status", lmsr_status)
+        self._ioc.set_simulated_value("SIM:LMSR:STATUS", lmsr_status)
+
+    def _set_dsp_status(self, dsp_status):
+        self._lewis.backdoor_set_on_device("dsp_status", dsp_status)
+        self._ioc.set_simulated_value("SIM:DSP:STATUS", dsp_status)
+
+    def _set_interlock_er_status(self, interlock_er_status):
+        self._lewis.backdoor_set_on_device("interlock_er_status", interlock_er_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:ER:STATUS", interlock_er_status)
 
 #   Tests:
 
@@ -234,3 +258,45 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("INPUTCLOCK", expected_value)
         self.ca.assert_pv_alarm_is("INPUTCLOCK", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_phase_outage_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 354.71
+        self._set_phase_outage(expected_value)
+
+        self.ca.assert_that_pv_is("PHAS:OUTAGE", expected_value)
+        self.ca.assert_pv_alarm_is("PHAS:OUTAGE", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_master_chopper_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = "C2B"
+        self._set_master_chopper(expected_value)
+
+        self.ca.assert_that_pv_is("MASTER", expected_value)
+        self.ca.assert_pv_alarm_is("MASTER", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_logging_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "OFF"
+        self._set_logging(expected_value)
+
+        self.ca.assert_that_pv_is("LOGGING", expected_value)
+        self.ca.assert_pv_alarm_is("LOGGING", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_lmsr_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_lmsr_status(expected_value)
+
+        self.ca.assert_that_pv_is("LMSR:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("LMSR:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_dsp_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_dsp_status(expected_value)
+
+        self.ca.assert_that_pv_is("DSP:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("DSP:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_interlock_er_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_er_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:ER:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:ER:STATUS", ChannelAccess.ALARM_NONE)
