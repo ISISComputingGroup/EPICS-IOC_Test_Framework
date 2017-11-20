@@ -19,6 +19,8 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     Tests for the FZJ Digital Drive Fermi Chopper Controller
     """
 
+#   Command definitions:
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fzj_dd_fermi_chopper")
 
@@ -27,6 +29,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis.backdoor_command(["device", "reset"])
 
     def _set_value(self, expected_value):
+
         self._lewis.backdoor_set_on_device("magnetic_bearing_status", expected_value)
         self._ioc.set_simulated_value("SIM:MB:STATUS", expected_value)
 
@@ -68,36 +71,74 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("magnetic_bearing_integrator", magnetic_bearing_integrator)
         self._ioc.set_simulated_value("SIM:MB:INT", magnetic_bearing_integrator)
 
+    def _set_drive(self, drive):
+        self._lewis.backdoor_set_on_device("drive", drive)
+        self._ioc.set_simulated_value("SIM:DRIVE", drive)
+
+    def _set_drive_status(self, drive_status):
+        self._lewis.backdoor_set_on_device("drive_status", drive_status)
+        self._ioc.set_simulated_value("SIM:DRIVE:STATUS", drive_status)
+
+    def _set_drive_l1_current(self, drive_l1_current):
+        self._lewis.backdoor_set_on_device("drive_l1_current", drive_l1_current)
+        self._ioc.set_simulated_value("SIM:DRIVE:L1:CURR", drive_l1_current)
+
+    def _set_drive_l2_current(self, drive_l2_current):
+        self._lewis.backdoor_set_on_device("drive_l2_current", drive_l2_current)
+        self._ioc.set_simulated_value("SIM:DRIVE:L2:CURR", drive_l2_current)
+
+    def _set_drive_l3_current(self, drive_l3_current):
+        self._lewis.backdoor_set_on_device("drive_l3_current", drive_l3_current)
+        self._ioc.set_simulated_value("SIM:DRIVE:L3:CURR", drive_l3_current)
+
+    def _set_drive_direction(self, drive_direction):
+        self._lewis.backdoor_set_on_device("drive_direction", drive_direction)
+        self._ioc.set_simulated_value("SIM:DRIVE:DIR", drive_direction)
+
+    def _set_parked_open_status(self, parked_open_status):
+        self._lewis.backdoor_set_on_device("parked_open_status", parked_open_status)
+        self._ioc.set_simulated_value("SIM:PARKED:OPEN:STATUS", parked_open_status)
+
+    def _set_drive_temperature(self, drive_temperature):
+        self._lewis.backdoor_set_on_device("drive_temperature", drive_temperature)
+        self._ioc.set_simulated_value("SIM:DRIVE:TEMP", drive_temperature)
+
+    def _set_input_clock(self, input_clock):
+        self._lewis.backdoor_set_on_device("input_clock", input_clock)
+        self._ioc.set_simulated_value("SIM:INPUTCLOCK", input_clock)
+
+#   Tests:
+
     def test_GIVEN_frequency_reference_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = 50
+        expected_value = 50.62
         self._set_frequency_reference(expected_value)
 
         self.ca.assert_that_pv_is("FREQ:REF", expected_value)
         self.ca.assert_pv_alarm_is("FREQ:REF", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_frequency_setpoint_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = 60
+        expected_value = 60.97
         self._set_frequency_setpoint(expected_value)
 
         self.ca.assert_that_pv_is("FREQ:SP:RBV", expected_value)
         self.ca.assert_pv_alarm_is("FREQ:SP:RBV", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_frequency_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = 35
+        expected_value = 35.72
         self._set_frequency(expected_value)
 
         self.ca.assert_that_pv_is("FREQ", expected_value)
         self.ca.assert_pv_alarm_is("FREQ", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_phase_setpoint_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = 45
+        expected_value = 45.27
         self._set_phase_setpoint(expected_value)
 
         self.ca.assert_that_pv_is("PHAS:SP:RBV", expected_value)
         self.ca.assert_pv_alarm_is("PHAS:SP:RBV", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_phase_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = 65
+        expected_value = 65.72
         self._set_phase(expected_value)
 
         self.ca.assert_that_pv_is("PHAS", expected_value)
@@ -125,8 +166,71 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_pv_alarm_is("MB:STATUS", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_magnetic_bearing_integrator_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = -27
+        expected_value = -27.4
         self._set_magnetic_bearing_integrator(expected_value)
 
         self.ca.assert_that_pv_is("MB:INT", expected_value)
         self.ca.assert_pv_alarm_is("MB:INT", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_drive_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "ON"
+        self._set_drive(expected_value)
+
+        self.ca.assert_that_pv_is("DRIVE", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_drive_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "STOP"
+        self._set_drive_status(expected_value)
+
+        self.ca.assert_that_pv_is("DRIVE:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_drive_l1_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 9.62
+        self._set_drive_l1_current(expected_value)
+
+        self.ca.assert_that_pv_is("DRIVE:L1:CURR", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:L1:CURR", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_drive_l2_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 2.74
+        self._set_drive_l2_current(expected_value)
+
+        self.ca.assert_that_pv_is("DRIVE:L2:CURR", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:L2:CURR", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_drive_l3_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 12.48
+        self._set_drive_l3_current(expected_value)
+
+        self.ca.assert_that_pv_is("DRIVE:L3:CURR", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:L3:CURR", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_drive_direction_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "CCW"
+        self._set_drive_direction(expected_value)
+
+        self.ca.assert_that_pv_is("DRIVE:DIR", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:DIR", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_parked_open_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_parked_open_status(expected_value)
+
+        self.ca.assert_that_pv_is("PARKED:OPEN:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("PARKED:OPEN:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_drive_temperature_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 86.31
+        self._set_drive_temperature(expected_value)
+
+        self.ca.assert_that_pv_is("DRIVE:TEMP", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:TEMP", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_input_clock_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = 34.94
+        self._set_input_clock(expected_value)
+
+        self.ca.assert_that_pv_is("INPUTCLOCK", expected_value)
+        self.ca.assert_pv_alarm_is("INPUTCLOCK", ChannelAccess.ALARM_NONE)
