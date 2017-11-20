@@ -29,10 +29,12 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("magnetic_bearing_status", expected_value)
         self._ioc.set_simulated_value("SIM:MB:STATUS", expected_value)
 
-
     def _set_all_status(self, frequency_reference=10, frequency_setpoint=10, frequency=10, phase_setpoint=10,
-                        phase=10, phase_status="NOK", magnetic_bearing="OFF", magnetic_bearing_status="NOK"):
+                        phase=10, phase_status="NOK", magnetic_bearing="OFF", magnetic_bearing_status="NOK",
+                        magnetic_bearing_integrator=10):
+
         start = datetime.datetime.now()
+
         self._lewis.backdoor_set_on_device("frequency_reference", frequency_reference)
         self._lewis.backdoor_set_on_device("frequency_setpoint", frequency_setpoint)
         self._lewis.backdoor_set_on_device("frequency", frequency)
@@ -41,6 +43,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("phase_status", phase_status)
         self._lewis.backdoor_set_on_device("magnetic_bearing", magnetic_bearing)
         self._lewis.backdoor_set_on_device("magnetic_bearing_status", magnetic_bearing_status)
+        self._lewis.backdoor_set_on_device("magnetic_bearing_integrator", magnetic_bearing_integrator)
 
         self._ioc.set_simulated_value("SIM:FREQ:REF", frequency_reference)
         self._ioc.set_simulated_value("SIM:FREQ:SP:RBV", frequency_setpoint)
@@ -50,6 +53,8 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._ioc.set_simulated_value("SIM:PHAS:STATUS", phase_status)
         self._ioc.set_simulated_value("SIM:MB", magnetic_bearing)
         self._ioc.set_simulated_value("SIM:MB:STATUS", magnetic_bearing_status)
+        self._ioc.set_simulated_value("SIM:MB:INT", magnetic_bearing_integrator)
+
         print "elapsed {}".format(datetime.datetime.now() - start)
 
     def test_GIVEN_frequency_reference_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -107,3 +112,10 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MB:STATUS", expected_value)
         self.ca.assert_pv_alarm_is("MB:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_magnetic_bearing_integrator_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        expected_value = -27
+        self._set_all_status(magnetic_bearing_integrator=expected_value)
+
+        self.ca.assert_that_pv_is("MB:INT", expected_value)
+        self.ca.assert_pv_alarm_is("MB:INT", ChannelAccess.ALARM_NONE)
