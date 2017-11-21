@@ -131,6 +131,34 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("interlock_er_status", interlock_er_status)
         self._ioc.set_simulated_value("SIM:INTERLOCK:ER:STATUS", interlock_er_status)
 
+    def _set_interlock_vacuum_status(self, interlock_vacuum_status):
+        self._lewis.backdoor_set_on_device("interlock_vacuum_status", interlock_vacuum_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:VAC:STATUS", interlock_vacuum_status)
+
+    def _set_interlock_frequency_monitoring_status(self, interlock_frequency_monitoring_status):
+        self._lewis.backdoor_set_on_device("interlock_frequency_monitoring_status", interlock_frequency_monitoring_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:FREQMON:STATUS", interlock_frequency_monitoring_status)
+
+    def _set_interlock_magnetic_bearing_amplifier_temperature_status(self, interlock_magnetic_bearing_amplifier_temperature_status):
+        self._lewis.backdoor_set_on_device("interlock_magnetic_bearing_amplifier_temperature_status", interlock_magnetic_bearing_amplifier_temperature_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:MB:AMP:TEMP:STATUS", interlock_magnetic_bearing_amplifier_temperature_status)
+
+    def _set_interlock_magnetic_bearing_amplifier_current_status(self, interlock_magnetic_bearing_amplifier_current_status):
+        self._lewis.backdoor_set_on_device("interlock_magnetic_bearing_amplifier_current_status", interlock_magnetic_bearing_amplifier_current_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:MB:AMP:CURR:STATUS", interlock_magnetic_bearing_amplifier_current_status)
+
+    def _set_interlock_drive_amplifier_temperature_status(self, interlock_drive_amplifier_temperature_status):
+        self._lewis.backdoor_set_on_device("interlock_drive_amplifier_temperature_status", interlock_drive_amplifier_temperature_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:DRIVE:AMP:TEMP:STATUS", interlock_drive_amplifier_temperature_status)
+
+    def _set_interlock_drive_amplifier_current_status(self, interlock_drive_amplifier_current_status):
+        self._lewis.backdoor_set_on_device("interlock_drive_amplifier_current_status", interlock_drive_amplifier_current_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:DRIVE:AMP:CURR:STATUS", interlock_drive_amplifier_current_status)
+
+    def _set_interlock_ups_status(self, interlock_ups_status):
+        self._lewis.backdoor_set_on_device("interlock_ups_status", interlock_ups_status)
+        self._ioc.set_simulated_value("SIM:INTERLOCK:UPS:STATUS", interlock_ups_status)
+
 #   Tests:
 
     def test_GIVEN_frequency_reference_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -300,3 +328,52 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("INTERLOCK:ER:STATUS", expected_value)
         self.ca.assert_pv_alarm_is("INTERLOCK:ER:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_interlock_vacuum_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_vacuum_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:VAC:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:VAC:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_interlock_frequency_monitoring_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_frequency_monitoring_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:FREQMON:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:FREQMON:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_interlock_magnetic_bearing_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_magnetic_bearing_amplifier_temperature_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:TEMP:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:TEMP:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_interlock_magnetic_bearing_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_magnetic_bearing_amplifier_current_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:CURR:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:CURR:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_interlock_drive_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_drive_amplifier_temperature_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:TEMP:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:TEMP:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_interlock_drive_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_drive_amplifier_current_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:CURR:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:CURR:STATUS", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_ups_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "NOK"
+        self._set_interlock_ups_status(expected_value)
+
+        self.ca.assert_that_pv_is("INTERLOCK:UPS:STATUS", expected_value)
+        self.ca.assert_pv_alarm_is("INTERLOCK:UPS:STATUS", ChannelAccess.ALARM_NONE)
