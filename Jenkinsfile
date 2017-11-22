@@ -32,7 +32,7 @@ pipeline {
     stage("System Tests") {
       steps {
         bat """
-            call "C:\Instrument\Apps\EPICS\support\IocTestFramework\master\run_all_tests.bat"
+            call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat"
             """
         junit "test-reports/**/*.xml"
       }
