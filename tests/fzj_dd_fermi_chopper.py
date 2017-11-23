@@ -8,7 +8,8 @@ from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
 # MACROS to use for the IOC
-MACROS = {}
+chopper_name = "C01"
+MACROS = {"ADDR": chopper_name}
 
 # Device prefix
 DEVICE_PREFIX = "FZJDDFCH_01"
@@ -23,7 +24,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fzj_dd_fermi_chopper")
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        # self._lewis.backdoor_set_on_device("address", ADDRESS)
+        self._lewis.backdoor_set_on_device("chopper_name", chopper_name)
         self._lewis.backdoor_command(["device", "reset"])
 
 #   Command definitions:
