@@ -88,12 +88,10 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("drive_l3_current", drive_l3_current)
         self._ioc.set_simulated_value("SIM:DRIVE:PHASE3:CURR", drive_l3_current)
 
-    def _set_drive_direction(self, drive_direction):
-        self._lewis.backdoor_set_on_device("drive_direction", drive_direction)
-        self._ioc.set_simulated_value("SIM:DRIVE:DIR", drive_direction)
-
-#    def _is_rotation_clockwise(self, ):
-#        self._lewis.backdoor_set_on_device("")
+    def _set_drive_direction_clockwise(self, is_drive_direction_clockwise):
+        self._lewis.backdoor_set_on_device("is_drive_direction_clockwise", is_drive_direction_clockwise)
+        direction = "CW" if is_drive_direction_clockwise else "CCW"
+        self._ioc.set_simulated_value("SIM:DRIVE:DIR", direction)
 
     def _set_parked_open_status(self, parked_open_status):
         self._lewis.backdoor_set_on_device("parked_open_status", parked_open_status)
@@ -261,7 +259,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def test_GIVEN_drive_direction_WHEN_read_all_status_THEN_status_is_as_expected(self):
         expected_value = "CCW"
-        self._set_drive_direction("ANTICLOCK")
+        self._set_drive_direction_clockwise(False)
 
         self.ca.assert_that_pv_is("DRIVE:DIR", expected_value)
         self.ca.assert_pv_alarm_is("DRIVE:DIR", ChannelAccess.ALARM_NONE)
@@ -381,9 +379,9 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
 
 #    def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
-#        self.ca.set_pv_value("FERMCHOP_01:SPEED:SP", speed)
+#        self.ca.set_pv_value("FREQ:SP", frequency)
 #
-#        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP", speed)
-#        self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED:SP", self.ca.ALARM_NONE)
-#        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", speed)
-#        self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED:SP:RBV", self.ca.ALARM_NONE)
+#        self.ca.assert_that_pv_is("FREQ:SP", frequency)
+#        self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.ALARM_NONE)
+#        self.ca.assert_that_pv_is("FREQ:SP:RBV", frequency)
+#        self.ca.assert_pv_alarm_is("FREQ:SP:RBV", self.ca.ALARM_NONE)
