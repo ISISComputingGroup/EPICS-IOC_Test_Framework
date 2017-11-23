@@ -29,17 +29,14 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 #   Command definitions:
 
     def _set_value(self, expected_value):
-
         self._lewis.backdoor_set_on_device("magnetic_bearing_status", expected_value)
         self._ioc.set_simulated_value("SIM:MB:STATUS", expected_value)
 
     def _set_frequency_reference(self, frequency_reference):
-
         self._lewis.backdoor_set_on_device("frequency_reference", frequency_reference)
         self._ioc.set_simulated_value("SIM:FREQ:REF", frequency_reference)
 
     def _set_frequency_setpoint(self, frequency_setpoint):
-
         self._lewis.backdoor_set_on_device("frequency_setpoint", frequency_setpoint)
         self._ioc.set_simulated_value("SIM:FREQ:SP:RBV", frequency_setpoint)
 
@@ -81,19 +78,22 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def _set_drive_l1_current(self, drive_l1_current):
         self._lewis.backdoor_set_on_device("drive_l1_current", drive_l1_current)
-        self._ioc.set_simulated_value("SIM:DRIVE:L1:CURR", drive_l1_current)
+        self._ioc.set_simulated_value("SIM:DRIVE:PHASE1:CURR", drive_l1_current)
 
     def _set_drive_l2_current(self, drive_l2_current):
         self._lewis.backdoor_set_on_device("drive_l2_current", drive_l2_current)
-        self._ioc.set_simulated_value("SIM:DRIVE:L2:CURR", drive_l2_current)
+        self._ioc.set_simulated_value("SIM:DRIVE:PHASE2:CURR", drive_l2_current)
 
     def _set_drive_l3_current(self, drive_l3_current):
         self._lewis.backdoor_set_on_device("drive_l3_current", drive_l3_current)
-        self._ioc.set_simulated_value("SIM:DRIVE:L3:CURR", drive_l3_current)
+        self._ioc.set_simulated_value("SIM:DRIVE:PHASE3:CURR", drive_l3_current)
 
     def _set_drive_direction(self, drive_direction):
         self._lewis.backdoor_set_on_device("drive_direction", drive_direction)
         self._ioc.set_simulated_value("SIM:DRIVE:DIR", drive_direction)
+
+#    def _is_rotation_clockwise(self, ):
+#        self._lewis.backdoor_set_on_device("")
 
     def _set_parked_open_status(self, parked_open_status):
         self._lewis.backdoor_set_on_device("parked_open_status", parked_open_status)
@@ -242,26 +242,26 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         expected_value = 9.62
         self._set_drive_l1_current(expected_value)
 
-        self.ca.assert_that_pv_is("DRIVE:L1:CURR", expected_value)
-        self.ca.assert_pv_alarm_is("DRIVE:L1:CURR", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("DRIVE:PHASE1:CURR", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:PHASE1:CURR", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_drive_l2_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 2.74
         self._set_drive_l2_current(expected_value)
 
-        self.ca.assert_that_pv_is("DRIVE:L2:CURR", expected_value)
-        self.ca.assert_pv_alarm_is("DRIVE:L2:CURR", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("DRIVE:PHASE2:CURR", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:PHASE2:CURR", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_drive_l3_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 12.48
         self._set_drive_l3_current(expected_value)
 
-        self.ca.assert_that_pv_is("DRIVE:L3:CURR", expected_value)
-        self.ca.assert_pv_alarm_is("DRIVE:L3:CURR", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("DRIVE:PHASE3:CURR", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:PHASE3:CURR", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_drive_direction_WHEN_read_all_status_THEN_status_is_as_expected(self):
         expected_value = "CCW"
-        self._set_drive_direction(expected_value)
+        self._set_drive_direction("ANTICLOCK")
 
         self.ca.assert_that_pv_is("DRIVE:DIR", expected_value)
         self.ca.assert_pv_alarm_is("DRIVE:DIR", ChannelAccess.ALARM_NONE)
@@ -377,3 +377,13 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("INTERLOCK:UPS:STATUS", expected_value)
         self.ca.assert_pv_alarm_is("INTERLOCK:UPS:STATUS", ChannelAccess.ALARM_NONE)
+
+    # @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+
+#    def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
+#        self.ca.set_pv_value("FERMCHOP_01:SPEED:SP", speed)
+#
+#        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP", speed)
+#        self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED:SP", self.ca.ALARM_NONE)
+#        self.ca.assert_that_pv_is("FERMCHOP_01:SPEED:SP:RBV", speed)
+#        self.ca.assert_pv_alarm_is("FERMCHOP_01:SPEED:SP:RBV", self.ca.ALARM_NONE)
