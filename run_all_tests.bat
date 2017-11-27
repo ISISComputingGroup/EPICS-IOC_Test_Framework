@@ -168,3 +168,15 @@ echo TESTING EUROTHRM Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d eurotherm -p %EPICS_KIT_ROOT%\ioc\master\EUROTHRM\iocBoot\iocEUROTHRM-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING SAMSM300 Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d Samsm300 -p %EPICS_KIT_ROOT%\ioc\master\SAMSM300\iocBoot\iocSAMSM300-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING SAMSM300 Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d Samsm300 -p %EPICS_KIT_ROOT%\ioc\master\SAMSM300\iocBoot\iocSAMSM300-IOC-01
+echo ---------------------------------------
+echo;
