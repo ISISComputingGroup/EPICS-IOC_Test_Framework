@@ -76,6 +76,25 @@ class ChannelAccess(object):
             return
 
         raise AssertionError(str(msg) + error_message)
+		
+    def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
+        """
+        Assert that the pv does not have a particular value and optionally it does not become that value within the
+        timeout.
+
+        :param pv: pv name
+        :param restricted_value: value the PV shouldn't become
+        :param timeout: if it becomes the value within this time, raise an assertion error
+        :param msg: Extra message to print
+        :raises AssertionError: if value has the restricted value
+        :raises UnableToConnectToPVException: if pv does not exist within timeout
+        """
+        error_message = self._wait_for_pv_lambda(lambda: self._values_do_not_match(pv, restricted_value), timeout)
+
+        if error_message is None:
+            return
+
+        raise AssertionError("{0}: {1}".format(msg, error_message))
 
     def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None):
         """
@@ -89,6 +108,25 @@ class ChannelAccess(object):
         """
 
         error_message = self._wait_for_pv_lambda(lambda: self._value_is_number(pv, expected_value, tolerance), timeout)
+
+        if error_message is None:
+            return
+
+        raise AssertionError(error_message)
+
+    def assert_that_pv_is_not_number(self, pv, restricted_value, tolerance=0, timeout=None):
+        """
+        Assert that the pv is at least tolerance from the restricted value within the timeout
+        :param pv: pv name
+        :param restricted_value: the value we don't want the PV to have
+        :param tolerance: the minimal deviation from the expected value
+        :param timeout: if it hasn't changed within this time raise assertion error
+        :raises AssertionError: if value does not enter the desired range
+        :raises UnableToConnectToPVException: if pv does not exist within timeout
+        """
+
+        error_message = self._wait_for_pv_lambda(lambda: self._value_is_not_number(pv, restricted_value, tolerance),
+                                                 timeout)
 
         if error_message is None:
             return
@@ -149,6 +187,22 @@ class ChannelAccess(object):
             return """Values didn't match when reading PV '{PV}'.
                    Expected value: {expected}
                    Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
+				   
+    def _values_do_not_match(self, pv, restricted_value):
+        """
+        Check pv does not match a value.
+
+        :param pv: name of the pv (no prefix)
+        :param restricted_value: value PV should not have
+        :return: None if they don't match; error string if they do
+        """
+        pv_value = self.get_pv_value(pv)
+        if pv_value != restricted_value:
+            return None
+        else:
+            return """Values match when reading PV '{PV}'.
+                   Restricted value: {restricted}
+                   Actual value: {actual}""".format(PV=pv, restricted=restricted_value, actual=pv_value)
 
     def _value_is_an_integer_between(self, pv, min, max):
         """
@@ -170,28 +224,45 @@ class ChannelAccess(object):
         else:
             return "Expected integer between {min} and {max} but was {actual}".format(min=min, max=max, actual=pv_value)
 
+    def _to_float(self, pv):
+        try:
+            raw_pv_value = self.get_pv_value(pv)
+            return float(raw_pv_value)
+        except ValueError:
+            raise AssertionError("""Value was invalid when reading PV '{PV}'.
+                    Expected a numeric value but got: {actual}""".format(PV=pv, actual=raw_pv_value))
+
     def _value_is_number(self, pv, expected_value, tolerance):
         """
-            Check pv can be interpreted as an integer between two bounds
+            Check pv is a number within tolerance of the expected value
             :param pv: name of the pv (no prefix)
             :param expected_value: value that is expected
             :param tolerance: if the difference between the actual and expected values is less than the tolerance, they are treated as equal
             :return: None if they match; error string stating the difference if they do not
             """
-        pv_value = self.get_pv_value(pv)
-
-        try:
-            pv_value = float(pv_value)
-        except ValueError:
-            return """Value was invalid when reading PV '{PV}'.
-                    Expected a numeric value but got: {actual}""".format(PV=pv, actual=pv_value)
-
+        pv_value = self._to_float(pv)
         if abs(expected_value - pv_value) <= tolerance:
             return None
         else:
             return """Value was invalid when reading PV '{PV}'.
                     Expected: {expected} (tolerance: {tolerance}) 
                     Actual: {actual}""".format(PV=pv, expected=expected_value, tolerance=tolerance, actual=pv_value)
+
+    def _value_is_not_number(self, pv, restricted_value, tolerance):
+        """
+            Check pv is a number outside of the tolerance of the restricted value
+            :param pv: name of the pv (no prefix)
+            :param restricted_value: value that PV shouldn't have
+            :param tolerance: if the difference between the actual and expected values is less than the tolerance, the condition is not met
+            :return: None if they match; error string stating the difference if they do not
+            """
+        pv_value = self._to_float(pv)
+        if abs(restricted_value - pv_value) >= tolerance:
+            return None
+        else:
+            return """Value was invalid when reading PV '{PV}'.
+                    Expected: NOT {expected} (tolerance: {tolerance}) 
+                    Actual: {actual}""".format(PV=pv, expected=restricted_value, tolerance=tolerance, actual=pv_value)
 
     def _value_match_one_of(self, pv, expected_values):
         """
