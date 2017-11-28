@@ -76,7 +76,6 @@ class EurothermTests(unittest.TestCase):
         end = time.time()
         self.assertAlmostEquals(end-start, 20, delta=1)
 
-<<<<<<< HEAD
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
         sensor_disconnected_value = 1529
