@@ -514,3 +514,15 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
         self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
+
+    def test_GIVEN_device_is_not_communicating_WHEN_read_all_status_THEN_values_have_error(self):
+        self._lewis.backdoor_set_on_device("disconnected", True)
+
+        for pv in ["FREQ:REF", "FREQ:SP:RBV", "FREQ", "PHAS:SP:RBV", "PHAS", "PHAS:STATUS", "MB:SP:RBV", "MB:STATUS",
+                   "MB:INT", "DRIVE", "DRIVE:MODE:SP:RBV", "DRIVE:PHASE1:CURR", "DRIVE:PHASE2:CURR",
+                   "DRIVE:PHASE3:CURR", "DRIVE:DIR", "PARKED:OPEN:STATUS", "DRIVE:TEMP", "INPUTCLOCK", "PHAS:OUTAGE",
+                   "MASTER", "LOGGING", "LMSR:STATUS", "DSP:STATUS", "INTERLOCK:ER:STATUS", "INTERLOCK:VAC:STATUS",
+                   "INTERLOCK:FREQMON:STATUS", "INTERLOCK:MB:AMP:TEMP:STATUS", "INTERLOCK:MB:AMP:CURR:STATUS",
+                   "INTERLOCK:DRIVE:AMP:TEMP:STATUS", "INTERLOCK:DRIVE:AMP:CURR:STATUS", "INTERLOCK:UPS:STATUS"]:
+
+            self.ca.assert_pv_alarm_is(pv, ChannelAccess.ALARM_INVALID)
