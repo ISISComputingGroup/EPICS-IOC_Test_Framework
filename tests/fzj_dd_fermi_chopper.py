@@ -394,7 +394,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     def test_GIVEN_error_WHEN_set_frequency_THEN_error_is_handled(self):
         frequency = 150
         frequency_as_string = str(frequency)
-        expected_error = "ERROR;07;C01NOK;RATIO_SPEED_OUT_OF_RANGE"
+        expected_error = "07;C01NOK;RATIO_SPEED_OUT_OF_RANGE"
         self._lewis.backdoor_set_on_device("error_on_set_frequency", expected_error)
         self.ca.set_pv_value("FREQ:SP", frequency_as_string)
 
@@ -404,7 +404,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     def test_GIVEN_error_then_no_error_WHEN_set_frequency_THEN_error_is_cleared(self):
         frequency = 150
         frequency_as_string = str(frequency)
-        expected_error = "ERROR;07;C01NOK;RATIO_SPEED_OUT_OF_RANGE"
+        expected_error = "07;C01NOK;RATIO_SPEED_OUT_OF_RANGE"
         self._lewis.backdoor_set_on_device("error_on_set_frequency", expected_error)
         self.ca.set_pv_value("FREQ:SP", frequency_as_string)
         self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.ALARM_INVALID)
@@ -428,32 +428,28 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def test_GIVEN_error_WHEN_set_phase_THEN_error_is_handled(self):
         phase = 243.85
-        expected_error = "ERROR;09;CxxNOK;SETPOINT_PHASE_OUT_OF_RANGE"
+        expected_error = "09;CxxNOK;SETPOINT_PHASE_OUT_OF_RANGE"
         self._lewis.backdoor_set_on_device("error_on_set_phase", expected_error)
         self.ca.set_pv_value("PHAS:SP", phase)
 
         self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.ALARM_INVALID)
         self.ca.assert_that_pv_is("PHAS:SP:ERROR", expected_error)
 
-    #       ************  Following test fails for an obscure reason  ***************
+    def test_GIVEN_error_then_no_error_WHEN_set_phase_THEN_error_is_cleared(self):
+        phase = 243.85
+        expected_error = "09;CxxNOK;SETPOINT_PHASE_OUT_OF_RANGE"
+        self._lewis.backdoor_set_on_device("error_on_set_phase", expected_error)
+        self.ca.set_pv_value("PHAS:SP", phase)
+        self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.ALARM_INVALID)
+        self.ca.assert_that_pv_is("PHAS:SP:ERROR", expected_error)
+        self._lewis.backdoor_set_on_device("error_on_set_phase", None)
 
-    # def test_GIVEN_error_then_no_error_WHEN_set_phase_THEN_error_is_cleared(self):
-    #     phase = 243.85
-    #     expected_error = "ERROR;09;CxxNOK;SETPOINT_PHASE_OUT_OF_RANGE"
-    #     self._lewis.backdoor_set_on_device("error_on_set_phase", expected_error)
-    #     self.ca.set_pv_value("PHAS:SP", phase)
-    #     self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.ALARM_INVALID)
-    #     self.ca.assert_that_pv_is("PHAS:SP:ERROR", expected_error)
-    #     self._lewis.backdoor_set_on_device("error_on_set_phase", None)
-    #
-    #     self.ca.set_pv_value("PHAS:SP", phase)
-    #
-    #     self.ca.assert_that_pv_is("PHAS:SP:ERROR", "")
+        self.ca.set_pv_value("PHAS:SP", phase)
 
-    #       ***************************************************************************
-    #
+        self.ca.assert_that_pv_is("PHAS:SP:ERROR", "")
+
     # Magnetic Bearing
-    #
+
     def test_WHEN_magnetic_bearing_is_set_THEN_readback_updates(self):
         magnetic_bearing = "ON"
         self.ca.set_pv_value("MB:SP", magnetic_bearing)
@@ -465,7 +461,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def test_GIVEN_error_WHEN_set_magnetic_bearing_THEN_error_is_handled(self):
         magnetic_bearing = "ON"
-        expected_error = "ERROR;10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
         self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
         self.ca.set_pv_value("MB:SP", magnetic_bearing)
 
@@ -474,7 +470,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def test_GIVEN_error_then_no_error_WHEN_set_magnetic_bearing_THEN_error_is_cleared(self):
         magnetic_bearing = "ON"
-        expected_error = "ERROR;10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
         self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
         self.ca.set_pv_value("MB:SP", magnetic_bearing)
         self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
@@ -499,7 +495,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def test_GIVEN_error_WHEN_set_drive_mode_THEN_error_is_handled(self):
         drive_mode = "STOP"
-        expected_error = "ERROR;10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
         self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
         self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
@@ -508,7 +504,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     def test_GIVEN_error_then_no_error_WHEN_set_drive_mode_THEN_error_is_cleared(self):
         drive_mode = "STOP"
-        expected_error = "ERROR;10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
         self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
         self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
         self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
