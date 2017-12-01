@@ -29,10 +29,6 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
 #   Command definitions:
 
-    def _set_value(self, expected_value):
-        self._lewis.backdoor_set_on_device("magnetic_bearing_status", expected_value)
-        self._ioc.set_simulated_value("SIM:MB:STATUS", expected_value)
-
     def _set_frequency_reference(self, frequency_reference):
         self._lewis.backdoor_set_on_device("frequency_reference", frequency_reference)
         self._ioc.set_simulated_value("SIM:FREQ:REF", frequency_reference)
@@ -518,11 +514,36 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     def test_GIVEN_device_is_not_communicating_WHEN_read_all_status_THEN_values_have_error(self):
         self._lewis.backdoor_set_on_device("disconnected", True)
 
-        for pv in ["FREQ:REF", "FREQ:SP:RBV", "FREQ", "PHAS:SP:RBV", "PHAS", "PHAS:STATUS", "MB:SP:RBV", "MB:STATUS",
-                   "MB:INT", "DRIVE", "DRIVE:MODE:SP:RBV", "DRIVE:PHASE1:CURR", "DRIVE:PHASE2:CURR",
-                   "DRIVE:PHASE3:CURR", "DRIVE:DIR", "PARKED:OPEN:STATUS", "DRIVE:TEMP", "INPUTCLOCK", "PHAS:OUTAGE",
-                   "MASTER", "LOGGING", "LMSR:STATUS", "DSP:STATUS", "INTERLOCK:ER:STATUS", "INTERLOCK:VAC:STATUS",
-                   "INTERLOCK:FREQMON:STATUS", "INTERLOCK:MB:AMP:TEMP:STATUS", "INTERLOCK:MB:AMP:CURR:STATUS",
-                   "INTERLOCK:DRIVE:AMP:TEMP:STATUS", "INTERLOCK:DRIVE:AMP:CURR:STATUS", "INTERLOCK:UPS:STATUS"]:
+        for pv in ["FREQ:REF",
+                   "FREQ:SP:RBV",
+                   "FREQ",
+                   "PHAS:SP:RBV",
+                   "PHAS",
+                   "PHAS:STATUS",
+                   "MB:SP:RBV",
+                   "MB:STATUS",
+                   "MB:INT",
+                   "DRIVE",
+                   "DRIVE:MODE:SP:RBV",
+                   "DRIVE:PHASE1:CURR",
+                   "DRIVE:PHASE2:CURR",
+                   "DRIVE:PHASE3:CURR",
+                   "DRIVE:DIR",
+                   "PARKED:OPEN:STATUS",
+                   "DRIVE:TEMP",
+                   "INPUTCLOCK",
+                   "PHAS:OUTAGE",
+                   "MASTER",
+                   "LOGGING",
+                   "LMSR:STATUS",
+                   "DSP:STATUS",
+                   "INTERLOCK:ER:STATUS",
+                   "INTERLOCK:VAC:STATUS",
+                   "INTERLOCK:FREQMON:STATUS",
+                   "INTERLOCK:MB:AMP:TEMP:STATUS",
+                   "INTERLOCK:MB:AMP:CURR:STATUS",
+                   "INTERLOCK:DRIVE:AMP:TEMP:STATUS",
+                   "INTERLOCK:DRIVE:AMP:CURR:STATUS",
+                   "INTERLOCK:UPS:STATUS"]:
 
             self.ca.assert_pv_alarm_is(pv, ChannelAccess.ALARM_INVALID)
