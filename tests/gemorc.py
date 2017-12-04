@@ -61,13 +61,6 @@ class GemorcTests(unittest.TestCase):
         self.initialise()
         self.ca.set_pv_value("START", 1)
 
-    def test_WHEN_device_has_been_rest_THEN_setpoint_values_match_defaults(self):
-        self.ca.set_pv_value("RESET", 1)
-        self.ca.assert_that_pv_is_number("SPEED:SP", DEFAULT_SPEED)
-        self.ca.assert_that_pv_is_number("ACC:SP", DEFAULT_ACCELERATION)
-        self.ca.assert_that_pv_is_number("WIDTH:SP", DEFAULT_WIDTH)
-        self.ca.assert_that_pv_is_number("OFFSET:SP", DEFAULT_OFFSET)
-
     def test_WHEN_width_setpoint_set_THEN_local_readback_matches(self):
         self.ca.assert_setting_setpoint_sets_readback(DEFAULT_WIDTH+1, "WIDTH:SP:RBV", "WIDTH:SP")
 
@@ -149,3 +142,43 @@ class GemorcTests(unittest.TestCase):
         self.start_oscillating()
         self.initialise()
         self.check_init_state(initialising=False, initialised=True, initialisation_required=False, oscillating=True)
+
+    def test_WHEN_settings_reset_requested_THEN_settings_return_to_default_values(self):
+        settings = (
+            ("WIDTH", DEFAULT_WIDTH), ("ACC", DEFAULT_ACCELERATION), ("SPEED",DEFAULT_SPEED), ("OFFSET", DEFAULT_OFFSET)
+        )
+        for pv, default in settings:
+            self.ca.set_pv_value("{}:SP".format(pv), default+1)  # I prefer the two lines here
+            self.ca.assert_that_pv_is_not_number(pv, default)
+
+        self.ca.set_pv_value("RESET", 1)
+
+        for pv, default in settings:
+            self.ca.assert_that_pv_is_number(pv, default)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Calculation logic not performed in Recsim")
+    def test_WHEN_width_speed_and_acceleration_set_to_values_that_dont_produce_infs_THEN_utility_time_corresponds_to_formula_in_test(self):
+        def calculate_utility():
+            acceleration_window = float(speed)/float(acceleration)
+            return float(width)/float(2*acceleration_window + width)
+
+        tolerance = 0.005
+        # Note that maximum values are: width, 999; speed, 99; acceleration, 9999
+        test_cases = ((1, 1, 1), (0, 1, 1), (1, 0, 1), (1, 2, 3), (3, 2, 1), (123, 45, 6789), (999, 99, 9999))
+
+        for width, speed, acceleration in test_cases:
+            self.ca.set_pv_value("WIDTH:SP", width)
+            self.ca.set_pv_value("SPEED:SP", speed)
+            self.ca.set_pv_value("ACC:SP", acceleration)
+            self.ca.assert_that_pv_is_number("UTILITY", calculate_utility(), tolerance=tolerance)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Calculation logic not performed in Recsim")
+    def test_WHEN_acceleration_is_zero_THEN_utility_time_is_zero(self):
+        self.ca.set_pv_value("ACC:SP", 0)
+        self.ca.assert_that_pv_is_number("UTILITY", 0.0)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Calculation logic not performed in Recsim")
+    def test_WHEN_speed_and_width_are_zero_THEN_utility_time_is_zero(self):
+        self.ca.set_pv_value("SPEED:SP", 0)
+        self.ca.set_pv_value("WIDTH:SP", 0)
+        self.ca.assert_that_pv_is_number("UTILITY", 0.0)
