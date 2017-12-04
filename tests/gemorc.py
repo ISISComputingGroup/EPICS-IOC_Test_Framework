@@ -182,8 +182,15 @@ class GemorcTests(unittest.TestCase):
     #     self.ca.set_pv_value("SPEED:SP", 0)
     #     self.ca.set_pv_value("WIDTH:SP", 0)
     #     self.ca.assert_that_pv_is_number("UTILITY", 0.0)
+    #
+    # @skipIf(IOCRegister.uses_rec_sim, "Calculation logic not performed in Recsim")
+    # def test_WHEN_device_is_running_THEN_it_gets_PnP_identity_from_emulator(self):
+    #     self.ca.assert_that_pv_is("ID", "IBEX_GEMORC_DEVICE_EMULATOR", timeout=20)  # On a very slow scan
 
-    @skipIf(IOCRegister.uses_rec_sim, "Calculation logic not performed in Recsim")
-    def test_WHEN_device_is_running_THEN_it_gets_PnP_identity_from_emulator(self):
-        self.ca.assert_that_pv_is("ID", "IBEX_GEMORC_DEVICE_EMULATOR", timeout=20)  # On a very slow scan
+    def test_WHEN_ioc_running_THEN_has_backlash_PV(self):
+        try:
+            self.ca.get_pv_value("BACKLASH")
+        except Exception as e:
+            self.fail(str(e))
+
 
