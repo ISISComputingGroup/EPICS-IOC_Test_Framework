@@ -20,7 +20,7 @@ class GemorcTests(unittest.TestCase):
     """
     Tests for the Gemorc IOC.
     """
-    def reset(self):
+    def reset_emulator(self):
         self._lewis.backdoor_set_on_device("reset", True)
         sleep(1)  # Wait for reset to finish so we don't jump the gun. No external indicator from emulator
 
@@ -28,7 +28,8 @@ class GemorcTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("gemorc")
         self.ca = ChannelAccess(device_prefix="GEMORC_01", default_timeout=DEFAULT_TIMEOUT)
         self.ca.wait_for("CYCLES", timeout=30)
-        self.reset()
+        if not IOCRegister.uses_rec_sim:
+            self.reset_emulator()
 
     def check_init_state(self, initialising, initialised, initialisation_required, oscillating):
         def bool_to_yes_no(val):
