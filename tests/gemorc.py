@@ -11,6 +11,8 @@ DEFAULT_WIDTH = 100
 DEFAULT_OFFSET = 0
 DEFAULT_SPEED = 20
 DEFAULT_ACCELERATION = 500
+DEFAULT_AUTO_INITIALISE = 20000
+DEFAULT_OPT_INITIALISE = 10000
 
 INITIALISATION_TIME = 3
 DEFAULT_TIMEOUT = 2*INITIALISATION_TIME
@@ -188,7 +190,9 @@ class GemorcTests(unittest.TestCase):
     #
     # def test_WHEN_settings_reset_requested_THEN_settings_return_to_default_values(self):
     #     settings = (
-    #         ("WIDTH", DEFAULT_WIDTH), ("ACC", DEFAULT_ACCELERATION), ("SPEED",DEFAULT_SPEED), ("OFFSET", DEFAULT_OFFSET)
+    #         ("WIDTH", DEFAULT_WIDTH), ("ACC", DEFAULT_ACCELERATION),
+    #         ("SPEED",DEFAULT_SPEED), ("OFFSET", DEFAULT_OFFSET),
+    #         ("INIT:AUTO", DEFAULT_AUTO_INITIALISE), ("INIT:OPT", DEFAULT_OPT_INITIALISE),
     #     )
     #     for pv, default in settings:
     #         self.ca.set_pv_value("{}:SP".format(pv), default+1)  # I prefer the two lines here
@@ -230,8 +234,14 @@ class GemorcTests(unittest.TestCase):
     #         self.set_and_confirm_state(width, speed, acceleration)
     #         backlash = self.ca.get_pv_value("BACKLASH")
     #         self.ca.assert_that_pv_is_number("FREQ", self.frequency(width, backlash, speed), tolerance=DEFAULT_TOLERANCE)
-
-    def test_GIVEN_non_zero_offset_WHEN_re_zeroed_to_datum_THEN_offset_is_zero(self):
-        self.ca.assert_that_pv_is_not_number("OFFSET", 0)
-        self.ca.set_pv_value("ZERO", 1)
-        self.ca.assert_that_pv_is_number("OFFSET", 0)
+    #
+    # def test_GIVEN_non_zero_offset_WHEN_re_zeroed_to_datum_THEN_offset_is_zero(self):
+    #     self.ca.assert_that_pv_is_not_number("OFFSET", 0)
+    #     self.ca.set_pv_value("ZERO", 1)
+    #     self.ca.assert_that_pv_is_number("OFFSET", 0)
+    #
+    # def test_WHEN_auto_initialisation_interval_set_THEN_readback_matches_set_value(self):
+    #     self.ca.assert_setting_setpoint_sets_readback(DEFAULT_AUTO_INITIALISE+1, "INIT:AUTO")
+    #
+    # def test_WHEN_opt_initialisation_interval_set_THEN_readback_matches_set_value(self):
+    #     self.ca.assert_setting_setpoint_sets_readback(DEFAULT_OPT_INITIALISE + 1, "INIT:OPT")
