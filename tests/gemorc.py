@@ -60,10 +60,8 @@ class GemorcTests(unittest.TestCase):
         self.reset_ioc()
         if not IOCRegister.uses_rec_sim:
             self.reset_emulator()
-
-        # Check setup has gone correctly
-        self.check_init_state(False, False, True, False)
-        self.ca.assert_that_pv_is_number("CYCLES", 0)
+            self.check_init_state(False, False, True, False)
+            self.ca.assert_that_pv_is_number("CYCLES", 0)
 
     def check_init_state(self, initialising, initialised, initialisation_required, oscillating):
 
@@ -321,23 +319,20 @@ class GemorcTests(unittest.TestCase):
         self.ca.assert_that_pv_is("INIT:ONCE", "Yes")
 
     @skipIf(IOCRegister.uses_rec_sim, "Initialisation logic not performed in Recsim")
-    def test_WHEN_oscillating_THEN_cycle_count_never_exceeds_auto_re_initialise_limit_for_more_than_two_seconds(self):
-        initialisation_interval = 100
-        self.ca.set_pv_value("INIT:AUTO", initialisation_interval)
+    def test_GIVEN_oscillating_WHEN_stopped_and_immediately_initialised_THEN_number_of_cycles_goes_to_zero(self):
         self.start_oscillating()
-
-        total_wait = 0.0
-        max_wait = 5*INITIALISATION_TIME
-        wait_interval = 0.5
-        while total_wait < max_wait:
-            sleep(wait_interval)
-            total_wait += wait_interval
-            self.ca.assert_that_pv_is_an_integer_between("CYCLES", 0, 100, timeout=2.0)
+        self.ca.set_pv_value("STOP", 1)
+        self.ca.set_pv_value("INIT", 1)
+        self.ca.assert_that_pv_is_number("CYCLES", 0)
 
     @skipIf(IOCRegister.uses_rec_sim, "Initialisation logic not performed in Recsim")
-    def test_WHEN_oscillating_THEN_periodically_auto_initialises(self):
+    def test_WHEN_oscillating_THEN_auto_reinitialisation_triggers_after_counter_reaches_auto_trigger_value(self):
         initialisation_interval = 100
         self.ca.set_pv_value("INIT:AUTO", initialisation_interval)
         self.start_oscillating()
-        for _ in range(2):
-            self.ca.assert_that_pv_is("INIT:PROGRESS", "Yes", timeout=10*INITIALISATION_TIME)
+        while self.ca.get_pv_value("CYCLES") < initialisation_interval:
+            self.ca.assert_that_pv_is("INIT:PROGRESS", "No")
+            self.ca.assert_that_pv_is("INIT:STAT", "Initialisation routine not yet run")
+            sleep(1)
+        self.ca.assert_that_pv_is_not("INIT:STAT", "Initialisation routine not yet run")
+        self.ca.assert_that_pv_is("STAT:OSC", "No", timeout=10)  # Initialisation seq has a 5s wait at the start
