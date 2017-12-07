@@ -198,13 +198,6 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PHAS:STATUS", expected_value)
         self.ca.assert_pv_alarm_is("PHAS:STATUS", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_magnetic_bearing_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = "ON"
-        self._set_magnetic_bearing(expected_value)
-
-        self.ca.assert_that_pv_is("MB:SP:RBV", expected_value)
-        self.ca.assert_pv_alarm_is("MB:SP:RBV", ChannelAccess.ALARM_NONE)
-
     def test_GIVEN_magnetic_bearing_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         expected_value = "OK"
         self._set_magnetic_bearing_status(expected_value)
@@ -219,6 +212,13 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MB:INT", expected_value)
         self.ca.assert_pv_alarm_is("MB:INT", ChannelAccess.ALARM_NONE)
 
+    def test_GIVEN_magnetic_bearing_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        expected_value = "ON"
+        self._set_magnetic_bearing(expected_value)
+
+        self.ca.assert_that_pv_is("MB", expected_value)
+        self.ca.assert_pv_alarm_is("MB", ChannelAccess.ALARM_NONE)
+
     def test_GIVEN_drive_WHEN_read_all_status_THEN_status_is_as_expected(self):
         expected_value = "ON"
         self._set_drive(expected_value)
@@ -230,8 +230,8 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         expected_value = "STOP"
         self._set_drive_mode(expected_value)
 
-        self.ca.assert_that_pv_is("DRIVE:MODE:SP:RBV", expected_value)
-        self.ca.assert_pv_alarm_is("DRIVE:MODE:SP:RBV", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("DRIVE:MODE", expected_value)
+        self.ca.assert_pv_alarm_is("DRIVE:MODE", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_drive_l1_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 9.62
@@ -452,8 +452,8 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MB:SP", magnetic_bearing)
         self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_NONE)
-        self.ca.assert_that_pv_is("MB:SP:RBV", magnetic_bearing)
-        self.ca.assert_pv_alarm_is("MB:SP:RBV", self.ca.ALARM_NONE)
+        self.ca.assert_that_pv_is("MB", magnetic_bearing)
+        self.ca.assert_pv_alarm_is("MB", self.ca.ALARM_NONE)
 
     def test_GIVEN_error_WHEN_set_magnetic_bearing_THEN_error_is_handled(self):
         magnetic_bearing = "ON"
@@ -486,8 +486,8 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("DRIVE:MODE:SP", drive_mode)
         self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_NONE)
-        self.ca.assert_that_pv_is("DRIVE:MODE:SP:RBV", drive_mode)
-        self.ca.assert_pv_alarm_is("DRIVE:MODE:SP:RBV", self.ca.ALARM_NONE)
+        self.ca.assert_that_pv_is("DRIVE:MODE", drive_mode)
+        self.ca.assert_pv_alarm_is("DRIVE:MODE", self.ca.ALARM_NONE)
 
     def test_GIVEN_error_WHEN_set_drive_mode_THEN_error_is_handled(self):
         drive_mode = "STOP"
@@ -511,6 +511,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
 
+    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_device_is_not_communicating_WHEN_read_all_status_THEN_values_have_error(self):
         self._lewis.backdoor_set_on_device("disconnected", True)
 
@@ -520,11 +521,11 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
                    "PHAS:SP:RBV",
                    "PHAS",
                    "PHAS:STATUS",
-                   "MB:SP:RBV",
+                   "MB",
                    "MB:STATUS",
                    "MB:INT",
                    "DRIVE",
-                   "DRIVE:MODE:SP:RBV",
+                   "DRIVE:MODE",
                    "DRIVE:PHASE1:CURR",
                    "DRIVE:PHASE2:CURR",
                    "DRIVE:PHASE3:CURR",
