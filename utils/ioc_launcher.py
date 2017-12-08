@@ -123,7 +123,7 @@ class IocLauncher(object):
         with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
             for macro, value in self.macros.items():
                 f.write('epicsEnvSet("{macro}", "{value}")\n'
-                        .format(macro=macro.replace('"', '\\"'), value=value.replace('"', '\\"')))
+                        .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
 
         # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
         # This does mean that the IOC will need to be closed manually after the tests.
