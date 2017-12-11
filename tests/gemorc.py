@@ -216,10 +216,7 @@ class GemorcTests(unittest.TestCase):
     def test_GIVEN_oscillating_and_initialisation_requested_WHEN_initialisation_complete_THEN_resumes_oscillation(self):
         self.start_oscillating()
         self.initialise()
-        try:
-            self.check_init_state(initialising=False, initialised=True, initialisation_required=False, oscillating=True)
-        except AssertionError:
-            raw_input("Pause...")
+        self.check_init_state(initialising=False, initialised=True, initialisation_required=False, oscillating=True)
 
     def test_WHEN_settings_reset_requested_THEN_settings_return_to_default_values(self):
         settings = (
