@@ -36,15 +36,16 @@ class EurothermTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _reset_device_state(self):
-        self._set_setpoint_and_current_temperature(0.0)
+        intial_temp = 0.0
+        self._set_setpoint_and_current_temperature(intial_temp)
         self._lewis.backdoor_set_on_device("ramping_on", False)
         self._lewis.backdoor_set_on_device("ramp_rate", 1.0)
         self.ca.set_pv_value("RAMPON:SP", 0)
+        self.ca.assert_that_pv_is("TEMP", intial_temp)
 
     def _set_setpoint_and_current_temperature(self, temperature):
         self._lewis.backdoor_set_on_device("current_temperature", temperature)
         self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
-        self.ca.assert_that_pv_is("TEMP", temperature)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
