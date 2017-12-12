@@ -194,13 +194,13 @@ echo;
 
 
 echo ---------------------------------------
-echo TESTING SAMSM300 Dev Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d Samsm300 -p %EPICS_KIT_ROOT%\ioc\master\SAMSM300\iocBoot\iocSAMSM300-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo TESTING SM300 Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d sm300 -p %EPICS_KIT_ROOT%\ioc\master\SM300\iocBoot\iocSM300-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
 
 echo ---------------------------------------
-echo TESTING SAMSM300 Rec Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d Samsm300 -p %EPICS_KIT_ROOT%\ioc\master\SAMSM300\iocBoot\iocSAMSM300-IOC-01
+echo TESTING SM300 Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d sm300 -p %EPICS_KIT_ROOT%\ioc\master\SM300\iocBoot\iocSM300-IOC-01
 echo ---------------------------------------
 echo;
