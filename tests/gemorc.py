@@ -160,6 +160,9 @@ class GemorcTests(unittest.TestCase):
     def test_WHEN_offset_setpoint_set_THEN_remote_readback_matches(self):
         self.ca.assert_setting_setpoint_sets_readback(DEFAULT_OFFSET+1, "OFFSET")
 
+    def test_WHEN_offset_setpoint_set_to_negative_value_THEN_remote_readback_matches(self):
+        self.ca.assert_setting_setpoint_sets_readback(-DEFAULT_OFFSET, "OFFSET")
+
     def test_WHEN_device_first_started_THEN_initialisation_required(self):
         self.check_init_state(initialising=False, initialised=False, initialisation_required=True, oscillating=False)
 
