@@ -185,6 +185,25 @@ class LewisLauncher(object):
         else:
             self.backdoor_command(["device", str(variable_name), str(value)])
 
+    def backdoor_run_function_on_device(self, function_name, arguments=None):
+        """
+        Run a function in lewis using the back door on a device.
+
+        :param function_name: name of th function to call
+        :param arguments: an iterable of the arguments for the function; None means no arguments. Arguments will
+            automatically be turned into json
+        :return:
+        """
+        command = ["device", function_name]
+        if arguments is not None:
+            for argument in arguments:
+                if isinstance(argument, str):
+                    command.append("'{0}'".format(argument))
+                else:
+                    command.append(str(argument))
+
+        return self.backdoor_command(command)
+
     def backdoor_command(self, lewis_command):
         """
         Send a command to the backdoor of lewis.
@@ -193,19 +212,19 @@ class LewisLauncher(object):
         :return:
         """
         lewis_command_line = [self._python_path,
-            os.path.join(self._lewis_path, "lewis-control.exe"),
-            "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+                              os.path.join(self._lewis_path, "lewis-control.exe"),
+                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
         self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))
         try:
             p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT)
-            for i in range(1,30):
+            for i in range(1, 30):
                 code = p.poll()
                 if code == 0:
                     return
                 sleep(0.1)
             p.terminate()
-            print "Lewis backdoor did not finish!"
+            print("Lewis backdoor did not finish!")
         except subprocess.CalledProcessError as ex:
             sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
             sys.stderr.write("Error code {0}\n".format(ex.returncode))
