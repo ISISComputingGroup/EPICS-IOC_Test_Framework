@@ -35,10 +35,31 @@ class Sm300Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "B10")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
-        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR, timeout=30)
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
 
     def test_GIVEN_malformed_motor_position_WHEN_get_axis_x_THEN_error_returned(self):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "Xrubbish")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
-        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR, timeout=30)
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
+
+    def test_GIVEN_a_motor_is_moving_WHEN_get_moving_THEN_both_axis_are_moving(self):
+
+        expected_value = 0
+        self._lewis.backdoor_set_on_device("is_moving", True)
+
+        self.ca.assert_that_pv_is("MTR0101.DMOV", expected_value)
+        self.ca.assert_that_pv_is("MTR0102.DMOV", expected_value)
+
+    def test_GIVEN_a_motor_is_not_moving_WHEN_get_moving_THEN_both_axis_are_not_moving(self):
+        expected_value = 1
+        self._lewis.backdoor_set_on_device("is_moving", False)
+
+        self.ca.assert_that_pv_is("MTR0101.DMOV", expected_value)
+        self.ca.assert_that_pv_is("MTR0102.DMOV", expected_value)
+
+    def test_GIVEN_a_motor_is_in_error_WHEN_get_moving_THEN_both_axis_are_in_error(self):
+        self._lewis.backdoor_set_on_device("is_moving_error", True)
+
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_pv_alarm_is("MTR0102", ChannelAccess.ALARM_MAJOR)
