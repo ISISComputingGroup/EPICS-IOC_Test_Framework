@@ -63,3 +63,12 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
         self.ca.assert_pv_alarm_is("MTR0102", ChannelAccess.ALARM_MAJOR)
+
+    def test_GIVEN_motor_at_position_WHEN_set_postion_THEN_motor_moves_to_the_position(self):
+        expected_value = 10
+        self._lewis.backdoor_set_on_device("x_axis_rbv", 0)
+        self._lewis.backdoor_set_on_device("x_axis_sp", 0)
+        self.ca.assert_that_pv_is("MTR0101.RBV", 0)
+        self.ca.set_pv_value("MTR0101", expected_value)
+
+        self.ca.assert_that_pv_is("MTR0101.RBV", expected_value)
