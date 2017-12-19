@@ -10,7 +10,10 @@ from utils.ioc_launcher import IOCRegister
 GALIL_ADDR = "128.0.0.0"
 
 # MACROS to use for the IOC
-MACROS = {"GALILADDR01": GALIL_ADDR}
+MACROS = {
+    "GALILADDR01": GALIL_ADDR,
+    "IFXYBEAMSTOP": " "
+}
 
 PREFIX = "MOT"
 
