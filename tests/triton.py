@@ -5,14 +5,20 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
+DEVICE_PREFIX = "TRITON_01"
+
 
 class TritonTests(unittest.TestCase):
     """
     Tests for the Triton IOC.
     """
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("Triton")
-        self.ca = ChannelAccess(device_prefix="TRITON_01")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("triton")
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    def test_WHEN_device_is_started_THEN_it_is_not_disabled(self):
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
+
+    @skipIf(IOCRegister.uses_rec_sim, "Not implemented in recsim")
+    def test_WHEN_device_is_started_THEN_can_get_mixing_chamber_uid(self):
+        self.ca.assert_that_pv_is("MC:UID", "mix_chamber_name")
