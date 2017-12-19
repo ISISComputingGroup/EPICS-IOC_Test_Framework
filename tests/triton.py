@@ -23,7 +23,7 @@ class TritonTests(unittest.TestCase):
     def test_WHEN_device_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    @skipIf(IOCRegister.uses_rec_sim, "Not implemented in recsim")
+    @skipIf(IOCRegister.uses_rec_sim, "Not implemented in recsim.")
     def test_WHEN_device_is_started_THEN_can_get_mixing_chamber_uid(self):
         self.ca.assert_that_pv_is("MC:UID", "mix_chamber_name")
 
@@ -47,6 +47,7 @@ class TritonTests(unittest.TestCase):
         for value in HEATER_RANGE_TEST_VALUES:
             self.ca.assert_setting_setpoint_sets_readback(value, "HEATER:RANGE")
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_heater_power(self):
         self._lewis.backdoor_set_on_device("heater_power_units", "mA")
         for value in HEATER_RANGE_TEST_VALUES:
@@ -54,7 +55,14 @@ class TritonTests(unittest.TestCase):
             self.ca.assert_that_pv_is("HEATER:POWER", value)
             self.ca.assert_that_pv_is("HEATER:POWER.EGU", "mA")
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_heater_power_units(self):
         for unit in ["A", "mA", "uA", "nA", "pA"]:
             self._lewis.backdoor_set_on_device("heater_power_units", unit)
             self.ca.assert_that_pv_is("HEATER:POWER.EGU", unit)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_closed_loop(self):
+        for value in [False, True, False]:  # Need to check both transitions work properly
+            self._lewis.backdoor_set_on_device("closed_loop", value)
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "YES" if value else "NO")
