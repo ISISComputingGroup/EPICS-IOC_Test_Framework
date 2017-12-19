@@ -7,6 +7,10 @@ from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "TRITON_01"
 
+PID_TEST_VALUES = 0, 10**-5, 123.45, 10**5
+TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 1000
+HEATER_RANGE_TEST_VALUES = 0.001, 0.316, 1000
+
 
 class TritonTests(unittest.TestCase):
     """
@@ -24,10 +28,21 @@ class TritonTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MC:UID", "mix_chamber_name")
 
     def test_WHEN_P_setpoint_is_set_THEN_readback_updates(self):
-        self.ca.assert_setting_setpoint_sets_readback(5, "P")
+        for value in PID_TEST_VALUES:
+            self.ca.assert_setting_setpoint_sets_readback(value, "P")
 
     def test_WHEN_I_setpoint_is_set_THEN_readback_updates(self):
-        self.ca.assert_setting_setpoint_sets_readback(5, "I")
+        for value in PID_TEST_VALUES:
+            self.ca.assert_setting_setpoint_sets_readback(value, "I")
 
     def test_WHEN_D_setpoint_is_set_THEN_readback_updates(self):
-        self.ca.assert_setting_setpoint_sets_readback(5, "D")
+        for value in PID_TEST_VALUES:
+            self.ca.assert_setting_setpoint_sets_readback(value, "D")
+
+    def test_WHEN_temperature_setpoint_is_set_THEN_readback_updates(self):
+        for value in TEMPERATURE_TEST_VALUES:
+            self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
+
+    def test_WHEN_heater_range_is_set_THEN_readback_updates(self):
+        for value in HEATER_RANGE_TEST_VALUES:
+            self.ca.assert_setting_setpoint_sets_readback(value, "HEATER:RANGE")
