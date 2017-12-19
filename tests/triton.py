@@ -46,3 +46,15 @@ class TritonTests(unittest.TestCase):
     def test_WHEN_heater_range_is_set_THEN_readback_updates(self):
         for value in HEATER_RANGE_TEST_VALUES:
             self.ca.assert_setting_setpoint_sets_readback(value, "HEATER:RANGE")
+
+    def test_heater_power(self):
+        self._lewis.backdoor_set_on_device("heater_power_units", "mA")
+        for value in HEATER_RANGE_TEST_VALUES:
+            self._lewis.backdoor_set_on_device("heater_power", value)
+            self.ca.assert_that_pv_is("HEATER:POWER", value)
+            self.ca.assert_that_pv_is("HEATER:POWER.EGU", "mA")
+
+    def test_heater_power_units(self):
+        for unit in ["A", "mA", "uA", "nA", "pA"]:
+            self._lewis.backdoor_set_on_device("heater_power_units", unit)
+            self.ca.assert_that_pv_is("HEATER:POWER.EGU", unit)
