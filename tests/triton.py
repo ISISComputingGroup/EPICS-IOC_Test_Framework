@@ -75,3 +75,9 @@ class TritonTests(unittest.TestCase):
             for valve_state_index, valve_state in enumerate(VALVE_STATES):
                 self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state_index)])
                 self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), valve_state)
+
+    def test_channels(self):
+        for chan in range(1, 7):
+            for enabled in [False, True, False]:  # Need to check both transitions work properly
+                self.ca.assert_setting_setpoint_sets_readback(
+                    "ON" if enabled else "OFF", "CHANNELS:T{}:STATE".format(chan))
