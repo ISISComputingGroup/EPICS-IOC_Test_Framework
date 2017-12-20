@@ -10,6 +10,8 @@ DEVICE_PREFIX = "TRITON_01"
 PID_TEST_VALUES = 0, 10**-5, 123.45, 10**5
 TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 1000
 HEATER_RANGE_TEST_VALUES = 0.001, 0.316, 1000
+HEATER_POWER_UNITS = ["A", "mA", "uA", "nA", "pA"]
+VALVE_STATES = ["OPEN", "CLOSED", "NOT_FOUND"]
 
 
 class TritonTests(unittest.TestCase):
@@ -56,13 +58,20 @@ class TritonTests(unittest.TestCase):
             self.ca.assert_that_pv_is("HEATER:POWER.EGU", "mA")
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
-    def test_heater_power_units(self):
-        for unit in ["A", "mA", "uA", "nA", "pA"]:
+    def test_WHEN_heater_units_are_set_via_backdoor_THEN_egu_field_on_heater_power_updates_with_the_unit_just_set(self):
+        for unit in HEATER_POWER_UNITS:
             self._lewis.backdoor_set_on_device("heater_power_units", unit)
             self.ca.assert_that_pv_is("HEATER:POWER.EGU", unit)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
-    def test_closed_loop(self):
+    def test_WHEN_closed_loop_mode_is_set_via_backdoor_THEN_the_closed_loop_pv_updates_with_value_just_set(self):
         for value in [False, True, False]:  # Need to check both transitions work properly
             self._lewis.backdoor_set_on_device("closed_loop", value)
             self.ca.assert_that_pv_is("CLOSEDLOOP", "YES" if value else "NO")
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_valve_state_is_set_via_backdoor_THEN_valve_state_pvs_update_with_value_just_set(self):
+        for valve in range(1, 11):
+            for valve_state_index, valve_state in enumerate(VALVE_STATES):
+                self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state_index)])
+                self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), valve_state)
