@@ -17,6 +17,15 @@ class Sm300Tests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix="MOT")
         self._lewis.backdoor_run_function_on_device("reset")
 
+    def set_starting_position(self, starting_pos):
+        """
+        Set the starting position of the motor and check it is there.
+        :param starting_pos: position to start at
+        """
+        self._lewis.backdoor_set_on_device("x_axis_rbv", starting_pos)
+        self._lewis.backdoor_set_on_device("x_axis_sp", starting_pos)
+        self.ca.assert_that_pv_is("MTR0101.RBV", starting_pos)
+
     def test_GIVEN_motor_at_position_WHEN_get_axis_x_ioc_position_THEN_position_is_as_expected(self):
         expected_value = 100
         self._lewis.backdoor_set_on_device("x_axis_rbv", expected_value)
@@ -66,9 +75,21 @@ class Sm300Tests(unittest.TestCase):
 
     def test_GIVEN_motor_at_position_WHEN_set_postion_THEN_motor_moves_to_the_position(self):
         expected_value = 10
-        self._lewis.backdoor_set_on_device("x_axis_rbv", 0)
-        self._lewis.backdoor_set_on_device("x_axis_sp", 0)
-        self.ca.assert_that_pv_is("MTR0101.RBV", 0)
+        self.set_starting_position(0)
         self.ca.set_pv_value("MTR0101", expected_value)
 
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_value)
+
+    def test_GIVEN_a_motor_WHEN_homed_THEN_motor_moves_to_home(self):
+        expected_home = 0
+        self.set_starting_position(10)
+        self.ca.set_pv_value("MTR0101.HOMF", 1)
+
+        self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
+
+    def test_GIVEN_a_motor_WHEN_homed_in_reverseTHEN_motor_moves_to_home(self):
+        expected_home = 0
+        self.set_starting_position(10)
+        self.ca.set_pv_value("MTR0101.HOMR", 1)
+
+        self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
