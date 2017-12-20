@@ -9,6 +9,7 @@ DEVICE_PREFIX = "TRITON_01"
 
 PID_TEST_VALUES = 0, 10**-5, 123.45, 10**5
 TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 1000
+PRESSURE_TEST_VALUES = TEMPERATURE_TEST_VALUES
 HEATER_RANGE_TEST_VALUES = 0.001, 0.316, 1000
 HEATER_POWER_UNITS = ["A", "mA", "uA", "nA", "pA"]
 VALVE_STATES = ["OPEN", "CLOSED", "NOT_FOUND"]
@@ -143,3 +144,9 @@ class TritonTests(unittest.TestCase):
         for temp in TEMPERATURE_TEST_VALUES:
             self._lewis.backdoor_set_on_device("jthx_temp", temp)
             self.ca.assert_that_pv_is("JTHX:TEMP", temp)
+
+    def test_WHEN_pressure_is_set_via_backdoor_THEN_pressure_pv_updates(self):
+        for sensor in [1, 2, 3, 5]:
+            for pressure in PRESSURE_TEST_VALUES:
+                self._lewis.backdoor_command(["device", "set_pressure_backdoor", str(sensor), str(pressure)])
+                self.ca.assert_that_pv_is("PRESSURE:P{}".format(sensor), pressure)
