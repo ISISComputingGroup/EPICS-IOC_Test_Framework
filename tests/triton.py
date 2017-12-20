@@ -81,3 +81,34 @@ class TritonTests(unittest.TestCase):
             for enabled in [False, True, False]:  # Need to check both transitions work properly
                 self.ca.assert_setting_setpoint_sets_readback(
                     "ON" if enabled else "OFF", "CHANNELS:T{}:STATE".format(chan))
+
+    def test_WHEN_a_short_status_is_set_on_device_THEN_displayed_status_is_identical(self):
+        # Status message that could be contained in an EPICS string type
+        SHORT_STATUS = "Device status"
+        assert 0 < len(SHORT_STATUS) < 40
+
+        # Status message that device is likely to return - longer than EPICS string type but reasonable for a protocol
+        MEDIUM_STATUS = "This is a device status that contains a bit more information"
+        assert 40 < len(MEDIUM_STATUS) < 256
+
+        # Short and medium statuses should be displayed in full.
+        for status in [SHORT_STATUS, MEDIUM_STATUS]:
+            self._lewis.backdoor_set_on_device("status", status)
+            self.ca.assert_that_pv_is("STATUS", status)
+
+    def test_WHEN_long_status_is_set_on_device_THEN_displayed_status_truncated_but_displays_at_least_500_chars(self):
+
+        # Somewhat arbitrary, but decide on a minimum number of characters that should be displayed in a
+        # status message to the user if the status message is very long. This seems to be a reasonable
+        # number given the messages expected, but the manual does not provide an exhaustive list.
+        minimum_characters_in_pv = 500
+
+        # Very long status message, used to check that very long messages can be handled gracefully
+        LONG_STATUS = "This device status is quite long:" + " (here is a load of information)" * 50
+
+        assert minimum_characters_in_pv < len(LONG_STATUS)
+
+        # Allow truncation for long status, but it should still display as many characters as possible
+        self._lewis.backdoor_set_on_device("status", LONG_STATUS)
+        self.ca.assert_pv_value_causes_func_to_return_true(
+            "STATUS", lambda val: LONG_STATUS.startswith(val) and len(val) >= minimum_characters_in_pv)

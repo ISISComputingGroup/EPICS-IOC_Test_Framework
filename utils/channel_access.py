@@ -76,7 +76,7 @@ class ChannelAccess(object):
             return
 
         raise AssertionError(str(msg) + error_message)
-		
+
     def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
         """
         Assert that the pv does not have a particular value and optionally it does not become that value within the
@@ -187,7 +187,7 @@ class ChannelAccess(object):
             return """Values didn't match when reading PV '{PV}'.
                    Expected value: {expected}
                    Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
-				   
+
     def _values_do_not_match(self, pv, restricted_value):
         """
         Check pv does not match a value.
@@ -339,6 +339,9 @@ class ChannelAccess(object):
                     return lambda_value
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
+            except Exception as e:
+                return "Exception in function while waiting for PV. Error was: {}".format(e)
+
             time.sleep(0.5)
             current_time = time.time()
 
@@ -434,3 +437,24 @@ class ChannelAccess(object):
         :raises AssertionError: if the value of the pv has changed
         """
         self.assert_pv_value_over_time(pv, wait, operator.eq)
+
+    def assert_pv_value_causes_func_to_return_true(self, pv, func, timeout=None):
+        """
+        Check that a PV satisfies a given function within some timeout.
+        :param pv: the PV to check
+        :param func: a function that takes one argument, the PV value, and returns True if the value is valid.
+        :param timeout: time to wait for the PV to satisfy the function
+        :raises: AssertionError: If the function does not evaluate to true within the given timeout
+        """
+        def wrapper():
+            value = self.get_pv_value(pv)
+            if func(value):
+                return None
+            else:
+                return "Expected function {} to evaluate to True when reading PV '{}'. Final PV value was '{}'"\
+                    .format(func.__name__, pv, value)
+
+        err = self._wait_for_pv_lambda(wrapper, timeout)
+
+        if err is not None:
+            raise AssertionError(err)
