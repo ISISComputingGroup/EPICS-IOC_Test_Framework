@@ -112,3 +112,13 @@ class TritonTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("status", LONG_STATUS)
         self.ca.assert_pv_value_causes_func_to_return_true(
             "STATUS", lambda val: LONG_STATUS.startswith(val) and len(val) >= minimum_characters_in_pv)
+
+    def test_WHEN_automation_is_set_on_device_THEN_displayed_automation_is_identical(self):
+        automations = [
+            "Warming up to 200K",
+            "Cooling down to 1K",
+        ]
+
+        for automation in automations:
+            self._lewis.backdoor_set_on_device("automation", automation)
+            self.ca.assert_that_pv_is("AUTOMATION", automation)
