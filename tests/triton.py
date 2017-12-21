@@ -150,3 +150,7 @@ class TritonTests(unittest.TestCase):
             for pressure in PRESSURE_TEST_VALUES:
                 self._lewis.backdoor_command(["device", "set_pressure_backdoor", str(sensor), str(pressure)])
                 self.ca.assert_that_pv_is("PRESSURE:P{}".format(sensor), pressure)
+
+    def test_WHEN_closed_loop_is_set_via_pv_THEN_readback_updates(self):
+        for state in [False, True, False]:
+            self.ca.assert_setting_setpoint_sets_readback("YES" if state else "NO", "CLOSEDLOOP")
