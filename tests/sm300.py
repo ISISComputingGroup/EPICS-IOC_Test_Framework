@@ -1,6 +1,8 @@
 import unittest
 from unittest import skipIf
 
+from hamcrest import *
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
@@ -93,3 +95,36 @@ class Sm300Tests(unittest.TestCase):
         self.ca.set_pv_value("MTR0101.HOMR", 1)
 
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
+
+    def test_GIVEN_a_motor_WHEN_reset_pressed_THEN_initial_values_sent(self):
+
+        ioc_ca = ChannelAccess(device_prefix="SM300_01")
+        ioc_ca.wait_for("RESET", 30)
+        ioc_ca.set_pv_value("RESET", 1)
+
+        reset_codes = self._lewis.backdoor_get_from_device("reset_codes")
+
+        expected_reset_codes = [
+            "PEK0", "PEL1",
+            "B/ G01", "B/ G90",
+            "PXA2", "PYA2",
+            "PXB5", "PYB1",
+            "PXC10", "PYC10",
+            "PXD2500", "PYD2500",
+            "PXE100000", "PYE25000",
+            "PXF1000", "PYF1000",
+            "PXG0", "PYG0",
+            "PXH+57000", "PYH+64000",
+            "PXI-50", "PYI-20",
+            "PXJ2500", "PYJ25000",
+            "PXK-2500", "PYK-7500",
+            "PXL100", "PYL100",
+            "PXM5", "PYM5",
+            "PXN100", "PYN5000",
+            "PXO0", "PYO0",
+            "PXP0", "PYP0",
+            "BF15000"
+        ]
+        for reset_code in expected_reset_codes:
+            assert_that(reset_codes, contains_string(reset_code))
+

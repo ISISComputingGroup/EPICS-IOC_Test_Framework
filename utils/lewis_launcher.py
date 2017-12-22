@@ -1,3 +1,6 @@
+"""
+Lewis emulator interface classes.
+"""
 import os
 import subprocess
 
@@ -83,7 +86,8 @@ class LewisLauncher(object):
     Launches Lewis.
     """
 
-    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None, lewis_package=None):
+    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None,
+                 lewis_package=None):
         """
         Constructor that also launches Lewis.
 
@@ -124,7 +128,7 @@ class LewisLauncher(object):
             self._process.terminate()
         if self._logFile is not None:
             self._logFile.close()
-            print "Lewis log written to {0}".format(self._log_filename())
+            print("Lewis log written to {0}".format(self._log_filename()))
 
     def _open(self, port):
         """
@@ -146,7 +150,7 @@ class LewisLauncher(object):
         lewis_command_line.extend(["-e", "100", self._device])
 
         print("Starting Lewis")
-        self._logFile = file(self._log_filename(), "w")
+        self._logFile = open(self._log_filename(), "w")
         self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
 
         self._process = subprocess.Popen(lewis_command_line,
@@ -166,7 +170,7 @@ class LewisLauncher(object):
         """
         if self._process.poll() is None:
             return True
-        print "Lewis has terminated! It said:"
+        print("Lewis has terminated! It said:")
         stdoutdata, stderrdata = self._process.communicate()
         sys.stderr.write(stderrdata)
         sys.stdout.write(stdoutdata)
@@ -209,7 +213,7 @@ class LewisLauncher(object):
         Send a command to the backdoor of lewis.
 
         :param lewis_command: array of command line arguments to send
-        :return:
+        :return: lines from the command output
         """
         lewis_command_line = [self._python_path,
                               os.path.join(self._lewis_path, "lewis-control.exe"),
@@ -217,14 +221,17 @@ class LewisLauncher(object):
         lewis_command_line.extend(lewis_command)
         self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))
         try:
-            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             for i in range(1, 30):
                 code = p.poll()
                 if code == 0:
-                    return
+                    lines = [line.strip() for line in p.stdout]
+                    return lines
                 sleep(0.1)
             p.terminate()
             print("Lewis backdoor did not finish!")
+            lines = [line.strip() for line in p.stdout]
+            return lines
         except subprocess.CalledProcessError as ex:
             sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
             sys.stderr.write("Error code {0}\n".format(ex.returncode))
@@ -249,3 +256,11 @@ class LewisLauncher(object):
         if not self._connected:
             self.backdoor_command(["simulation", "connect_device"])
         self._connected = True
+
+    def backdoor_get_from_device(self, variable_name):
+        """
+        Return the string of a value on a device from lewis.
+        :param variable_name: name of the variable
+        :return: the variables value, as a string
+        """
+        return "".join(self.backdoor_command(["device", str(variable_name)]))
