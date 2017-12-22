@@ -104,7 +104,6 @@ class Sm300Tests(unittest.TestCase):
 
         reset_codes = self._lewis.backdoor_get_from_device("reset_codes")
 
-        ioc_ca.assert_that_pv_is("RESET", "Done")
         expected_reset_codes = [
             "PEK0", "PEL1",
             "B/ G01", "B/ G90",
