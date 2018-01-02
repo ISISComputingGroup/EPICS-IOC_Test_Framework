@@ -4,7 +4,6 @@ from unittest import skipIf
 from hamcrest import *
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
 MACROS = {"MTRCTRL": "01", "AXIS1": "yes"}
@@ -127,6 +126,7 @@ class Sm300Tests(unittest.TestCase):
         ]
         for reset_code in expected_reset_codes:
             assert_that(reset_codes, contains_string(reset_code))
+        ioc_ca.assert_that_pv_is("RESET", "Done")
 
     def test_GIVEN_a_motor_WHEN_told_to_stop_THEN_motor_stops(self):
         self.set_starting_position(0)
@@ -136,5 +136,6 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.set_pv_value("MTR0101.STOP", 1)
 
-        self.ca.assert_that_pv_is("MTR0101.DMOV", 1, timeout=1)
+        self.ca.assert_that_pv_is("MTR0101.DMOV", 1)
+        # ensure it didn't stop because it was at its final position
         self.ca.assert_that_pv_is_not("MTR0101", final_position)
