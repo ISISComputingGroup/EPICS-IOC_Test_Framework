@@ -42,7 +42,7 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0102.RBV", expected_value)
 
-    def test_GIVEN_incorrect_axis_WHEN_get_axis_x_THEN_error_returned(self):
+    def test_GIVEN_error_on_axis_WHEN_get_axis_x_THEN_error_returned(self):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "B10")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
@@ -128,3 +128,13 @@ class Sm300Tests(unittest.TestCase):
         for reset_code in expected_reset_codes:
             assert_that(reset_codes, contains_string(reset_code))
 
+    def test_GIVEN_a_motor_WHEN_told_to_stop_THEN_motor_stops(self):
+        self.set_starting_position(0)
+        final_position = 125
+        self.ca.set_pv_value("MTR0101", final_position)
+        self.ca.assert_that_pv_is("MTR0101.DMOV", 0)
+
+        self.ca.set_pv_value("MTR0101.STOP", 1)
+
+        self.ca.assert_that_pv_is("MTR0101.DMOV", 1, timeout=1)
+        self.ca.assert_that_pv_is_not("MTR0101", final_position)
