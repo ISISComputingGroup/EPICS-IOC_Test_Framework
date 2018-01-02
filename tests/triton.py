@@ -8,11 +8,10 @@ from utils.testing import get_running_lewis_and_ioc
 DEVICE_PREFIX = "TRITON_01"
 
 PID_TEST_VALUES = 0, 10**-5, 123.45, 10**5
-TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 1000
+TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 250
 PRESSURE_TEST_VALUES = TEMPERATURE_TEST_VALUES
 HEATER_RANGE_TEST_VALUES = 0.001, 0.316, 1000
 HEATER_POWER_UNITS = ["A", "mA", "uA", "nA", "pA"]
-VALVE_STATES = ["OPEN", "CLOSED", "NOT_FOUND"]
 
 
 class TritonTests(unittest.TestCase):
@@ -47,7 +46,7 @@ class TritonTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(value, "HEATER:RANGE")
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
-    def test_heater_power(self):
+    def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_has_the_value_just_set_and_units_not_changed(self):
         self._lewis.backdoor_set_on_device("heater_power_units", "mA")
         for value in HEATER_RANGE_TEST_VALUES:
             self._lewis.backdoor_set_on_device("heater_power", value)
@@ -69,11 +68,11 @@ class TritonTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_valve_state_is_set_via_backdoor_THEN_valve_state_pvs_update_with_value_just_set(self):
         for valve in range(1, 11):
-            for valve_state_index, valve_state in enumerate(VALVE_STATES):
-                self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state_index)])
-                self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), valve_state)
+            for valve_state in [False, True, False]:
+                self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state)])
+                self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), "OPEN" if valve_state else "CLOSED")
 
-    def test_channels(self):
+    def test_WHEN_channels_are_enabled_and_disabled_via_pv_THEN_the_readback_pv_updates_with_value_just_set(self):
         for chan in range(1, 7):
             for enabled in [False, True, False]:  # Need to check both transitions work properly
                 self.ca.assert_setting_setpoint_sets_readback(
@@ -120,29 +119,32 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("automation", automation)
             self.ca.assert_that_pv_is("AUTOMATION", automation)
 
+    def _set_temp_via_backdoor(self, channel, temp):
+        self._lewis.backdoor_command(["device", "set_temperature_backdoor", "'{}'".format(channel), "{}".format(temp)])
+
     def test_WHEN_stil_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._lewis.backdoor_set_on_device("stil_temp", temp)
+            self._set_temp_via_backdoor("stil", temp)
             self.ca.assert_that_pv_is("STIL:TEMP", temp)
 
     def test_WHEN_mc_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._lewis.backdoor_set_on_device("mc_temp", temp)
+            self._set_temp_via_backdoor("mc", temp)
             self.ca.assert_that_pv_is("MC:TEMP", temp)
 
     def test_WHEN_sorb_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._lewis.backdoor_set_on_device("sorb_temp", temp)
+            self._set_temp_via_backdoor("sorb", temp)
             self.ca.assert_that_pv_is("SORB:TEMP", temp)
 
     def test_WHEN_4KHX_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._lewis.backdoor_set_on_device("fkhx_temp", temp)
+            self._set_temp_via_backdoor("4khx", temp)
             self.ca.assert_that_pv_is("4KHX:TEMP", temp)
 
     def test_WHEN_jthx_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._lewis.backdoor_set_on_device("jthx_temp", temp)
+            self._set_temp_via_backdoor("jthx", temp)
             self.ca.assert_that_pv_is("JTHX:TEMP", temp)
 
     def test_WHEN_pressure_is_set_via_backdoor_THEN_pressure_pv_updates(self):
