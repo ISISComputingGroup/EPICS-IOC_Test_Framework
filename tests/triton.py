@@ -80,15 +80,15 @@ class TritonTests(unittest.TestCase):
 
     def test_WHEN_a_short_status_is_set_on_device_THEN_displayed_status_is_identical(self):
         # Status message that could be contained in an EPICS string type
-        SHORT_STATUS = "Device status"
-        assert 0 < len(SHORT_STATUS) < 40
+        short_status = "Device status"
+        assert 0 < len(short_status) < 40
 
         # Status message that device is likely to return - longer than EPICS string type but reasonable for a protocol
-        MEDIUM_STATUS = "This is a device status that contains a bit more information"
-        assert 40 < len(MEDIUM_STATUS) < 256
+        medium_status = "This is a device status that contains a bit more information"
+        assert 40 < len(medium_status) < 256
 
         # Short and medium statuses should be displayed in full.
-        for status in [SHORT_STATUS, MEDIUM_STATUS]:
+        for status in [short_status, medium_status]:
             self._lewis.backdoor_set_on_device("status", status)
             self.ca.assert_that_pv_is("STATUS", status)
 
@@ -100,14 +100,14 @@ class TritonTests(unittest.TestCase):
         minimum_characters_in_pv = 500
 
         # Very long status message, used to check that very long messages can be handled gracefully
-        LONG_STATUS = "This device status is quite long:" + " (here is a load of information)" * 50
+        long_status = "This device status is quite long:" + " (here is a load of information)" * 50
 
-        assert minimum_characters_in_pv < len(LONG_STATUS)
+        assert minimum_characters_in_pv < len(long_status)
 
         # Allow truncation for long status, but it should still display as many characters as possible
-        self._lewis.backdoor_set_on_device("status", LONG_STATUS)
+        self._lewis.backdoor_set_on_device("status", long_status)
         self.ca.assert_pv_value_causes_func_to_return_true(
-            "STATUS", lambda val: LONG_STATUS.startswith(val) and len(val) >= minimum_characters_in_pv)
+            "STATUS", lambda val: long_status.startswith(val) and len(val) >= minimum_characters_in_pv)
 
     def test_WHEN_automation_is_set_on_device_THEN_displayed_automation_is_identical(self):
         automations = [
@@ -156,3 +156,8 @@ class TritonTests(unittest.TestCase):
     def test_WHEN_closed_loop_is_set_via_pv_THEN_readback_updates(self):
         for state in [False, True, False]:
             self.ca.assert_setting_setpoint_sets_readback("YES" if state else "NO", "CLOSEDLOOP")
+
+    def test_WHEN_read_mc_id_is_issued_via_arbitrary_command_THEN_response_is_in_format_device_uses(self):
+        self.ca.set_pv_value("ARBITRARY:SP", "READ:SYS:DR:CHAN:MC")
+        self.ca.assert_pv_value_causes_func_to_return_true("ARBITRARY",
+                                                           lambda val: val.startswith("STAT:SYS:DR:CHAN:MC:"))
