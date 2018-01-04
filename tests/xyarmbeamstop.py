@@ -11,8 +11,9 @@ GALIL_ADDR = "128.0.0.0"
 
 # MACROS to use for the IOC
 MACROS = {
-    "GALILADDR01": GALIL_ADDR,
-    "IFXYBEAMSTOP": " "
+    "GALILADDR": GALIL_ADDR,
+    "IFXYBEAMSTOP": " ",
+    "MTRCTRL": "1",
 }
 
 PREFIX = "MOT"
