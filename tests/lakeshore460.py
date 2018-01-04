@@ -1,7 +1,6 @@
 import unittest
 from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
-import time
 
 vector_dict = {1: "XYZ", 2: "XY", 3: "XZ", 4: "YZ", 5: "X-Y"}
 channels_array = ["X", "Y", "Z", "V"]
@@ -51,7 +50,7 @@ class Lakeshore460Tests(unittest.TestCase):
         unit_flag = UnitFlags.TESLA
         self.ca.set_pv_value("LKSH460_01:UNIT:SP", unit_flag)
         self.ca.assert_that_pv_is("LKSH460_01:UNIT", unit_string)
-    
+
     def test_GIVEN_source_set_WHEN_read_THEN_source_is_as_expected(self):
         for key in vector_dict:
             set_value = key
@@ -210,3 +209,4 @@ class Lakeshore460Tests(unittest.TestCase):
                 expected_range = range_dict[key]
                 self.ca.set_pv_value("LKSH460_01:{}:RANGE:SP".format(chan), set_range)
                 self.ca.assert_that_pv_is("LKSH460_01:{}:RANGE".format(chan), expected_range)
+    
