@@ -25,19 +25,21 @@ class Sm300Tests(unittest.TestCase):
         """
         self._lewis.backdoor_set_on_device("x_axis_rbv", starting_pos)
         self._lewis.backdoor_set_on_device("x_axis_sp", starting_pos)
-        self.ca.assert_that_pv_is("MTR0101.RBV", starting_pos)
+        self.ca.assert_that_pv_is("MTR0101.RRBV", starting_pos)
 
     def test_GIVEN_motor_at_position_WHEN_get_axis_x_ioc_position_THEN_position_is_as_expected(self):
         expected_value = 100
-        self._lewis.backdoor_set_on_device("x_axis_rbv", expected_value)
-        self._lewis.backdoor_set_on_device("x_axis_sp", expected_value)
+        resolution = self.ca.get_pv_value("MTR0101.MRES")
+        self._lewis.backdoor_set_on_device("x_axis_rbv", expected_value / resolution)
+        self._lewis.backdoor_set_on_device("x_axis_sp", expected_value / resolution)
 
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_value)
 
     def test_GIVEN_motor_at_position_WHEN_get_axis_y_ioc_position_THEN_position_is_as_expected(self):
         expected_value = 100
-        self._lewis.backdoor_set_on_device("y_axis_rbv", expected_value)
-        self._lewis.backdoor_set_on_device("y_axis_sp", expected_value)
+        resolution = self.ca.get_pv_value("MTR0101.MRES")
+        self._lewis.backdoor_set_on_device("y_axis_rbv", expected_value / resolution)
+        self._lewis.backdoor_set_on_device("y_axis_sp", expected_value / resolution)
 
         self.ca.assert_that_pv_is("MTR0102.RBV", expected_value)
 
