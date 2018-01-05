@@ -141,3 +141,26 @@ class Sm300Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("MTR0101.DMOV", 1)
         # ensure it didn't stop because it was at its final position
         self.ca.assert_that_pv_is_not("MTR0101", final_position)
+
+    def test_GIVEN_a_motor_moving_to_set_point_WHEN_told_to_move_to_another_set_point_THEN_motor_goes_to_new_setpoint(self):
+        self.set_starting_position(0)
+        first_position = 30
+        final_position = 60
+        self.ca.set_pv_value("MTR0101", first_position)
+        self.ca.assert_that_pv_is("MTR0101.DMOV", 0)
+
+        self.ca.set_pv_value("MTR0101", final_position)
+
+        self.ca.assert_that_pv_is("MTR0101.RBV", final_position)
+
+    def test_GIVEN_an_axis_moving_to_set_point_WHEN_other_axis_told_to_mve_THEN_motor_goes_to_setpoint(self):
+        self.set_starting_position(0)
+        x_position = 50
+        y_position = 40
+        self.ca.set_pv_value("MTR0101", x_position)
+        self.ca.assert_that_pv_is("MTR0101.DMOV", 0)
+
+        self.ca.set_pv_value("MTR0102", y_position)
+
+        self.ca.assert_that_pv_is("MTR0101.RBV", x_position)
+        self.ca.assert_that_pv_is("MTR0102.RBV", y_position)
