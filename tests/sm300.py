@@ -6,7 +6,19 @@ from hamcrest import *
 from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
 
-MACROS = {"MTRCTRL": "01", "AXIS1": "yes"}
+MACROS = {"MTRCTRL": "01",
+          "AXIS1": "yes",
+          "NAME1": "Sample Lin",
+          "MSTP1": 200,
+          "VELO1": 125,
+          "DHLM1": 285,
+          "DLLM1": -0.25,
+          "NAME2": "Sample Rot",
+          "MSTP3": 1000,
+          "VELO4": 25,
+          "DHLM5": 64,
+          "DLLM6": -0.02
+          }
 
 
 class Sm300Tests(unittest.TestCase):
@@ -18,14 +30,21 @@ class Sm300Tests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix="MOT")
         self._lewis.backdoor_run_function_on_device("reset")
 
-    def set_starting_position(self, starting_pos):
+    def set_starting_position(self, starting_pos, axis="x"):
         """
         Set the starting position of the motor and check it is there.
-        :param starting_pos: position to start at
+        Args:
+            starting_pos: position to start at
+            axis: axis to set position on
+
         """
-        self._lewis.backdoor_set_on_device("x_axis_rbv", starting_pos)
-        self._lewis.backdoor_set_on_device("x_axis_sp", starting_pos)
-        self.ca.assert_that_pv_is("MTR0101.RRBV", starting_pos)
+        self._lewis.backdoor_set_on_device(axis + "_axis_rbv", starting_pos)
+        self._lewis.backdoor_set_on_device(axis + "_axis_sp", starting_pos)
+        if axis == "x":
+            rrbv_pv = "MTR0101.RRBV"
+        else:
+            rrbv_pv = "MTR0102.RRBV"
+        self.ca.assert_that_pv_is(rrbv_pv, starting_pos)
 
     def test_GIVEN_motor_at_position_WHEN_get_axis_x_ioc_position_THEN_position_is_as_expected(self):
         expected_value = 100
@@ -37,7 +56,7 @@ class Sm300Tests(unittest.TestCase):
 
     def test_GIVEN_motor_at_position_WHEN_get_axis_y_ioc_position_THEN_position_is_as_expected(self):
         expected_value = 100
-        resolution = self.ca.get_pv_value("MTR0101.MRES")
+        resolution = self.ca.get_pv_value("MTR0102.MRES")
         self._lewis.backdoor_set_on_device("y_axis_rbv", expected_value / resolution)
         self._lewis.backdoor_set_on_device("y_axis_sp", expected_value / resolution)
 
@@ -132,7 +151,7 @@ class Sm300Tests(unittest.TestCase):
 
     def test_GIVEN_a_motor_WHEN_told_to_stop_THEN_motor_stops(self):
         self.set_starting_position(0)
-        final_position = 125
+        final_position = 60
         self.ca.set_pv_value("MTR0101", final_position)
         self.ca.assert_that_pv_is("MTR0101.DMOV", 0)
 
@@ -144,8 +163,8 @@ class Sm300Tests(unittest.TestCase):
 
     def test_GIVEN_a_motor_moving_to_set_point_WHEN_told_to_move_to_another_set_point_THEN_motor_goes_to_new_setpoint(self):
         self.set_starting_position(0)
-        first_position = 30
-        final_position = 60
+        first_position = 20
+        final_position = 30
         self.ca.set_pv_value("MTR0101", first_position)
         self.ca.assert_that_pv_is("MTR0101.DMOV", 0)
 
@@ -153,10 +172,11 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0101.RBV", final_position)
 
-    def test_GIVEN_an_axis_moving_to_set_point_WHEN_other_axis_told_to_mve_THEN_motor_goes_to_setpoint(self):
-        self.set_starting_position(0)
-        x_position = 50
-        y_position = 40
+    def test_GIVEN_an_axis_moving_to_set_point_WHEN_other_axis_told_to_move_THEN_motor_goes_to_setpoint(self):
+        self.set_starting_position(0, axis="x")
+        self.set_starting_position(0, axis="y")
+        x_position = 20
+        y_position = 4
         self.ca.set_pv_value("MTR0101", x_position)
         self.ca.assert_that_pv_is("MTR0101.DMOV", 0)
 
