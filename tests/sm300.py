@@ -184,3 +184,13 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0101.RBV", x_position)
         self.ca.assert_that_pv_is("MTR0102.RBV", y_position)
+
+    def test_GIVEN_a_motor_WHEN_disconnect_THEN_M77_is_sent(self):
+
+        ioc_ca = ChannelAccess(device_prefix="SM300_01")
+        ioc_ca.wait_for("DISCONNECT", 30)
+        ioc_ca.set_pv_value("DISCONNECT", 1)
+
+        reset_codes = self._lewis.backdoor_get_from_device("disconnect")
+
+        assert_that(reset_codes, is_("77"))
