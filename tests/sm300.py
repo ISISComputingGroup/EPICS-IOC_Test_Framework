@@ -194,3 +194,35 @@ class Sm300Tests(unittest.TestCase):
         reset_codes = self._lewis.backdoor_get_from_device("disconnect")
 
         assert_that(reset_codes, is_("77"))
+
+    def test_GIVEN_normal_error_WHEN_query_THEN_error_is_set(self):
+
+        ioc_ca = ChannelAccess(device_prefix="SM300_01")
+        self._lewis.backdoor_set_on_device("error_code", 1)
+
+        ioc_ca.assert_that_pv_is("ERROR", "Servo error")
+        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
+
+    def test_GIVEN_no_error_WHEN_query_THEN_error_is_blank(self):
+
+        ioc_ca = ChannelAccess(device_prefix="SM300_01")
+        self._lewis.backdoor_set_on_device("error_code", 0)
+
+        ioc_ca.assert_that_pv_is("ERROR", "")
+        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_NONE)
+
+    def test_GIVEN_command_send_error_WHEN_query_THEN_error_is_set(self):
+
+        ioc_ca = ChannelAccess(device_prefix="SM300_01")
+        self._lewis.backdoor_set_on_device("error_code", 0x10)
+
+        ioc_ca.assert_that_pv_is("ERROR", "Cmd error code")
+        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
+
+    def test_GIVEN_cnc_command_send_CNC_error_WHEN_query_THEN_error_is_set(self):
+
+        ioc_ca = ChannelAccess(device_prefix="SM300_01")
+        self._lewis.backdoor_set_on_device("error_code", 0x20)
+
+        ioc_ca.assert_that_pv_is("ERROR", "CNC cmd error code")
+        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
