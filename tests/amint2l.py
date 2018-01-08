@@ -2,17 +2,28 @@ import unittest
 from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.lewis_launcher import LewisRegister
 from utils.testing import get_running_lewis_and_ioc
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "01"
 
-# MACROS to use for the IOC
-MACROS = {"ADDR": ADDRESS}
-
 # Device prefix
 DEVICE_PREFIX = "AMINT2L_01"
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("AMINT2L"),
+        "macros": {
+            "DEVICE": "L0",
+            "ADDR": ADDRESS,
+        },
+        "emulator": "amint2l",
+        "emulator_protocol": "stream",
+    },
+]
 
 
 class Amint2lTests(unittest.TestCase):
@@ -21,7 +32,8 @@ class Amint2lTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("amint2l")
+        self._lewis = LewisRegister.get_running("amint2l")
+        self._ioc = IOCRegister.get_running("AMINT2L_01")
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device("address", ADDRESS)

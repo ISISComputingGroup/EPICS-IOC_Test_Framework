@@ -5,6 +5,21 @@ from utils.channel_access import ChannelAccess
 from utils.log_file import log_filename
 
 
+EPICS_TOP = os.path.join("C:\\", "Instrument", "Apps", "EPICS")
+
+
+def get_default_ioc_dir(iocname, iocnum=1):
+    """
+    Gets the default path to run the IOC given the name.
+    Args:
+        iocname: the name of the ioc
+        iocnum: the number of the ioc to start (defaults to 1)
+    Returns:
+        the path
+    """
+    return os.path.join(EPICS_TOP, "ioc", "master", iocname, "iocBoot", "ioc{}-IOC-{:02d}".format(iocname, iocnum))
+
+
 class IOCRegister(object):
     """
     A way of registering running iocs.
@@ -42,12 +57,13 @@ class IocLauncher(object):
     Launches an IOC for testing.
     """
 
-    def __init__(self, device, directory, use_rec_sim, var_dir):
+    def __init__(self, device, directory, macros, use_rec_sim, var_dir):
         """
         Constructor that also launches the IOC.
 
         :param device: device name
         :param directory: the directory where the st.cmd for the IOC is found
+        :param macros: the macros that should be passed to this IOC
         :param use_rec_sim: Use record simulation not device simulation in the ioc
         :param var_dir: location of directory to write log file and macros directories
         """
@@ -62,19 +78,9 @@ class IocLauncher(object):
         # port to use for the ioc
         self.port = None
         # macros to use for the ioc
-        self.macros = None
+        self.macros = macros
         # prefix for the ioc
         self.device_prefix = None
-
-    def __enter__(self):
-        self.open()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-        if self._logFile is not None:
-            self._logFile.close()
-            print("Lewis log written to {0}".format(self._log_filename()))
 
     def _log_filename(self):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
@@ -94,6 +100,13 @@ class IocLauncher(object):
         settings['EMULATOR_PORT'] = str(self.port)
         return settings
 
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.close()
+
     def open(self):
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
@@ -112,7 +125,7 @@ class IocLauncher(object):
                 raise AssertionError("IOC appears to already be running {0}".format(ex))
 
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
-        print("Starting IOC")
+        print("Starting IOC ({})".format(self._device))
 
         settings = self._set_environment_vars()
 
@@ -148,11 +161,15 @@ class IocLauncher(object):
         """
         Closes the IOC.
         """
-        if self._process is None:
-            return
-        print("Terminating IOC")
-        # Need to send "exit" to the console as terminating the process won't work, because we ran a batch file
-        self._process.communicate("exit\n")
+        print("Terminating IOC ({})".format(self._device))
+
+        if self._process is not None:
+            # Need to send "exit" to the console as terminating the process won't work, because we ran a batch file
+            self._process.communicate("exit\n")
+
+        if self._logFile is not None:
+            self._logFile.close()
+            print("Lewis log written to {0}".format(self._log_filename()))
 
     def set_simulated_value(self, pv_name, value):
         """

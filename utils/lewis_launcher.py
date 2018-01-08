@@ -192,14 +192,13 @@ class LewisLauncher(object):
         :param lewis_command: array of command line arguments to send
         :return:
         """
-        lewis_command_line = [self._python_path,
-            os.path.join(self._lewis_path, "lewis-control.exe"),
-            "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis-control.exe"),
+                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
         self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))
         try:
             p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT)
-            for i in range(1,30):
+            for i in range(1, 30):
                 code = p.poll()
                 if code == 0:
                     return
