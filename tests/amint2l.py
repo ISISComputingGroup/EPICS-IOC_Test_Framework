@@ -17,7 +17,6 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("AMINT2L"),
         "macros": {
-            "DEVICE": "L0",
             "ADDR": ADDRESS,
         },
         "emulator": "amint2l",
@@ -34,6 +33,8 @@ class Amint2lTests(unittest.TestCase):
     def setUp(self):
         self._lewis = LewisRegister.get_running("amint2l")
         self._ioc = IOCRegister.get_running("AMINT2L_01")
+        self.assertIsNotNone(self._lewis)
+        self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device("address", ADDRESS)

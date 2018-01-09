@@ -72,7 +72,8 @@ class IocLauncher(object):
         self._process = None
         self._logFile = None
         self._device = device
-        IOCRegister.uses_rec_sim = use_rec_sim
+        print("Using rec sim: {}".format(bool(use_rec_sim)))
+        IOCRegister.uses_rec_sim = bool(use_rec_sim)
         self._ca = None
         self._var_dir = var_dir
         # port to use for the ioc

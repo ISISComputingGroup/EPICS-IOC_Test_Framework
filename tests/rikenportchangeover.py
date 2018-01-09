@@ -24,7 +24,7 @@ IOCS = [
         "name": "DFKPS_02",
         "directory": get_default_ioc_dir("DFKPS", 2),
         "macros": {
-
+            
         },
     },
 ]
