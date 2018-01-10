@@ -1,10 +1,8 @@
 import unittest
-from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
-from utils.lewis_launcher import LewisRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "01"
@@ -31,8 +29,7 @@ class Amint2lTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis = LewisRegister.get_running("amint2l")
-        self._ioc = IOCRegister.get_running("AMINT2L_01")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("amint2l", DEVICE_PREFIX)
         self.assertIsNotNone(self._lewis)
         self.assertIsNotNone(self._ioc)
 
@@ -63,7 +60,7 @@ class Amint2lTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PRESSURE", expected_pressure)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_pressure_over_range_set_WHEN_read_THEN_error(self):
         expected_pressure = "OR"
         self._set_pressure(expected_pressure)
@@ -71,7 +68,7 @@ class Amint2lTests(unittest.TestCase):
         self.ca.assert_pv_alarm_is("PRESSURE", ChannelAccess.ALARM_INVALID)
         self.ca.assert_that_pv_is("RANGE:ERROR", "Over Range")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_pressure_under_range_set_WHEN_read_THEN_error(self):
         expected_pressure = "UR"
         self._set_pressure(expected_pressure)
@@ -79,7 +76,7 @@ class Amint2lTests(unittest.TestCase):
         self.ca.assert_pv_alarm_is("PRESSURE", ChannelAccess.ALARM_INVALID)
         self.ca.assert_that_pv_is("RANGE:ERROR", "Under Range")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_device_disconnected_WHEN_read_THEN_pv_shows_disconnect(self):
         self._lewis.backdoor_set_on_device("pressure", None)
         # Setting none simulates no response from device which is like pulling the serial cable. Disconnecting the

@@ -37,7 +37,6 @@ def load_module(name):
     :return: a reference to the module
     """
     module = importlib.import_module(name, )
-    reload(module)
     return module
 
 
@@ -90,11 +89,12 @@ def run_test(prefix, test_module, device_launchers):
     }
 
     with modified_environment(**settings), device_launchers:
-        if not lewis_launcher.check():
-            sys.exit(-1)
 
         runner = xmlrunner.XMLTestRunner(output='test-reports')
 
+        # Need to reload the test module here. This is because the @skipIf decorators in the tests run at class load
+        # time as opposed to runtime
+        # reload(test_module)
         test_classes = [getattr(test_module, s) for s in dir(test_module) if s.endswith("Tests")]
 
         if len(test_classes) < 1:
