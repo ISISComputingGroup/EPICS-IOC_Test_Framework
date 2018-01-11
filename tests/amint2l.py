@@ -18,7 +18,6 @@ IOCS = [
             "ADDR": ADDRESS,
         },
         "emulator": "amint2l",
-        "emulator_protocol": "stream",
     },
 ]
 

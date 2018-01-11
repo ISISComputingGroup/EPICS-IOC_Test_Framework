@@ -57,7 +57,7 @@ class IocLauncher(object):
     Launches an IOC for testing.
     """
 
-    def __init__(self, device, directory, macros, use_rec_sim, var_dir):
+    def __init__(self, device, directory, macros, use_rec_sim, var_dir, port):
         """
         Constructor that also launches the IOC.
 
@@ -66,18 +66,18 @@ class IocLauncher(object):
         :param macros: the macros that should be passed to this IOC
         :param use_rec_sim: Use record simulation not device simulation in the ioc
         :param var_dir: location of directory to write log file and macros directories
+        :param port: The port to use
         """
         self._directory = directory
         self.use_rec_sim = use_rec_sim
         self._process = None
         self._logFile = None
         self._device = device
-        print("Using rec sim: {}".format(bool(use_rec_sim)))
         IOCRegister.uses_rec_sim = bool(use_rec_sim)
         self._ca = None
         self._var_dir = var_dir
         # port to use for the ioc
-        self.port = None
+        self.port = port
         # macros to use for the ioc
         self.macros = macros
         # prefix for the ioc

@@ -15,7 +15,6 @@ IOCS = [
         "directory": get_default_ioc_dir("FERMCHOP"),
         "macros": {},
         "emulator": "fermichopper",
-        "emulator_protocol": "stream",
     },
 ]
 

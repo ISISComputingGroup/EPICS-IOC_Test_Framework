@@ -16,7 +16,6 @@ IOCS = [
         "directory": get_default_ioc_dir("INSTRON"),
         "macros": {},
         "emulator": "instron_stress_rig",
-        "emulator_protocol": "stream",
     },
 ]
 

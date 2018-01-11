@@ -43,6 +43,10 @@ class ChannelAccess(object):
         :param pv: the EPICS PV name
         :param value: the value to set
         """
+        # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try to jump the gun
+        # and attempt to write to a PV that doesn't exist yet
+        self.wait_for(pv)
+
         # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
@@ -76,7 +80,7 @@ class ChannelAccess(object):
             return
 
         raise AssertionError(str(msg) + error_message)
-		
+
     def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
         """
         Assert that the pv does not have a particular value and optionally it does not become that value within the
@@ -187,7 +191,7 @@ class ChannelAccess(object):
             return """Values didn't match when reading PV '{PV}'.
                    Expected value: {expected}
                    Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
-				   
+
     def _values_do_not_match(self, pv, restricted_value):
         """
         Check pv does not match a value.
@@ -307,7 +311,6 @@ class ChannelAccess(object):
         pv_name = self._create_pv_with_prefix(pv)
         if self.ca.pv_exists(pv_name, timeout):
             raise AssertionError("PV {pv} exists".format(pv=pv_name))
-
 
     def _create_pv_with_prefix(self, pv):
         """

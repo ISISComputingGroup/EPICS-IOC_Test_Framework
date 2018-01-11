@@ -1,26 +1,32 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 
 # Internal Address of device (must be 2 characters)
 GALIL_ADDR = "128.0.0.0"
 
-# MACROS to use for the IOC
-MACROS = {
-    "GALILADDR01": GALIL_ADDR,
-    "IFCHOPLIFT": " "
-}
+
+IOCS = [
+    {
+        "name": "GALIL_01",
+        "directory": get_default_ioc_dir("GALIL"),
+        "macros": {
+            "GALILADDR01": GALIL_ADDR,
+            "IFCHOPLIFT": " ",
+        },
+    },
+]
 
 
-class Fermi_chopper_lifterTests(unittest.TestCase):
+class FermiChopperLifterTests(unittest.TestCase):
     """
     Tests for the fermi chopper lift.
 
     There isn't any logic to test in this IOC so this is really just a test that the DB records get loaded.
     """
     def setUp(self):
-        self._ioc = IOCRegister.get_running("fermi_chopper_lifter")
+        self._ioc = IOCRegister.get_running("GALIL_01")
         self.ca = ChannelAccess(default_timeout=30)
         self.ca.wait_for("MOT:CHOPLIFT:STATUS", timeout=60)
 

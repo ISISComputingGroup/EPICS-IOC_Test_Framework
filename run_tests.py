@@ -4,13 +4,15 @@ import importlib
 import unittest
 
 import sys
+
+import time
 import xmlrunner
 import argparse
 from contextlib import contextmanager
 
-from utils.device_launcher import DeviceLauncher, DeviceCollectionLauncher
+from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.lewis_launcher import LewisLauncher, LewisNone
-from utils.ioc_launcher import IocLauncher
+from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 
 
@@ -60,7 +62,7 @@ def modified_environment(**kwargs):
 
 def run_test(prefix, test_module, device_launchers):
     """
-    Runs the tests for the specified IOC.
+    Runs the tests for the specified set of devices.
 
     :param prefix: the instrument prefix
     :param test_module: the test module
@@ -70,27 +72,17 @@ def run_test(prefix, test_module, device_launchers):
     # This can then be accessed elsewhere
     os.environ["testing_prefix"] = prefix
 
-    for device_launcher in device_launchers:
-        port = str(get_free_ports(1)[0])
-        device_launcher.ioc.port = port
-
-        if device_launcher.lewis is not None:
-            device_launcher.lewis.port = port
-
-        try:
-            device_launcher.ioc.device_prefix = test_module.DEVICE_PREFIX
-        except AttributeError:
-            device_launcher.ioc.device_prefix = None
-
-        # Override any emulator port that might be set elsewhere
-        device_launcher.ioc.macros['EMULATOR_PORT'] = port
-
     # Need to set epics address list to local broadcast otherwise channel access won't work
     settings = {
         'EPICS_CA_ADDR_LIST': "127.255.255.255"
     }
 
     with modified_environment(**settings), device_launchers:
+
+        # Give IOCs a little time to fully initialize. Some IOCs may load their disable records first but then
+        # not be ready to accept write requests until a short time later. I don't see a good way to tell whether an IOC
+        # is fully started that works for any generic IOC.
+        time.sleep(5)
 
         runner = xmlrunner.XMLTestRunner(output='test-reports')
 
@@ -104,6 +96,78 @@ def run_test(prefix, test_module, device_launchers):
             test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
             runner.run(test_suite)
 
+
+def make_device_launchers_from_module(test_module):
+    """
+    Returns a list of device launchers for the given test module
+    :param test_module: module containing IOC tests
+    :return: list of device launchers (context managers which launch ioc + emulator pairs)
+    """
+
+    try:
+        iocs = test_module.IOCS
+    except AttributeError:
+        raise AttributeError("Expected module '{}' to contain an IOCS attribute".format(test_module.__name__))
+
+    if len(iocs) < 1:
+        raise ValueError("Need at least one IOC to launch")
+
+    device_launchers = []
+    for ioc in iocs:
+
+        free_port = str(get_free_ports(1)[0])
+        macros = ioc["macros"]
+        macros['EMULATOR_PORT'] = free_port
+
+        ioc_launcher = IocLauncher(device=ioc["name"],
+                                   directory=ioc["directory"],
+                                   macros=macros,
+                                   use_rec_sim=arguments.record_simulation,
+                                   var_dir=var_dir,
+                                   port=free_port)
+
+        try:
+            ioc_launcher.device_prefix = test_module.DEVICE_PREFIX
+        except AttributeError:
+            pass
+
+        if "emulator" in ioc and not arguments.record_simulation:
+
+            emulator_name = ioc["emulator"]
+            try:
+                emulator_protocol = ioc["emulator_protocol"]
+            except KeyError:
+                emulator_protocol = "stream"
+
+            try:
+                emulator_device_package = ioc["emulator_package"]
+            except KeyError:
+                emulator_device_package = "lewis_emulators"
+
+            try:
+                emulator_path = ioc["emulator_path"]
+            except KeyError:
+                emulator_path = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
+
+            lewis_launcher = LewisLauncher(
+                device=emulator_name,
+                python_path=os.path.abspath(arguments.python_path),
+                lewis_path=os.path.abspath(arguments.emulator_path),
+                lewis_protocol=emulator_protocol,
+                lewis_additional_path=emulator_path,
+                lewis_package=emulator_device_package,
+                var_dir=var_dir,
+                port=free_port
+            )
+
+        elif "emulator" in ioc:
+            lewis_launcher = LewisNone(ioc["emulator"])
+        else:
+            lewis_launcher = None
+
+        device_launchers.append(device_launcher(ioc_launcher, lewis_launcher))
+
+    return device_launchers
 
 if __name__ == '__main__':
 
@@ -121,10 +185,6 @@ if __name__ == '__main__':
                         help="The path of python.exe")
     parser.add_argument('-r', '--record-simulation', default=False, action="count",
                         help="Use record simulation rather than emulation (optional)")
-    parser.add_argument('-ea', '--emulator-add-path', default=None,
-                        help="Add path where device packages exist for the emulator.")
-    parser.add_argument('-ek', '--emulator-device-package', default=None,
-                        help="Name of packages where devices are found.")
     parser.add_argument('--var-dir', default=None,
                         help="Directory in which to create a log dir to write log file to and directory in which to "
                              "create tmp dir which contains environments variables for the IOC. Defaults to "
@@ -144,51 +204,14 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     elif arguments.test_module:
-
         if arguments.record_simulation:
             print("Running using record simulation")
         else:
             print("Running using device simulation")
 
-        lewis = LewisNone("")
         test_module = load_module("tests.{}".format(arguments.test_module))
-
-        try:
-            iocs = test_module.IOCS
-        except AttributeError:
-            raise AttributeError("Expected module '{}' to contain an IOCS attribute".format(test_module.__name__))
-
-        if len(iocs) < 1:
-            raise ValueError("Need at least one IOC to launch")
-
-        device_launchers = []
-        for ioc in iocs:
-            ioc_launcher = IocLauncher(device=ioc["name"], directory=ioc["directory"], macros=ioc["macros"],
-                                       use_rec_sim=arguments.record_simulation, var_dir=var_dir)
-
-            if "emulator" in ioc and not arguments.record_simulation:
-
-                emulator_name = ioc["emulator"]
-                emulator_protocol = ioc["emulator_protocol"] if "emulator_protocol" in ioc else "stream"
-                emulator_device_package = ioc["emulator_package"] if "emulator_package" in ioc else "lewis_emulators"
-
-                lewis_launcher = LewisLauncher(
-                    device=emulator_name,
-                    python_path=os.path.abspath(arguments.python_path),
-                    lewis_path=os.path.abspath(arguments.emulator_path),
-                    lewis_protocol=emulator_protocol,
-                    lewis_additional_path=arguments.emulator_add_path,
-                    lewis_package=emulator_device_package,
-                    var_dir=var_dir
-                )
-            elif "emulator" in ioc:
-                lewis_launcher = LewisNone(ioc["emulator"])
-            else:
-                lewis_launcher = None
-
-            device_launchers.append(DeviceLauncher(ioc_launcher, lewis_launcher))
-
-        run_test(arguments.prefix, test_module, DeviceCollectionLauncher(device_launchers))
+        device_launchers = make_device_launchers_from_module(test_module)
+        run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers))
     else:
         print("Type -h for help")
         sys.exit(-1)

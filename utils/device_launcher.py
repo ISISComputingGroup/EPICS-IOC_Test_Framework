@@ -1,37 +1,33 @@
-class DeviceLauncher(object):
+from contextlib import contextmanager
+import sys
+
+
+@contextmanager
+def device_launcher(ioc, lewis):
     """
-    Launches an IOC and associated emulator
+    Context manager that launches an ioc and emulator pair
+    :param ioc: the ioc launcher
+    :param lewis: the lewis launcher
     """
-
-    def __init__(self, ioc, lewis):
-        self.ioc = ioc
-        self.lewis = lewis
-
-    def __enter__(self):
-        self.ioc.__enter__()
-        if self.lewis is not None:
-            self.lewis.__enter__()
-
-    def __exit__(self, *args, **kwargs):
-        self.ioc.__exit__(*args, **kwargs)
-        if self.lewis is not None:
-            self.lewis.__exit__(*args, **kwargs)
+    if lewis is not None:
+        with lewis, ioc:
+            yield
+    else:
+        with ioc:
+            yield
 
 
-class DeviceCollectionLauncher(object):
+@contextmanager
+def device_collection_launcher(devices):
     """
-    Launches a collection of devices (device = ioc + emulator)
+    Context manager that launches a list of devices
+    :param devices: list of context managers representing the devices to launch (see device_launcher above)
     """
-    def __init__(self, devices):
-        self.devices = devices
+    for device in devices:
+        device.__enter__()
 
-    def __enter__(self):
-        for device in self.devices:
-            device.__enter__()
-
-    def __exit__(self, *args, **kwargs):
-        for device in self.devices:
-            device.__exit__(*args, **kwargs)
-
-    def __iter__(self):
-        return iter(self.devices)
+    try:
+        yield
+    finally:
+        for device in reversed(devices):
+            device.__exit__(*sys.exc_info())
