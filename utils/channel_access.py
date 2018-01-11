@@ -309,7 +309,6 @@ class ChannelAccess(object):
         """
 
         pv_name = self._create_pv_with_prefix(pv)
-        print("looking for {}".format(pv_name))
         if self.ca.pv_exists(pv_name, timeout):
             raise AssertionError("PV {pv} exists".format(pv=pv_name))
 

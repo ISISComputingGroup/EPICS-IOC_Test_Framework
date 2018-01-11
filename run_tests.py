@@ -79,11 +79,6 @@ def run_test(prefix, test_module, device_launchers):
 
     with modified_environment(**settings), device_launchers:
 
-        # Give IOCs a little time to fully initialize. Some IOCs may load their disable records first but then
-        # not be ready to accept write requests until a short time later. I don't see a good way to tell whether an IOC
-        # is fully started that works for any generic IOC.
-        time.sleep(5)
-
         runner = xmlrunner.XMLTestRunner(output='test-reports')
 
         test_classes = [getattr(test_module, s) for s in dir(test_module) if s.endswith("Tests")]
