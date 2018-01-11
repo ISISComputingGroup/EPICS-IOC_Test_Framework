@@ -1,11 +1,13 @@
 import subprocess
 import os
+from time import sleep
 
 from utils.channel_access import ChannelAccess
 from utils.log_file import log_filename
 
 
 EPICS_TOP = os.path.join("C:\\", "Instrument", "Apps", "EPICS")
+MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 60
 
 
 def get_default_ioc_dir(iocname, iocnum=1):
@@ -80,8 +82,6 @@ class IocLauncher(object):
         self.port = port
         # macros to use for the ioc
         self.macros = macros
-        # prefix for the ioc
-        self.device_prefix = None
 
     def _log_filename(self):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
@@ -117,14 +117,6 @@ class IocLauncher(object):
         if not os.path.isfile(st_cmd_path):
             print("St.cmd path not found: '{0}'".format(st_cmd_path))
 
-        if self.device_prefix is not None:
-            print("Check IOC is not running")
-            ca = self._get_channel_access()
-            try:
-                ca.assert_pv_does_not_exist("DISABLE")
-            except AssertionError as ex:
-                raise AssertionError("IOC appears to already be running {0}".format(ex))
-
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
         print("Starting IOC ({})".format(self._device))
 
@@ -149,12 +141,15 @@ class IocLauncher(object):
                                          cwd=self._directory, stdin=subprocess.PIPE, stdout=self._logFile,
                                          stderr=subprocess.STDOUT, env=settings)
 
-        if self.device_prefix is not None:
-            ca = self._get_channel_access()
-            try:
-                ca.wait_for("DISABLE", timeout=30)
-            except AssertionError as ex:
-                raise AssertionError("IOC appears not to have started {0}".format(ex))
+        # Look for epics> in the IOC log which means that the IOC has successfully started.
+        for i in range(MAX_TIME_TO_WAIT_FOR_IOC_TO_START):
+            with open(self._log_filename()) as f:
+                if any("epics>" in line for line in f.readlines()):
+                    break
+            sleep(1)
+        else:
+            raise AssertionError("IOC appears not to have started after {} seconds."
+                                 .format(MAX_TIME_TO_WAIT_FOR_IOC_TO_START))
 
         IOCRegister.add_ioc(self._device, self)
 
@@ -170,7 +165,7 @@ class IocLauncher(object):
 
         if self._logFile is not None:
             self._logFile.close()
-            print("Lewis log written to {0}".format(self._log_filename()))
+            print("IOC log written to {0}".format(self._log_filename()))
 
     def set_simulated_value(self, pv_name, value):
         """

@@ -126,11 +126,6 @@ def make_device_launchers_from_module(test_module):
                                    var_dir=var_dir,
                                    port=free_port)
 
-        try:
-            ioc_launcher.device_prefix = test_module.DEVICE_PREFIX
-        except AttributeError:
-            pass
-
         if "emulator" in ioc and not arguments.record_simulation:
 
             emulator_name = ioc["emulator"]
