@@ -117,6 +117,14 @@ class IocLauncher(object):
         if not os.path.isfile(st_cmd_path):
             print("St.cmd path not found: '{0}'".format(st_cmd_path))
 
+        ca = self._get_channel_access()
+        try:
+            pv = "{}:DISABLE".format(self._device)
+            print("Check that IOC is not running".format(pv))
+            ca.assert_pv_does_not_exist(pv)
+        except AssertionError as ex:
+            raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
+
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
         print("Starting IOC ({})".format(self._device))
 
@@ -185,6 +193,6 @@ class IocLauncher(object):
         :return (ChannelAccess): the channel access component
         """
         if self._ca is None:
-            self._ca = ChannelAccess(device_prefix=self.device_prefix)
+            self._ca = ChannelAccess()
 
         return self._ca
