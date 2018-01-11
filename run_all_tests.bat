@@ -7,7 +7,7 @@ call "%~dp0..\..\..\config_env.bat"
 
 echo ---------------------------------------
 echo TESTING JULABO Dev Sim
-rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm julabo -e %PYTHONDIR%\Scripts -ep julabo-version-1
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm julabo -e %PYTHONDIR%\Scripts
 echo ---------------------------------------
 echo;
 
@@ -19,7 +19,7 @@ echo;
 
 echo ---------------------------------------
 echo TESTING TPG26X Dev Sim
-rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm tpg26x -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm tpg26x -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master
 echo ---------------------------------------
 echo;
 
@@ -31,7 +31,7 @@ echo;
  
 echo ---------------------------------------
 echo TESTING AMINT2L Dev Sim
-rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm amint2l -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm amint2l -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master
 echo ---------------------------------------
 echo;
 
@@ -43,13 +43,13 @@ echo;
 
 echo ---------------------------------------
 echo TESTING INSTRON Dev Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm instron_stress_rig -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm instron_stress_rig -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
 
 echo ---------------------------------------
 echo TESTING INSTRON Rec Sim
-call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -tm instron_stress_rig
+rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -tm instron_stress_rig
 echo ---------------------------------------
 echo;
 
@@ -59,30 +59,30 @@ rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py
 echo ---------------------------------------
 echo;
 
-rem echo ---------------------------------------
-rem echo TESTING FERMI CHOPPER Dev Sim
-rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d fermichopper -p %EPICS_KIT_ROOT%\ioc\master\FERMCHOP\iocBoot\iocFERMCHOP-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
-rem echo ---------------------------------------
-rem echo;
-rem 
-rem echo ---------------------------------------
-rem echo TESTING XYARMBEAMSTOP Dev Sim
-rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d xyarmbeamstop -p %EPICS_KIT_ROOT%\ioc\master\GALIL\iocBoot\iocGALIL-IOC-01
-rem echo ---------------------------------------
-rem echo;
-rem 
-rem echo ---------------------------------------
-rem echo TESTING FERMI CHOPPER Rec Sim
-rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d fermichopper -p %EPICS_KIT_ROOT%\ioc\master\FERMCHOP\iocBoot\iocFERMCHOP-IOC-01
-rem echo ---------------------------------------
-rem echo;
-rem 
+echo ---------------------------------------
+echo TESTING FERMI CHOPPER Dev Sim
+rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm fermichopper -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING FERMI CHOPPER Rec Sim
+rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -tm fermichopper
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING XYARMBEAMSTOP Dev Sim
+rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -tm xyarmbeamstop
+echo ---------------------------------------
+echo;
+
 rem echo ---------------------------------------
 rem echo TESTING KEPCO Dev Sim
 rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d kepco -p %EPICS_KIT_ROOT%\ioc\master\KEPCO\iocBoot\iocKEPCO-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 rem echo ---------------------------------------
 rem echo;
-rem 
+
 rem echo ---------------------------------------
 rem echo TESTING KEPCO Rec Sim
 rem call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d kepco -p %EPICS_KIT_ROOT%\ioc\master\KEPCO\iocBoot\iocKEPCO-IOC-01

@@ -48,6 +48,7 @@ def _skip_if_condition(condition, reason):
         return wrapper
     return decorator
 
+
 """Decorator to skip tests if running in recsim."""
 skip_if_recsim = functools.partial(_skip_if_condition, lambda: IOCRegister.uses_rec_sim)
 

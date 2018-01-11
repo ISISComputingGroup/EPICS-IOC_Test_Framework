@@ -73,7 +73,9 @@ def run_test(prefix, test_module, device_launchers):
     for device_launcher in device_launchers:
         port = str(get_free_ports(1)[0])
         device_launcher.ioc.port = port
-        device_launcher.lewis.port = port
+
+        if device_launcher.lewis is not None:
+            device_launcher.lewis.port = port
 
         try:
             device_launcher.ioc.device_prefix = test_module.DEVICE_PREFIX
@@ -92,9 +94,6 @@ def run_test(prefix, test_module, device_launchers):
 
         runner = xmlrunner.XMLTestRunner(output='test-reports')
 
-        # Need to reload the test module here. This is because the @skipIf decorators in the tests run at class load
-        # time as opposed to runtime
-        # reload(test_module)
         test_classes = [getattr(test_module, s) for s in dir(test_module) if s.endswith("Tests")]
 
         if len(test_classes) < 1:
@@ -112,7 +111,7 @@ if __name__ == '__main__':
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',
                         help="List available devices for testing.", action="store_true")
-    parser.add_argument('-pf', '--prefix', default=None,
+    parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
     parser.add_argument('-tm', '--test-module', default=None,
                         help="Test module to run")
@@ -120,8 +119,6 @@ if __name__ == '__main__':
                         help="The path of the lewis.py file")
     parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe",
                         help="The path of python.exe")
-    parser.add_argument('-ep', '--emulator-protocol', default='stream',
-                        help="The Lewis protocol to use (optional)")
     parser.add_argument('-r', '--record-simulation', default=False, action="count",
                         help="Use record simulation rather than emulation (optional)")
     parser.add_argument('-ea', '--emulator-add-path', default=None,
@@ -170,13 +167,18 @@ if __name__ == '__main__':
                                        use_rec_sim=arguments.record_simulation, var_dir=var_dir)
 
             if "emulator" in ioc and not arguments.record_simulation:
+
+                emulator_name = ioc["emulator"]
+                emulator_protocol = ioc["emulator_protocol"] if "emulator_protocol" in ioc else "stream"
+                emulator_device_package = ioc["emulator_package"] if "emulator_package" in ioc else "lewis_emulators"
+
                 lewis_launcher = LewisLauncher(
-                    device=ioc["emulator"],
+                    device=emulator_name,
                     python_path=os.path.abspath(arguments.python_path),
                     lewis_path=os.path.abspath(arguments.emulator_path),
-                    lewis_protocol=ioc["emulator_protocol"],
+                    lewis_protocol=emulator_protocol,
                     lewis_additional_path=arguments.emulator_add_path,
-                    lewis_package=arguments.emulator_device_package,
+                    lewis_package=emulator_device_package,
                     var_dir=var_dir
                 )
             elif "emulator" in ioc:

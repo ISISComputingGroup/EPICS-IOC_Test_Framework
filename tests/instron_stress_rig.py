@@ -1,12 +1,11 @@
 import unittest
-
+import math
 import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
-import math
 
 # Device prefix
 DEVICE_PREFIX = "INSTRON_01"
