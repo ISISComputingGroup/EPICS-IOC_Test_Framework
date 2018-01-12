@@ -9,9 +9,10 @@ from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
 # Defines which IOCs talk to which power supplies.
 # Key is IOC number (e.g. 1 for RKNPS_01)
 # Values are a list of power supplies on this IOC.
+# Only IOCs that should be switched off/interlocked should be listed here.
 RIKEN_SETUP = {
-    1: ["RQ1", "RQ2"],
-    2: ["RB1", "RB2"],
+    1: ["RQ18", "RQ19"],
+    2: ["RQ20"],
 }
 
 
@@ -43,17 +44,15 @@ for ioc_num, psus in RIKEN_SETUP.iteritems():
     })
 
 
-# Build a list containing all the power supplies we need.
+# Build a list containing all the power supplies we need in a convenient form that we can easily iterate over.
 POWER_SUPPLIES = []
 for ioc_num, supplies in RIKEN_SETUP.iteritems():
     for supply in supplies:
         POWER_SUPPLIES.append("RKNPS_{:02d}:{}".format(ioc_num, supply))
 
 
-print(POWER_SUPPLIES)
-
-
-OK_TO_RUN_PSUS = "SIMPLE:VALUE1"
+INPUT_PV = "SIMPLE:VALUE1"
+ACKNOWLEDGEMENT_PV = "SIMPLE:VALUE2"
 
 
 class RikenPortChangeoverTests(unittest.TestCase):
@@ -61,8 +60,8 @@ class RikenPortChangeoverTests(unittest.TestCase):
     Tests for a riken port changeover.
     """
 
-    def _set_ok_to_run_psus(self, ok_to_run_psus):
-        self.ca.set_pv_value("{}:SP".format(OK_TO_RUN_PSUS), 1 if ok_to_run_psus else 0)
+    def _set_input_pv(self, ok_to_run_psus):
+        self.ca.set_pv_value("{}:SP".format(INPUT_PV), 1 if ok_to_run_psus else 0)
 
     def _set_power_supply_state(self, supply, on):
         self.ca.set_pv_value("{}:POWER:SP".format(supply), 1 if on else 0)
@@ -84,16 +83,17 @@ class RikenPortChangeoverTests(unittest.TestCase):
 
         # Wait for PVs that we care about to exist.
         self.ca.wait_for("COORD_01:PSUS:DISABLE:SP", timeout=30)
-        self.ca.wait_for(OK_TO_RUN_PSUS, timeout=30)
+        self.ca.wait_for(INPUT_PV, timeout=30)
+        self.ca.wait_for(ACKNOWLEDGEMENT_PV, timeout=30)
         for id in POWER_SUPPLIES:
             self.ca.wait_for("{}:POWER".format(id), timeout=30)
 
-        self._set_ok_to_run_psus(True)
+        self._set_input_pv(True)
         self._set_all_power_supply_states(False)
 
     def test_GIVEN_value_on_input_ioc_changes_THEN_coord_picks_up_the_change(self):
         def _set_and_check(ok_to_run_psus):
-            self._set_ok_to_run_psus(ok_to_run_psus)
+            self._set_input_pv(ok_to_run_psus)
             self.ca.assert_that_pv_is("COORD_01:PSUS:DISABLE:SP", "ENABLED" if ok_to_run_psus else "DISABLED")
 
         for ok_to_run_psus in [True, False, True]:  # Check both transitions
@@ -101,7 +101,7 @@ class RikenPortChangeoverTests(unittest.TestCase):
 
     def test_GIVEN_all_power_supplies_off_WHEN_value_on_input_ioc_changes_THEN_power_supplies_have_their_disp_field_set(self):
         def _set_and_check_disabled_status(ok_to_run_psus):
-            self._set_ok_to_run_psus(ok_to_run_psus)
+            self._set_input_pv(ok_to_run_psus)
             self._assert_all_power_supplies_disabled(not ok_to_run_psus)
 
         for ok_to_run_psus in [True, False, True]:  # Check both transitions
@@ -122,16 +122,16 @@ class RikenPortChangeoverTests(unittest.TestCase):
 
     def test_GIVEN_power_supplies_on_WHEN_value_on_input_ioc_changes_THEN_power_supplies_are_not_disabled_until_they_are_switched_off(self):
         self._set_all_power_supply_states(True)
-        self._set_ok_to_run_psus(False)
+        self._set_input_pv(False)
         self._assert_all_power_supplies_disabled(False)
         self._set_all_power_supply_states(False)
         self._assert_all_power_supplies_disabled(True)
 
     def test_GIVEN_plc_cancels_port_changeover_before_psus_are_all_switched_off_WHEN_psus_become_switched_off_THEN_they_do_not_get_disabled(self):
         self._set_all_power_supply_states(True)
-        self._set_ok_to_run_psus(False)
+        self._set_input_pv(False)
         self._assert_all_power_supplies_disabled(False)  # Power supplies not disabled because still powered on
-        self._set_ok_to_run_psus(True)  # PLC now cancels request to do a changeover
+        self._set_input_pv(True)  # PLC now cancels request to do a changeover
         self._set_all_power_supply_states(False)
         self._assert_all_power_supplies_disabled(False)
 
@@ -139,6 +139,7 @@ class RikenPortChangeoverTests(unittest.TestCase):
         self.ca.set_pv_value("{}:POWER.SIMS".format(supply), alarm)
         self.ca.assert_pv_alarm_is("{}:POWER".format(supply), alarm)
 
+    # Using a context manager to put PVs into alarm means they don't accidentally get left in alarm if the test fails
     @contextmanager
     def _put_power_supply_into_alarm(self, supply):
         try:
@@ -158,3 +159,12 @@ class RikenPortChangeoverTests(unittest.TestCase):
             with self._put_power_supply_into_alarm(supply):
                 self.ca.assert_that_pv_is_number("COORD_01:PSUS:POWER:ANY", 1)
             self.ca.assert_that_pv_is_number("COORD_01:PSUS:POWER:ANY", 0)
+
+    def test_GIVEN_changeover_initiated_WHEN_power_supplies_off_THEN_acknowledgement_pv_true(self):
+        self._set_all_power_supply_states(False)
+        self._set_input_pv(False)
+
+        self.ca.assert_that_pv_is_number(ACKNOWLEDGEMENT_PV, 1)
+
+        self._set_input_pv(True)  # Some time later the PLC sends signal to say it has finished the changeover sequence
+        self.ca.assert_that_pv_is_number(ACKNOWLEDGEMENT_PV, 0)
