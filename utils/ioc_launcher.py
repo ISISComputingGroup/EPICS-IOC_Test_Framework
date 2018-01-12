@@ -119,9 +119,8 @@ class IocLauncher(object):
 
         ca = self._get_channel_access()
         try:
-            pv = "{}:DISABLE".format(self._device)
-            print("Check that IOC is not running".format(pv))
-            ca.assert_pv_does_not_exist(pv)
+            print("Check that IOC is not running")
+            ca.assert_pv_does_not_exist("DISABLE")
         except AssertionError as ex:
             raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
 
@@ -193,6 +192,6 @@ class IocLauncher(object):
         :return (ChannelAccess): the channel access component
         """
         if self._ca is None:
-            self._ca = ChannelAccess()
+            self._ca = ChannelAccess(device_prefix=self._device)
 
         return self._ca

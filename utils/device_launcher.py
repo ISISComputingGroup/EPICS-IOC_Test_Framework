@@ -23,11 +23,13 @@ def device_collection_launcher(devices):
     Context manager that launches a list of devices
     :param devices: list of context managers representing the devices to launch (see device_launcher above)
     """
-    for device in devices:
-        device.__enter__()
-
+    launched_devices = []
     try:
+        for device in devices:
+            device.__enter__()
+            launched_devices.append(device)
+
         yield
     finally:
-        for device in reversed(devices):
+        for device in reversed(launched_devices):
             device.__exit__(*sys.exc_info())
