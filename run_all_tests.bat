@@ -148,3 +148,9 @@ echo TESTING HLG Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d hlg -p %EPICS_KIT_ROOT%\ioc\master\HLG\iocBoot\iocHLG-IOC-01
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING SKF G5 Chopper Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d skf_g5_chopper -p %EPICS_KIT_ROOT%\ioc\master\SKFCHOPPER\iocBoot\iocSKFCHOPPER-IOC-01
+echo ---------------------------------------
+echo;
