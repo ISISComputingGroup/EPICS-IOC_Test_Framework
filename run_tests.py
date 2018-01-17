@@ -86,10 +86,12 @@ def run_test(prefix, test_module, device_launchers):
         if len(test_classes) < 1:
             raise ValueError("No test suites found in {}".format(test_module.__name__))
 
+        test_results = []
         for test_class in test_classes:
             print("Running tests in {}".format(test_class.__name__))
             test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
-            runner.run(test_suite)
+            test_results.append(runner.run(test_suite).wasSuccessful())
+        return all(result is True for result in test_results)
 
 
 def make_device_launchers_from_module(test_module, recsim):
@@ -108,6 +110,8 @@ def make_device_launchers_from_module(test_module, recsim):
     if len(iocs) < 1:
         raise ValueError("Need at least one IOC to launch")
 
+    print("Testing module {} in {} mode.".format(test_module.__name__, "recsim" if recsim else "devsim"))
+
     device_launchers = []
     for ioc in iocs:
 
@@ -118,11 +122,11 @@ def make_device_launchers_from_module(test_module, recsim):
         ioc_launcher = IocLauncher(device=ioc["name"],
                                    directory=ioc["directory"],
                                    macros=macros,
-                                   use_rec_sim=arguments.record_simulation,
+                                   use_rec_sim=recsim,
                                    var_dir=var_dir,
                                    port=free_port)
 
-        if "emulator" in ioc and not arguments.record_simulation:
+        if "emulator" in ioc and not recsim:
 
             emulator_name = ioc["emulator"]
             try:
@@ -169,13 +173,12 @@ def load_module_by_name_and_run_tests(module_name):
     except AttributeError:
         raise ValueError("Expected test module {} to contain a TEST_MODES attribute".format(test_module.__name__))
 
-    if TestModes.RECSIM in modes:
-        device_launchers = make_device_launchers_from_module(test_module, recsim=True)
-        run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers))
+    test_results = []
+    for mode in modes:
+        device_launchers = make_device_launchers_from_module(test_module, recsim=(mode == TestModes.RECSIM))
+        test_results.append(run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers)))
 
-    if TestModes.DEVSIM in modes:
-        device_launchers = make_device_launchers_from_module(test_module, recsim=False)
-        run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers))
+    return all(test_result is True for test_result in test_results)
 
 
 if __name__ == '__main__':
@@ -198,8 +201,6 @@ if __name__ == '__main__':
                         help="The path of the lewis.py file")
     parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe",
                         help="The path of python.exe")
-    parser.add_argument('-r', '--record-simulation', default=False, action="count",
-                        help="Use record simulation rather than emulation (optional)")
     parser.add_argument('--var-dir', default=None,
                         help="Directory in which to create a log dir to write log file to and directory in which to "
                              "create tmp dir which contains environments variables for the IOC. Defaults to "
@@ -223,11 +224,9 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     if arguments.test_module is not None:
-        load_module_by_name_and_run_tests(arguments.test_module)
+        success = load_module_by_name_and_run_tests(arguments.test_module)
     else:
-        for module_name in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests")):
-            if not module_name.endswith(".py") or "__init__" in module_name:
-                continue
+        module_results = [load_module_by_name_and_run_tests(module_name) for module_name in package_contents("tests")]
+        success = all(result is True for result in module_results)
 
-            module_name = module_name[:-3]  # Strip .py extension
-            load_module_by_name_and_run_tests(module_name)
+    sys.exit(0 if success else 1)
