@@ -1,5 +1,8 @@
 from contextlib import contextmanager
-from contextlib2 import ExitStack
+try:
+    from contextlib import ExitStack  # PY3
+except ImportError:
+    from contextlib2 import ExitStack  # PY2
 
 
 @contextmanager

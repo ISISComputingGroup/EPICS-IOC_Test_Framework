@@ -38,8 +38,7 @@ def load_module(name):
     :param name: the name of the module
     :return: a reference to the module
     """
-    module = importlib.import_module(name, )
-    return module
+    return importlib.import_module(name, )
 
 
 @contextmanager

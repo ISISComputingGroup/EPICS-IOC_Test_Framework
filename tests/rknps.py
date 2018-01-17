@@ -1,5 +1,7 @@
 import unittest
 
+import time
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -49,7 +51,7 @@ class RknpsTests(unittest.TestCase):
         """
         if IOCRegister.uses_rec_sim:
             for IDN in IDS:
-                self._ioc.set_simulated_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), ".........!..............")
+                self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), ".........!..............")
         else:
             self._lewis.backdoor_set_on_device("set_both_interlocks", "active")
 
@@ -59,7 +61,7 @@ class RknpsTests(unittest.TestCase):
         """
         if IOCRegister.uses_rec_sim:
             for IDN in IDS:
-                self._ioc.set_simulated_value("{0}:{1}:SIM:STATUS".format(PREFIX, IDN), CLEAR_STATUS)
+                self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), CLEAR_STATUS)
         else:
             self._lewis.backdoor_set_on_device("set_both_interlocks", "inactive")
 
@@ -97,8 +99,7 @@ class RknpsTests(unittest.TestCase):
     @skip_if_devsim("In dev sim this test fails as the status is maintained by the emulator")
     def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
         for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback("........................",
-                                                          "{0}:{1}:POWER".format(PREFIX, IDN),
+            self.ca.assert_setting_setpoint_sets_readback("........................", "{0}:{1}:POWER".format(PREFIX, IDN),
                                                           "{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "On")
 
     @skip_if_devsim("In dev sim this test fails as the status is maintained by the emulator")
