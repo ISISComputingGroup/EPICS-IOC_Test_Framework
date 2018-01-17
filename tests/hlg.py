@@ -2,6 +2,7 @@ import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 hihi_level = 400
@@ -24,6 +25,9 @@ IOCS = [
         "emulator": "hlg",
     },
 ]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class HlgTests(unittest.TestCase):

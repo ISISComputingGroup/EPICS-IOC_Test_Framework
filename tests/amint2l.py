@@ -1,5 +1,6 @@
 import unittest
 
+from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
@@ -20,6 +21,9 @@ IOCS = [
         "emulator": "amint2l",
     },
 ]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class Amint2lTests(unittest.TestCase):

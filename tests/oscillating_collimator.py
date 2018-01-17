@@ -4,6 +4,8 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 
 # IP address of device
+from utils.test_modes import TestModes
+
 GALIL_ADDR = "128.0.0.0"
 
 PREFIX = "MOT:OSCCOL"
@@ -27,6 +29,9 @@ IOCS = [
         },
     },
 ]
+
+
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class OscillatingCollimatorTests(unittest.TestCase):

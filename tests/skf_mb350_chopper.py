@@ -2,6 +2,7 @@ import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # Device prefix
@@ -45,6 +46,9 @@ IOCS = [
         "emulator": "skf_mb350_chopper",
     },
 ]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class SkfMB350ChopperTests(unittest.TestCase):

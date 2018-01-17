@@ -1,5 +1,6 @@
 import unittest
 
+from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import skip_if_recsim
@@ -17,6 +18,9 @@ IOCS = [
         "emulator_protocol": "stream",
     },
 ]
+
+
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class Ag33220aTests(unittest.TestCase):

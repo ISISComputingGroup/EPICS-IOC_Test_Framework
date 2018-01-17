@@ -4,6 +4,7 @@ import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
@@ -18,6 +19,8 @@ IOCS = [
         "emulator": "instron_stress_rig",
     },
 ]
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 RAMP_WAVEFORM_TYPES = ["Ramp", "Dual ramp", "Trapezium", "Absolute ramp", "Absolute hold ramp",
                        "Absolute rate ramp"]

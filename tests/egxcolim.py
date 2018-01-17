@@ -2,7 +2,7 @@ import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-
+from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "EGXCOLIM_01"
 
@@ -14,6 +14,9 @@ IOCS = [
         "macros": {},
     },
 ]
+
+
+TEST_MODES = [TestModes.RECSIM]
 
 
 class EgxcolimTests(unittest.TestCase):

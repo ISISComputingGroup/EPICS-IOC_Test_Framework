@@ -1,5 +1,6 @@
 import unittest
 
+from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
@@ -21,6 +22,9 @@ IOCS = [
         "emulator_package": None,
     },
 ]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class JulaboTests(unittest.TestCase):

@@ -5,6 +5,8 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 
 # Internal Address of device (must be 2 characters)
+from utils.test_modes import TestModes
+
 GALIL_ADDR = "128.0.0.0"
 
 PREFIX = "MOT"
@@ -62,6 +64,9 @@ IOCS = [
         },
     },
 ]
+
+
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class XyarmbeamstopTests(unittest.TestCase):

@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 import sys
 
+from ioc_launcher import IOCRegister
+
 
 @contextmanager
 def device_launcher(ioc, lewis):

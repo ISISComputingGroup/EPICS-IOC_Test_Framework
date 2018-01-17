@@ -5,7 +5,6 @@ import unittest
 
 import sys
 
-import time
 import xmlrunner
 import argparse
 from contextlib import contextmanager
@@ -14,6 +13,7 @@ from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.lewis_launcher import LewisLauncher, LewisNone
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
+from utils.test_modes import TestModes
 
 
 def package_contents(package_name):
@@ -92,10 +92,11 @@ def run_test(prefix, test_module, device_launchers):
             runner.run(test_suite)
 
 
-def make_device_launchers_from_module(test_module):
+def make_device_launchers_from_module(test_module, recsim):
     """
     Returns a list of device launchers for the given test module
     :param test_module: module containing IOC tests
+    :param recsim: True to run in recsim. False to run in devsim.
     :return: list of device launchers (context managers which launch ioc + emulator pairs)
     """
 
@@ -159,7 +160,31 @@ def make_device_launchers_from_module(test_module):
 
     return device_launchers
 
+
+def load_module_by_name_and_run_tests(module_name):
+    test_module = load_module("tests.{}".format(module_name))
+
+    try:
+        modes = test_module.TEST_MODES
+    except AttributeError:
+        raise ValueError("Expected test module {} to contain a TEST_MODES attribute".format(test_module.__name__))
+
+    if TestModes.RECSIM in modes:
+        device_launchers = make_device_launchers_from_module(test_module, recsim=True)
+        run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers))
+
+    if TestModes.DEVSIM in modes:
+        device_launchers = make_device_launchers_from_module(test_module, recsim=False)
+        run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers))
+
+
 if __name__ == '__main__':
+
+    pythondir = os.environ.get("PYTHONDIR", None)
+    if pythondir is not None:
+        emulator_path = os.path.join(pythondir, "scripts")
+    else:
+        emulator_path = None
 
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
@@ -169,7 +194,7 @@ if __name__ == '__main__':
                         help='The instrument prefix; e.g. TE:NDW1373')
     parser.add_argument('-tm', '--test-module', default=None,
                         help="Test module to run")
-    parser.add_argument('-e', '--emulator-path', default=None,
+    parser.add_argument('-e', '--emulator-path', default=emulator_path,
                         help="The path of the lewis.py file")
     parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe",
                         help="The path of python.exe")
@@ -193,15 +218,16 @@ if __name__ == '__main__':
         print("Cannot run without instrument prefix")
         sys.exit(-1)
 
-    elif arguments.test_module:
-        if arguments.record_simulation:
-            print("Running using record simulation")
-        else:
-            print("Running using device simulation")
-
-        test_module = load_module("tests.{}".format(arguments.test_module))
-        device_launchers = make_device_launchers_from_module(test_module)
-        run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers))
-    else:
-        print("Type -h for help")
+    if arguments.emulator_path is None:
+        print("Cannot run without emulator path")
         sys.exit(-1)
+
+    if arguments.test_module is not None:
+        load_module_by_name_and_run_tests(arguments.test_module)
+    else:
+        for module_name in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests")):
+            if not module_name.endswith(".py") or "__init__" in module_name:
+                continue
+
+            module_name = module_name[:-3]  # Strip .py extension
+            load_module_by_name_and_run_tests(module_name)
