@@ -12,8 +12,7 @@ TEST_MODES = [TestModes.RECSIM]
 # Values are a list of power supplies on this IOC.
 # Only IOCs that should be switched off/interlocked should be listed here.
 RIKEN_SETUP = {
-    1: ["RQ18", "RQ19"],
-    2: ["RQ20"],
+    1: ["RB2"],
 }
 
 
@@ -52,9 +51,9 @@ for ioc_num, supplies in RIKEN_SETUP.iteritems():
         POWER_SUPPLIES.append("RKNPS_{:02d}:{}".format(ioc_num, supply))
 
 
-class RikenPortChangeoverTests(RikenChangeover):
+class RikenRb2ModeChangeoverTests(RikenChangeover):
     """
-    Tests for a riken port changeover.
+    Tests for a riken RB2 mode change.
 
     Main tests are inherited from RikenChangeoverTests
     """
@@ -69,4 +68,4 @@ class RikenPortChangeoverTests(RikenChangeover):
         return POWER_SUPPLIES
 
     def get_prefix(self):
-        return "COORD_01:PC"
+        return "COORD_01:RB2C"

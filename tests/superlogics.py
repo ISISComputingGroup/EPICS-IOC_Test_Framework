@@ -1,12 +1,26 @@
 import unittest
-from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # Prefix for addressing PVs on this device
 PREFIX = "SPRLG_01"
+
+
+IOCS = [
+    {
+        "name": PREFIX,
+        "directory": get_default_ioc_dir("SPRLG"),
+        "macros": {},
+        "emulator": "superlogics",
+        "emulator_protocol": "stream",
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class SuperlogicsTests(unittest.TestCase):
@@ -15,7 +29,7 @@ class SuperlogicsTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("superlogics")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("superlogics", PREFIX)
 
         self.ca = ChannelAccess()
         self.ca.wait_for("{0}:{1}:1:VALUE".format(PREFIX, "01"))
@@ -61,7 +75,7 @@ class SuperlogicsTests(unittest.TestCase):
         self.ca.assert_that_pv_is(pv_name, expected_value)
         self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_01_all_channels_value_set_WHEN_read_THEN_error_state(self):
         address = "01"
         expected_values = [1., 2., 3., 4., 5., 6., 7., 8.]
@@ -79,7 +93,7 @@ class SuperlogicsTests(unittest.TestCase):
         self.ca.assert_that_pv_is(pv_name, expected_version)
         self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_02_one_value_set_WHEN_read_THEN_error_state(self):
         address = "02"
         channel = 1
@@ -89,7 +103,7 @@ class SuperlogicsTests(unittest.TestCase):
         pv_name = "{0}:{1}:{2}:VALUE".format(PREFIX, address, channel)
         self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_02_two_values_set_WHEN_read_THEN_error_state(self):
         address = "02"
         channel = 2
@@ -118,7 +132,7 @@ class SuperlogicsTests(unittest.TestCase):
         self.ca.assert_that_pv_is(pv_name, expected_version)
         self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_02_disconnected_WHEN_read_values_THEN_error_state(self):
         address = "02"
         expected_values = [1., 2., 3., 4., 5., 6., 7., 8.]
@@ -128,4 +142,3 @@ class SuperlogicsTests(unittest.TestCase):
         for channel, expected_value in enumerate(expected_values):
             pv_name = "{0}:{1}:{2}:VALUE".format(PREFIX, address, channel+1)
             self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
-

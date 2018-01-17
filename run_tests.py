@@ -195,7 +195,7 @@ if __name__ == '__main__':
                         help="List available devices for testing.", action="store_true")
     parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
-    parser.add_argument('-tm', '--test-module', default=None,
+    parser.add_argument('-tm', '--test-module', default=None, nargs="+",
                         help="Test module to run")
     parser.add_argument('-e', '--emulator-path', default=emulator_path,
                         help="The path of the lewis.py file")
@@ -223,10 +223,22 @@ if __name__ == '__main__':
         print("Cannot run without emulator path")
         sys.exit(-1)
 
-    if arguments.test_module is not None:
-        success = load_module_by_name_and_run_tests(arguments.test_module)
-    else:
-        module_results = [load_module_by_name_and_run_tests(module_name) for module_name in package_contents("tests")]
-        success = all(result is True for result in module_results)
+    module_results = []
 
+    if arguments.test_module is not None:
+        for test_module in arguments.test_module:
+            try:
+                module_results.append(load_module_by_name_and_run_tests(test_module))
+            except Exception as e:
+                print("ERROR: {}: {}".format(e.__class__.__name__, e))
+                module_results.append(False)
+    else:
+        for module_name in package_contents("tests"):
+            try:
+                module_results.append(load_module_by_name_and_run_tests(module_name))
+            except Exception as e:
+                print("ERROR: {}: {}".format(e.__class__.__name__, e))
+                module_results.append(False)
+
+    success = all(result is True for result in module_results)
     sys.exit(0 if success else 1)

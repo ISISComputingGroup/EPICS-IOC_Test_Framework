@@ -1,7 +1,5 @@
 from contextlib import contextmanager
-import sys
-
-from ioc_launcher import IOCRegister
+from contextlib2 import ExitStack
 
 
 @contextmanager
@@ -25,13 +23,7 @@ def device_collection_launcher(devices):
     Context manager that launches a list of devices
     :param devices: list of context managers representing the devices to launch (see device_launcher above)
     """
-    launched_devices = []
-    try:
+    with ExitStack() as stack:
         for device in devices:
-            device.__enter__()
-            launched_devices.append(device)
-
+            stack.enter_context(device)
         yield
-    finally:
-        for device in reversed(launched_devices):
-            device.__exit__(*sys.exc_info())
