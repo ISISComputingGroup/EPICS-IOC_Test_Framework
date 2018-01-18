@@ -4,18 +4,19 @@ from unittest import skipIf
 from hamcrest import *
 
 from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
 MACROS = {"MTRCTRL": "01",
           "AXIS1": "yes",
           "NAME1": "Sample Lin",
           "MSTP1": 200,
-          "VELO1": 125,
+          "VELO1": 75,
           "DHLM1": 285,
           "DLLM1": -0.25,
           "NAME2": "Sample Rot",
           "MSTP3": 1000,
-          "VELO4": 25,
+          "VELO4": 15,
           "DHLM5": 64,
           "DLLM6": -0.02
           }
@@ -43,6 +44,11 @@ expected_reset_codes = [
     "BF15000"
 ]
 
+MTRPV = {
+    "x": "MTR0101",
+    "y": "MTR0101"
+}
+
 
 class Sm300Tests(unittest.TestCase):
     """
@@ -57,18 +63,18 @@ class Sm300Tests(unittest.TestCase):
         """
         Set the starting position of the motor and check it is there.
         Args:
-            starting_pos: position to start at
+            starting_pos: position to start at in steps
             axis: axis to set position on
 
         """
+        if IOCRegister.uses_rec_sim:
+            resolution = self.ca.get_pv_value("{}.MRES".format(MTRPV[axis]))
+            self.ca.set_pv_value(MTRPV[axis], starting_pos * resolution)
         self._lewis.backdoor_set_on_device(axis + "_axis_rbv", starting_pos)
         self._lewis.backdoor_set_on_device(axis + "_axis_sp", starting_pos)
-        if axis == "x":
-            rrbv_pv = "MTR0101.RRBV"
-        else:
-            rrbv_pv = "MTR0102.RRBV"
-        self.ca.assert_that_pv_is(rrbv_pv, starting_pos)
+        self.ca.assert_that_pv_is("{}.RRBV".format(MTRPV[axis]), starting_pos)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set x read back explicitly")
     def test_GIVEN_motor_at_position_WHEN_get_axis_x_ioc_position_THEN_position_is_as_expected(self):
         expected_value = 100
         resolution = self.ca.get_pv_value("MTR0101.MRES")
@@ -77,6 +83,7 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_value)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set y read back explicitly")
     def test_GIVEN_motor_at_position_WHEN_get_axis_y_ioc_position_THEN_position_is_as_expected(self):
         expected_value = 100
         resolution = self.ca.get_pv_value("MTR0102.MRES")
@@ -85,18 +92,21 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0102.RBV", expected_value)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set error")
     def test_GIVEN_error_on_axis_WHEN_get_axis_x_THEN_error_returned(self):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "B10")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
         self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set error")
     def test_GIVEN_malformed_motor_position_WHEN_get_axis_x_THEN_error_returned(self):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "Xrubbish")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
         self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set moving on motor")
     def test_GIVEN_a_motor_is_moving_WHEN_get_moving_THEN_both_axis_are_moving(self):
 
         expected_value = 0
@@ -105,6 +115,7 @@ class Sm300Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("MTR0101.DMOV", expected_value)
         self.ca.assert_that_pv_is("MTR0102.DMOV", expected_value)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set moving on motor")
     def test_GIVEN_a_motor_is_not_moving_WHEN_get_moving_THEN_both_axis_are_not_moving(self):
         expected_value = 1
         self._lewis.backdoor_set_on_device("is_moving", False)
@@ -112,6 +123,7 @@ class Sm300Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("MTR0101.DMOV", expected_value)
         self.ca.assert_that_pv_is("MTR0102.DMOV", expected_value)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set moving error")
     def test_GIVEN_a_motor_is_in_error_WHEN_get_moving_THEN_both_axis_are_in_error(self):
         self._lewis.backdoor_set_on_device("is_moving_error", True)
 
@@ -125,6 +137,7 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_value)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Sim motor doesn't home")
     def test_GIVEN_a_motor_WHEN_homed_THEN_motor_moves_to_home(self):
         expected_home = 0
         self.set_starting_position(10)
@@ -132,6 +145,7 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Sim motor doesn't home")
     def test_GIVEN_a_motor_WHEN_homed_in_reverseTHEN_motor_moves_to_home(self):
         expected_home = 0
         self.set_starting_position(10)
@@ -139,6 +153,7 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to get reset values set from lewis")
     def test_GIVEN_a_motor_WHEN_reset_pressed_THEN_initial_values_sent(self):
 
         ioc_ca = ChannelAccess(device_prefix="SM300_01")
@@ -151,6 +166,7 @@ class Sm300Tests(unittest.TestCase):
             assert_that(reset_codes, contains_string(reset_code))
         ioc_ca.assert_that_pv_is("RESET", "Done")
 
+    @skipIf(IOCRegister.uses_rec_sim, "Sim doesn't return until move is finished")
     def test_GIVEN_a_motor_moving_to_set_point_WHEN_told_to_move_to_another_set_point_THEN_motor_goes_to_new_setpoint(self):
         self.set_starting_position(0)
         first_position = 20
@@ -162,6 +178,7 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MTR0101.RBV", final_position)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Sim doesn't return until move is finished")
     def test_GIVEN_an_axis_moving_to_set_point_WHEN_other_axis_told_to_move_THEN_motor_goes_to_setpoint(self):
         self.set_starting_position(0, axis="x")
         self.set_starting_position(0, axis="y")
@@ -175,6 +192,7 @@ class Sm300Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("MTR0101.RBV", x_position)
         self.ca.assert_that_pv_is("MTR0102.RBV", y_position)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to get reset code from lewis")
     def test_GIVEN_a_motor_WHEN_disconnect_THEN_M77_is_sent(self):
 
         ioc_ca = ChannelAccess(device_prefix="SM300_01")
@@ -185,6 +203,7 @@ class Sm300Tests(unittest.TestCase):
 
         assert_that(reset_codes, is_("77"))
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_normal_error_WHEN_query_THEN_error_is_set(self):
 
         ioc_ca = ChannelAccess(device_prefix="SM300_01")
@@ -193,6 +212,7 @@ class Sm300Tests(unittest.TestCase):
         ioc_ca.assert_that_pv_is("ERROR", "Servo error")
         ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_no_error_WHEN_query_THEN_error_is_blank(self):
 
         ioc_ca = ChannelAccess(device_prefix="SM300_01")
@@ -201,6 +221,7 @@ class Sm300Tests(unittest.TestCase):
         ioc_ca.assert_that_pv_is("ERROR", "")
         ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_NONE)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_command_send_error_WHEN_query_THEN_error_is_set(self):
 
         ioc_ca = ChannelAccess(device_prefix="SM300_01")
@@ -209,6 +230,7 @@ class Sm300Tests(unittest.TestCase):
         ioc_ca.assert_that_pv_is("ERROR", "Cmd error code")
         ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_cnc_command_send_CNC_error_WHEN_query_THEN_error_is_set(self):
 
         ioc_ca = ChannelAccess(device_prefix="SM300_01")
@@ -217,6 +239,7 @@ class Sm300Tests(unittest.TestCase):
         ioc_ca.assert_that_pv_is("ERROR", "CNC cmd error code")
         ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_a_motor_WHEN_reset_and_homed_THEN_motor_moves_to_home_and_resets(self):
         expected_home = 0
         self.set_starting_position(20, axis="x")

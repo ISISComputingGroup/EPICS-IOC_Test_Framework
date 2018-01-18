@@ -80,6 +80,17 @@ class LewisNone(object):
         """
         pass
 
+    def backdoor_run_function_on_device(self, function_name, arguments=None):
+        """
+        Does nothing
+
+        :param function_name: name of th function to call
+        :param arguments: an iterable of the arguments for the function; None means no arguments. Arguments will
+            automatically be turned into json
+        :return:
+        """
+        pass
+
 
 class LewisLauncher(object):
     """
