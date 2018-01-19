@@ -217,3 +217,9 @@ call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r
 
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING GEM beamscapper jaws Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d gem_jaws -p %EPICS_KIT_ROOT%\ioc\master\LINMOT\iocBoot\iocLINMOT-IOC-01
+echo ---------------------------------------
+echo;
