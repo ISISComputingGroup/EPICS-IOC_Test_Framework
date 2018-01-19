@@ -12,13 +12,14 @@ MACROS = {"MTRCTRL": "01",
           "NAME1": "Sample Lin",
           "MSTP1": 200,
           "VELO1": 75,
-          "DHLM1": 285,
-          "DLLM1": -0.25,
+          "DHLM1": 570,
+          "DLLM1": -0.5,
+          "AXIS2": "yes",
           "NAME2": "Sample Rot",
-          "MSTP3": 1000,
-          "VELO4": 15,
-          "DHLM5": 64,
-          "DLLM6": -0.02
+          "MSTP2": 1000,
+          "VELO2": 15,
+          "DHLM2": 640,
+          "DLLM2": -0.2
           }
 
 
