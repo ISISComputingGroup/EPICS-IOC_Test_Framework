@@ -294,6 +294,7 @@ class InstronStressRigTests(unittest.TestCase):
                 self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_low, set_point_pv=pv_name,
                                                               expected_value=sp_val - val, expected_alarm=None)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Alarms not properly emulated in recsim")
     def test_GIVEN_a_big_tolerance_WHEN_the_setpoint_is_set_THEN_the_setpoint_has_no_alarms(self):
         def _set_and_check(chan, value):
             self.ca.set_pv_value(chan + ":SP", value)
@@ -304,6 +305,7 @@ class InstronStressRigTests(unittest.TestCase):
             for i in [0.123, 567]:
                 _set_and_check(chan, i)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Alarms not properly emulated in recsim")
     def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_is_set_THEN_the_setpoint_readback_has_alarms(
             self):
         def _set_and_check(chan, value):

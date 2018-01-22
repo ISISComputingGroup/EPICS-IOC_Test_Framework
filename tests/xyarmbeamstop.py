@@ -59,8 +59,9 @@ IOCS = [
         "name": "GALIL_01",
         "directory": get_default_ioc_dir("GALIL"),
         "macros": {
-            "GALILADDR01": GALIL_ADDR,
+            "GALILADDR": GALIL_ADDR,
             "IFXYBEAMSTOP": " ",
+            "MTRCTRL": "1",
         },
     },
 ]
