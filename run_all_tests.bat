@@ -204,3 +204,9 @@ echo TESTING SM300 Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d sm300 -p %EPICS_KIT_ROOT%\ioc\master\SM300\iocBoot\iocSM300-IOC-01
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo Motion Set Point testing
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d motion_setpoints -p %EPICS_KIT_ROOT%\support\motionSetPoints\master\iocBoot\iocmotionSetPointsTest
+echo ---------------------------------------
+echo;
