@@ -84,7 +84,7 @@ class LewisNone(object):
         """
         Does nothing
 
-        :param function_name: name of th function to call
+        :param function_name: name of the function to call
         :param arguments: an iterable of the arguments for the function; None means no arguments. Arguments will
             automatically be turned into json
         :return:
@@ -187,6 +187,18 @@ class LewisLauncher(object):
         sys.stdout.write(stdoutdata)
         return False
 
+    def _convert_to_string_for_backdoor(self, value):
+        """
+        Convert the value given to a string for the backdoor. If the type is a string suround with quotes otherwise
+        pass it raw, e.g. for a number.
+        Args:
+            value: value to convert
+
+        Returns: value as a string for the backdoor
+
+        """
+        return "'{}'".format(value) if isinstance(value, str) else str(value)
+
     def backdoor_set_on_device(self, variable_name, value):
         """
         Set a value in the device using the lewis backdoor.
@@ -195,27 +207,20 @@ class LewisLauncher(object):
         :param value: new value it should have
         :return:
         """
-        if isinstance(value, str):
-            self.backdoor_command(["device", str(variable_name), "'{0}'".format(value)])
-        else:
-            self.backdoor_command(["device", str(variable_name), str(value)])
+        self.backdoor_command(["device", str(variable_name), self._convert_to_string_for_backdoor(value)])
 
     def backdoor_run_function_on_device(self, function_name, arguments=None):
         """
         Run a function in lewis using the back door on a device.
 
-        :param function_name: name of th function to call
+        :param function_name: name of the function to call
         :param arguments: an iterable of the arguments for the function; None means no arguments. Arguments will
             automatically be turned into json
         :return:
         """
         command = ["device", function_name]
         if arguments is not None:
-            for argument in arguments:
-                if isinstance(argument, str):
-                    command.append("'{0}'".format(argument))
-                else:
-                    command.append(str(argument))
+            command.extend([self._convert_to_string_for_backdoor(argument) for argument in arguments])
 
         return self.backdoor_command(command)
 
@@ -236,13 +241,12 @@ class LewisLauncher(object):
             for i in range(1, 30):
                 code = p.poll()
                 if code == 0:
-                    lines = [line.strip() for line in p.stdout]
-                    return lines
+                    break
                 sleep(0.1)
-            p.terminate()
-            print("Lewis backdoor did not finish!")
-            lines = [line.strip() for line in p.stdout]
-            return lines
+            else:
+                p.terminate()
+                print("Lewis backdoor did not finish!")
+            return [line.strip() for line in p.stdout]
         except subprocess.CalledProcessError as ex:
             sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
             sys.stderr.write("Error code {0}\n".format(ex.returncode))
