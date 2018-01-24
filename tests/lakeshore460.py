@@ -19,6 +19,8 @@ class UnitStrings(object):
     DC = "DC"
     PEAK = "PEAK"
     RMS = "RMS"
+    CHANNEL_ON = "ON"
+    CHANNEL_OFF = "OFF"
 
 
 class UnitFlags(object):
@@ -30,6 +32,8 @@ class UnitFlags(object):
     DC = 0
     PEAK = 1
     RMS = 0
+    CHANNEL_OFF = 1
+    CHANNEL_ON = 0
 
 
 class Lakeshore460Tests(unittest.TestCase):
@@ -43,6 +47,7 @@ class Lakeshore460Tests(unittest.TestCase):
         self.ca.wait_for("IDN")
 
     def test_GIVEN_unit_set_gauss_WHEN_read_THEN_unit_is_gauss(self):
+        self.ca.set_pv_value("CHANNEL", "X")
         unit_string = UnitStrings.GAUSS
         unit_flag = UnitFlags.GAUSS
         self.ca.assert_setting_setpoint_sets_readback(unit_flag, "UNIT", "UNIT:SP", unit_string)
@@ -65,8 +70,9 @@ class Lakeshore460Tests(unittest.TestCase):
     def test_GIVEN_unit_set_tesla_WHEN_read_THEN_unit_is_tesla(self):
         unit_string = UnitStrings.TESLA
         unit_flag = UnitFlags.TESLA
+        self.ca.set_pv_value("CHANNEL", "X")
         self.ca.assert_setting_setpoint_sets_readback(unit_flag, "UNIT", "UNIT:SP", unit_string)
-    
+
     def test_GIVEN_source_set_WHEN_read_THEN_source_is_set_value(self):
         for key in vectors:
             set_value = key
@@ -180,16 +186,16 @@ class Lakeshore460Tests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_channel_status_set_on_WHEN_read_THEN_channel_status_is_set_value(self):
         for chan in channels:
-            set_channel_status = UnitFlags.ON
-            expected_channel_status = UnitStrings.ON
+            set_channel_status = UnitFlags.CHANNEL_ON
+            expected_channel_status = UnitStrings.CHANNEL_ON
             self.ca.assert_setting_setpoint_sets_readback(set_channel_status, "{}:STATUS".format(chan),
                                                           "{}:STATUS:SP".format(chan), expected_channel_status)
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_channel_status_set_off_WHEN_read_THEN_channel_status_is_set_value(self):
         for chan in channels:
-            set_channel_status = UnitFlags.OFF
-            expected_channel_status = UnitStrings.OFF
+            set_channel_status = UnitFlags.CHANNEL_OFF
+            expected_channel_status = UnitStrings.CHANNEL_OFF
             self.ca.assert_setting_setpoint_sets_readback(set_channel_status, "{}:STATUS".format(chan),
                                                           "{}:STATUS:SP".format(chan), expected_channel_status)
 
