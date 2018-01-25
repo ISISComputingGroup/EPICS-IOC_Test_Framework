@@ -124,27 +124,27 @@ class TritonTests(unittest.TestCase):
 
     def test_WHEN_stil_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._set_temp_via_backdoor("stil", temp)
+            self._set_temp_via_backdoor("STIL", temp)
             self.ca.assert_that_pv_is("STIL:TEMP", temp)
 
     def test_WHEN_mc_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._set_temp_via_backdoor("mc", temp)
+            self._set_temp_via_backdoor("MC", temp)
             self.ca.assert_that_pv_is("MC:TEMP", temp)
 
     def test_WHEN_sorb_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._set_temp_via_backdoor("sorb", temp)
+            self._set_temp_via_backdoor("SORB", temp)
             self.ca.assert_that_pv_is("SORB:TEMP", temp)
 
     def test_WHEN_4KHX_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._set_temp_via_backdoor("4khx", temp)
+            self._set_temp_via_backdoor("PT2", temp)
             self.ca.assert_that_pv_is("4KHX:TEMP", temp)
 
     def test_WHEN_jthx_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
-            self._set_temp_via_backdoor("jthx", temp)
+            self._set_temp_via_backdoor("PT1", temp)
             self.ca.assert_that_pv_is("JTHX:TEMP", temp)
 
     def test_WHEN_pressure_is_set_via_backdoor_THEN_pressure_pv_updates(self):
