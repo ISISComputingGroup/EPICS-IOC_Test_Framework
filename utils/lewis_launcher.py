@@ -83,7 +83,7 @@ class LewisLauncher(object):
     Launches Lewis.
     """
 
-    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol=None, lewis_additional_path=None, lewis_package=None):
+    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None, lewis_package=None):
         """
         Constructor that also launches Lewis.
 
@@ -91,7 +91,7 @@ class LewisLauncher(object):
         :param python_path: path to python.exe
         :param lewis_path: path to lewis
         :param var_dir: location of directory to write log file and macros directories
-        :param lewis_protocol: protocol to use; None let Lewis use the default protocol
+        :param lewis_protocol: protocol to use
         :param lewis_additional_path: additional path to add to lewis usually the location of the device emulators
         :param lewis_package: package to use by lewis
         """
@@ -137,14 +137,13 @@ class LewisLauncher(object):
         self._control_port = str(get_free_ports(1)[0])
         lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-        if self._lewis_protocol is not None:
-            lewis_command_line.extend(["-p", self._lewis_protocol])
+        lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
+                                  .format(protocol=self._lewis_protocol, port=port)])
         if self._lewis_additional_path is not None:
             lewis_command_line.extend(["-a", self._lewis_additional_path])
         if self._lewis_package is not None:
             lewis_command_line.extend(["-k", self._lewis_package])
-        lewis_command_line.extend(
-            ["-e", "100", self._device, "--", "--bind-address", "127.0.0.1", "--port", port])
+        lewis_command_line.extend(["-e", "100", self._device])
 
         print("Starting Lewis")
         self._logFile = file(self._log_filename(), "w")

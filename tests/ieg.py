@@ -5,13 +5,11 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
-from time import sleep
-
-
 CALIBRATION_A = 1.23
 CALIBRATION_B = -4.56
 
-MACROS = { "CALIBRATION_A": str(CALIBRATION_A), "CALIBRATION_B": str(CALIBRATION_B)}
+MACROS = {"CALIBRATION_A": str(CALIBRATION_A), "CALIBRATION_B": str(CALIBRATION_B)}
+
 
 class IegTests(unittest.TestCase):
     """
@@ -26,9 +24,9 @@ class IegTests(unittest.TestCase):
     error_codes = [(0, "No error"),
                    (2, "Samp vol: leak detected"),
                    (3, "Samp vol: no vacuum"),
-                   (4, "Samp vol: pump timeout"),
-                   (5, "Buff vol: did not fill"),
-                   (6, "Samp vol: fill iterations"),
+                   (4, "Buff vol: did not fill"),
+                   (5, "Samp vol: fill iterations"),
+                   (6, "Samp vol: pump timeout"),
                    (7, "Samp vol: fill timeout"),
                    (8, "Buff or samp vol leak"),
                    (9, "Shot didn't raise press."),
@@ -46,7 +44,7 @@ class IegTests(unittest.TestCase):
 
     @staticmethod
     def _get_raw_from_actual(value):
-        return int(round((value - CALIBRATION_B) - CALIBRATION_A))
+        return int(round((value - CALIBRATION_B) / CALIBRATION_A))
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ieg")
@@ -140,7 +138,13 @@ class IegTests(unittest.TestCase):
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
     def test_WHEN_pressure_is_over_350_THEN_displayed_as_greater_than_350_mBar(self):
         self._lewis.backdoor_set_on_device("sample_pressure", self._get_raw_from_actual(400))
-        self.ca.assert_that_pv_is("PRESSURE:GUI.OSV", "> 350 mbar")
+        self.ca.assert_that_pv_is("PRESSURE:GUI.OSV", ">350 mbar")
+        self.ca.assert_pv_alarm_is("PRESSURE:GUI", self.ca.ALARM_MAJOR)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    def test_WHEN_pressure_is_less_than_0_THEN_displayed_as_less_than_0_mBar(self):
+        self._lewis.backdoor_set_on_device("sample_pressure", self._get_raw_from_actual(-10))
+        self.ca.assert_that_pv_is("PRESSURE:GUI.OSV", "<0 mbar")
         self.ca.assert_pv_alarm_is("PRESSURE:GUI", self.ca.ALARM_MAJOR)
 
     @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
@@ -149,5 +153,6 @@ class IegTests(unittest.TestCase):
             actual_pressure = self._get_actual_from_raw(raw_pressure)
 
             self._lewis.backdoor_set_on_device("sample_pressure", raw_pressure)
-            self.ca.assert_that_pv_is_number("PRESSURE", actual_pressure, tolerance=0.05)
+            # PRESSURE is restricted to use [0-350]. PRESSURE:CALC is unrestricted
+            self.ca.assert_that_pv_is_number("PRESSURE:CALC", actual_pressure, tolerance=0.05)
             self.ca.assert_pv_alarm_is("PRESSURE", self.ca.ALARM_NONE if .0 < actual_pressure < 350 else self.ca.ALARM_MAJOR)
