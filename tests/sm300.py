@@ -7,7 +7,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
-MACROS = {"MTRCTRL": "01",
+MACROS = {"MTRCTRL": "1",
           "AXIS1": "yes",
           "NAME1": "Sample Lin",
           "MSTP1": 200,
@@ -102,14 +102,14 @@ class Sm300Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "B10")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
-        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_INVALID)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set error")
     def test_GIVEN_malformed_motor_position_WHEN_get_axis_x_THEN_error_returned(self):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "Xrubbish")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
-        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_INVALID)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set moving on motor")
     def test_GIVEN_a_motor_is_moving_WHEN_get_moving_THEN_both_axis_are_moving(self):
@@ -246,3 +246,9 @@ class Sm300Tests(unittest.TestCase):
             self.ioc_ca.assert_that_pv_is("RESET", "Done")
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
         self.ca.assert_that_pv_is("MTR0102.RBV", expected_home)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set disconnected")
+    def test_GIVEN_motor_is_disconnected_WHEN_get_axis_x_ioc_position_THEN_alarm_is_disconnected(self):
+        self._lewis.backdoor_set_on_device("is_disconnected", True)
+
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_INVALID)
