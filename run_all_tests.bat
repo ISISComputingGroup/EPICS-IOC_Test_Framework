@@ -224,6 +224,10 @@ echo;
 echo ---------------------------------------
 echo TESTING LKSH460 Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d lakeshore460 -p %EPICS_KIT_ROOT%\ioc\master\LKSH460\iocBoot\iocLKSH460-IOC-01
+echo ---------------------------------------
 
+echo ---------------------------------------
+echo TESTING SKF G5 Chopper Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d skf_g5_chopper -p %EPICS_KIT_ROOT%\ioc\master\SKFCHOPPER\iocBoot\iocSKFCHOPPER-IOC-01
 echo ---------------------------------------
 echo;
