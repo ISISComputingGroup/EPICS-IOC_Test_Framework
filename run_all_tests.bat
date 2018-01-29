@@ -214,6 +214,14 @@ echo;
 echo ---------------------------------------
 echo TESTING SKF MB350 Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d skf_mb350_chopper -p %EPICS_KIT_ROOT%\ioc\master\SKFMB350\iocBoot\iocSKFMB350-IOC-01
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
+echo TESTING SM300 Dev Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -d sm300 -p %EPICS_KIT_ROOT%\ioc\master\SM300\iocBoot\iocSM300-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
+echo ---------------------------------------
+echo ;
 
 echo ---------------------------------------
 echo TESTING LKSH460 Dev Sim
@@ -222,9 +230,16 @@ echo ---------------------------------------
 echo;
 
 echo ---------------------------------------
+echo TESTING SM300 Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d sm300 -p %EPICS_KIT_ROOT%\ioc\master\SM300\iocBoot\iocSM300-IOC-01
+echo ---------------------------------------
+echo;
+
+echo ---------------------------------------
 echo TESTING LKSH460 Rec Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -r -pf %MYPVPREFIX%  -d lakeshore460 -p %EPICS_KIT_ROOT%\ioc\master\LKSH460\iocBoot\iocLKSH460-IOC-01
 echo ---------------------------------------
+echo;
 
 echo ---------------------------------------
 echo TESTING SKF G5 Chopper Rec Sim
