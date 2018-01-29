@@ -22,16 +22,19 @@ MOTOR_PREFIX = "MSP"
 POSITION_IN = "In"
 POSITION_OUT = "Out"
 MOTOR_POSITION_IN = 3
+MOTOR_POSITION_OUT = 1
 POSITIONS_1D = [(POSITION_IN, MOTOR_POSITION_IN),
-                (POSITION_OUT, 1)]
+                (POSITION_OUT, MOTOR_POSITION_OUT)]
 
 POSITION_SAMPLE1 = "Sample1"
 POSITION_SAMPLE2 = "Sample2"
 MOTOR_POSITION_SAMPLE1_COORD1 = 3
 MOTOR_POSITION_SAMPLE1_COORD2 = -2
+MOTOR_POSITION_SAMPLE2_COORD1 = 1
+MOTOR_POSITION_SAMPLE2_COORD2 = -3
 POSITIONS_2D = [
     (POSITION_SAMPLE1, MOTOR_POSITION_SAMPLE1_COORD1, MOTOR_POSITION_SAMPLE1_COORD2),
-    (POSITION_SAMPLE2, 1, -3),
+    (POSITION_SAMPLE2, MOTOR_POSITION_SAMPLE2_COORD1, MOTOR_POSITION_SAMPLE2_COORD2),
     ("Sample3", 0, -4)
 ]
 
@@ -93,25 +96,36 @@ class Motion_setpointsTests(unittest.TestCase):
         self.ca1D.assert_that_pv_is("POSN", POSITION_IN)
         self.ca1D.set_pv_value("POSN:SP", POSITION_OUT)
 
-        self.ca1D.set_pv_value("POSITIONED", 0)
-        self.ca1D.set_pv_value("STATIONARY", 0)
+        self.ca1D.assert_that_pv_is("POSITIONED", 0)
+        self.ca1D.assert_that_pv_is("STATIONARY", 0)
 
-        self.ca1D.set_pv_value("POSITIONED", 1)
-        self.ca1D.set_pv_value("STATIONARY", 1)
+        self.ca1D.assert_that_pv_is("POSITIONED", 1)
+        self.ca1D.assert_that_pv_is("STATIONARY", 1)
 
     def test_GIVEN_1D_WHEN_set_offset_THEN_in_position_light_goes_off_then_on_and_motor_moves_to_position_plus_offset(self):
         expected_offset = 1
         expected_motor_position = MOTOR_POSITION_IN + expected_offset
         self.ca1D.set_pv_value("POSN:SP", POSITION_IN)
         self.ca1D.assert_that_pv_is("POSN", POSITION_IN)
-        self.ca1D.set_pv_value("POSITIONED", 1)
+        self.ca1D.assert_that_pv_is("POSITIONED", 1)
 
         self.ca1D.set_pv_value("COORD1:OFFSET:SP", expected_offset)
-        self.ca1D.set_pv_value("POSITIONED", 0)
+        self.ca1D.assert_that_pv_is("POSITIONED", 0)
 
-        self.ca1D.set_pv_value("POSITIONED", 1)
+        self.ca1D.assert_that_pv_is("POSITIONED", 1)
         self.ca1D.assert_that_pv_is("COORD1:OFFSET", expected_offset)
         self.motor_ca.assert_that_pv_is("MTR0.RBV", expected_motor_position)
+
+    def test_GIVEN_1D_WHEN_set_large_offset_THEN_current_position_set_correctly(self):
+        offset = MOTOR_POSITION_OUT - MOTOR_POSITION_IN
+        self.ca1D.set_pv_value("COORD1:OFFSET:SP", -offset)
+
+        self.ca1D.set_pv_value("POSN:SP", POSITION_OUT)
+
+        self.ca1D.assert_that_pv_is("POSITIONED", 0)
+        self.ca1D.assert_that_pv_is("POSITIONED", 1)
+        self.ca1D.assert_that_pv_is("POSN", POSITION_OUT, timeout=30)
+
 
     def test_GIVEN_1D_no_axis_WHEN_get_numaxes_THEN_return1(self):
         self.ca1D.assert_that_pv_is("NUMAXES", 1)
@@ -135,17 +149,16 @@ class Motion_setpointsTests(unittest.TestCase):
             self.ca2D.assert_that_pv_is("COORD1:MTR.RBV", expected_motor_position_cord1)
             self.ca2D.assert_that_pv_is("COORD2:MTR.RBV", expected_motor_position_cord2)
 
-
     def test_GIVEN_2D_WHEN_move_to_out_position_THEN_in_position_light_goes_off_then_on(self):
         self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE1)
         self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE1)
         self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE2)
 
-        self.ca2D.set_pv_value("POSITIONED", 0)
-        self.ca2D.set_pv_value("STATIONARY", 0)
+        self.ca2D.assert_that_pv_is("POSITIONED", 0)
+        self.ca2D.assert_that_pv_is("STATIONARY", 0)
 
-        self.ca2D.set_pv_value("POSITIONED", 1)
-        self.ca2D.set_pv_value("STATIONARY", 1)
+        self.ca2D.assert_that_pv_is("POSITIONED", 1)
+        self.ca2D.assert_that_pv_is("STATIONARY", 1)
 
     def test_GIVEN_2D_WHEN_set_offset_THEN_in_position_light_goes_off_then_on_and_motor_moves_to_position_plus_offset(self):
         expected_offset_coord1 = 1
@@ -154,17 +167,33 @@ class Motion_setpointsTests(unittest.TestCase):
         expected_motor_position_coord2 = MOTOR_POSITION_SAMPLE1_COORD2 + expected_offset_coord2
         self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE1)
         self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE1)
-        self.ca2D.set_pv_value("POSITIONED", 1)
+        self.ca2D.assert_that_pv_is("POSITIONED", 1)
 
         self.ca2D.set_pv_value("COORD1:OFFSET:SP", expected_offset_coord1)
         self.ca2D.set_pv_value("COORD2:OFFSET:SP", expected_offset_coord2)
-        self.ca2D.set_pv_value("POSITIONED", 0)
+        self.ca2D.assert_that_pv_is("POSITIONED", 0)
 
-        self.ca2D.set_pv_value("POSITIONED", 1)
+        self.ca2D.assert_that_pv_is("POSITIONED", 1)
         self.ca2D.assert_that_pv_is("COORD1:OFFSET", expected_offset_coord1)
         self.ca2D.assert_that_pv_is("COORD2:OFFSET", expected_offset_coord2)
         self.motor_ca.assert_that_pv_is("MTR0.RBV", expected_motor_position_coord1)
         self.motor_ca.assert_that_pv_is("MTR1.RBV", expected_motor_position_coord2)
+
+    def test_GIVEN_2D_WHEN_set_large_offset_THEN_current_position_is_correct(self):
+        """
+        Originally the offset was included in the value sent to lookup so if the offset was large compared with
+        differences between samples it set the wrong value.
+        """
+        offset_coord1 = MOTOR_POSITION_SAMPLE1_COORD1 - MOTOR_POSITION_SAMPLE2_COORD1
+        offset_coord2 = MOTOR_POSITION_SAMPLE1_COORD2 - MOTOR_POSITION_SAMPLE2_COORD2
+
+        self.ca2D.set_pv_value("COORD1:OFFSET:SP", -offset_coord1)
+        self.ca2D.set_pv_value("COORD2:OFFSET:SP", -offset_coord2)
+        self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE1)
+
+        self.ca2D.assert_that_pv_is("POSITIONED", 0)
+        self.ca2D.assert_that_pv_is("POSITIONED", 1)
+        self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE1)
 
     def test_GIVEN_1D_with_axis_WHEN_set_position_THEN_position_is_set_and_motor_moves_to_position(self):
         for index, (expected_position, expected_motor_position) in enumerate(POSITIONS_1D):
