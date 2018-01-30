@@ -79,12 +79,12 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
 #   Command definitions:
     def _set_simulated_value(self, parameter, value):
-        simulated_values = SIMULATED_VALUES[parameter]
-        if len(simulated_values) == 4:
-            backdoor_parameter, pv_name, true_value, false_value = simulated_values
+        simulated_value = SIMULATED_VALUES[parameter]
+        if len(simulated_value) == 4:
+            backdoor_parameter, pv_name, true_value, false_value = simulated_value
             self._ioc.set_simulated_value(pv_name, true_value if value else false_value)
         else:
-            backdoor_parameter, pv_name = simulated_values
+            backdoor_parameter, pv_name = simulated_value
             self._ioc.set_simulated_value(pv_name, value)
         self._lewis.backdoor_set_on_device(backdoor_parameter, value)
 
