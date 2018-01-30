@@ -1,8 +1,6 @@
 import unittest
 from unittest import skipIf
 
-import datetime
-
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
@@ -13,15 +11,6 @@ MACROS = {"ADDR": chopper_name}
 
 # Device prefix
 DEVICE_PREFIX = "FZJDDFCH_01"
-
-PV_VALUE_OK = "OK"
-PV_VALUE_NOK = "NOK"
-PV_VALUE_ON = "ON"
-PV_VALUE_OFF = "OFF"
-PV_VALUE_START = "START"
-PV_VALUE_STOP = "STOP"
-PV_VALUE_CW = "CW"
-PV_VALUE_CCW = "CCW"
 
 OK_NOK = {True: "OK", False: "NOK"}
 ON_OFF = {True: "ON", False: "OFF"}
@@ -37,42 +26,42 @@ SIMULATED_VALUES = {
     "frequency": ("frequency", "SIM:FREQ"),
     "phase_setpoint": ("phase_setpoint", "SIM:PHAS:SP:RBV"),
     "phase": ("phase", "SIM:PHAS"),
-    "phase_status_is_ok": ("phase_status_is_ok", "SIM:PHAS:STAT", PV_VALUE_OK, PV_VALUE_NOK),
-    "magnetic_bearing_is_on": ("magnetic_bearing_is_on", "SIM:MB", PV_VALUE_ON, PV_VALUE_OFF),
-    "magnetic_bearing_status_is_ok": ("magnetic_bearing_status_is_ok", "SIM:MB:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+    "phase_status_is_ok": ("phase_status_is_ok", "SIM:PHAS:STAT", OK_NOK[True], OK_NOK[False]),
+    "magnetic_bearing_is_on": ("magnetic_bearing_is_on", "SIM:MB", ON_OFF[True], ON_OFF[False]),
+    "magnetic_bearing_status_is_ok": ("magnetic_bearing_status_is_ok", "SIM:MB:STAT", OK_NOK[True], OK_NOK[False]),
     "magnetic_bearing_integrator": ("magnetic_bearing_integrator", "SIM:MB:INT"),
-    "drive_is_on": ("drive_is_on", "SIM:DRIVE", PV_VALUE_ON, PV_VALUE_OFF),
-    "drive_mode_is_start": ("drive_mode_is_start", "SIM:DRIVE:MODE", PV_VALUE_START, PV_VALUE_STOP),
+    "drive_is_on": ("drive_is_on", "SIM:DRIVE", ON_OFF[True], ON_OFF[False]),
+    "drive_mode_is_start": ("drive_mode_is_start", "SIM:DRIVE:MODE", START_STOP[True], START_STOP[False]),
     "drive_l1_current": ("drive_l1_current", "SIM:DRIVE:L1:CURR"),
     "drive_l2_current": ("drive_l2_current", "SIM:DRIVE:L2:CURR"),
     "drive_l3_current": ("drive_l3_current", "SIM:DRIVE:L3:CURR"),
-    "drive_direction_is_cw": ("drive_direction_is_cw", "SIM:DRIVE:DIR", PV_VALUE_CW, PV_VALUE_CCW),
-    "parked_open_status_is_ok": ("parked_open_status_is_ok", "SIM:PARKED:OPEN:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+    "drive_direction_is_cw": ("drive_direction_is_cw", "SIM:DRIVE:DIR", CW_CCW[True], CW_CCW[False]),
+    "parked_open_status_is_ok": ("parked_open_status_is_ok", "SIM:PARKED:OPEN:STAT", OK_NOK[True], OK_NOK[False]),
     "drive_temperature": ("drive_temperature", "SIM:DRIVE:TEMP"),
     "input_clock": ("input_clock", "SIM:INPUTCLOCK"),
     "phase_outage": ("phase_outage", "SIM:PHAS:OUTAGE"),
     "master_chopper": ("master_chopper", "SIM:MASTER"),
-    "logging_is_on": ("logging_is_on", "SIM:LOGGING", PV_VALUE_ON, PV_VALUE_OFF),
-    "lmsr_status_is_ok": ("lmsr_status_is_ok", "SIM:LMSR:STAT", PV_VALUE_OK, PV_VALUE_NOK),
-    "dsp_status_is_ok": ("dsp_status_is_ok", "SIM:DSP:STAT", PV_VALUE_OK, PV_VALUE_NOK),
-    "interlock_er_status_is_ok": ("interlock_er_status_is_ok", "SIM:INTERLOCK:ER:STAT", PV_VALUE_OK, PV_VALUE_NOK),
-    "interlock_vacuum_status_is_ok": ("interlock_vacuum_status_is_ok", "SIM:INTERLOCK:VAC:STAT", PV_VALUE_OK, 
-                                      PV_VALUE_NOK),
+    "logging_is_on": ("logging_is_on", "SIM:LOGGING", ON_OFF[True], ON_OFF[False]),
+    "lmsr_status_is_ok": ("lmsr_status_is_ok", "SIM:LMSR:STAT", OK_NOK[True], OK_NOK[False]),
+    "dsp_status_is_ok": ("dsp_status_is_ok", "SIM:DSP:STAT", OK_NOK[True], OK_NOK[False]),
+    "interlock_er_status_is_ok": ("interlock_er_status_is_ok", "SIM:INTERLOCK:ER:STAT", OK_NOK[True], OK_NOK[False]),
+    "interlock_vacuum_status_is_ok": ("interlock_vacuum_status_is_ok", "SIM:INTERLOCK:VAC:STAT", OK_NOK[True], 
+                                      OK_NOK[False]),
     "interlock_frequency_monitoring_status_is_ok":
-        ("interlock_frequency_monitoring_status_is_ok", "SIM:INTERLOCK:FREQMON:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+        ("interlock_frequency_monitoring_status_is_ok", "SIM:INTERLOCK:FREQMON:STAT", OK_NOK[True], OK_NOK[False]),
     "interlock_magnetic_bearing_amplifier_temperature_status_is_ok":
-        ("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:MB:AMP:TEMP:STAT", PV_VALUE_OK, 
-         PV_VALUE_NOK),
+        ("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:MB:AMP:TEMP:STAT", OK_NOK[True], 
+         OK_NOK[False]),
     "interlock_magnetic_bearing_amplifier_current_status_is_ok":
-        ("interlock_magnetic_bearing_amplifier_current_status_is_ok", "SIM:INTERLOCK:MB:AMP:CURR:STAT", PV_VALUE_OK, 
-         PV_VALUE_NOK),
+        ("interlock_magnetic_bearing_amplifier_current_status_is_ok", "SIM:INTERLOCK:MB:AMP:CURR:STAT", OK_NOK[True], 
+         OK_NOK[False]),
     "interlock_drive_amplifier_temperature_status_is_ok":
-        ("interlock_drive_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:TEMP:STAT", PV_VALUE_OK, 
-         PV_VALUE_NOK),
+        ("interlock_drive_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:TEMP:STAT", OK_NOK[True], 
+         OK_NOK[False]),
     "interlock_drive_amplifier_current_status_is_ok":
-        ("interlock_drive_amplifier_current_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:CURR:STAT", PV_VALUE_OK, 
-         PV_VALUE_NOK),
-    "interlock_ups_status_is_ok": ("interlock_ups_status_is_ok", "SIM:INTERLOCK:UPS:STAT", PV_VALUE_OK, PV_VALUE_NOK)
+        ("interlock_drive_amplifier_current_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:CURR:STAT", OK_NOK[True], 
+         OK_NOK[False]),
+    "interlock_ups_status_is_ok": ("interlock_ups_status_is_ok", "SIM:INTERLOCK:UPS:STAT", OK_NOK[True], OK_NOK[False])
 }
 
 
@@ -393,7 +382,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
     # Magnetic Bearing
 
     def test_WHEN_magnetic_bearing_is_set_THEN_readback_updates(self):
-        for magnetic_bearing in [PV_VALUE_ON, PV_VALUE_OFF]:
+        for magnetic_bearing in [ON_OFF[True], ON_OFF[False]]:
             self.ca.set_pv_value("MB:SP", magnetic_bearing)
 
             self.ca.assert_that_pv_is("MB:SP", magnetic_bearing)
@@ -402,31 +391,31 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is("MB", self.ca.ALARM_NONE)
 
     def test_GIVEN_error_WHEN_set_magnetic_bearing_is_on_THEN_error_is_handled(self):
-        magnetic_bearing = PV_VALUE_ON
-        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
-        self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
-        self.ca.set_pv_value("MB:SP", magnetic_bearing)
+        for magnetic_bearing in [ON_OFF[True], ON_OFF[False]]:
+            expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+            self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
+            self.ca.set_pv_value("MB:SP", magnetic_bearing)
 
-        self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
-        self.ca.assert_that_pv_is("MB:SP:ERROR", expected_error)
+            self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_that_pv_is("MB:SP:ERROR", expected_error)
 
     def test_GIVEN_error_then_no_error_WHEN_set_magnetic_bearing_is_on_THEN_error_is_cleared(self):
-        magnetic_bearing = PV_VALUE_ON
-        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
-        self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
-        self.ca.set_pv_value("MB:SP", magnetic_bearing)
-        self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
-        self.ca.assert_that_pv_is("MB:SP:ERROR", expected_error)
-        self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", None)
+        for magnetic_bearing in [ON_OFF[True], ON_OFF[False]]:
+            expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+            self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
+            self.ca.set_pv_value("MB:SP", magnetic_bearing)
+            self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_that_pv_is("MB:SP:ERROR", expected_error)
+            self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", None)
 
-        self.ca.set_pv_value("MB:SP", magnetic_bearing)
+            self.ca.set_pv_value("MB:SP", magnetic_bearing)
 
-        self.ca.assert_that_pv_is("MB:SP:ERROR", "")
+            self.ca.assert_that_pv_is("MB:SP:ERROR", "")
 
     # Drive
 
     def test_WHEN_drive_mode_is_set_THEN_readback_updates(self):
-        for drive_mode in [PV_VALUE_START, PV_VALUE_STOP]:
+        for drive_mode in [START_STOP[True], START_STOP[False]]:
             self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
             self.ca.assert_that_pv_is("DRIVE:MODE:SP", drive_mode)
@@ -435,26 +424,26 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is("DRIVE:MODE", self.ca.ALARM_NONE)
 
     def test_GIVEN_error_WHEN_set_drive_mode_is_start_THEN_error_is_handled(self):
-        drive_mode = PV_VALUE_STOP
-        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
-        self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
-        self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
+        for drive_mode in [START_STOP[True], START_STOP[False]]:
+            expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+            self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
+            self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
-        self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
-        self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", expected_error)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", expected_error)
 
     def test_GIVEN_error_then_no_error_WHEN_set_drive_mode_is_start_THEN_error_is_cleared(self):
-        drive_mode = PV_VALUE_STOP
-        expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
-        self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
-        self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
-        self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
-        self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", expected_error)
-        self._lewis.backdoor_set_on_device("error_on_set_drive_mode", None)
+        for drive_mode in [START_STOP[True], START_STOP[False]]:
+            expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
+            self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
+            self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", expected_error)
+            self._lewis.backdoor_set_on_device("error_on_set_drive_mode", None)
 
-        self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
+            self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
-        self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
+            self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
 
     @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_device_is_not_communicating_WHEN_read_all_status_THEN_values_have_error(self):
