@@ -11,7 +11,13 @@ PID_TEST_VALUES = 0, 10**-5, 123.45, 10**5
 TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 250
 PRESSURE_TEST_VALUES = TEMPERATURE_TEST_VALUES
 HEATER_RANGE_TEST_VALUES = 0.001, 0.316, 1000
+RESISTANCE_TEST_VALUES = 10, 3456
+EXCITATION_TEST_VALUES = PID_TEST_VALUES
+TIME_DELAY_TEST_VALUES = RESISTANCE_TEST_VALUES
+
 HEATER_POWER_UNITS = ["A", "mA", "uA", "nA", "pA"]
+
+VALID_TEMPERATURE_SENSORS = [i for i in range(0, 6)]
 
 
 class TritonTests(unittest.TestCase):
@@ -63,7 +69,7 @@ class TritonTests(unittest.TestCase):
     def test_WHEN_closed_loop_mode_is_set_via_backdoor_THEN_the_closed_loop_pv_updates_with_value_just_set(self):
         for value in [False, True, False]:  # Need to check both transitions work properly
             self._lewis.backdoor_set_on_device("closed_loop", value)
-            self.ca.assert_that_pv_is("CLOSEDLOOP", "YES" if value else "NO")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "On" if value else "Off")
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_valve_state_is_set_via_backdoor_THEN_valve_state_pvs_update_with_value_just_set(self):
@@ -72,12 +78,14 @@ class TritonTests(unittest.TestCase):
                 self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state)])
                 self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), "OPEN" if valve_state else "CLOSED")
 
+    @skipIf(IOCRegister.uses_rec_sim, "Behaviour too complex for recsim")
     def test_WHEN_channels_are_enabled_and_disabled_via_pv_THEN_the_readback_pv_updates_with_value_just_set(self):
-        for chan in range(1, 7):
+        for chan in VALID_TEMPERATURE_SENSORS:
             for enabled in [False, True, False]:  # Need to check both transitions work properly
                 self.ca.assert_setting_setpoint_sets_readback(
                     "ON" if enabled else "OFF", "CHANNELS:T{}:STATE".format(chan))
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_a_short_status_is_set_on_device_THEN_displayed_status_is_identical(self):
         # Status message that could be contained in an EPICS string type
         short_status = "Device status"
@@ -92,6 +100,7 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("status", status)
             self.ca.assert_that_pv_is("STATUS", status)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_long_status_is_set_on_device_THEN_displayed_status_truncated_but_displays_at_least_500_chars(self):
 
         # Somewhat arbitrary, but decide on a minimum number of characters that should be displayed in a
@@ -109,6 +118,7 @@ class TritonTests(unittest.TestCase):
         self.ca.assert_pv_value_causes_func_to_return_true(
             "STATUS", lambda val: long_status.startswith(val) and len(val) >= minimum_characters_in_pv)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_automation_is_set_on_device_THEN_displayed_automation_is_identical(self):
         automations = [
             "Warming up to 200K",
@@ -122,31 +132,37 @@ class TritonTests(unittest.TestCase):
     def _set_temp_via_backdoor(self, channel, temp):
         self._lewis.backdoor_command(["device", "set_temperature_backdoor", "'{}'".format(channel), "{}".format(temp)])
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_stil_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
             self._set_temp_via_backdoor("STIL", temp)
             self.ca.assert_that_pv_is("STIL:TEMP", temp)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_mc_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
             self._set_temp_via_backdoor("MC", temp)
             self.ca.assert_that_pv_is("MC:TEMP", temp)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_sorb_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
             self._set_temp_via_backdoor("SORB", temp)
             self.ca.assert_that_pv_is("SORB:TEMP", temp)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_4KHX_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
             self._set_temp_via_backdoor("PT2", temp)
             self.ca.assert_that_pv_is("4KHX:TEMP", temp)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_jthx_temp_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in TEMPERATURE_TEST_VALUES:
             self._set_temp_via_backdoor("PT1", temp)
             self.ca.assert_that_pv_is("JTHX:TEMP", temp)
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_pressure_is_set_via_backdoor_THEN_pressure_pv_updates(self):
         for sensor in [1, 2, 3, 5]:
             for pressure in PRESSURE_TEST_VALUES:
@@ -155,9 +171,55 @@ class TritonTests(unittest.TestCase):
 
     def test_WHEN_closed_loop_is_set_via_pv_THEN_readback_updates(self):
         for state in [False, True, False]:
-            self.ca.assert_setting_setpoint_sets_readback("YES" if state else "NO", "CLOSEDLOOP")
+            self.ca.assert_setting_setpoint_sets_readback("On" if state else "Off", "CLOSEDLOOP")
 
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_read_mc_id_is_issued_via_arbitrary_command_THEN_response_is_in_format_device_uses(self):
         self.ca.set_pv_value("ARBITRARY:SP", "READ:SYS:DR:CHAN:MC")
         self.ca.assert_pv_value_causes_func_to_return_true("ARBITRARY",
                                                            lambda val: val.startswith("STAT:SYS:DR:CHAN:MC:"))
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_channel_temperature_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
+        for chan in VALID_TEMPERATURE_SENSORS:
+            for value in TEMPERATURE_TEST_VALUES:
+                self._lewis.backdoor_command(
+                    ["device", "set_sensor_property_backdoor", str(chan), "temperature", str(value)]
+                )
+                self.ca.assert_that_pv_is("CHANNELS:T{}:TEMP".format(chan), value)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_channel_resistance_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
+        for chan in VALID_TEMPERATURE_SENSORS:
+            for value in RESISTANCE_TEST_VALUES:
+                self._lewis.backdoor_command(
+                    ["device", "set_sensor_property_backdoor", str(chan), "resistance", str(value)]
+                )
+                self.ca.assert_that_pv_is("CHANNELS:T{}:RES".format(chan), value)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_channel_excitation_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
+        for chan in VALID_TEMPERATURE_SENSORS:
+            for value in EXCITATION_TEST_VALUES:
+                self._lewis.backdoor_command(
+                    ["device", "set_sensor_property_backdoor", str(chan), "excitation", str(value)]
+                )
+                self.ca.assert_that_pv_is("CHANNELS:T{}:EXCITATION".format(chan), value)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_channel_pause_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
+        for chan in VALID_TEMPERATURE_SENSORS:
+            for value in TIME_DELAY_TEST_VALUES:
+                self._lewis.backdoor_command(
+                    ["device", "set_sensor_property_backdoor", str(chan), "pause", str(value)]
+                )
+                self.ca.assert_that_pv_is("CHANNELS:T{}:PAUSE".format(chan), value)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_channel_dwell_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
+        for chan in VALID_TEMPERATURE_SENSORS:
+            for value in TIME_DELAY_TEST_VALUES:
+                self._lewis.backdoor_command(
+                    ["device", "set_sensor_property_backdoor", str(chan), "dwell", str(value)]
+                )
+                self.ca.assert_that_pv_is("CHANNELS:T{}:DWELL".format(chan), value)
