@@ -23,6 +23,12 @@ PV_VALUE_STOP = "STOP"
 PV_VALUE_CW = "CW"
 PV_VALUE_CCW = "CCW"
 
+OK_NOK = {True: "OK", False: "NOK"}
+ON_OFF = {True: "ON", False: "OFF"}
+START_STOP = {True: "START", False: "STOP"}
+CW_CCW = {True: "CW", False: "CCW"}
+
+
 # SIMULATED_VALUES = { backdoor_parameter, pv_name, true_value, false_value }
 
 SIMULATED_VALUES = {
@@ -50,17 +56,22 @@ SIMULATED_VALUES = {
     "lmsr_status_is_ok": ("lmsr_status_is_ok", "SIM:LMSR:STAT", PV_VALUE_OK, PV_VALUE_NOK),
     "dsp_status_is_ok": ("dsp_status_is_ok", "SIM:DSP:STAT", PV_VALUE_OK, PV_VALUE_NOK),
     "interlock_er_status_is_ok": ("interlock_er_status_is_ok", "SIM:INTERLOCK:ER:STAT", PV_VALUE_OK, PV_VALUE_NOK),
-    "interlock_vacuum_status_is_ok": ("interlock_vacuum_status_is_ok", "SIM:INTERLOCK:VAC:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+    "interlock_vacuum_status_is_ok": ("interlock_vacuum_status_is_ok", "SIM:INTERLOCK:VAC:STAT", PV_VALUE_OK, 
+                                      PV_VALUE_NOK),
     "interlock_frequency_monitoring_status_is_ok":
         ("interlock_frequency_monitoring_status_is_ok", "SIM:INTERLOCK:FREQMON:STAT", PV_VALUE_OK, PV_VALUE_NOK),
     "interlock_magnetic_bearing_amplifier_temperature_status_is_ok":
-        ("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:MB:AMP:TEMP:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+        ("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:MB:AMP:TEMP:STAT", PV_VALUE_OK, 
+         PV_VALUE_NOK),
     "interlock_magnetic_bearing_amplifier_current_status_is_ok":
-        ("interlock_magnetic_bearing_amplifier_current_status_is_ok", "SIM:INTERLOCK:MB:AMP:CURR:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+        ("interlock_magnetic_bearing_amplifier_current_status_is_ok", "SIM:INTERLOCK:MB:AMP:CURR:STAT", PV_VALUE_OK, 
+         PV_VALUE_NOK),
     "interlock_drive_amplifier_temperature_status_is_ok":
-        ("interlock_drive_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:TEMP:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+        ("interlock_drive_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:TEMP:STAT", PV_VALUE_OK, 
+         PV_VALUE_NOK),
     "interlock_drive_amplifier_current_status_is_ok":
-        ("interlock_drive_amplifier_current_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:CURR:STAT", PV_VALUE_OK, PV_VALUE_NOK),
+        ("interlock_drive_amplifier_current_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:CURR:STAT", PV_VALUE_OK, 
+         PV_VALUE_NOK),
     "interlock_ups_status_is_ok": ("interlock_ups_status_is_ok", "SIM:INTERLOCK:UPS:STAT", PV_VALUE_OK, PV_VALUE_NOK)
 }
 
@@ -126,19 +137,19 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PHAS", expected_value)
         self.ca.assert_pv_alarm_is("PHAS", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_phase_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_OK
-        self._set_simulated_value("phase_status_is_ok", True)
+    def test_GIVEN_phase_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("phase_status_is_ok", boolean_value)
+    
+            self.ca.assert_that_pv_is("PHAS:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("PHAS:STAT", ChannelAccess.ALARM_NONE)
 
-        self.ca.assert_that_pv_is("PHAS:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("PHAS:STAT", ChannelAccess.ALARM_NONE)
+    def test_GIVEN_magnetic_bearing_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("magnetic_bearing_status_is_ok", boolean_value)
 
-    def test_GIVEN_magnetic_bearing_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_OK
-        self._set_simulated_value("magnetic_bearing_status_is_ok", True)
-
-        self.ca.assert_that_pv_is("MB:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("MB:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("MB:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("MB:STAT", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_magnetic_bearing_integrator_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = -27.4
@@ -147,26 +158,26 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MB:INT", expected_value)
         self.ca.assert_pv_alarm_is("MB:INT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_magnetic_bearing_is_on_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_ON
-        self._set_simulated_value("magnetic_bearing_is_on", True)
+    def test_GIVEN_magnetic_bearing_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in ON_OFF.items():
+            self._set_simulated_value("magnetic_bearing_is_on", boolean_value)
 
-        self.ca.assert_that_pv_is("MB", expected_value)
-        self.ca.assert_pv_alarm_is("MB", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("MB", expected_value)
+            self.ca.assert_pv_alarm_is("MB", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_drive_is_on_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_ON
-        self._set_simulated_value("drive_is_on", True)
+    def test_GIVEN_drive_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in ON_OFF.items():
+            self._set_simulated_value("drive_is_on", boolean_value)
 
-        self.ca.assert_that_pv_is("DRIVE", expected_value)
-        self.ca.assert_pv_alarm_is("DRIVE", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("DRIVE", expected_value)
+            self.ca.assert_pv_alarm_is("DRIVE", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_drive_mode_is_start_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = PV_VALUE_STOP
-        self._set_simulated_value("drive_mode_is_start", False)
+    def test_GIVEN_drive_mode_WHEN_read_all_status_THEN_value_is_as_expected(self):
+        for boolean_value, expected_value in START_STOP.items():
+            self._set_simulated_value("drive_mode_is_start", boolean_value)
 
-        self.ca.assert_that_pv_is("DRIVE:MODE", expected_value)
-        self.ca.assert_pv_alarm_is("DRIVE:MODE", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("DRIVE:MODE", expected_value)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_drive_l1_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 9.62
@@ -189,19 +200,19 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DRIVE:L3:CURR", expected_value)
         self.ca.assert_pv_alarm_is("DRIVE:L3:CURR", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_drive_direction_is_cw_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_CCW
-        self._set_simulated_value("drive_direction_is_cw", False)
+    def test_GIVEN_drive_direction_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in CW_CCW.items():
+            self._set_simulated_value("drive_direction_is_cw", boolean_value)
 
-        self.ca.assert_that_pv_is("DRIVE:DIR", expected_value)
-        self.ca.assert_pv_alarm_is("DRIVE:DIR", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("DRIVE:DIR", expected_value)
+            self.ca.assert_pv_alarm_is("DRIVE:DIR", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_parked_open_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("parked_open_status_is_ok", False)
+    def test_GIVEN_parked_open_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("parked_open_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("PARKED:OPEN:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("PARKED:OPEN:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("PARKED:OPEN:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("PARKED:OPEN:STAT", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_drive_temperature_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 86.31
@@ -231,85 +242,85 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MASTER", expected_value)
         self.ca.assert_pv_alarm_is("MASTER", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_logging_is_on_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_OFF
-        self._set_simulated_value("logging_is_on", False)
+    def test_GIVEN_logging_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in ON_OFF.items():
+            self._set_simulated_value("logging_is_on", boolean_value)
 
-        self.ca.assert_that_pv_is("LOGGING", expected_value)
-        self.ca.assert_pv_alarm_is("LOGGING", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("LOGGING", expected_value)
+            self.ca.assert_pv_alarm_is("LOGGING", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_lmsr_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("lmsr_status_is_ok", False)
+    def test_GIVEN_lmsr_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("lmsr_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("LMSR:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("LMSR:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("LMSR:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("LMSR:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_dsp_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("dsp_status_is_ok", False)
+    def test_GIVEN_dsp_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("dsp_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("DSP:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("DSP:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("DSP:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("DSP:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_interlock_er_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_er_status_is_ok", False)
+    def test_GIVEN_interlock_er_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_er_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:ER:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:ER:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:ER:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:ER:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_interlock_vacuum_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_vacuum_status_is_ok", False)
+    def test_GIVEN_interlock_vacuum_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_vacuum_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:VAC:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:VAC:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:VAC:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:VAC:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_interlock_frequency_monitoring_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_frequency_monitoring_status_is_ok", False)
+    def test_GIVEN_interlock_frequency_monitoring_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_frequency_monitoring_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:FREQMON:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:FREQMON:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:FREQMON:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:FREQMON:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_interlock_magnetic_bearing_amplifier_temperature_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", False)
+    def test_GIVEN_interlock_magnetic_bearing_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:TEMP:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:TEMP:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_interlock_magnetic_bearing_amplifier_current_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_magnetic_bearing_amplifier_current_status_is_ok", False)
+    def test_GIVEN_interlock_magnetic_bearing_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_magnetic_bearing_amplifier_current_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:CURR:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:CURR:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_interlock_drive_amplifier_temperature_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_drive_amplifier_temperature_status_is_ok", False)
+    def test_GIVEN_interlock_drive_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_drive_amplifier_temperature_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_interlock_drive_amplifier_current_status_is_ok_WHEN_read_all_status_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_drive_amplifier_current_status_is_ok", False)
+    def test_GIVEN_interlock_drive_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_drive_amplifier_current_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:CURR:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:CURR:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_ups_status_WHEN_read_all_status_is_ok_THEN_status_is_as_expected(self):
-        expected_value = PV_VALUE_NOK
-        self._set_simulated_value("interlock_ups_status_is_ok", False)
+        for boolean_value, expected_value in OK_NOK.items():
+            self._set_simulated_value("interlock_ups_status_is_ok", boolean_value)
 
-        self.ca.assert_that_pv_is("INTERLOCK:UPS:STAT", expected_value)
-        self.ca.assert_pv_alarm_is("INTERLOCK:UPS:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("INTERLOCK:UPS:STAT", expected_value)
+            self.ca.assert_pv_alarm_is("INTERLOCK:UPS:STAT", ChannelAccess.ALARM_NONE)
 
     # ***** Test set commands *****
-    #
+
     # Frequency
 
     def test_WHEN_frequency_setpoint_is_set_THEN_readback_updates(self):
@@ -381,14 +392,14 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     # Magnetic Bearing
 
-    def test_WHEN_magnetic_bearing_is_on_is_set_THEN_readback_updates(self):
-        magnetic_bearing = PV_VALUE_ON
-        self.ca.set_pv_value("MB:SP", magnetic_bearing)
+    def test_WHEN_magnetic_bearing_is_set_THEN_readback_updates(self):
+        for magnetic_bearing in [PV_VALUE_ON, PV_VALUE_OFF]:
+            self.ca.set_pv_value("MB:SP", magnetic_bearing)
 
-        self.ca.assert_that_pv_is("MB:SP", magnetic_bearing)
-        self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_NONE)
-        self.ca.assert_that_pv_is("MB", magnetic_bearing)
-        self.ca.assert_pv_alarm_is("MB", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("MB:SP", magnetic_bearing)
+            self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("MB", magnetic_bearing)
+            self.ca.assert_pv_alarm_is("MB", self.ca.ALARM_NONE)
 
     def test_GIVEN_error_WHEN_set_magnetic_bearing_is_on_THEN_error_is_handled(self):
         magnetic_bearing = PV_VALUE_ON
@@ -414,14 +425,14 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     # Drive
 
-    def test_WHEN_drive_mode_is_start_is_set_THEN_readback_updates(self):
-        drive_mode = PV_VALUE_STOP
-        self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
+    def test_WHEN_drive_mode_is_set_THEN_readback_updates(self):
+        for drive_mode in [PV_VALUE_START, PV_VALUE_STOP]:
+            self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
-        self.ca.assert_that_pv_is("DRIVE:MODE:SP", drive_mode)
-        self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_NONE)
-        self.ca.assert_that_pv_is("DRIVE:MODE", drive_mode)
-        self.ca.assert_pv_alarm_is("DRIVE:MODE", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("DRIVE:MODE:SP", drive_mode)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("DRIVE:MODE", drive_mode)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE", self.ca.ALARM_NONE)
 
     def test_GIVEN_error_WHEN_set_drive_mode_is_start_THEN_error_is_handled(self):
         drive_mode = PV_VALUE_STOP
