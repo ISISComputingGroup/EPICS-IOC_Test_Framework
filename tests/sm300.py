@@ -7,7 +7,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc
 
-MACROS = {"MTRCTRL": "01",
+MACROS = {"MTRCTRL": "1",
           "AXIS1": "yes",
           "NAME1": "Sample Lin",
           "MSTP1": 200,
@@ -50,6 +50,8 @@ MTRPV = {
     "y": "MTR0101"
 }
 
+SM300_DEVICE_PREFIX = "SM300_01"
+
 
 class Sm300Tests(unittest.TestCase):
     """
@@ -58,6 +60,8 @@ class Sm300Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("sm300")
         self.ca = ChannelAccess(device_prefix="MOT")
+        self.ioc_ca = ChannelAccess(device_prefix=SM300_DEVICE_PREFIX)
+        self.ioc_ca.wait_for("RESET_AND_HOME", timeout=30)
         self._lewis.backdoor_run_function_on_device("reset")
 
     def set_starting_position(self, starting_pos, axis="x"):
@@ -86,7 +90,7 @@ class Sm300Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set y read back explicitly")
     def test_GIVEN_motor_at_position_WHEN_get_axis_y_ioc_position_THEN_position_is_as_expected(self):
-        expected_value = 100
+        expected_value = 95
         resolution = self.ca.get_pv_value("MTR0102.MRES")
         self._lewis.backdoor_set_on_device("y_axis_rbv", expected_value / resolution)
         self._lewis.backdoor_set_on_device("y_axis_sp", expected_value / resolution)
@@ -98,14 +102,14 @@ class Sm300Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "B10")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
-        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_INVALID)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set error")
     def test_GIVEN_malformed_motor_position_WHEN_get_axis_x_THEN_error_returned(self):
         self._lewis.backdoor_set_on_device("x_axis_rbv_error", "Xrubbish")
 
         # It doesn't appear that the motor can be made to go into an invlaid state so major alarm will have to do
-        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_INVALID)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set moving on motor")
     def test_GIVEN_a_motor_is_moving_WHEN_get_moving_THEN_both_axis_are_moving(self):
@@ -147,7 +151,7 @@ class Sm300Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
 
     @skipIf(IOCRegister.uses_rec_sim, "Sim motor doesn't home")
-    def test_GIVEN_a_motor_WHEN_homed_in_reverseTHEN_motor_moves_to_home(self):
+    def test_GIVEN_a_motor_WHEN_homed_in_reverse_THEN_motor_moves_to_home(self):
         expected_home = 0
         self.set_starting_position(10)
         self.ca.set_pv_value("MTR0101.HOMR", 1)
@@ -156,16 +160,14 @@ class Sm300Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to get reset values set from lewis")
     def test_GIVEN_a_motor_WHEN_reset_pressed_THEN_initial_values_sent(self):
-
-        ioc_ca = ChannelAccess(device_prefix="SM300_01")
-        ioc_ca.wait_for("RESET", 30)
-        ioc_ca.set_pv_value("RESET", 1)
+        self.ioc_ca.wait_for("RESET", 30)
+        self.ioc_ca.set_pv_value("RESET", 1)
 
         reset_codes = self._lewis.backdoor_get_from_device("reset_codes")
 
         for reset_code in expected_reset_codes:
             assert_that(reset_codes, contains_string(reset_code))
-        ioc_ca.assert_that_pv_is("RESET", "Done")
+        self.ioc_ca.assert_that_pv_is("RESET", "Done")
 
     @skipIf(IOCRegister.uses_rec_sim, "Sim doesn't return until move is finished")
     def test_GIVEN_a_motor_moving_to_set_point_WHEN_told_to_move_to_another_set_point_THEN_motor_goes_to_new_setpoint(self):
@@ -195,10 +197,8 @@ class Sm300Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to get reset code from lewis")
     def test_GIVEN_a_motor_WHEN_disconnect_THEN_M77_is_sent(self):
-
-        ioc_ca = ChannelAccess(device_prefix="SM300_01")
-        ioc_ca.wait_for("DISCONNECT", 30)
-        ioc_ca.set_pv_value("DISCONNECT", 1)
+        self.ioc_ca.wait_for("DISCONNECT", 30)
+        self.ioc_ca.set_pv_value("DISCONNECT", 1)
 
         reset_codes = self._lewis.backdoor_get_from_device("disconnect")
 
@@ -206,39 +206,31 @@ class Sm300Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_normal_error_WHEN_query_THEN_error_is_set(self):
-
-        ioc_ca = ChannelAccess(device_prefix="SM300_01")
         self._lewis.backdoor_set_on_device("error_code", 1)
 
-        ioc_ca.assert_that_pv_is("ERROR", "Servo error")
-        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
+        self.ioc_ca.assert_that_pv_is("ERROR", "Servo error")
+        self.ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_no_error_WHEN_query_THEN_error_is_blank(self):
-
-        ioc_ca = ChannelAccess(device_prefix="SM300_01")
         self._lewis.backdoor_set_on_device("error_code", 0)
 
-        ioc_ca.assert_that_pv_is("ERROR", "")
-        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_NONE)
+        self.ioc_ca.assert_that_pv_is("ERROR", "")
+        self.ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_command_send_error_WHEN_query_THEN_error_is_set(self):
-
-        ioc_ca = ChannelAccess(device_prefix="SM300_01")
         self._lewis.backdoor_set_on_device("error_code", 0x10)
 
-        ioc_ca.assert_that_pv_is("ERROR", "Cmd error code")
-        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
+        self.ioc_ca.assert_that_pv_is("ERROR", "Cmd error code")
+        self.ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_cnc_command_send_CNC_error_WHEN_query_THEN_error_is_set(self):
-
-        ioc_ca = ChannelAccess(device_prefix="SM300_01")
         self._lewis.backdoor_set_on_device("error_code", 0x20)
 
-        ioc_ca.assert_that_pv_is("ERROR", "CNC cmd error code")
-        ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
+        self.ioc_ca.assert_that_pv_is("ERROR", "CNC cmd error code")
+        self.ioc_ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_MAJOR)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to set error code in lewis")
     def test_GIVEN_a_motor_WHEN_reset_and_homed_THEN_motor_moves_to_home_and_resets(self):
@@ -246,14 +238,17 @@ class Sm300Tests(unittest.TestCase):
         self.set_starting_position(20, axis="x")
         self.set_starting_position(20, axis="y")
 
-        ioc_ca = ChannelAccess(device_prefix="SM300_01")
-        ioc_ca.wait_for("RESET_AND_HOME", 30)
-
-        ioc_ca.set_pv_value("RESET_AND_HOME", 1)
+        self.ioc_ca.set_pv_value("RESET_AND_HOME", 1)
 
         reset_codes = self._lewis.backdoor_get_from_device("reset_codes")
         for reset_code in expected_reset_codes:
             assert_that(reset_codes, contains_string(reset_code))
-        ioc_ca.assert_that_pv_is("RESET", "Done")
+            self.ioc_ca.assert_that_pv_is("RESET", "Done")
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
         self.ca.assert_that_pv_is("MTR0102.RBV", expected_home)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Needs to set disconnected")
+    def test_GIVEN_motor_is_disconnected_WHEN_get_axis_x_ioc_position_THEN_alarm_is_disconnected(self):
+        self._lewis.backdoor_set_on_device("is_disconnected", True)
+
+        self.ca.assert_pv_alarm_is("MTR0101", ChannelAccess.ALARM_INVALID)
