@@ -192,8 +192,8 @@ class Sm300Tests(unittest.TestCase):
 
         self.ca.set_pv_value("MTR0102.VAL", y_position)
 
-        self.ca.assert_that_pv_is("MTR0101.RBV", x_position)
-        self.ca.assert_that_pv_is("MTR0102.RBV", y_position)
+        self.ca.assert_that_pv_is("MTR0101.RBV", x_position, timeout=30)
+        self.ca.assert_that_pv_is("MTR0102.RBV", y_position, timeout=30)
 
     @skipIf(IOCRegister.uses_rec_sim, "Needs to get reset code from lewis")
     def test_GIVEN_a_motor_WHEN_disconnect_THEN_M77_is_sent(self):
