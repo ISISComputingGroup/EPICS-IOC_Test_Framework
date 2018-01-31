@@ -115,15 +115,17 @@ class ReadasciiTests(unittest.TestCase):
         rows = [
             (50, 1, 2, 3, 4),
             (100, 5, 6, 7, 8),
+            (150, 9, 10, 11, 12),
         ]
 
         filename = _generate_test_file(rows)
         self.ca.assert_setting_setpoint_sets_readback(filename, "RAMP_FILE")
+        self.ca.set_pv_value("LUTON", 1)
 
         for row in rows:
             self.ca.set_pv_value("CURRENT_VAL", row[0])
-            self.ca.set_pv_value("LUTON", 1)
-            
+            self.ca.set_pv_value("LUTON.PROC", 1)
+
             self.ca.assert_that_pv_is("OUT_P", row[1])
             self.ca.assert_that_pv_is("OUT_I", row[2])
             self.ca.assert_that_pv_is("OUT_D", row[3])
