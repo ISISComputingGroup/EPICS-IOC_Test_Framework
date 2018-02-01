@@ -115,7 +115,6 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device(backdoor_parameter, value)
 
 
-
 #   Tests:
 
     def test_GIVEN_frequency_reference_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -132,6 +131,8 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ:SP:RBV", expected_value)
         self.ca.assert_pv_alarm_is("FREQ:SP:RBV", ChannelAccess.ALARM_NONE)
 
+    # Following test superseded by those in "set commands", frequency section below
+    #
     # def test_GIVEN_frequency_WHEN_read_all_status_THEN_value_is_as_expected(self):
     #     expected_value = 35.72
     #     self._set_simulated_value("frequency", expected_value)
@@ -146,17 +147,19 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PHAS:SP:RBV", expected_value)
         self.ca.assert_pv_alarm_is("PHAS:SP:RBV", ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_phase_WHEN_read_all_status_THEN_value_is_as_expected(self):
-        expected_value = 65.72
-        self._set_simulated_value("phase", expected_value)
-
-        self.ca.assert_that_pv_is("PHAS", expected_value)
-        self.ca.assert_pv_alarm_is("PHAS", ChannelAccess.ALARM_NONE)
+    # Following test superseded by those in "set commands", phase section below
+    #
+    # def test_GIVEN_phase_WHEN_read_all_status_THEN_value_is_as_expected(self):
+    #     expected_value = 65.72
+    #     self._set_simulated_value("phase", expected_value)
+    #
+    #     self.ca.assert_that_pv_is("PHAS", expected_value)
+    #     self.ca.assert_pv_alarm_is("PHAS", ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_phase_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("phase_status_is_ok", boolean_value)
-    
+
             self.ca.assert_that_pv_is("PHAS:STAT", expected_value)
             self.ca.assert_pv_alarm_is("PHAS:STAT", ChannelAccess.ALARM_NONE)
 
@@ -339,6 +342,46 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     # Frequency
 
+    def test_GIVEN_drive_mode_is_start_WHEN_frequency_setpoint_is_set_THEN_frequency_reaches_setpoint(self):
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
+
+        frequency = 600
+        self.ca.set_pv_value("FREQ:SP", str(frequency))
+
+        self.ca.assert_that_pv_is_number("FREQ", frequency, timeout=30)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+
+    def test_GIVEN_drive_mode_is_stop_WHEN_frequency_setpoint_is_set_THEN_frequency_is_zero(self):
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
+
+        frequency = 600
+        self.ca.set_pv_value("FREQ:SP", str(frequency))
+
+        self.ca.assert_that_pv_is_number("FREQ", 0, timeout=30)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+
+    def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_start_THEN_frequency_reaches_setpoint(self):
+
+        frequency = 600
+        self.ca.set_pv_value("FREQ:SP", str(frequency))
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
+
+        self.ca.assert_that_pv_is_number("FREQ", frequency, timeout=30)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+
+    def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_frequency_is_zero(self):
+
+        frequency = 600
+        self.ca.set_pv_value("FREQ:SP", str(frequency))
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
+
+        self.ca.assert_that_pv_is_number("FREQ", 0, timeout=30)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+
     def test_WHEN_frequency_setpoint_is_set_THEN_readback_updates(self):
         frequency = 150
         frequency_as_string = str(frequency)
@@ -374,6 +417,46 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ:SP:ERROR", "")
 
     #  Phase
+
+    def test_GIVEN_drive_mode_is_start_WHEN_phase_setpoint_is_set_THEN_phase_reaches_setpoint(self):
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
+
+        phase = 65.72
+        self.ca.set_pv_value("PHAS:SP", phase)
+
+        self.ca.assert_that_pv_is_number("PHAS", phase, timeout=30)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
+
+    def test_GIVEN_drive_mode_is_stop_WHEN_phase_setpoint_is_set_THEN_phase_is_zero(self):
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
+
+        phase = 65.72
+        self.ca.set_pv_value("PHAS:SP", phase)
+
+        self.ca.assert_that_pv_is_number("PHAS", 0, timeout=30)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
+
+    def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_start_THEN_phase_reaches_setpoint(self):
+
+        phase = 65.72
+        self.ca.set_pv_value("PHAS:SP", phase)
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
+
+        self.ca.assert_that_pv_is_number("PHAS", phase, timeout=30)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
+
+    def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_phase_is_zero(self):
+
+        phase = 65.72
+        self.ca.set_pv_value("PHAS:SP", phase)
+
+        self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
+
+        self.ca.assert_that_pv_is_number("PHAS", 0, timeout=30)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
 
     def test_WHEN_phase_setpoint_is_set_THEN_readback_updates(self):
         phase = 243.85
