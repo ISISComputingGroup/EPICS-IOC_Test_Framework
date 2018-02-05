@@ -133,6 +133,7 @@ class ReadasciiTests(unittest.TestCase):
 
             new_rows = [[item+10 for item in row] for row in rows]
             self._write_contents_of_temporary_test_file(new_rows)
+            self.assertNotEqual(rows, new_rows)
 
             for row in new_rows:
                 self._set_and_check(*row)
