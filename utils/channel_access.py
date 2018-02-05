@@ -235,19 +235,23 @@ class ChannelAccess(object):
             raw_pv_value = self.get_pv_value(pv)
             return float(raw_pv_value)
         except ValueError:
-            raise AssertionError("""Value was invalid when reading PV '{PV}'.
+            raise ValueError("""Value was invalid when reading PV '{PV}'.
                     Expected a numeric value but got: {actual}""".format(PV=pv, actual=raw_pv_value))
 
     def _value_is_number(self, pv, expected_value, tolerance):
         """
-            Check pv is a number within tolerance of the expected value
-            :param pv: name of the pv (no prefix)
-            :param expected_value: value that is expected
-            :param tolerance: if the difference between the actual and expected values is less than the tolerance,
-            they are treated as equal
-            :return: None if they match; error string stating the difference if they do not
-            """
-        pv_value = self._to_float(pv)
+        Check pv is a number within tolerance of the expected value
+        :param pv: name of the pv (no prefix)
+        :param expected_value: value that is expected
+        :param tolerance: if the difference between the actual and expected values is less than the tolerance,
+        they are treated as equal
+        :return: None if they match; error string stating the difference if they do not
+        """
+        try:
+            pv_value = self._to_float(pv)
+        except ValueError as e:
+            return "Could not convert PV value to number. Exception was: {}".format(e)
+
         if abs(expected_value - pv_value) <= tolerance:
             return None
         else:
@@ -257,14 +261,18 @@ class ChannelAccess(object):
 
     def _value_is_not_number(self, pv, restricted_value, tolerance):
         """
-            Check pv is a number outside of the tolerance of the restricted value
-            :param pv: name of the pv (no prefix)
-            :param restricted_value: value that PV shouldn't have
-            :param tolerance: if the difference between the actual and expected values is less than the tolerance,
-            the condition is not met
-            :return: None if they match; error string stating the difference if they do not
-            """
-        pv_value = self._to_float(pv)
+        Check pv is a number outside of the tolerance of the restricted value
+        :param pv: name of the pv (no prefix)
+        :param restricted_value: value that PV shouldn't have
+        :param tolerance: if the difference between the actual and expected values is less than the tolerance,
+        the condition is not met
+        :return: None if they match; error string stating the difference if they do not
+        """
+        try:
+            pv_value = self._to_float(pv)
+        except ValueError as e:
+            return "Could not convert PV value to number. Exception was: {}".format(e)
+
         if abs(restricted_value - pv_value) >= tolerance:
             return None
         else:
