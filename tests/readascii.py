@@ -72,7 +72,7 @@ def _generate_new_directory_containing_default_settings():
 
 class ReadasciiTests(unittest.TestCase):
     """
-    Tests for the Larmor X-Y Beamstop
+    Tests for ReadASCII
     """
 
     @classmethod
@@ -83,6 +83,7 @@ class ReadasciiTests(unittest.TestCase):
         try:
             os.mkdir(TEMP_TEST_SETTINGS_DIR)
         except OSError:
+            # Sometimes the file is still marked as "in use" but is no longer in use after a short wait.
             time.sleep(1)
             os.mkdir(TEMP_TEST_SETTINGS_DIR)
 
@@ -111,6 +112,18 @@ class ReadasciiTests(unittest.TestCase):
         filename = _generate_test_file()
         self.ca.assert_setting_setpoint_sets_readback(filename, "RAMP_FILE")
 
+    def _set_and_check(self, current_val, p, i, d, output_range):
+        self.ca.set_pv_value("CURRENT_VAL", current_val)
+
+        # The LUTON PV is FLNK'ed to by the IOCs that use ReadASCII after the setpoint changes.
+        # Here we're not using any particular IOC so have to trigger the processing manually.
+        self.ca.set_pv_value("LUTON.PROC", 1)
+
+        self.ca.assert_that_pv_is("OUT_P", p)
+        self.ca.assert_that_pv_is("OUT_I", i)
+        self.ca.assert_that_pv_is("OUT_D", d)
+        self.ca.assert_that_pv_is("OUT_MAX", output_range)
+
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(self):
         rows = [
             (50, 1, 2, 3, 4),
@@ -123,10 +136,18 @@ class ReadasciiTests(unittest.TestCase):
         self.ca.set_pv_value("LUTON", 1)
 
         for row in rows:
-            self.ca.set_pv_value("CURRENT_VAL", row[0])
-            self.ca.set_pv_value("LUTON.PROC", 1)
+            self._set_and_check(*row)
 
-            self.ca.assert_that_pv_is("OUT_P", row[1])
-            self.ca.assert_that_pv_is("OUT_I", row[2])
-            self.ca.assert_that_pv_is("OUT_D", row[3])
-            self.ca.assert_that_pv_is("OUT_MAX", row[4])
+    def test_WHEN_a_setpoint_lower_than_the_minimum_bound_of_the_file_is_set_THEN_the_pid_settings_are_updated_to_be_the_minimum(self):
+        rows = [
+            (50, 1, 2, 3, 4),
+            (100, 5, 6, 7, 8),
+        ]
+
+        filename = _generate_test_file(rows)
+        self.ca.assert_setting_setpoint_sets_readback(filename, "RAMP_FILE")
+        self.ca.set_pv_value("LUTON", 1)
+
+        self._set_and_check(20, 1, 2, 3, 4)
+        self._set_and_check(120, 5, 6, 7, 8)
+        self._set_and_check(20, 1, 2, 3, 4)
