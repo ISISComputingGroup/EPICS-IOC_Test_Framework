@@ -22,8 +22,22 @@ class ReadasciiTests(unittest.TestCase):
     """
     Tests for ReadASCII
     """
+    def _write_contents_of_temporary_test_file(self, data):
+        """
+        Writes the given data to the temporary test file.
+
+        This method assumes that the test directory exists (e.g. it has been created by _generate_temporary_test_file)
+
+        :param data: a list of 5-element tuples (setpoint, p, i, d, heater_range)
+        """
+        with open(os.path.join(TEMP_TEST_SETTINGS_DIR, TEMP_SETTINGS_FILE_NAME), "w") as f:
+            f.write("SP P I D HEATER\n")
+            for row in data:
+                assert len(row) == 5, "Each row should have exactly 5 elements"
+                f.write("{}\n".format(" ".join(str(d) for d in row)))
+
     @contextmanager
-    def generate_temporary_test_file(self, data):
+    def _generate_temporary_test_file(self, data):
         """
         Context manager which generates a temporary test file containing the given data.
         :param data: a list of 5-element tuples (setpoint, p, i, d, heater_range)
@@ -32,32 +46,30 @@ class ReadasciiTests(unittest.TestCase):
             os.mkdir(TEMP_TEST_SETTINGS_DIR)
 
         try:
-            with open(os.path.join(TEMP_TEST_SETTINGS_DIR, TEMP_SETTINGS_FILE_NAME), "w") as f:
-                f.write("SP P I D HEATER\n")
-                for row in data:
-                    assert len(row) == 5, "Each row should have exactly 5 elements"
-                    f.write("{}\n".format(" ".join(str(d) for d in row)))
-
+            self._write_contents_of_temporary_test_file(data)
             yield
         finally:
             shutil.rmtree(TEMP_TEST_SETTINGS_DIR)
 
+    def _set_and_use_file(self, dir, name):
+        self.ca.assert_setting_setpoint_sets_readback(dir, "DIRBASE")
+        self.ca.assert_setting_setpoint_sets_readback(name, "RAMP_FILE")
+        self.ca.set_pv_value("LUTON", 1)
+
     @contextmanager
-    def use_test_file(self):
+    def _use_test_file(self):
         """
         Context manager which sets the ReadASCII file to the temporary test file on entry, and reverts it back to the
         default on exit.
-        """
-        def _set_and_use_file(dir, name):
-            self.ca.assert_setting_setpoint_sets_readback(dir, "DIRBASE")
-            self.ca.assert_setting_setpoint_sets_readback(name, "RAMP_FILE")
-            self.ca.set_pv_value("LUTON", 1)
 
+        Need to set the file back to the default one on exit, otherwise the file will be marked as "in use" and
+        cannot be deleted properly
+        """
         try:
-            _set_and_use_file(TEMP_TEST_SETTINGS_DIR, TEMP_SETTINGS_FILE_NAME)
+            self._set_and_use_file(TEMP_TEST_SETTINGS_DIR, TEMP_SETTINGS_FILE_NAME)
             yield
         finally:
-            _set_and_use_file(DEFAULT_SETTINGS_DIR, DEFAULT_SETTINGS_FILE)
+            self._set_and_use_file(DEFAULT_SETTINGS_DIR, DEFAULT_SETTINGS_FILE)
 
     def _set_and_check(self, current_val, p, i, d, output_range):
         self.ca.set_pv_value("CURRENT_VAL", current_val)
@@ -82,7 +94,7 @@ class ReadasciiTests(unittest.TestCase):
             (150, 9, 10, 11, 12),
         ]
 
-        with self.generate_temporary_test_file(rows), self.use_test_file():
+        with self._generate_temporary_test_file(rows), self._use_test_file():
             for row in rows:
                 self._set_and_check(*row)
 
@@ -93,7 +105,7 @@ class ReadasciiTests(unittest.TestCase):
             (150, 9.1, 10.2, 11.3, 12.4),
         ]
 
-        with self.generate_temporary_test_file(rows), self.use_test_file():
+        with self._generate_temporary_test_file(rows), self._use_test_file():
             for row in rows:
                 self._set_and_check(*row)
 
@@ -103,7 +115,24 @@ class ReadasciiTests(unittest.TestCase):
             (100, 5, 6, 7, 8),
         ]
 
-        with self.generate_temporary_test_file(rows), self.use_test_file():
+        with self._generate_temporary_test_file(rows), self._use_test_file():
             self._set_and_check(20, 1, 2, 3, 4)
             self._set_and_check(120, 5, 6, 7, 8)
             self._set_and_check(20, 1, 2, 3, 4)
+
+    def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_the_file_is_changed_on_disk_THEN_the_pid_lookup_uses_the_new_values(self):
+        rows = [
+            (50, 1, 2, 3, 4),
+            (100, 5, 6, 7, 8),
+            (150, 9, 10, 11, 12),
+        ]
+
+        with self._generate_temporary_test_file(rows), self._use_test_file():
+            for row in rows:
+                self._set_and_check(*row)
+
+            new_rows = [[item+10 for item in row] for row in rows]
+            self._write_contents_of_temporary_test_file(new_rows)
+
+            for row in new_rows:
+                self._set_and_check(*row)
