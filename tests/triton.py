@@ -15,8 +15,6 @@ RESISTANCE_TEST_VALUES = 10, 3456
 EXCITATION_TEST_VALUES = PID_TEST_VALUES
 TIME_DELAY_TEST_VALUES = RESISTANCE_TEST_VALUES
 
-HEATER_POWER_UNITS = ["A", "mA", "uA", "nA", "pA"]
-
 VALID_TEMPERATURE_SENSORS = [i for i in range(0, 6)]
 
 
@@ -52,18 +50,10 @@ class TritonTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(value, "HEATER:RANGE")
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
-    def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_has_the_value_just_set_and_units_not_changed(self):
-        self._lewis.backdoor_set_on_device("heater_power_units", "mA")
+    def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_has_the_value_just_set(self):
         for value in HEATER_RANGE_TEST_VALUES:
             self._lewis.backdoor_set_on_device("heater_power", value)
             self.ca.assert_that_pv_is("HEATER:POWER", value)
-            self.ca.assert_that_pv_is("HEATER:POWER.EGU", "mA")
-
-    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
-    def test_WHEN_heater_units_are_set_via_backdoor_THEN_egu_field_on_heater_power_updates_with_the_unit_just_set(self):
-        for unit in HEATER_POWER_UNITS:
-            self._lewis.backdoor_set_on_device("heater_power_units", unit)
-            self.ca.assert_that_pv_is("HEATER:POWER.EGU", unit)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_closed_loop_mode_is_set_via_backdoor_THEN_the_closed_loop_pv_updates_with_value_just_set(self):
@@ -223,3 +213,19 @@ class TritonTests(unittest.TestCase):
                     ["device", "set_sensor_property_backdoor", str(chan), "dwell", str(value)]
                 )
                 self.ca.assert_that_pv_is("CHANNELS:T{}:DWELL".format(chan), value)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_heater_heater_current_is_set_via_backdoor_THEN_pv_updates_with_new_value(self):
+        for curr in HEATER_RANGE_TEST_VALUES:
+            self._lewis.backdoor_set_on_device("heater_current", curr)
+            self.ca.assert_that_pv_is_number("HEATER:CURR", curr)
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_heater_power_and_range_are_changed_THEN_heater_percent_power_is_calculated_correctly(self):
+        for heater_range in HEATER_RANGE_TEST_VALUES:
+            for current in HEATER_RANGE_TEST_VALUES:
+                self._lewis.backdoor_set_on_device("heater_current", current)
+                self._lewis.backdoor_set_on_device("heater_range", heater_range)
+
+                assert heater_range != 0, "Heater range of zero will cause a zero division error!"
+                self.ca.assert_that_pv_is_number("HEATER:PERCENT", 100*current/heater_range, tolerance=0.05)
