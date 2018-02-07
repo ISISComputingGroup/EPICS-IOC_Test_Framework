@@ -1,5 +1,8 @@
+from __future__ import division
+
 import unittest
 from unittest import skipIf
+import itertools
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
@@ -10,12 +13,14 @@ DEVICE_PREFIX = "TRITON_01"
 PID_TEST_VALUES = 0, 10**-5, 123.45, 10**5
 TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 250
 PRESSURE_TEST_VALUES = TEMPERATURE_TEST_VALUES
+POWER_TEST_VALUES = TEMPERATURE_TEST_VALUES
 HEATER_RANGE_TEST_VALUES = 0.001, 0.316, 1000
 RESISTANCE_TEST_VALUES = 10, 3456
 EXCITATION_TEST_VALUES = PID_TEST_VALUES
 TIME_DELAY_TEST_VALUES = RESISTANCE_TEST_VALUES
 
 VALID_TEMPERATURE_SENSORS = [i for i in range(0, 6)]
+VALID_PRESSURE_SENSORS = [i for i in range(1, 6)]
 
 
 class TritonTests(unittest.TestCase):
@@ -154,10 +159,9 @@ class TritonTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_pressure_is_set_via_backdoor_THEN_pressure_pv_updates(self):
-        for sensor in [1, 2, 3, 5]:
-            for pressure in PRESSURE_TEST_VALUES:
-                self._lewis.backdoor_command(["device", "set_pressure_backdoor", str(sensor), str(pressure)])
-                self.ca.assert_that_pv_is("PRESSURE:P{}".format(sensor), pressure)
+        for sensor, pressure in itertools.product(VALID_PRESSURE_SENSORS, PRESSURE_TEST_VALUES):
+            self._lewis.backdoor_command(["device", "set_pressure_backdoor", str(sensor), str(pressure)])
+            self.ca.assert_that_pv_is("PRESSURE:P{}".format(sensor), pressure)
 
     def test_WHEN_closed_loop_is_set_via_pv_THEN_readback_updates(self):
         for state in [False, True, False]:
@@ -171,61 +175,56 @@ class TritonTests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_channel_temperature_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
-        for chan in VALID_TEMPERATURE_SENSORS:
-            for value in TEMPERATURE_TEST_VALUES:
-                self._lewis.backdoor_command(
-                    ["device", "set_sensor_property_backdoor", str(chan), "temperature", str(value)]
-                )
-                self.ca.assert_that_pv_is("CHANNELS:T{}:TEMP".format(chan), value)
+        for chan, value in itertools.product(VALID_TEMPERATURE_SENSORS, TEMPERATURE_TEST_VALUES):
+            self._lewis.backdoor_command(["device", "set_sensor_property_backdoor", str(chan), "temperature", str(value)])
+            self.ca.assert_that_pv_is("CHANNELS:T{}:TEMP".format(chan), value)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_channel_resistance_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
-        for chan in VALID_TEMPERATURE_SENSORS:
-            for value in RESISTANCE_TEST_VALUES:
-                self._lewis.backdoor_command(
-                    ["device", "set_sensor_property_backdoor", str(chan), "resistance", str(value)]
-                )
-                self.ca.assert_that_pv_is("CHANNELS:T{}:RES".format(chan), value)
+        for chan, value in itertools.product(VALID_TEMPERATURE_SENSORS, RESISTANCE_TEST_VALUES):
+            self._lewis.backdoor_command(["device", "set_sensor_property_backdoor", str(chan), "resistance", str(value)])
+            self.ca.assert_that_pv_is("CHANNELS:T{}:RES".format(chan), value)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_channel_excitation_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
-        for chan in VALID_TEMPERATURE_SENSORS:
-            for value in EXCITATION_TEST_VALUES:
-                self._lewis.backdoor_command(
-                    ["device", "set_sensor_property_backdoor", str(chan), "excitation", str(value)]
-                )
-                self.ca.assert_that_pv_is("CHANNELS:T{}:EXCITATION".format(chan), value)
+        for chan, value in itertools.product(VALID_TEMPERATURE_SENSORS, EXCITATION_TEST_VALUES):
+            self._lewis.backdoor_command(["device", "set_sensor_property_backdoor", str(chan), "excitation", str(value)])
+            self.ca.assert_that_pv_is("CHANNELS:T{}:EXCITATION".format(chan), value)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_channel_pause_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
-        for chan in VALID_TEMPERATURE_SENSORS:
-            for value in TIME_DELAY_TEST_VALUES:
-                self._lewis.backdoor_command(
-                    ["device", "set_sensor_property_backdoor", str(chan), "pause", str(value)]
-                )
-                self.ca.assert_that_pv_is("CHANNELS:T{}:PAUSE".format(chan), value)
+        for chan, value in itertools.product(VALID_TEMPERATURE_SENSORS, TIME_DELAY_TEST_VALUES):
+            self._lewis.backdoor_command(["device", "set_sensor_property_backdoor", str(chan), "pause", str(value)])
+            self.ca.assert_that_pv_is("CHANNELS:T{}:PAUSE".format(chan), value)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
     def test_WHEN_channel_dwell_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):
-        for chan in VALID_TEMPERATURE_SENSORS:
-            for value in TIME_DELAY_TEST_VALUES:
-                self._lewis.backdoor_command(
-                    ["device", "set_sensor_property_backdoor", str(chan), "dwell", str(value)]
-                )
-                self.ca.assert_that_pv_is("CHANNELS:T{}:DWELL".format(chan), value)
+        for chan, value in itertools.product(VALID_TEMPERATURE_SENSORS, TIME_DELAY_TEST_VALUES):
+            self._lewis.backdoor_command(["device", "set_sensor_property_backdoor", str(chan), "dwell", str(value)])
+            self.ca.assert_that_pv_is("CHANNELS:T{}:DWELL".format(chan), value)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
-    def test_WHEN_heater_heater_current_is_set_via_backdoor_THEN_pv_updates_with_new_value(self):
-        for curr in HEATER_RANGE_TEST_VALUES:
-            self._lewis.backdoor_set_on_device("heater_current", curr)
-            self.ca.assert_that_pv_is_number("HEATER:CURR", curr)
+    def test_WHEN_heater_resistance_is_changed_THEN_heater_heater_resistance_pv_updates(self):
+        for heater_resistance in RESISTANCE_TEST_VALUES:
+            self._lewis.backdoor_set_on_device("heater_resistance", heater_resistance)
+            self.ca.assert_that_pv_is_number("HEATER:RES", heater_resistance)
 
     @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
-    def test_WHEN_heater_power_and_range_are_changed_THEN_heater_percent_power_is_calculated_correctly(self):
-        for heater_range in HEATER_RANGE_TEST_VALUES:
-            for current in HEATER_RANGE_TEST_VALUES:
-                self._lewis.backdoor_set_on_device("heater_current", current)
-                self._lewis.backdoor_set_on_device("heater_range", heater_range)
+    def test_WHEN_heater_resistance_and_power_are_changed_THEN_heater_current_is_calculated_correctly(self):
+        for res, power in itertools.product(RESISTANCE_TEST_VALUES, POWER_TEST_VALUES):
+            self._lewis.backdoor_set_on_device("heater_resistance", res)
+            self._lewis.backdoor_set_on_device("heater_power", power)
 
-                assert heater_range != 0, "Heater range of zero will cause a zero division error!"
-                self.ca.assert_that_pv_is_number("HEATER:PERCENT", 100*current/heater_range, tolerance=0.05)
+            self.ca.assert_that_pv_is_number("HEATER:CURR", (power/res)**0.5, tolerance=0.01)  # Ohm's law P = RI^2
+
+    @skipIf(IOCRegister.uses_rec_sim, "Lewis backdoor not available in recsim")
+    def test_WHEN_heater_current_and_range_are_changed_THEN_heater_percent_power_is_calculated_correctly(self):
+
+        for rang, res, power in itertools.product(HEATER_RANGE_TEST_VALUES, RESISTANCE_TEST_VALUES, POWER_TEST_VALUES):
+            self._lewis.backdoor_set_on_device("heater_resistance", res)
+            self._lewis.backdoor_set_on_device("heater_power", power)
+            self._lewis.backdoor_set_on_device("heater_range", rang)
+
+            assert rang != 0, "Heater range of zero will cause a zero division error!"
+
+            self.ca.assert_that_pv_is_number("HEATER:PERCENT", 100*((power/res)**0.5)/rang, tolerance=0.05)

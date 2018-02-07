@@ -77,6 +77,9 @@ class LewisNone(object):
         """
         pass
 
+    def backdoor_command(self, command):
+        pass
+
 
 class LewisLauncher(object):
     """
