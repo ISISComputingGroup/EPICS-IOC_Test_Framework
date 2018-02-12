@@ -66,13 +66,6 @@ class Ilm200Tests(unittest.TestCase):
                 return abs(a-b)/(a+b+tolerance) > tolerance
             self.ca.assert_pv_value_over_time(self.ch_pv(i, "LEVEL"), 2*Ilm200Tests.DEFAULT_SCAN_RATE, not_equal)
 
-    @skipIf(IOCRegister.uses_rec_sim, "No status string in recsim")
-    def test_GIVEN_ilm200_in_devsim_mode_THEN_status_is_read_and_distributed_to_underlying_pvs(self):
-        for i in self.channel_range():
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, "LOW"), ChannelAccess.ALARM_NONE)
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, "FILLING"), ChannelAccess.ALARM_NONE)
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, "TYPE"), ChannelAccess.ALARM_NONE)
-
     def test_GIVEN_ilm200_channel_WHEN_rate_change_requested_THEN_rate_changed(self):
         for i in self.channel_range():
             initial_rate = self.ca.get_pv_value(self.ch_pv(i, "RATE"))
