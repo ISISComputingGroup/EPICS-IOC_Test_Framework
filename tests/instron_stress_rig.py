@@ -203,24 +203,30 @@ class InstronStressRigTests(unittest.TestCase):
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
         self.ca.set_pv_value("ARBITRARY:SP", "Q22")
         # Assert that the response to Q22 is a status code
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min=0, max=65535)
+        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_value=0, max_value=65535)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q300_is_sent_THEN_the_response_is_a_number_between_1_and_3(self):
         self.ca.set_pv_value("ARBITRARY:SP", "Q300")
         # Assert that the response to Q300 is between 1 and 3
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min=1, max=3)
+        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_value=1, max_value=3)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
 
         def _set_and_check(value):
+            # Put the record into a non-alarm state. This is needed so that we can wait until the record is in alarm
+            # later, when we do a command which (expectedly) puts the record into a timeout alarm.
+            self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
+            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_NONE)
+
             self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value))
             self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value))
             # No response from arbitrary command causes record to be TIMEOUT INVALID - this is expected.
             self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_INVALID)
+
             self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
-            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001)
+            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001, timeout=60)
 
         for v in [0, 1, 0]:
             _set_and_check(v)
