@@ -19,6 +19,11 @@ class Ilm200Tests(unittest.TestCase):
     LOW = 10.0
     FILL = 5.0
 
+    RATE = "RATE"
+    LEVEL = "LEVEL"
+    TYPE = "TYPE"
+    CURRENT = "CURR"
+
     @staticmethod
     def channel_range():
         number_of_channels = 3
@@ -27,7 +32,7 @@ class Ilm200Tests(unittest.TestCase):
 
     def helium_channels(self):
         for i in self.channel_range():
-            if self.ca.get_pv_value(self.ch_pv(i, "TYPE")) != "Nitrogen":
+            if self.ca.get_pv_value(self.ch_pv(i, self.TYPE)) != "Nitrogen":
                 yield i
 
     @staticmethod
@@ -47,7 +52,7 @@ class Ilm200Tests(unittest.TestCase):
         self._lewis.backdoor_command(["device", "set_helium_current", str(channel), str(is_on)])
 
     def check_state(self, channel, level, is_filling, is_low):
-        self.ca.assert_that_pv_is_number(self.ch_pv(channel, "LEVEL"), level, self.LEVEL_TOLERANCE)
+        self.ca.assert_that_pv_is_number(self.ch_pv(channel, self.LEVEL), level, self.LEVEL_TOLERANCE)
         self.ca.assert_that_pv_is(self.ch_pv(channel, "FILLING"), "Filling" if is_filling else "Not filling")
         self.ca.assert_that_pv_is(self.ch_pv(channel, "LOW"), "Low" if is_low else "Not low")
 
@@ -57,19 +62,19 @@ class Ilm200Tests(unittest.TestCase):
 
     def test_GIVEN_ilm200_THEN_each_channel_has_type(self):
         for i in self.channel_range():
-            self.ca.assert_that_pv_is_not(self.ch_pv(i, "TYPE"), "Not in use")
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, "TYPE"), ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is_not(self.ch_pv(i, self.TYPE), "Not in use")
+            self.ca.assert_pv_alarm_is(self.ch_pv(i, self.TYPE), ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_ilm_200_THEN_can_read_level(self):
         for i in self.channel_range():
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, "LEVEL"), ChannelAccess.ALARM_NONE)
+            self.ca.assert_pv_alarm_is(self.ch_pv(i, self.LEVEL), ChannelAccess.ALARM_NONE)
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm_200_WHEN_level_set_on_device_THEN_reported_level_matches_set_level(self):
         for i in self.channel_range():
             expected_level = i*12.3
             self.set_level_via_backdoor(i, expected_level)
-            self.ca.assert_that_pv_is_number(self.ch_pv(i, "LEVEL"), expected_level, self.LEVEL_TOLERANCE)
+            self.ca.assert_that_pv_is_number(self.ch_pv(i, self.LEVEL), expected_level, self.LEVEL_TOLERANCE)
 
     @skipIf(IOCRegister.uses_rec_sim, "No dynamic behaviour recsim")
     def test_GIVEN_ilm_200_WHEN_is_cycling_THEN_channel_levels_change_over_time(self):
@@ -78,20 +83,20 @@ class Ilm200Tests(unittest.TestCase):
             def not_equal(a, b):
                 tolerance = self.LEVEL_TOLERANCE
                 return abs(a-b)/(a+b+tolerance) > tolerance
-            self.ca.assert_pv_value_over_time(self.ch_pv(i, "LEVEL"), 2*Ilm200Tests.DEFAULT_SCAN_RATE, not_equal)
+            self.ca.assert_pv_value_over_time(self.ch_pv(i, self.LEVEL), 2*Ilm200Tests.DEFAULT_SCAN_RATE, not_equal)
 
     def test_GIVEN_ilm200_channel_WHEN_rate_change_requested_THEN_rate_changed(self):
         for i in self.channel_range():
-            initial_rate = self.ca.get_pv_value(self.ch_pv(i, "RATE"))
+            initial_rate = self.ca.get_pv_value(self.ch_pv(i, self.RATE))
             alternate_rate = self.SLOW if initial_rate == self.FAST else self.SLOW
 
-            self.ca.assert_setting_setpoint_sets_readback(alternate_rate, self.ch_pv(i, "RATE"))
-            self.ca.assert_setting_setpoint_sets_readback(initial_rate, self.ch_pv(i, "RATE"))
+            self.ca.assert_setting_setpoint_sets_readback(alternate_rate, self.ch_pv(i, self.RATE))
+            self.ca.assert_setting_setpoint_sets_readback(initial_rate, self.ch_pv(i, self.RATE))
 
     def test_GIVEN_ilm200_channel_WHEN_rate_set_to_current_value_THEN_rate_unchanged(self):
         for i in self.channel_range():
-            self.ca.assert_setting_setpoint_sets_readback(self.ca.get_pv_value(self.ch_pv(i, "RATE")),
-                                                          self.ch_pv(i, "RATE"))
+            self.ca.assert_setting_setpoint_sets_readback(self.ca.get_pv_value(self.ch_pv(i, self.RATE)),
+                                                          self.ch_pv(i, self.RATE))
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_full_THEN_not_filling_and_not_low(self):
@@ -125,10 +130,10 @@ class Ilm200Tests(unittest.TestCase):
     def test_GIVEN_helium_channel_WHEN_helium_current_set_on_THEN_ioc_reports_current(self):
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, True)
-            self.ca.assert_that_pv_is(self.ch_pv(i, "CURRENT"), "On")
+            self.ca.assert_that_pv_is(self.ch_pv(i, self.CURRENT), "On")
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door in recsim")
     def test_GIVEN_helium_channel_WHEN_helium_current_set_off_THEN_ioc_reports_no_current(self):
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, False)
-            self.ca.assert_that_pv_is(self.ch_pv(i, "CURRENT"), "Off")
+            self.ca.assert_that_pv_is(self.ch_pv(i, self.CURRENT), "Off")
