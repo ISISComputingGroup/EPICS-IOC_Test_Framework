@@ -67,9 +67,8 @@ $(IFNOTDEVSIM) $(IFNOTRECSIM) asynSetOption("L0", -1, "stop", "$(STOP=1)")
 To add a another suite of tests:
 * Create a Python file. This no longer has to have a specific name, but try to give it a name similar to the IOC and emulator so that it is easy to find.
 * Ensure your test suite has the essential attributes `IOCS` and `TEST_MODES` (see below for more details)
-* Create a test class (deriving from `unittest.TestCase`) in your module. This no longer has to have a specific name. You can have multiple test classes within a test module, all of them will be executed. 
-* Fill the class with tests (see below).
-* Add your new tests to run_all_tests.bat, this is the easiest way to run your new tests.
+* Create a test class (deriving from `unittest.TestCase`) in your module and fill it with tests. This no longer has to have a specific name. You can have multiple test classes within a test module, all of them will be executed. 
+* Done!
 
 ### The `IOCS` attribute
 
