@@ -4,6 +4,8 @@ Channel access tp IOC
 import os
 import time
 import operator
+from contextlib import contextmanager
+
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 
@@ -455,3 +457,16 @@ class ChannelAccess(object):
         :raises AssertionError: if the value of the pv has changed
         """
         self.assert_pv_value_over_time(pv, wait, operator.eq)
+
+    # Using a context manager to put PVs into alarm means they don't accidentally get left in alarm if the test fails
+    @contextmanager
+    def put_simulated_record_into_alarm(self, pv, alarm):
+        def _set_and_check_simulated_alarm(pv, alarm):
+            self.set_pv_value("{}.SIMS".format(pv), alarm)
+            self.assert_pv_alarm_is("{}".format(pv), alarm)
+
+        try:
+            _set_and_check_simulated_alarm(pv, alarm)
+            yield
+        finally:
+            _set_and_check_simulated_alarm(pv, self.ALARM_NONE)

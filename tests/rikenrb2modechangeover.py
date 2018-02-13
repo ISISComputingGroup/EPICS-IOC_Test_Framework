@@ -1,8 +1,4 @@
-import os
-import itertools
-
-from common_tests.riken_changeover import RikenChangeover
-from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
+from common_tests.riken_changeover import RikenChangeover, build_iocs, build_power_supplies_list
 from utils.test_modes import TestModes
 
 TEST_MODES = [TestModes.RECSIM]
@@ -16,39 +12,8 @@ RIKEN_SETUP = {
 }
 
 
-IOCS = [
-    {
-        "name": "COORD_01",
-        "directory": get_default_ioc_dir("COORD"),
-        "macros": {},
-    },
-    {
-        "name": "SIMPLE",
-        "directory": os.path.join(EPICS_TOP, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple"),
-        "macros": {},
-    },
-]
-
-# Add RKNPS IOCs corresponding to RIKEN_SETUP
-for ioc_num, psus in RIKEN_SETUP.iteritems():
-    IOCS.append({
-        "name": "RKNPS_{:02d}".format(ioc_num),
-        "directory": get_default_ioc_dir("RKNPS", iocnum=ioc_num),
-        "macros": dict(itertools.chain(
-            # This is just a succint way of setting macros like:
-            # ADR1 = 001, ADR2 = 002, ...
-            # ID1 = RB1, ID2 = RB2, ... (as defined in RIKEN_SETUP above)
-            {"ID{}".format(number): name for number, name in enumerate(psus, 1)}.iteritems(),
-            {"ADR{}".format(number): "{:03d}".format(number) for number in range(1, len(psus) + 1)}.iteritems()
-        )),
-    })
-
-
-# Build a list containing all the power supplies we need in a convenient form that we can easily iterate over.
-POWER_SUPPLIES = []
-for ioc_num, supplies in RIKEN_SETUP.iteritems():
-    for supply in supplies:
-        POWER_SUPPLIES.append("RKNPS_{:02d}:{}".format(ioc_num, supply))
+IOCS = build_iocs(RIKEN_SETUP)
+POWER_SUPPLIES = build_power_supplies_list(RIKEN_SETUP)
 
 
 class RikenRb2ModeChangeoverTests(RikenChangeover):
