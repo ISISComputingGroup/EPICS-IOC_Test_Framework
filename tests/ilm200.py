@@ -60,7 +60,7 @@ class Ilm200Tests(unittest.TestCase):
             self.ca.assert_that_pv_is_not(self.ch_pv(i, "TYPE"), "Not in use")
             self.ca.assert_pv_alarm_is(self.ch_pv(i, "TYPE"), ChannelAccess.ALARM_NONE)
 
-    def test_GIVEN_ilm_200_THEN_can_access_levels_for_three_channels(self):
+    def test_GIVEN_ilm_200_THEN_can_read_level(self):
         for i in self.channel_range():
             self.ca.assert_pv_alarm_is(self.ch_pv(i, "LEVEL"), ChannelAccess.ALARM_NONE)
 
