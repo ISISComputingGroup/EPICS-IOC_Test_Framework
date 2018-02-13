@@ -83,7 +83,7 @@ class Ilm200Tests(unittest.TestCase):
     def test_GIVEN_ilm200_channel_WHEN_rate_change_requested_THEN_rate_changed(self):
         for i in self.channel_range():
             initial_rate = self.ca.get_pv_value(self.ch_pv(i, "RATE"))
-            alternate_rate = self.SLOW if initial_rate==self.FAST else self.SLOW
+            alternate_rate = self.SLOW if initial_rate == self.FAST else self.SLOW
 
             self.ca.assert_setting_setpoint_sets_readback(alternate_rate, self.ch_pv(i, "RATE"))
             self.ca.assert_setting_setpoint_sets_readback(initial_rate, self.ch_pv(i, "RATE"))
