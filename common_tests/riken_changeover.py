@@ -13,12 +13,22 @@ except ImportError:
     from contextlib2 import ExitStack  # PY2
 
 
+INPUT_PV = "SIMPLE:VALUE1"
+OUTPUT_PV = "SIMPLE:VALUE2"
+
+
 def build_iocs(riken_setup):
     iocs = [
         {
             "name": "COORD_01",
             "directory": get_default_ioc_dir("COORD"),
-            "macros": {},
+            "macros": {
+                "IFRIKEN": " ",
+                "RIKEN_PC_IN": INPUT_PV,
+                "RIKEN_PC_OUT": OUTPUT_PV,
+                "RIKEN_RB2C_IN": INPUT_PV,
+                "RIKEN_RB2C_OUT": OUTPUT_PV,
+            },
         },
         {
             "name": "SIMPLE",
@@ -60,14 +70,13 @@ class RikenChangeover(unittest.TestCase):
     This class is inherited by the riken port changeover tests and also the RB2 mode change tests as they are very
     similar (just the PSUs that they look at / control are different)
     """
+    @staticmethod
+    def get_input_pv():
+        return INPUT_PV
 
-    @abstractmethod
-    def get_input_pv(self):
-        pass
-
-    @abstractmethod
-    def get_acknowledgement_pv(self):
-        pass
+    @staticmethod
+    def get_acknowledgement_pv():
+        return OUTPUT_PV
 
     @abstractmethod
     def get_power_supplies(self):

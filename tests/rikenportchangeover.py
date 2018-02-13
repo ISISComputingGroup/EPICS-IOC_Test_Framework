@@ -23,13 +23,6 @@ class RikenPortChangeoverTests(RikenChangeover):
 
     Main tests are inherited from RikenChangeover
     """
-
-    def get_input_pv(self):
-        return "SIMPLE:VALUE1"
-
-    def get_acknowledgement_pv(self):
-        return "SIMPLE:VALUE2"
-
     def get_power_supplies(self):
         return POWER_SUPPLIES
 

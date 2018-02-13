@@ -1,6 +1,7 @@
 import unittest
 
 import time
+from unittest import skip
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -96,7 +97,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(0, "{0}:{1}:POWER".format(PREFIX, IDN),
                                                           "{0}:{1}:POWER:SP".format(PREFIX, IDN), "Off")
 
-    @skip_if_devsim("In dev sim this test fails as the status is maintained by the emulator")
+    @skip("In dev sim this test fails as the status is maintained by the emulator. In recsim it is hard to implement.")
     def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
         for IDN in IDS:
             self.ca.assert_setting_setpoint_sets_readback("........................", "{0}:{1}:POWER".format(PREFIX, IDN),
