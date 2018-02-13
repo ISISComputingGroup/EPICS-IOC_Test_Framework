@@ -168,11 +168,15 @@ RECSIM is not as advanced as DEVSIM – for any reasonably complex emulator, the
 
 To skip these tests in RECSIM, add the following annotation to tests which shouldn't be run in RECSIM mode:
 ```python
-@skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+from utils.testing import skip_if_recsim
+
+@skip_if_recsim("In rec sim this test fails")
 def test_GIVEN_condition_WHEN_thing_is_done_THEN_thing_happens(self):
     # Some functionality which doesn’t exist in recsim goes here
 ```
 Any test which includes a Lewis backdoor command MUST have this annotation, otherwise it will error because it can’t find lewis in RECSIM mode.
+
+There is also an equivalent `skip_if_devsim` annotation which can be used.
 
 ### Avoiding tests affecting other tests
 
@@ -215,19 +219,6 @@ def test_ioc_name(self):
     self.ca.set_pv_value(“NAME.PROC", 1)
     self.ca.assert_that_pv_is(“NAME", “new_name")
 ```
-
-### Macros
-
-If your IOC needs a macro or macros set up in the test this is easy to do. Add to the test file the constant `MACROS` 
-which should be a dictionary of macro names and their values. 
- For instance the amint2l needs an internal address set the macro for this is `ADDR` and the address is a number so at the top of
-  the test file the following appears:
-```python
-    # MACROS to use for the IOC
-    MACROS = {"ADDR": ADDRESS}
-```
-The way this works in the test framework is that when the test is loaded the macros are handed to the ioc
-launcher. The launcher writes them into a file placed in the var dir and the ioc reads them from there.
 
 ### Wait For IOC to Start and IOC Prefix
 
