@@ -109,13 +109,19 @@ def make_device_launchers_from_module(test_module, recsim):
     if len(iocs) < 1:
         raise ValueError("Need at least one IOC to launch")
 
+    for ioc in iocs:
+        if "name" not in ioc:
+            raise ValueError("IOC entry must have a 'name' attribute which should give the IOC name")
+        if "directory" not in ioc:
+            raise ValueError("IOC entry must have a 'directory' attribute which should give the path to the IOC")
+
     print("Testing module {} in {} mode.".format(test_module.__name__, "recsim" if recsim else "devsim"))
 
     device_launchers = []
     for ioc in iocs:
 
         free_port = str(get_free_ports(1)[0])
-        macros = ioc["macros"]
+        macros = ioc.get("macros", {})
         macros['EMULATOR_PORT'] = free_port
 
         ioc_launcher = IocLauncher(device=ioc["name"],
@@ -128,20 +134,9 @@ def make_device_launchers_from_module(test_module, recsim):
         if "emulator" in ioc and not recsim:
 
             emulator_name = ioc["emulator"]
-            try:
-                emulator_protocol = ioc["emulator_protocol"]
-            except KeyError:
-                emulator_protocol = "stream"
-
-            try:
-                emulator_device_package = ioc["emulator_package"]
-            except KeyError:
-                emulator_device_package = "lewis_emulators"
-
-            try:
-                emulator_path = ioc["emulator_path"]
-            except KeyError:
-                emulator_path = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
+            emulator_protocol = ioc.get("emulator_protocol", "stream")
+            emulator_device_package = ioc.get("emulator_package", "lewis_emulators")
+            emulator_path = ioc.get("emulator_path", os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
 
             lewis_launcher = LewisLauncher(
                 device=emulator_name,
@@ -173,7 +168,10 @@ def load_module_by_name_and_run_tests(module_name):
         raise ValueError("Expected test module {} to contain a TEST_MODES attribute".format(test_module.__name__))
 
     test_results = []
-    for mode in modes:
+    for mode in set(modes):
+        if mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
+            raise ValueError("Invalid test mode provided")
+
         device_launchers = make_device_launchers_from_module(test_module, recsim=(mode == TestModes.RECSIM))
         test_results.append(run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers)))
 
@@ -224,20 +222,14 @@ if __name__ == '__main__':
 
     module_results = []
 
-    if arguments.test_module is not None:
-        for test_module in arguments.test_module:
-            try:
-                module_results.append(load_module_by_name_and_run_tests(test_module))
-            except Exception as e:
-                print("ERROR: {}: {}".format(e.__class__.__name__, e))
-                module_results.append(False)
-    else:
-        for module_name in package_contents("tests"):
-            try:
-                module_results.append(load_module_by_name_and_run_tests(module_name))
-            except Exception as e:
-                print("ERROR: {}: {}".format(e.__class__.__name__, e))
-                module_results.append(False)
+    modules_to_test = arguments.test_module if arguments.test_module is not None else package_contents("tests")
+
+    for test_module in modules_to_test:
+        try:
+            module_results.append(load_module_by_name_and_run_tests(test_module))
+        except Exception as e:
+            print("ERROR: {}: {}".format(e.__class__.__name__, e))
+            module_results.append(False)
 
     success = all(result is True for result in module_results)
     sys.exit(0 if success else 1)

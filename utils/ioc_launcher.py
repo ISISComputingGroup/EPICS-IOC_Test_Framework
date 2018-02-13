@@ -6,7 +6,7 @@ from utils.channel_access import ChannelAccess
 from utils.log_file import log_filename
 
 
-EPICS_TOP = os.path.join("C:\\", "Instrument", "Apps", "EPICS")
+EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 60
 
 
