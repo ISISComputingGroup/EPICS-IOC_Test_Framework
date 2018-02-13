@@ -11,41 +11,26 @@ NOTE: currently you **must** use the genie_python installation of Python because
 
 It recommended that you don't have the server side of IBEX running when testing an IOC.
 
-The command-line options are split into groups:
+### Running all tests
 
-- `-l`, `--list-devices`    List available devices that can be tested.
-
-### all modes
-- `-pf PREFIX`, `--prefix PREFIX` The instrument prefix which will be prefixed to all PVs; e.g. TE:NDW1373
-- `-d DEVICE`, `--device DEVICE` Device type to test.
-- `-p IOC_PATH`, `--ioc-path IOC_PATH` The path to the folder containing the IOC's st.cmd. It will run runIOC.bat st.cmd.
-- `--var-dir VAR_DIR` Directory in which to create a log dir to write log file to and directory in which to create tmp dir which contains environments variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.
-
-### Dev simulation mode
-- `-e EMULATOR_PATH`, `--emulator-path EMULATOR_PATH` The path which contains lewis and lewis-control executables
-- `-ep EMULATOR_PROTOCOL`, `--emulator-protocol EMULATOR_PROTOCOL` The Lewis protocal to use (optional)
-- `-ea EMULATOR_ADD_PATH`, `--emulator-add-path EMULATOR_ADD_PATH` Add path where device packages exist for the emulator.
-- `-ek EMULATOR_DEVICE_PACKAGE`, `--emulator-device-package EMULATOR_DEVICE_PACKAGE` device package to use to perform the emulation
-
-### Rec simulation mode
-
-- `-r`, `--record-simulation` Use record simulation rather than emulation (optional)
-
-### Emulation mode:
-
-From the command-line in the IocTestFramework directory, the IOC and Lewis settings can be specified, for example:
+To run all the tests in the test framework, use:
 
 ```
-> python.exe run_tests.py -pf %MYPVPREFIX% -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -e c:\CodeWorkspaces\GitHub\my_plankton\plankton\lewis.py -ep julabo-version-1
+C:\Instrument\Apps\EPICS\config_env.bat
+python run_tests.py
 ```
 
-### Record simulation mode
+There is a batch file which does this for you, called `run_tests.bat`
 
-To run in record simulation mode (does not require Lewis) use the -r option, for example:
+### Running specific tests
+
+Specify the test modules you want to run via the `-tm` argument:
 
 ```
-> python.exe run_tests.py -pf IN:DEMO -r -d julabo -p C:\Instrument\Apps\EPICS\ioc\master\JULABO\iocBoot\iocJULABO-IOC-01 -pf %MYPVPREFIX%
+python run_tests.py -tm instron_stress_rig amint2l  # Will run the stress rig tests and then the amint2l tests.
 ```
+
+The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` directory, with the `.py` extension removed.
 
 ## Troubleshooting 
 
@@ -80,10 +65,52 @@ $(IFNOTDEVSIM) $(IFNOTRECSIM) asynSetOption("L0", -1, "stop", "$(STOP=1)")
 ### Adding a suite of tests
 
 To add a another suite of tests:
-* Create a Python file with the same name as the Lewis device (for example: linkam_t95). **This should be lowercase**.
-* Create a class in it with the same name as the file but with the first letter capitialised and "Tests" appended (for example: Linkam_t95Tests).
+* Create a Python file. This no longer has to have a specific name, but try to give it a name similar to the IOC and emulator so that it is easy to find.
+* Ensure your test suite has the essential attributes `IOCS` and `TEST_MODES` (see below for more details)
+* Create a test class (deriving from `unittest.TestCase`) in your module. This no longer has to have a specific name. You can have multiple test classes within a test module, all of them will be executed. 
 * Fill the class with tests (see below).
 * Add your new tests to run_all_tests.bat, this is the easiest way to run your new tests.
+
+### The `IOCS` attribute
+
+The `IOCS` attribute tells the test framework which IOCs need to be launched. Any number of IOCs are allowed. The `IOCS` attribute should be a list of dictionaries, where each dictionary contains information about one IOC/emulator combination. 
+
+Essential attributes:
+`name`: The IOC name of the IOC to launch, e.g. `GALIL_01`.
+`directory`: The directory containing `runIoc.bat` for this IOC.
+
+Essential attributes in devsim mode:
+`emulator`: The name of the lewis emulator for this device.
+
+Optional attributes:
+`macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
+`emulator_protocol`: The lewis protocol to use. Defaults to `stream`, which is used by the majority of ISIS emulators.
+`emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
+`emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
+
+Example:
+
+```python
+IOCS = [
+    {
+        "name": "IOCNAME_01",
+        "directory": get_default_ioc_dir("IOCNAME"),
+        "macros": {
+            "MY_MACRO": "My_value",
+        },
+        "emulator": "my_emulator_name",
+    },
+]
+```
+
+### The `TEST_MODES` attribute
+
+This is a list of test modes to run this test suite in. A list of available test modes can be found in `utils\test_modes.py`. Currently these are RECSIM and DEVSIM.
+
+Example:
+```python
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+```
 
 ### Structure of a test
 
@@ -92,7 +119,7 @@ class MydeviceTests(unittest.TestCase):
     # Runs before every test
     def setUp(self):
         # Grab a reference to the ioc and lewis
-        self._lewis, self._ioc = get_running_lewis_and_ioc(“mydevice")
+        self._lewis, self._ioc = get_running_lewis_and_ioc(“mydevice", "IOCNAME_01")
         # Setup channel access with a default timeout of 20 seconds and a IOC prefix of "IOCNAME_01"
         self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01")
         # Wait for a PV to be available – the IOC may take some time to start
