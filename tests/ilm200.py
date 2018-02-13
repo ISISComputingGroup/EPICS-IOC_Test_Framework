@@ -38,6 +38,7 @@ class Ilm200Tests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ilm200")
         self.ca = ChannelAccess(device_prefix="ILM200_01")
         self.ca.wait_for("VERSION", timeout=30)
+        self._lewis.backdoor_set_on_device("cycle", False)
 
     def set_level_via_backdoor(self, channel, level):
         self._lewis.backdoor_command(["device", "set_level", str(channel), str(level)])
@@ -65,14 +66,14 @@ class Ilm200Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm_200_WHEN_level_set_on_device_THEN_reported_level_matches_set_level(self):
-        self._lewis.backdoor_set_on_device("cycle", False)
         for i in self.channel_range():
             expected_level = i*12.3
             self.set_level_via_backdoor(i, expected_level)
             self.ca.assert_that_pv_is_number(self.ch_pv(i, "LEVEL"), expected_level, self.LEVEL_TOLERANCE)
 
     @skipIf(IOCRegister.uses_rec_sim, "No dynamic behaviour recsim")
-    def test_GIVEN_ilm_200_THEN_channel_levels_change_over_time(self):
+    def test_GIVEN_ilm_200_WHEN_is_cycling_THEN_channel_levels_change_over_time(self):
+        self._lewis.backdoor_set_on_device("cycle", True)
         for i in self.channel_range():
             def not_equal(a, b):
                 tolerance = self.LEVEL_TOLERANCE
@@ -94,7 +95,6 @@ class Ilm200Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_full_THEN_not_filling_and_not_low(self):
-        self._lewis.backdoor_set_on_device("cycle", False)
         for i in self.channel_range():
             level = self.FULL
             self.set_level_via_backdoor(i, level)
@@ -102,7 +102,6 @@ class Ilm200Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_low_but_auto_fill_not_triggered_THEN_not_filling_and_low(self):
-        self._lewis.backdoor_set_on_device("cycle", False)
         for i in self.channel_range():
             level = self.LOW - (self.LOW - self.FILL)/2  # Somewhere between fill and low
             self.set_level_via_backdoor(i, level)
@@ -110,7 +109,6 @@ class Ilm200Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_low_but_and_auto_fill_triggered_THEN_filling_and_low(self):
-        self._lewis.backdoor_set_on_device("cycle", False)
         for i in self.channel_range():
             level = self.FILL/2
             self.set_level_via_backdoor(i, level)
@@ -118,7 +116,6 @@ class Ilm200Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_low_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device("cycle", False)
         for i in self.channel_range():
             level = self.FILL/2
             self.set_level_via_backdoor(i, level)
@@ -126,14 +123,12 @@ class Ilm200Tests(unittest.TestCase):
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door in recsim")
     def test_GIVEN_helium_channel_WHEN_helium_current_set_on_THEN_ioc_reports_current(self):
-        self._lewis.backdoor_set_on_device("cycle", False)
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, True)
             self.ca.assert_that_pv_is(self.ch_pv(i, "CURRENT"), "On")
 
     @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door in recsim")
     def test_GIVEN_helium_channel_WHEN_helium_current_set_off_THEN_ioc_reports_no_current(self):
-        self._lewis.backdoor_set_on_device("cycle", False)
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, False)
             self.ca.assert_that_pv_is(self.ch_pv(i, "CURRENT"), "Off")
