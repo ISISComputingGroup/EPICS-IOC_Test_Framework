@@ -76,20 +76,17 @@ To add a another suite of tests:
 The `IOCS` attribute tells the test framework which IOCs need to be launched. Any number of IOCs are allowed. The `IOCS` attribute should be a list of dictionaries, where each dictionary contains information about one IOC/emulator combination. 
 
 Essential attributes:
-
-`name`: The IOC name of the IOC to launch, e.g. `GALIL_01`.
-`directory`: The directory containing `runIoc.bat` for this IOC.
+- `name`: The IOC name of the IOC to launch, e.g. `GALIL_01`.
+- `directory`: The directory containing `runIoc.bat` for this IOC.
 
 Essential attributes in devsim mode:
-
-`emulator`: The name of the lewis emulator for this device.
+- `emulator`: The name of the lewis emulator for this device.
 
 Optional attributes:
-
-`macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
-`emulator_protocol`: The lewis protocol to use. Defaults to `stream`, which is used by the majority of ISIS emulators.
-`emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
-`emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
+- `macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
+- `emulator_protocol`: The lewis protocol to use. Defaults to `stream`, which is used by the majority of ISIS emulators.
+- `emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
+- `emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
 
 Example:
 
