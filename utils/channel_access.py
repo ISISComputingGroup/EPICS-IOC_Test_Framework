@@ -4,6 +4,8 @@ Channel access tp IOC
 import os
 import time
 import operator
+from contextlib import contextmanager
+
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 
@@ -46,10 +48,14 @@ class ChannelAccess(object):
         :param pv: the EPICS PV name
         :param value: the value to set
         """
+        # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try to jump the gun
+        # and attempt to write to a PV that doesn't exist yet
+        self.wait_for(pv)
+
         # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
-        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
+        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, timeout=self._default_timeout)
         # Need to give Lewis time to process
         time.sleep(1)
 
@@ -451,3 +457,16 @@ class ChannelAccess(object):
         :raises AssertionError: if the value of the pv has changed
         """
         self.assert_pv_value_over_time(pv, wait, operator.eq)
+
+    # Using a context manager to put PVs into alarm means they don't accidentally get left in alarm if the test fails
+    @contextmanager
+    def put_simulated_record_into_alarm(self, pv, alarm):
+        def _set_and_check_simulated_alarm(pv, alarm):
+            self.set_pv_value("{}.SIMS".format(pv), alarm)
+            self.assert_pv_alarm_is("{}".format(pv), alarm)
+
+        try:
+            _set_and_check_simulated_alarm(pv, alarm)
+            yield
+        finally:
+            _set_and_check_simulated_alarm(pv, self.ALARM_NONE)

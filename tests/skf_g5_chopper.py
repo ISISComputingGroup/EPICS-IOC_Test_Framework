@@ -1,19 +1,31 @@
 import unittest
-from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+from utils.test_modes import TestModes
 
 from utils.testing import get_running_lewis_and_ioc
-
-# MACROS to use for the IOC
-MACROS = {"NAME": "TEST_CHOPPER", "OPEN": 127.8, "CLOSED": 307.8}
 
 # Device prefix
 DEVICE_PREFIX = "SKFCHOPPER_01"
 
 
-class Skf_g5_chopperTests(unittest.TestCase):
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("SKFCHOPPER"),
+        "macros": {
+            "NAME": "TEST_CHOPPER",
+            "OPEN": 127.8,
+            "CLOSED": 307.8,
+        },
+    },
+]
+
+TEST_MODES = [TestModes.RECSIM]
+
+
+class SkfG5ChopperTests(unittest.TestCase):
     """
     Tests for the SKF G5 Chopper Controller
 
@@ -23,7 +35,7 @@ class Skf_g5_chopperTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("skf_g5_chopper")
+        self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 

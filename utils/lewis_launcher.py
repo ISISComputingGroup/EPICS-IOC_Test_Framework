@@ -97,8 +97,7 @@ class LewisLauncher(object):
     Launches Lewis.
     """
 
-    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None,
-                 lewis_package=None):
+    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None, lewis_package=None, port=None):
         """
         Constructor that also launches Lewis.
 
@@ -109,6 +108,7 @@ class LewisLauncher(object):
         :param lewis_protocol: protocol to use
         :param lewis_additional_path: additional path to add to lewis usually the location of the device emulators
         :param lewis_package: package to use by lewis
+        :param port: the port to use
         """
         self._lewis_path = lewis_path
         self._python_path = python_path
@@ -117,7 +117,7 @@ class LewisLauncher(object):
         self._process = None
         self._lewis_additional_path = lewis_additional_path
         self._lewis_package = lewis_package
-        self.port = None
+        self.port = port
         self._logFile = None
         self._connected = None
         self._var_dir = var_dir
@@ -231,8 +231,7 @@ class LewisLauncher(object):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
-        lewis_command_line = [self._python_path,
-                              os.path.join(self._lewis_path, "lewis-control.exe"),
+        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis-control.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
         self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))

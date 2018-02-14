@@ -1,21 +1,14 @@
 import unittest
 import math
-import time
-from itertools import starmap
 from unittest import skip
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 
 # Internal Address of device (must be 2 characters)
-GALIL_ADDR = "128.0.0.0"
+from utils.test_modes import TestModes
 
-# MACROS to use for the IOC
-MACROS = {
-    "GALILADDR": GALIL_ADDR,
-    "IFXYBEAMSTOP": " ",
-    "MTRCTRL": "1",
-}
+GALIL_ADDR = "128.0.0.0"
 
 PREFIX = "MOT"
 
@@ -62,12 +55,28 @@ TWEAK_X = "ARM:X:TWEAK"
 TWEAK_Y = "ARM:Y:TWEAK"
 
 
+IOCS = [
+    {
+        "name": "GALIL_01",
+        "directory": get_default_ioc_dir("GALIL"),
+        "macros": {
+            "GALILADDR": GALIL_ADDR,
+            "IFXYBEAMSTOP": " ",
+            "MTRCTRL": "1",
+        },
+    },
+]
+
+
+TEST_MODES = [TestModes.DEVSIM]
+
+
 class XyarmbeamstopTests(unittest.TestCase):
     """
     Tests for the Larmor X-Y Beamstop
     """
     def setUp(self):
-        self._ioc = IOCRegister.get_running("xyarmbeamstop")
+        self._ioc = IOCRegister.get_running("GALIL_01")
         self.ca = ChannelAccess(default_timeout=30)
         self.ca.wait_for(MOTOR_X, timeout=60)
         self._set_pv_value(STORE_SP, ACTIVE)

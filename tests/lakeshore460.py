@@ -1,13 +1,29 @@
 import unittest
 from unittest import skipIf
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc
-from utils.ioc_launcher import IOCRegister
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 
 vectors = {1: "XYZ", 2: "XY", 3: "XZ", 4: "YZ", 5: "X-Y"}
 channels = ["X", "Y", "Z", "V"]
 multipliers = {0: "u", 1: "m", 2: " ", 3: "k"}
 ranges = {1: "First Range", 2: "Second Range", 3: "Third Range", 4: "Fourth Range"}
+
+
+DEVICE_PREFIX = "LKSH460_01"
+
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("LKSH460"),
+        "macros": {},
+        "emulator": "lakeshore460"
+    },
+]
+
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 class UnitStrings(object):
@@ -42,7 +58,7 @@ class Lakeshore460Tests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("lakeshore460")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("lakeshore460", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix="LKSH460_01", default_timeout=30)
         self.ca.wait_for("IDN")
 
@@ -52,14 +68,14 @@ class Lakeshore460Tests(unittest.TestCase):
         unit_flag = UnitFlags.GAUSS
         self.ca.assert_setting_setpoint_sets_readback(unit_flag, "UNIT", "UNIT:SP", unit_string)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_magnetic_field_reading_set_WHEN_read_THEN_magnetic_field_reading_is_set_value(self):
         for chan in channels:
             set_field_reading = 1.2356
             self._lewis.backdoor_command(["device", "set_channel_param", chan, "field_reading", str(set_field_reading)])
             self.ca.assert_that_pv_is("{}:FIELDREADING".format(chan), set_field_reading)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_prms_set_rms_WHEN_read_THEN_prms_is_rms(self):
         for chan in channels:
             set_prms = UnitFlags.PEAK
@@ -79,7 +95,7 @@ class Lakeshore460Tests(unittest.TestCase):
             expected_value = vectors[key]
             self.ca.assert_setting_setpoint_sets_readback(set_value, "SOURCE", "SOURCE:SP", expected_value)
             
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_max_hold_reading_set_WHEN_read_THEN_max_hold_reading_is_set_value(self):
         for chan in channels:
             set_max_hold_reading = 2.1234
@@ -87,7 +103,7 @@ class Lakeshore460Tests(unittest.TestCase):
                 ["device", "set_channel_param", chan, "max_hold_reading", str(set_max_hold_reading)])
             self.ca.assert_that_pv_is("{}:MAXREADING".format(chan), set_max_hold_reading)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_rel_mode_reading_set_WHEN_read_THEN_rel_mode_reading_is_set_value(self):
         for chan in channels:
             set_rel_reading = 0.9786
@@ -95,7 +111,7 @@ class Lakeshore460Tests(unittest.TestCase):
                 ["device", "set_channel_param", chan, "rel_mode_reading", str(set_rel_reading)])
             self.ca.assert_that_pv_is("{}:RELMODEREADING".format(chan), set_rel_reading)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_output_mode_set_DC_WHEN_read_THEN_output_mode_is_dc(self):
         for chan in channels:
             mode_set = UnitFlags.DC
@@ -103,7 +119,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(mode_set, "{}:MODE".format(chan),
                                                           "{}:MODE:SP".format(chan), expected_mode)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_output_mode_set_AC_WHEN_read_THEN_output_mode_is_ac(self):
         for chan in channels:
             mode_set = UnitFlags.AC
@@ -111,7 +127,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(mode_set, "{}:MODE".format(chan),
                                                           "{}:MODE:SP".format(chan), expected_mode)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_prms_set_peak_WHEN_read_THEN_prms_is_peak(self):
         for chan in channels:
             set_prms = UnitFlags.RMS
@@ -119,7 +135,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_prms, "{}:PRMS".format(chan),
                                                           "{}:PRMS:SP".format(chan), expected_prms)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_display_filter_set_on_WHEN_read_THEN_display_filter_is_set_value(self):
         for chan in channels:
             set_filter = UnitFlags.ON
@@ -127,7 +143,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_filter, "{}:FILTER".format(chan),
                                                           "{}:FILTER:SP".format(chan), expected_filter)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_display_filter_set_off_WHEN_read_THEN_display_filter_is_set_value(self):
         for chan in channels:
             set_filter = UnitFlags.OFF
@@ -135,7 +151,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_filter, "{}:FILTER".format(chan),
                                                           "{}:FILTER:SP".format(chan), expected_filter)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_rel_mode_status_set_on_WHEN_read_THEN_rel_mode_status_is_set_value(self):
         for chan in channels:
             set_rel_mode_status = UnitFlags.ON
@@ -143,7 +159,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_rel_mode_status, "{}:RELMODE".format(chan),
                                                           "{}:RELMODE:SP".format(chan), expected_rel_mode_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_rel_mode_status_set_off_WHEN_read_THEN_rel_mode_status_is_set_value(self):
         for chan in channels:
             set_rel_mode_status = UnitFlags.OFF
@@ -151,7 +167,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_rel_mode_status, "{}:RELMODE".format(chan),
                                                           "{}:RELMODE:SP".format(chan), expected_rel_mode_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_auto_mode_status_set_on_WHEN_read_THEN_auto_mode_status_is_set_value(self):
         for chan in channels:
             set_auto_mode_status = UnitFlags.ON
@@ -159,7 +175,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_auto_mode_status, "{}:AUTO".format(chan),
                                                           "{}:AUTO:SP".format(chan), expected_auto_mode_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_auto_mode_status_set_off_WHEN_read_THEN_auto_mode_status_is_set_value(self):
         for chan in channels:
             set_auto_mode_status = UnitFlags.OFF
@@ -167,7 +183,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_auto_mode_status, "{}:AUTO".format(chan),
                                                           "{}:AUTO:SP".format(chan), expected_auto_mode_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_max_hold_status_set_on_WHEN_read_THEN_max_hold_status_is_set_value(self):
         for chan in channels:
             set_max_hold_status = UnitFlags.ON
@@ -175,7 +191,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_max_hold_status, "{}:MAXHOLD".format(chan),
                                                           "{}:MAXHOLD:SP".format(chan), expected_max_hold_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_max_hold_status_set_off_WHEN_read_THEN_max_hold_status_is_set_value(self):
         for chan in channels:
             set_max_hold_status = UnitFlags.OFF
@@ -183,7 +199,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_max_hold_status, "{}:MAXHOLD".format(chan),
                                                           "{}:MAXHOLD:SP".format(chan), expected_max_hold_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_channel_status_set_on_WHEN_read_THEN_channel_status_is_set_value(self):
         for chan in channels:
             set_channel_status = UnitFlags.CHANNEL_ON
@@ -191,7 +207,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_channel_status, "{}:STATUS".format(chan),
                                                           "{}:STATUS:SP".format(chan), expected_channel_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_channel_status_set_off_WHEN_read_THEN_channel_status_is_set_value(self):
         for chan in channels:
             set_channel_status = UnitFlags.CHANNEL_OFF
@@ -199,7 +215,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_channel_status, "{}:STATUS".format(chan),
                                                           "{}:STATUS:SP".format(chan), expected_channel_status)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_filter_windows_set_WHEN_read_THEN_alarm_is_major(self):
         for chan in channels:
             filter_windows = 11
@@ -207,7 +223,7 @@ class Lakeshore460Tests(unittest.TestCase):
                                                           "{}:FWIN:SP".format(chan), filter_windows,
                                                           expected_alarm="MAJOR")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_filter_windows_set_WHEN_read_THEN_alarm_is_none(self):
         for chan in channels:
             filter_windows = 4
@@ -215,7 +231,7 @@ class Lakeshore460Tests(unittest.TestCase):
                                                           "{}:FWIN:SP".format(chan), filter_windows,
                                                           expected_alarm="NO_ALARM")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_filter_points_set_WHEN_read_THEN_alarm_is_major(self):
         for chan in channels:
             filter_points = 65
@@ -223,7 +239,7 @@ class Lakeshore460Tests(unittest.TestCase):
                                                           "{}:FNUM:SP".format(chan), filter_points,
                                                           expected_alarm="MAJOR")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_filter_points_set_WHEN_read_THEN_alarm_is_none(self):
         for chan in channels:
             filter_points = 10
@@ -231,7 +247,7 @@ class Lakeshore460Tests(unittest.TestCase):
                                                           "{}:FNUM:SP".format(chan), filter_points,
                                                           expected_alarm="NO_ALARM")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_range_set_WHEN_read_THEN_range_is_set_value(self):
         for chan in channels:
             for key in ranges:

@@ -1,25 +1,37 @@
 import unittest
-from unittest import skipIf
 
 import time
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc
-from utils.ioc_launcher import IOCRegister
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.ioc_launcher import get_default_ioc_dir
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
 # Numerical address of the device
 ADDR_1 = 1
-DEVICE_NAME = "EUROTHRM_01"
-PREFIX = "{}:{}".format(DEVICE_NAME, ADDRESS)
-
-# MACROS to use for the IOC
-MACROS = {"ADDR": ADDRESS, "ADDR_1": ADDR_1}
+DEVICE = "EUROTHRM_01"
+PREFIX = "{}:{}".format(DEVICE, ADDRESS)
 
 # PV names
 RBV_PV = "RBV"
 
+IOCS = [
+    {
+        "name": DEVICE,
+        "directory": get_default_ioc_dir("EUROTHRM"),
+        "macros": {
+            "ADDR": ADDRESS,
+            "ADDR_1": ADDR_1
+        },
+        "emulator": "eurotherm",
+    },
+]
+
 SENSOR_DISCONNECTED_VALUE = 1529
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class EurothermTests(unittest.TestCase):
@@ -32,7 +44,7 @@ class EurothermTests(unittest.TestCase):
         self._reset_device_state()
 
     def _setup_lewis_and_channel_access(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", DEVICE)
         self.ca = ChannelAccess(device_prefix=PREFIX)
         self.ca.wait_for(RBV_PV, timeout=30)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
@@ -51,18 +63,18 @@ class EurothermTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("current_temperature", temperature)
         self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
         expected_temperature = 10.0
         self._set_setpoint_and_current_temperature(expected_temperature)
         self.ca.assert_that_pv_is(RBV_PV, expected_temperature)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_sp_WHEN_sp_read_rbv_temperature_THEN_rbv_value_is_same_as_sp(self):
         expected_temperature = 10.0
         self.ca.assert_setting_setpoint_sets_readback(expected_temperature, "SP:RBV", "SP")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_set_ramp_rate_in_K_per_min_THEN_current_temperature_reaches_set_point_in_expected_time(self):
         start_temperature = 5.0
         ramp_on = 1
@@ -81,13 +93,13 @@ class EurothermTests(unittest.TestCase):
         end = time.time()
         self.assertAlmostEquals(end-start, 20, delta=1)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
         self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
 
         self.ca.assert_that_pv_is_number("RAMPON:SP.DISP", 1)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_sensor_disconnected_WHEN_sensor_reconnected_THEN_ramp_setting_is_enabled(self):
         self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
 
@@ -95,7 +107,7 @@ class EurothermTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_number("RAMPON:SP.DISP", 0)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_ramp_was_off_WHEN_sensor_disconnected_THEN_ramp_is_off_and_cached_ramp_value_is_off(self):
         self.ca.set_pv_value("RAMPON:SP", 0)
 
@@ -104,7 +116,7 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMPON", "OFF")
         self.ca.assert_that_pv_is("RAMPON:CACHE", "OFF")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_ramp_was_on_WHEN_sensor_disconnected_THEN_ramp_is_off_and_cached_ramp_value_is_on(self):
         self.ca.set_pv_value("RAMPON:SP", 1)
 
@@ -113,7 +125,7 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMPON", "OFF")
         self.ca.assert_that_pv_is("RAMPON:CACHE", "ON")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_ramp_was_on_WHEN_sensor_disconnected_and_reconnected_THEN_ramp_is_on(self):
         self.ca.set_pv_value("RAMPON:SP", 1)
 
