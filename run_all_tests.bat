@@ -180,3 +180,9 @@ echo TESTING FZJ_DD_Fermi_Chopper Dev Sim
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX%  -d fzj_dd_fermi_chopper -p %EPICS_KIT_ROOT%\ioc\master\FZJDDFCH\iocBoot\iocFZJDDFCH-IOC-01 -e %PYTHONDIR%\Scripts -ea %EPICS_KIT_ROOT%\support\DeviceEmulator\master -ek lewis_emulators
 echo ---------------------------------------
 echo;
+
+echo ---------------------------------------
+echo TESTING FZJ_DD_Fermi_Chopper Rec Sim
+call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" -pf %MYPVPREFIX% -r -d fzj_dd_fermi_chopper -p %EPICS_KIT_ROOT%\ioc\master\FZJDDFCH\iocBoot\iocFZJDDFCH-IOC-01
+echo ---------------------------------------
+echo;
