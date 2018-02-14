@@ -20,7 +20,7 @@ class RikenRb2ModeChangeoverTests(RikenChangeover):
     """
     Tests for a riken RB2 mode change.
 
-    Main tests are inherited from RikenChangeoverTests
+    Main tests are inherited from RikenChangeover
     """
     def get_power_supplies(self):
         return POWER_SUPPLIES

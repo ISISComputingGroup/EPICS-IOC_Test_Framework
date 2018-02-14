@@ -43,7 +43,7 @@ def build_iocs(riken_setup):
             "name": "RKNPS_{:02d}".format(ioc_num),
             "directory": get_default_ioc_dir("RKNPS", iocnum=ioc_num),
             "macros": dict(itertools.chain(
-                # This is just a succint way of setting macros like:
+                # This is just a succinct way of setting macros like:
                 # ADR1 = 001, ADR2 = 002, ...
                 # ID1 = RB1, ID2 = RB2, ... (as defined in RIKEN_SETUP above)
                 {"ID{}".format(number): name for number, name in enumerate(psus, 1)}.iteritems(),
