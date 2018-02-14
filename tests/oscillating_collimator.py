@@ -8,7 +8,8 @@ GALIL_ADDR = "128.0.0.0"
 
 # MACROS to use for the IOC
 MACROS = {
-    "GALILADDR01": GALIL_ADDR,
+    "GALILADDR": GALIL_ADDR,
+    "MTRCTRL": "01"
     "IFOSCCOL": " "
 }
 PREFIX = "MOT:OSCCOL"
