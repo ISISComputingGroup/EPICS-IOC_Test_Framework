@@ -4,17 +4,27 @@ import time
 from itertools import starmap
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 
-# MACROS to use for the IOC
-MACROS = {
-    "AXIS1": "yes",
-    "AXIS2": "yes",
-    "AXIS3": "yes",
-    "AXIS4": "yes",
-    "MTRCTRL": "01",
-    "IFGEMJAWS": " "
-}
+
+IOCS = [
+    {
+        "name": "LINMOT_01",
+        "directory": get_default_ioc_dir("LINMOT"),
+        "macros": {
+            "AXIS1": "yes",
+            "AXIS2": "yes",
+            "AXIS3": "yes",
+            "AXIS4": "yes",
+            "MTRCTRL": "01",
+            "IFGEMJAWS": " "
+        },
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM]
 
 # Motor position tolerance
 TOLERANCE = 0.2
@@ -27,6 +37,11 @@ UNDERLYING_MTR_WEST = "MOT:MTR0103"
 
 all_motors = [MOTOR_W, UNDERLYING_MTR_WEST]
 
+MIN_POSITION = 2
+MID_POSITION = 5.4
+MAX_POSITION = 12
+TEST_POSITIONS = [MIN_POSITION, MID_POSITION, MAX_POSITION]
+
 
 def calc_expected_quad_read(x):
     return 0.03331 * pow(x, 2) + 0.07169 * x - 0.13376
@@ -36,7 +51,7 @@ def calc_expected_quad_write(x):
     return (-0.07169 + pow(4 * 0.03331 * (x + 0.13376) - pow(0.07169, 2), 0.5)) / (2 * 0.03331)
 
 
-class Gem_jawsTests(unittest.TestCase):
+class GemJawsTests(unittest.TestCase):
     """
     Tests for the gem beamscrapper jaws
     """
@@ -53,31 +68,15 @@ class Gem_jawsTests(unittest.TestCase):
 
     def _test_set_point(self, underlying_motor, calibrated_axis, to_write_func, x):
         self.ca.set_pv_value(calibrated_axis, x)
-        self.ca.assert_that_pv_is_number(underlying_motor + ".VAL", to_write_func(x), TOLERANCE)
+        self.ca.assert_that_pv_is_number(underlying_motor + ".VAL", to_write_func(x), TOLERANCE, timeout=20)
 
-    # Quadratic axis tests
+    def test_WHEN_underlying_west_motor_set_to_a_position_THEN_calibrated_axis_as_expected(self):
+        for position in TEST_POSITIONS:
+            self._test_readback(MOTOR_W, calc_expected_quad_read, position)
 
-    # Value used as it is near the low limit of the axis
-    def test_WHEN_underlying_west_motor_set_to_2_THEN_calibrated_axis_as_expected(self):
-        self._test_readback(MOTOR_W, calc_expected_quad_read, 2)
-
-    def test_WHEN_underlying_west_motor_set_to_5_4_THEN_calibrated_axis_as_expected(self):
-        self._test_readback(MOTOR_W, calc_expected_quad_read, 5.4)
-
-    # Value used as it is near the high limit of the axis
-    def test_WHEN_underlying_west_motor_set_to_12_THEN_calibrated_axis_as_expected(self):
-        self._test_readback(MOTOR_W, calc_expected_quad_read, 12)
-
-    # Value used as it is near the low limit of the axis
-    def test_WHEN_calibrated_west_motor_set_to_2_THEN_underlying_motor_as_expected(self):
-        self._test_set_point(UNDERLYING_MTR_WEST, MOTOR_W, calc_expected_quad_write, 2)
-
-    def test_WHEN_calibrated_west_motor_set_to_5_4_THEN_underlying_motor_as_expected(self):
-        self._test_set_point(UNDERLYING_MTR_WEST, MOTOR_W, calc_expected_quad_write, 5.4)
-
-    # Value used as it is near the high limit of the axis
-    def test_WHEN_calibrated_west_motor_set_to_12_THEN_underlying_motor_as_expected(self):
-        self._test_set_point(UNDERLYING_MTR_WEST, MOTOR_W, calc_expected_quad_write, 12)
+    def test_WHEN_calibrated_west_motor_set_to_a_position_THEN_underlying_motor_as_expected(self):
+        for position in TEST_POSITIONS:
+            self._test_set_point(UNDERLYING_MTR_WEST, MOTOR_W, calc_expected_quad_write, position)
 
     def test_WHEN_underlying_motor_stops_THEN_calibrated_motor_stops(self):
         # Move motor
