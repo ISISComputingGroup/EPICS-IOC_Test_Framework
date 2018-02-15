@@ -1,12 +1,30 @@
 import unittest
-from unittest import skipIf
 
+from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 TOO_HIGH_PID_VALUE = 100000
 TOO_LOW_PID_VALUE = -100000
+
+
+DEVICE_PREFIX = "JULABO_01"
+
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("JULABO"),
+        "macros": {},
+        "emulator": "julabo",
+        "emulator_protocol": "julabo-version-1",
+        "emulator_package": None,
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class JulaboTests(unittest.TestCase):
@@ -17,8 +35,8 @@ class JulaboTests(unittest.TestCase):
     TEMP_TOLERANCE = 0.005
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("julabo")
-        self.ca = ChannelAccess(device_prefix="JULABO_01")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("julabo", "JULABO_01")
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.wait_for("TEMP", timeout=30)
         # Turn off circulate
         self.ca.set_pv_value("MODE:SP", 0)
@@ -31,7 +49,7 @@ class JulaboTests(unittest.TestCase):
         # Check SP RBV matches new temp
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", start_t + 5)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_setting_temperature_above_high_limit_does_not_set_value(self):
         # Get current temp sp rbv
         start_t = self.ca.get_pv_value("TEMP:SP:RBV")
@@ -42,7 +60,7 @@ class JulaboTests(unittest.TestCase):
         # Check SP RBV hasn't changed
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", start_t)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_setting_temperature_below_low_limit_does_not_set_value(self):
         # Get current temp sp rbv
         start_t = self.ca.get_pv_value("TEMP:SP:RBV")
@@ -53,7 +71,7 @@ class JulaboTests(unittest.TestCase):
         # Check SP RBV hasn't changed
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", start_t)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_set_new_temperature_with_circulate_off_means_temperature_remains_unchanged(self):
         # Get current temp
         start_t = self.ca.get_pv_value("TEMP")
@@ -100,7 +118,7 @@ class JulaboTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("INTI", i)
         self.ca.assert_that_pv_is_number("INTD", d)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_setting_internal_PID_above_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("INTP")
@@ -115,7 +133,7 @@ class JulaboTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("INTI", start_i)
         self.ca.assert_that_pv_is_number("INTD", start_d)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_setting_internal_PID_below_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("INTP")
@@ -130,7 +148,7 @@ class JulaboTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("INTI", start_i)
         self.ca.assert_that_pv_is_number("INTD", start_d)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_setting_external_PID_above_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("EXTP")
@@ -145,7 +163,7 @@ class JulaboTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("EXTI", start_i)
         self.ca.assert_that_pv_is_number("EXTD", start_d)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    @skip_if_recsim("In rec sim this test fails")
     def test_setting_external_PID_below_limit_does_nothing(self):
         # Get initial values
         start_p = self.ca.get_pv_value("EXTP")

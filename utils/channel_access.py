@@ -4,6 +4,8 @@ Channel access tp IOC
 import os
 import time
 import operator
+from contextlib import contextmanager
+
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 
@@ -46,10 +48,14 @@ class ChannelAccess(object):
         :param pv: the EPICS PV name
         :param value: the value to set
         """
+        # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try to jump the gun
+        # and attempt to write to a PV that doesn't exist yet
+        self.wait_for(pv)
+
         # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
-        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=False, timeout=self._default_timeout)
+        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, timeout=self._default_timeout)
         # Need to give Lewis time to process
         time.sleep(1)
 
@@ -235,19 +241,23 @@ class ChannelAccess(object):
             raw_pv_value = self.get_pv_value(pv)
             return float(raw_pv_value)
         except ValueError:
-            raise AssertionError("""Value was invalid when reading PV '{PV}'.
+            raise ValueError("""Value was invalid when reading PV '{PV}'.
                     Expected a numeric value but got: {actual}""".format(PV=pv, actual=raw_pv_value))
 
     def _value_is_number(self, pv, expected_value, tolerance):
         """
-            Check pv is a number within tolerance of the expected value
-            :param pv: name of the pv (no prefix)
-            :param expected_value: value that is expected
-            :param tolerance: if the difference between the actual and expected values is less than the tolerance,
-            they are treated as equal
-            :return: None if they match; error string stating the difference if they do not
-            """
-        pv_value = self._to_float(pv)
+        Check pv is a number within tolerance of the expected value
+        :param pv: name of the pv (no prefix)
+        :param expected_value: value that is expected
+        :param tolerance: if the difference between the actual and expected values is less than the tolerance,
+        they are treated as equal
+        :return: None if they match; error string stating the difference if they do not
+        """
+        try:
+            pv_value = self._to_float(pv)
+        except ValueError as e:
+            return "Could not convert PV value to number. Exception was: {}".format(e)
+
         if abs(expected_value - pv_value) <= tolerance:
             return None
         else:
@@ -257,14 +267,18 @@ class ChannelAccess(object):
 
     def _value_is_not_number(self, pv, restricted_value, tolerance):
         """
-            Check pv is a number outside of the tolerance of the restricted value
-            :param pv: name of the pv (no prefix)
-            :param restricted_value: value that PV shouldn't have
-            :param tolerance: if the difference between the actual and expected values is less than the tolerance,
-            the condition is not met
-            :return: None if they match; error string stating the difference if they do not
-            """
-        pv_value = self._to_float(pv)
+        Check pv is a number outside of the tolerance of the restricted value
+        :param pv: name of the pv (no prefix)
+        :param restricted_value: value that PV shouldn't have
+        :param tolerance: if the difference between the actual and expected values is less than the tolerance,
+        the condition is not met
+        :return: None if they match; error string stating the difference if they do not
+        """
+        try:
+            pv_value = self._to_float(pv)
+        except ValueError as e:
+            return "Could not convert PV value to number. Exception was: {}".format(e)
+
         if abs(restricted_value - pv_value) >= tolerance:
             return None
         else:
@@ -443,3 +457,16 @@ class ChannelAccess(object):
         :raises AssertionError: if the value of the pv has changed
         """
         self.assert_pv_value_over_time(pv, wait, operator.eq)
+
+    # Using a context manager to put PVs into alarm means they don't accidentally get left in alarm if the test fails
+    @contextmanager
+    def put_simulated_record_into_alarm(self, pv, alarm):
+        def _set_and_check_simulated_alarm(pv, alarm):
+            self.set_pv_value("{}.SIMS".format(pv), alarm)
+            self.assert_pv_alarm_is("{}".format(pv), alarm)
+
+        try:
+            _set_and_check_simulated_alarm(pv, alarm)
+            yield
+        finally:
+            _set_and_check_simulated_alarm(pv, self.ALARM_NONE)
