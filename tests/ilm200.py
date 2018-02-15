@@ -3,8 +3,23 @@ import unittest
 from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+
+# Device prefix
+DEVICE_PREFIX = "ILM200_01"
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("ILM200"),
+        "macros": {},
+        "emulator": "ilm200",
+    },
+]
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class Ilm200Tests(unittest.TestCase):
@@ -41,8 +56,8 @@ class Ilm200Tests(unittest.TestCase):
         return "CH{}:{}".format(channel, pv)
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("ilm200")
-        self.ca = ChannelAccess(device_prefix="ILM200_01")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("ilm200", DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.wait_for("VERSION", timeout=30)
         self._lewis.backdoor_set_on_device("cycle", False)
 
