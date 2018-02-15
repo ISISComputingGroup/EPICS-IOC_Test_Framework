@@ -1,8 +1,25 @@
 import subprocess
 import os
+from time import sleep
 
 from utils.channel_access import ChannelAccess
 from utils.log_file import log_filename
+
+
+EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))
+MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 60
+
+
+def get_default_ioc_dir(iocname, iocnum=1):
+    """
+    Gets the default path to run the IOC given the name.
+    Args:
+        iocname: the name of the ioc
+        iocnum: the number of the ioc to start (defaults to 1)
+    Returns:
+        the path
+    """
+    return os.path.join(EPICS_TOP, "ioc", "master", iocname, "iocBoot", "ioc{}-IOC-{:02d}".format(iocname, iocnum))
 
 
 class IOCRegister(object):
@@ -42,39 +59,29 @@ class IocLauncher(object):
     Launches an IOC for testing.
     """
 
-    def __init__(self, device, directory, use_rec_sim, var_dir):
+    def __init__(self, device, directory, macros, use_rec_sim, var_dir, port):
         """
         Constructor that also launches the IOC.
 
         :param device: device name
         :param directory: the directory where the st.cmd for the IOC is found
+        :param macros: the macros that should be passed to this IOC
         :param use_rec_sim: Use record simulation not device simulation in the ioc
         :param var_dir: location of directory to write log file and macros directories
+        :param port: The port to use
         """
         self._directory = directory
         self.use_rec_sim = use_rec_sim
         self._process = None
         self._logFile = None
         self._device = device
-        IOCRegister.uses_rec_sim = use_rec_sim
+        IOCRegister.uses_rec_sim = bool(use_rec_sim)
         self._ca = None
         self._var_dir = var_dir
         # port to use for the ioc
-        self.port = None
+        self.port = port
         # macros to use for the ioc
-        self.macros = None
-        # prefix for the ioc
-        self.device_prefix = None
-
-    def __enter__(self):
-        self.open()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-        if self._logFile is not None:
-            self._logFile.close()
-            print("Lewis log written to {0}".format(self._log_filename()))
+        self.macros = macros
 
     def _log_filename(self):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
@@ -94,6 +101,13 @@ class IocLauncher(object):
         settings['EMULATOR_PORT'] = str(self.port)
         return settings
 
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.close()
+
     def open(self):
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
@@ -103,16 +117,15 @@ class IocLauncher(object):
         if not os.path.isfile(st_cmd_path):
             print("St.cmd path not found: '{0}'".format(st_cmd_path))
 
-        if self.device_prefix is not None:
-            print("Check IOC is not running")
-            ca = self._get_channel_access()
-            try:
-                ca.assert_pv_does_not_exist("DISABLE")
-            except AssertionError as ex:
-                raise AssertionError("IOC appears to already be running {0}".format(ex))
+        ca = self._get_channel_access()
+        try:
+            print("Check that IOC is not running")
+            ca.assert_pv_does_not_exist("DISABLE")
+        except AssertionError as ex:
+            raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
 
         ioc_run_commandline = [run_ioc_path, st_cmd_path]
-        print("Starting IOC")
+        print("Starting IOC ({})".format(self._device))
 
         settings = self._set_environment_vars()
 
@@ -135,12 +148,15 @@ class IocLauncher(object):
                                          cwd=self._directory, stdin=subprocess.PIPE, stdout=self._logFile,
                                          stderr=subprocess.STDOUT, env=settings)
 
-        if self.device_prefix is not None:
-            ca = self._get_channel_access()
-            try:
-                ca.wait_for("DISABLE", timeout=30)
-            except AssertionError as ex:
-                raise AssertionError("IOC appears not to have started {0}".format(ex))
+        # Look for epics> in the IOC log which means that the IOC has successfully started.
+        for i in range(MAX_TIME_TO_WAIT_FOR_IOC_TO_START):
+            with open(self._log_filename()) as f:
+                if any("epics>" in line for line in f.readlines()):
+                    break
+            sleep(1)
+        else:
+            raise AssertionError("IOC appears not to have started after {} seconds."
+                                 .format(MAX_TIME_TO_WAIT_FOR_IOC_TO_START))
 
         IOCRegister.add_ioc(self._device, self)
 
@@ -148,11 +164,15 @@ class IocLauncher(object):
         """
         Closes the IOC.
         """
-        if self._process is None:
-            return
-        print("Terminating IOC")
-        # Need to send "exit" to the console as terminating the process won't work, because we ran a batch file
-        self._process.communicate("exit\n")
+        print("Terminating IOC ({})".format(self._device))
+
+        if self._process is not None:
+            # Need to send "exit" to the console as terminating the process won't work, because we ran a batch file
+            self._process.communicate("exit\n")
+
+        if self._logFile is not None:
+            self._logFile.close()
+            print("IOC log written to {0}".format(self._log_filename()))
 
     def set_simulated_value(self, pv_name, value):
         """
@@ -172,6 +192,6 @@ class IocLauncher(object):
         :return (ChannelAccess): the channel access component
         """
         if self._ca is None:
-            self._ca = ChannelAccess(device_prefix=self.device_prefix)
+            self._ca = ChannelAccess(device_prefix=self._device)
 
         return self._ca
