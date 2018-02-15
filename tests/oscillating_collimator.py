@@ -1,13 +1,13 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 
 # IP address of device
+from utils.test_modes import TestModes
+
 GALIL_ADDR = "128.0.0.0"
 
-# MACROS to use for the IOC
-MACROS = {"GALILADDR01": GALIL_ADDR}
 PREFIX = "MOT:OSCCOL"
 
 # Commonly used PVs
@@ -19,7 +19,23 @@ DISTANCE = "DIST:SP"
 DISCRIMINANT = "VEL:SP:DISC:CHECK"
 
 
-class Oscillating_collimatorTests(unittest.TestCase):
+IOCS = [
+    {
+        "name": "GALIL_01",
+        "directory": get_default_ioc_dir("GALIL"),
+        "macros": {
+            "GALILADDR": GALIL_ADDR,
+            "MTRCTRL": "01",
+            "IFOSCCOL": " ",
+        },
+    },
+]
+
+
+TEST_MODES = [TestModes.DEVSIM]
+
+
+class OscillatingCollimatorTests(unittest.TestCase):
     """
     Tests for the LET Oscillating collimator.
 
@@ -27,7 +43,7 @@ class Oscillating_collimatorTests(unittest.TestCase):
     file to prevent a hang in the case of using asynFloat64 for the SP types. Issue described in ticket #2736
     """
     def setUp(self):
-        self._ioc = IOCRegister.get_running("oscillating_collimator")
+        self._ioc = IOCRegister.get_running("GALIL_01")
         ChannelAccess().wait_for("MOT:MTR0101", timeout=30)
         self.ca = ChannelAccess(device_prefix=PREFIX)
         self.ca.wait_for("VEL:SP", timeout=30)

@@ -2,15 +2,28 @@ import unittest
 from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
-# MACROS to use for the IOC
 chopper_name = "C01"
-MACROS = {"ADDR": chopper_name}
 
 # Device prefix
 DEVICE_PREFIX = "FZJDDFCH_01"
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("FZJDDFCH"),
+        "macros": {
+            "ADDR": chopper_name
+        },
+        "emulator": "fzj_dd_fermi_chopper",
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 OK_NOK = {True: "OK", False: "NOK"}
 ON_OFF = {True: "ON", False: "OFF"}
@@ -65,7 +78,7 @@ SIMULATED_VALUES = {
 }
 
 
-class Fzj_dd_fermi_chopperTests(unittest.TestCase):
+class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
     """
     Tests for the FZJ Digital Drive Fermi Chopper Controller
     """
@@ -81,7 +94,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             - resets the emulator by calling reset command via backdoor.  sets internal values to defaults.
         """
 
-        self._lewis, self._ioc = get_running_lewis_and_ioc("fzj_dd_fermi_chopper")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("fzj_dd_fermi_chopper", DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
@@ -116,7 +129,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self._ioc.set_simulated_value(pv_name, value)
         self._lewis.backdoor_set_on_device(backdoor_parameter, value)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_frequency_reference_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 50.62
         self._set_simulated_value("frequency_reference", expected_value)
@@ -124,7 +137,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ:REF", expected_value)
         self.ca.assert_pv_alarm_is("FREQ:REF", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_frequency_setpoint_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 60.97
         self._set_simulated_value("frequency_setpoint", expected_value)
@@ -132,7 +145,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ:SP:RBV", expected_value)
         self.ca.assert_pv_alarm_is("FREQ:SP:RBV", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_phase_setpoint_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 45.27
         self._set_simulated_value("phase_setpoint", expected_value)
@@ -140,7 +153,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PHAS:SP:RBV", expected_value)
         self.ca.assert_pv_alarm_is("PHAS:SP:RBV", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_phase_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("phase_status_is_ok", boolean_value)
@@ -148,7 +161,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("PHAS:STAT", expected_value)
             self.ca.assert_pv_alarm_is("PHAS:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_magnetic_bearing_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("magnetic_bearing_status_is_ok", boolean_value)
@@ -156,7 +169,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("MB:STAT", expected_value)
             self.ca.assert_pv_alarm_is("MB:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_magnetic_bearing_integrator_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = -27.4
         self._set_simulated_value("magnetic_bearing_integrator", expected_value)
@@ -164,7 +177,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MB:INT", expected_value)
         self.ca.assert_pv_alarm_is("MB:INT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_magnetic_bearing_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in ON_OFF.items():
             self._set_simulated_value("magnetic_bearing_is_on", boolean_value)
@@ -172,7 +185,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("MB", expected_value)
             self.ca.assert_pv_alarm_is("MB", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in ON_OFF.items():
             self._set_simulated_value("drive_is_on", boolean_value)
@@ -180,7 +193,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("DRIVE", expected_value)
             self.ca.assert_pv_alarm_is("DRIVE", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_mode_WHEN_read_all_status_THEN_value_is_as_expected(self):
         for boolean_value, expected_value in START_STOP.items():
             self._set_simulated_value("drive_mode_is_start", boolean_value)
@@ -188,7 +201,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("DRIVE:MODE", expected_value)
             self.ca.assert_pv_alarm_is("DRIVE:MODE", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_l1_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 9.62
         self._set_simulated_value("drive_l1_current", expected_value)
@@ -196,7 +209,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DRIVE:L1:CURR", expected_value)
         self.ca.assert_pv_alarm_is("DRIVE:L1:CURR", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_l2_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 2.74
         self._set_simulated_value("drive_l2_current", expected_value)
@@ -204,7 +217,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DRIVE:L2:CURR", expected_value)
         self.ca.assert_pv_alarm_is("DRIVE:L2:CURR", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_l3_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 12.48
         self._set_simulated_value("drive_l3_current", expected_value)
@@ -212,7 +225,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DRIVE:L3:CURR", expected_value)
         self.ca.assert_pv_alarm_is("DRIVE:L3:CURR", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_direction_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in CW_CCW.items():
             self._set_simulated_value("drive_direction_is_cw", boolean_value)
@@ -220,7 +233,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("DRIVE:DIR", expected_value)
             self.ca.assert_pv_alarm_is("DRIVE:DIR", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_parked_open_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("parked_open_status_is_ok", boolean_value)
@@ -228,7 +241,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("PARKED:OPEN:STAT", expected_value)
             self.ca.assert_pv_alarm_is("PARKED:OPEN:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_temperature_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 86.31
         self._set_simulated_value("drive_temperature", expected_value)
@@ -236,7 +249,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DRIVE:TEMP", expected_value)
         self.ca.assert_pv_alarm_is("DRIVE:TEMP", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_input_clock_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 34.94
         self._set_simulated_value("input_clock", expected_value)
@@ -244,7 +257,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("INPUTCLOCK", expected_value)
         self.ca.assert_pv_alarm_is("INPUTCLOCK", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_phase_outage_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = 354.71
         self._set_simulated_value("phase_outage", expected_value)
@@ -252,7 +265,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PHAS:OUTAGE", expected_value)
         self.ca.assert_pv_alarm_is("PHAS:OUTAGE", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_master_chopper_WHEN_read_all_status_THEN_value_is_as_expected(self):
         expected_value = "C2B"
         self._set_simulated_value("master_chopper", expected_value)
@@ -260,7 +273,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MASTER", expected_value)
         self.ca.assert_pv_alarm_is("MASTER", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_logging_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in ON_OFF.items():
             self._set_simulated_value("logging_is_on", boolean_value)
@@ -268,7 +281,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("LOGGING", expected_value)
             self.ca.assert_pv_alarm_is("LOGGING", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_lmsr_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("lmsr_status_is_ok", boolean_value)
@@ -276,7 +289,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("LMSR:STAT", expected_value)
             self.ca.assert_pv_alarm_is("LMSR:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_dsp_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("dsp_status_is_ok", boolean_value)
@@ -284,7 +297,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("DSP:STAT", expected_value)
             self.ca.assert_pv_alarm_is("DSP:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_er_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_er_status_is_ok", boolean_value)
@@ -292,7 +305,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:ER:STAT", expected_value)
             self.ca.assert_pv_alarm_is("INTERLOCK:ER:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_vacuum_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_vacuum_status_is_ok", boolean_value)
@@ -300,7 +313,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:VAC:STAT", expected_value)
             self.ca.assert_pv_alarm_is("INTERLOCK:VAC:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_frequency_monitoring_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_frequency_monitoring_status_is_ok", boolean_value)
@@ -308,7 +321,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:FREQMON:STAT", expected_value)
             self.ca.assert_pv_alarm_is("INTERLOCK:FREQMON:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_magnetic_bearing_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", boolean_value)
@@ -316,7 +329,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:TEMP:STAT", expected_value)
             self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_magnetic_bearing_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_magnetic_bearing_amplifier_current_status_is_ok", boolean_value)
@@ -324,7 +337,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:CURR:STAT", expected_value)
             self.ca.assert_pv_alarm_is("INTERLOCK:MB:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_drive_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_drive_amplifier_temperature_status_is_ok", boolean_value)
@@ -332,7 +345,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", expected_value)
             self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_drive_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_drive_amplifier_current_status_is_ok", boolean_value)
@@ -340,7 +353,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:CURR:STAT", expected_value)
             self.ca.assert_pv_alarm_is("INTERLOCK:DRIVE:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set parameter")
+    @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_ups_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_ups_status_is_ok", boolean_value)
@@ -352,7 +365,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     # Frequency
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses mbbo record - incompatible with RECSIM")
+    @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_GIVEN_drive_mode_is_start_WHEN_frequency_setpoint_is_set_THEN_frequency_reaches_setpoint(self):
 
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
@@ -363,7 +376,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("FREQ", frequency, timeout=30)
         self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses mbbo record - incompatible with RECSIM")
+    @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_GIVEN_drive_mode_is_stop_WHEN_frequency_setpoint_is_set_THEN_frequency_is_zero(self):
 
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
@@ -374,7 +387,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("FREQ", 0, timeout=30)
         self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses mbbo record - incompatible with RECSIM")
+    @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_start_THEN_frequency_reaches_setpoint(self):
 
         frequency = 600
@@ -385,7 +398,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("FREQ", frequency, timeout=30)
         self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses mbbo record - incompatible with RECSIM")
+    @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_frequency_is_zero(self):
 
         frequency = 600
@@ -396,7 +409,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("FREQ", 0, timeout=30)
         self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses mbbo record - incompatible with RECSIM")
+    @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_WHEN_frequency_setpoint_is_set_THEN_readback_updates(self):
         frequency = 150
         frequency_as_string = str(frequency)
@@ -407,7 +420,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ:SP:RBV", frequency)
         self.ca.assert_pv_alarm_is("FREQ:SP:RBV", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_frequency_THEN_error_is_handled(self):
         frequency = 150
         frequency_as_string = str(frequency)
@@ -418,7 +431,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.ALARM_INVALID)
         self.ca.assert_that_pv_is("FREQ:SP:ERROR", expected_error)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_then_no_error_WHEN_set_frequency_THEN_error_is_cleared(self):
         frequency = 150
         frequency_as_string = str(frequency)
@@ -435,7 +448,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
     #  Phase
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS to implement state machine.  Depends on current state.")
+    @skip_if_recsim("Uses LeWIS to implement state machine.  Depends on current state.")
     def test_GIVEN_drive_mode_is_start_WHEN_phase_setpoint_is_set_THEN_phase_reaches_setpoint(self):
 
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
@@ -446,7 +459,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PHAS", phase, timeout=30)
         self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS to implement state machine.  Depends on current state.")
+    @skip_if_recsim("Uses LeWIS to implement state machine.  Depends on current state.")
     def test_GIVEN_drive_mode_is_stop_WHEN_phase_setpoint_is_set_THEN_phase_is_zero(self):
 
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
@@ -457,7 +470,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PHAS", 0, timeout=30)
         self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS to implement state machine.  Depends on current state.")
+    @skip_if_recsim("Uses LeWIS to implement state machine.  Depends on current state.")
     def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_start_THEN_phase_reaches_setpoint(self):
 
         phase = 65.72
@@ -468,7 +481,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PHAS", phase, timeout=30)
         self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS to implement state machine.  Depends on current state.")
+    @skip_if_recsim("Uses LeWIS to implement state machine.  Depends on current state.")
     def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_phase_is_zero(self):
 
         phase = 65.72
@@ -479,7 +492,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PHAS", 0, timeout=30)
         self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "PHAS:SP:RBV pushed from protocol")
+    @skip_if_recsim("PHAS:SP:RBV pushed from protocol")
     def test_WHEN_phase_setpoint_is_set_THEN_readback_updates(self):
         phase = 243.85
         self.ca.set_pv_value("PHAS:SP", phase)
@@ -489,7 +502,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PHAS:SP:RBV", phase)
         self.ca.assert_pv_alarm_is("PHAS:SP:RBV", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_phase_THEN_error_is_handled(self):
         phase = 243.85
         expected_error = "09;CxxNOK;SETPOINT_PHASE_OUT_OF_RANGE"
@@ -499,7 +512,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
         self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.ALARM_INVALID)
         self.ca.assert_that_pv_is("PHAS:SP:ERROR", expected_error)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_then_no_error_WHEN_set_phase_THEN_error_is_cleared(self):
         phase = 243.85
         expected_error = "09;CxxNOK;SETPOINT_PHASE_OUT_OF_RANGE"
@@ -524,7 +537,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("MB", magnetic_bearing)
             self.ca.assert_pv_alarm_is("MB", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_magnetic_bearing_is_on_THEN_error_is_handled(self):
         for magnetic_bearing in [ON_OFF[True], ON_OFF[False]]:
             expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
@@ -534,7 +547,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
             self.ca.assert_that_pv_is("MB:SP:ERROR", expected_error)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_then_no_error_WHEN_set_magnetic_bearing_is_on_THEN_error_is_cleared(self):
         for magnetic_bearing in [ON_OFF[True], ON_OFF[False]]:
             expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
@@ -559,7 +572,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("DRIVE:MODE", drive_mode)
             self.ca.assert_pv_alarm_is("DRIVE:MODE", self.ca.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_drive_mode_is_start_THEN_error_is_handled(self):
         for drive_mode in [START_STOP[True], START_STOP[False]]:
             expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
@@ -569,7 +582,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
             self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
             self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", expected_error)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set error")
+    @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_then_no_error_WHEN_set_drive_mode_is_start_THEN_error_is_cleared(self):
         for drive_mode in [START_STOP[True], START_STOP[False]]:
             expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
@@ -583,7 +596,7 @@ class Fzj_dd_fermi_chopperTests(unittest.TestCase):
 
             self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses LeWIS backdoor command to set disconnected state")
+    @skip_if_recsim("Uses LeWIS backdoor command to set disconnected state")
     def test_GIVEN_device_is_not_communicating_WHEN_read_all_status_THEN_values_have_error(self):
         self._lewis.backdoor_set_on_device("disconnected", True)
 
