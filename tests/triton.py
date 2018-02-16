@@ -8,7 +8,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
-DEVICE_PREFIX = "TRITON_02"
+DEVICE_PREFIX = "TRITON_01"
 
 PID_TEST_VALUES = 0, 10**-5, 123.45, 10**5
 TEMPERATURE_TEST_VALUES = 0, 10**-5, 5.4321, 250
@@ -26,7 +26,7 @@ VALID_PRESSURE_SENSORS = [1, 2, 3, 5]
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("TRITON", 2),
+        "directory": get_default_ioc_dir("TRITON"),
         "emulator": "triton",
     },
 ]
