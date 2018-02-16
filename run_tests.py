@@ -228,7 +228,8 @@ if __name__ == '__main__':
         try:
             module_results.append(load_module_by_name_and_run_tests(test_module))
         except Exception as e:
-            print("ERROR: {}: {}".format(e.__class__.__name__, e))
+            print("---\n---\n---\nError loading module {}: {}: {}\n---\n---\n---\n"
+                  .format(test_module, e.__class__.__name__, e))
             module_results.append(False)
 
     success = all(result is True for result in module_results)
