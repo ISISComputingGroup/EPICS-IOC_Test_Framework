@@ -1,9 +1,8 @@
 from __future__ import division
 import unittest
-from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
@@ -85,14 +84,14 @@ class Ilm200Tests(unittest.TestCase):
         for i in self.channel_range():
             self.ca.assert_pv_alarm_is(self.ch_pv(i, self.LEVEL), ChannelAccess.ALARM_NONE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
+    @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm_200_WHEN_level_set_on_device_THEN_reported_level_matches_set_level(self):
         for i in self.channel_range():
             expected_level = i*12.3
             self.set_level_via_backdoor(i, expected_level)
             self.ca.assert_that_pv_is_number(self.ch_pv(i, self.LEVEL), expected_level, self.LEVEL_TOLERANCE)
 
-    @skipIf(IOCRegister.uses_rec_sim, "No dynamic behaviour recsim")
+    @skip_if_recsim("No dynamic behaviour recsim")
     def test_GIVEN_ilm_200_WHEN_is_cycling_THEN_channel_levels_change_over_time(self):
         self._lewis.backdoor_set_on_device("cycle", True)
         for i in self.channel_range():
@@ -114,41 +113,41 @@ class Ilm200Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(self.ca.get_pv_value(self.ch_pv(i, self.RATE)),
                                                           self.ch_pv(i, self.RATE))
 
-    @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
+    @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_full_THEN_not_filling_and_not_low(self):
         for i in self.channel_range():
             level = self.FULL
             self.set_level_via_backdoor(i, level)
             self.check_state(i, level, False, False)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
+    @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_low_but_auto_fill_not_triggered_THEN_not_filling_and_low(self):
         for i in self.channel_range():
             level = self.LOW - (self.LOW - self.FILL)/2  # Somewhere between fill and low
             self.set_level_via_backdoor(i, level)
             self.check_state(i, level, False, True)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
+    @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_low_but_and_auto_fill_triggered_THEN_filling_and_low(self):
         for i in self.channel_range():
             level = self.FILL/2
             self.set_level_via_backdoor(i, level)
             self.check_state(i, level, True, True)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door of dynamic behaviour in recsim")
+    @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm200_WHEN_channel_low_THEN_alarm(self):
         for i in self.channel_range():
             level = self.FILL/2
             self.set_level_via_backdoor(i, level)
             self.ca.assert_pv_alarm_is(self.ch_pv(i, "LOW"), self.ca.ALARM_MINOR)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door in recsim")
+    @skip_if_recsim("Cannot do back door in recsim")
     def test_GIVEN_helium_channel_WHEN_helium_current_set_on_THEN_ioc_reports_current(self):
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, True)
             self.ca.assert_that_pv_is(self.ch_pv(i, self.CURRENT), "On")
 
-    @skipIf(IOCRegister.uses_rec_sim, "Cannot do back door in recsim")
+    @skip_if_recsim("Cannot do back door in recsim")
     def test_GIVEN_helium_channel_WHEN_helium_current_set_off_THEN_ioc_reports_no_current(self):
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, False)
