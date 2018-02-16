@@ -4,7 +4,7 @@ import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
@@ -47,21 +47,35 @@ class EurothermTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", DEVICE)
         self.ca = ChannelAccess(device_prefix=PREFIX)
         self.ca.wait_for(RBV_PV, timeout=30)
+        self.ca.wait_for("CAL:SEL", timeout=10)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _reset_device_state(self):
         self.ca.set_pv_value("CAL:SEL", "None.txt")
+        self.ca.assert_that_pv_is("CAL:RBV", "None.txt")
 
         intial_temp = 0.0
+
         self._set_setpoint_and_current_temperature(intial_temp)
+
         self._lewis.backdoor_set_on_device("ramping_on", False)
         self._lewis.backdoor_set_on_device("ramp_rate", 1.0)
         self.ca.set_pv_value("RAMPON:SP", 0)
+
+        self._set_setpoint_and_current_temperature(intial_temp)
         self.ca.assert_that_pv_is("TEMP", intial_temp)
+        # Ensure the temperature isn't being changed by a ramp any more
+        self.ca.assert_pv_value_is_unchanged("TEMP", 5)
 
     def _set_setpoint_and_current_temperature(self, temperature):
-        self._lewis.backdoor_set_on_device("current_temperature", temperature)
-        self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
+        if IOCRegister.uses_rec_sim:
+            self.ca.set_pv_value("SIM:TEMP:SP", temperature)
+            self.ca.assert_that_pv_is("SIM:TEMP", temperature)
+            self.ca.assert_that_pv_is("SIM:TEMP:SP", temperature)
+            self.ca.assert_that_pv_is("SIM:TEMP:SP:RBV", temperature)
+        else:
+            self._lewis.backdoor_set_on_device("current_temperature", temperature)
+            self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
@@ -143,6 +157,7 @@ class EurothermTests(unittest.TestCase):
         tolerance = 0.01
         self.ca.set_pv_value("RAMPON:SP", 0)
         self.ca.set_pv_value("CAL:SEL", "None.txt")
+        self.ca.assert_that_pv_is("CAL:RBV", "None.txt")
         self.ca.set_pv_value("TEMP:SP", temperature)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
         self.ca.set_pv_value("CAL:SEL", "C006.txt")
