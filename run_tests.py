@@ -2,12 +2,18 @@ import os
 import imp
 import importlib
 import unittest
+
+import sys
+
 import xmlrunner
 import argparse
 from contextlib import contextmanager
+
+from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.lewis_launcher import LewisLauncher, LewisNone
-from utils.ioc_launcher import IocLauncher
+from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
+from utils.test_modes import TestModes
 
 
 def package_contents(package_name):
@@ -53,117 +59,178 @@ def modified_environment(**kwargs):
     os.environ.update(old_env)
 
 
-def run_test(prefix, device, ioc_launcher, lewis_launcher):
+def run_test(prefix, test_module, device_launchers):
     """
-    Runs the tests for the specified IOC.
+    Runs the tests for the specified set of devices.
 
     :param prefix: the instrument prefix
-    :param device: the name of the IOC type
-    :param ioc_launcher: the ioc launcher
-    :param lewis_launcher: the lewis simulator to use; To not use use the LewisNone object
+    :param test_module: the test module
+    :param device_launchers: context manager that launches the necessary iocs and associated emulators
     """
     # Define an environment variable with the prefix in it
     # This can then be accessed elsewhere
     os.environ["testing_prefix"] = prefix
 
-    # Load the device's test module and get the class
-    m = load_module('tests.%s' % device.lower())
-
-    test_class = getattr(m, "%sTests" % device.capitalize())
-
-    port = str(get_free_ports(1)[0])
-    lewis_launcher.port = port
-    ioc_launcher.port = port
-    try:
-        ioc_launcher.macros = m.MACROS
-    except AttributeError:
-        ioc_launcher.macros = {}
-    try:
-        ioc_launcher.device_prefix = m.DEVICE_PREFIX
-    except AttributeError:
-        ioc_launcher.device_prefix = None
-
-    # Override any emulator port that might be set elsewhere
-    ioc_launcher.macros['EMULATOR_PORT'] = port
-
-    settings = dict()
     # Need to set epics address list to local broadcast otherwise channel access won't work
-    settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
+    settings = {
+        'EPICS_CA_ADDR_LIST': "127.255.255.255"
+    }
 
-    with modified_environment(**settings):
-        with lewis_launcher:
-            with ioc_launcher:
-                if not lewis_launcher.check():
-                    exit(-1)
-#                runner = unittest.TextTestRunner()
-                runner = xmlrunner.XMLTestRunner(output='test-reports')
-                test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
-                runner.run(test_suite)
+    with modified_environment(**settings), device_launchers:
+
+        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout)
+
+        test_classes = [getattr(test_module, s) for s in dir(test_module) if s.endswith("Tests")]
+
+        if len(test_classes) < 1:
+            raise ValueError("No test suites found in {}".format(test_module.__name__))
+
+        test_results = []
+        for test_class in test_classes:
+            print("Running tests in {}".format(test_class.__name__))
+            test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
+            test_results.append(runner.run(test_suite).wasSuccessful())
+        return all(result is True for result in test_results)
+
+
+def make_device_launchers_from_module(test_module, recsim):
+    """
+    Returns a list of device launchers for the given test module
+    :param test_module: module containing IOC tests
+    :param recsim: True to run in recsim. False to run in devsim.
+    :return: list of device launchers (context managers which launch ioc + emulator pairs)
+    """
+
+    try:
+        iocs = test_module.IOCS
+    except AttributeError:
+        raise AttributeError("Expected module '{}' to contain an IOCS attribute".format(test_module.__name__))
+
+    if len(iocs) < 1:
+        raise ValueError("Need at least one IOC to launch")
+
+    for ioc in iocs:
+        if "name" not in ioc:
+            raise ValueError("IOC entry must have a 'name' attribute which should give the IOC name")
+        if "directory" not in ioc:
+            raise ValueError("IOC entry must have a 'directory' attribute which should give the path to the IOC")
+
+    print("Testing module {} in {} mode.".format(test_module.__name__, "recsim" if recsim else "devsim"))
+
+    device_launchers = []
+    for ioc in iocs:
+
+        free_port = str(get_free_ports(1)[0])
+        macros = ioc.get("macros", {})
+        macros['EMULATOR_PORT'] = free_port
+
+        ioc_launcher = IocLauncher(device=ioc["name"],
+                                   directory=ioc["directory"],
+                                   macros=macros,
+                                   use_rec_sim=recsim,
+                                   var_dir=var_dir,
+                                   port=free_port)
+
+        if "emulator" in ioc and not recsim:
+
+            emulator_name = ioc["emulator"]
+            emulator_protocol = ioc.get("emulator_protocol", "stream")
+            emulator_device_package = ioc.get("emulator_package", "lewis_emulators")
+            emulator_path = ioc.get("emulator_path", os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
+
+            lewis_launcher = LewisLauncher(
+                device=emulator_name,
+                python_path=os.path.abspath(arguments.python_path),
+                lewis_path=os.path.abspath(arguments.emulator_path),
+                lewis_protocol=emulator_protocol,
+                lewis_additional_path=emulator_path,
+                lewis_package=emulator_device_package,
+                var_dir=var_dir,
+                port=free_port
+            )
+
+        elif "emulator" in ioc:
+            lewis_launcher = LewisNone(ioc["emulator"])
+        else:
+            lewis_launcher = None
+
+        device_launchers.append(device_launcher(ioc_launcher, lewis_launcher))
+
+    return device_launchers
+
+
+def load_module_by_name_and_run_tests(module_name):
+    test_module = load_module("tests.{}".format(module_name))
+
+    try:
+        modes = test_module.TEST_MODES
+    except AttributeError:
+        raise ValueError("Expected test module {} to contain a TEST_MODES attribute".format(test_module.__name__))
+
+    test_results = []
+    for mode in set(modes):
+        if mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
+            raise ValueError("Invalid test mode provided")
+
+        device_launchers = make_device_launchers_from_module(test_module, recsim=(mode == TestModes.RECSIM))
+        test_results.append(run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers)))
+
+    return all(test_result is True for test_result in test_results)
+
 
 if __name__ == '__main__':
 
+    pythondir = os.environ.get("PYTHONDIR", None)
+    if pythondir is not None:
+        emulator_path = os.path.join(pythondir, "scripts")
+    else:
+        emulator_path = None
+
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
-    parser.add_argument('-l', '--list-devices', help="List available devices for testing.", action="store_true")
-    parser.add_argument('-pf', '--prefix', default=None, help='The instrument prefix; e.g. TE:NDW1373')
-    parser.add_argument('-d', '--device', default=None, help="Device type to test.")
-    parser.add_argument('-p', '--ioc-path', default=None, help="The path to the folder containing the IOC's st.cmd")
-    parser.add_argument('-e', '--emulator-path', default=None, help="The path of the lewis.py file")
-    parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe", help="The path of python.exe")
-    parser.add_argument('-ep', '--emulator-protocol', default='stream', help="The Lewis protocal to use (optional)")
-    parser.add_argument('-r', '--record-simulation', default=False, action="count",
-                        help="Use record simulation rather than emulation (optional)")
-    parser.add_argument('-ea', '--emulator-add-path', default=None, help="Add path where device packages exist for the emulator.")
-    parser.add_argument('-ek', '--emulator-device-package', default=None, help="Name of packages where devices are found.")
-
-    parser.add_argument('--var-dir', default=None, help="Directory in which to create a log dir to write log file to and "
-                                                        "directory in which to create tmp dir which contains environments "
-                                                        "variables for the IOC. Defaults to environment variable ICPVARDIR and current dir if empty.")
+    parser.add_argument('-l', '--list-devices',
+                        help="List available devices for testing.", action="store_true")
+    parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
+                        help='The instrument prefix; e.g. TE:NDW1373')
+    parser.add_argument('-tm', '--test-module', default=None, nargs="+",
+                        help="Test module to run")
+    parser.add_argument('-e', '--emulator-path', default=emulator_path,
+                        help="The path of the lewis.py file")
+    parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe",
+                        help="The path of python.exe")
+    parser.add_argument('--var-dir', default=None,
+                        help="Directory in which to create a log dir to write log file to and directory in which to "
+                             "create tmp dir which contains environments variables for the IOC. Defaults to "
+                             "environment variable ICPVARDIR and current dir if empty.")
 
     arguments = parser.parse_args()
 
     if arguments.list_devices:
         print("Available tests:")
         print('\n'.join(package_contents("tests")))
-        exit(0)
-    else:
-        if arguments.var_dir is None:
-            var_dir = os.getenv("ICPVARDIR", os.curdir)
-        else:
-            var_dir = arguments.var_dir
+        sys.exit(0)
 
-        if arguments.prefix is None:
-            print("Cannot run without instrument prefix")
-            exit(-1)
-        elif arguments.record_simulation >= 1 and arguments.device and arguments.ioc_path:
-            print("Running using record simulation")
-            lewis = LewisNone(arguments.device)
-            iocLauncher = IocLauncher(
-                device=arguments.device,
-                directory=os.path.abspath(arguments.ioc_path),
-                use_rec_sim=True,
-                var_dir=var_dir)
-            run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
-        elif arguments.device and arguments.ioc_path:
-            print("Running using device emulation")
-            if arguments.emulator_path:
-                lewis = LewisLauncher(
-                    device=arguments.device,
-                    python_path=os.path.abspath(arguments.python_path),
-                    lewis_path=os.path.abspath(arguments.emulator_path),
-                    lewis_protocol=arguments.emulator_protocol,
-                    lewis_additional_path=arguments.emulator_add_path,
-                    lewis_package=arguments.emulator_device_package,
-                    var_dir=var_dir)
-            else:
-                lewis = LewisNone(arguments.device)
+    var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
 
-            iocLauncher = IocLauncher(
-                device=arguments.device,
-                directory=os.path.abspath(arguments.ioc_path),
-                use_rec_sim=False,
-                var_dir=var_dir)
-            run_test(arguments.prefix, arguments.device, iocLauncher, lewis)
-        else:
-            print("Type -h for help")
-            exit(-1)
+    if arguments.prefix is None:
+        print("Cannot run without instrument prefix")
+        sys.exit(-1)
+
+    if arguments.emulator_path is None:
+        print("Cannot run without emulator path")
+        sys.exit(-1)
+
+    module_results = []
+
+    modules_to_test = arguments.test_module if arguments.test_module is not None else package_contents("tests")
+
+    for test_module in modules_to_test:
+        try:
+            module_results.append(load_module_by_name_and_run_tests(test_module))
+        except Exception as e:
+            print("---\n---\n---\nError loading module {}: {}: {}\n---\n---\n---\n"
+                  .format(test_module, e.__class__.__name__, e))
+            module_results.append(False)
+
+    success = all(result is True for result in module_results)
+    sys.exit(0 if success else 1)
