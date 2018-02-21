@@ -87,6 +87,12 @@ class GemorcTests(unittest.TestCase):
         total_time = 0.0
         max_wait = DEFAULT_TIMEOUT
         interval = 1.0
+
+        actual_initialising = None
+        actual_initialised = None
+        actual_initialisation_required = None
+        actual_oscillating = None
+
         while not match and total_time < max_wait:
             actual_initialising = bi_to_bool(self.ca.get_pv_value("INIT:PROGRESS"))
             actual_initialised = bi_to_bool(self.ca.get_pv_value("INIT:DONE"))
@@ -238,7 +244,7 @@ class GemorcTests(unittest.TestCase):
     def test_WHEN_settings_reset_requested_THEN_settings_return_to_default_values(self):
         settings = (
             ("WIDTH", DEFAULT_WIDTH), ("ACC", DEFAULT_ACCELERATION),
-            ("SPEED",DEFAULT_SPEED), ("OFFSET", DEFAULT_OFFSET),
+            ("SPEED", DEFAULT_SPEED), ("OFFSET", DEFAULT_OFFSET),
             ("INIT:AUTO", DEFAULT_AUTO_INITIALISE), ("INIT:OPT", DEFAULT_OPT_INITIALISE),
         )
         for pv, default in settings:
