@@ -342,11 +342,12 @@ class GemorcTests(unittest.TestCase):
     @skip_if_recsim("Initialisation logic not performed in Recsim")
     def test_WHEN_oscillating_THEN_auto_reinitialisation_triggers_after_counter_reaches_auto_trigger_value(self):
         initialisation_interval = 100
+        initial_status_string = "Sequence not run since IOC startup"
         self.ca.set_pv_value("INIT:AUTO", initialisation_interval)
         self.start_oscillating()
         while self.ca.get_pv_value("CYCLES") < initialisation_interval:
             self.ca.assert_that_pv_is("INIT:PROGRESS", "No")
-            self.ca.assert_that_pv_is("INIT:STAT", "Initialisation routine not yet run")
+            self.ca.assert_that_pv_is("INIT:STAT", initial_status_string)
             sleep(1)
-        self.ca.assert_that_pv_is_not("INIT:STAT", "Initialisation routine not yet run")
+        self.ca.assert_that_pv_is_not("INIT:STAT", initial_status_string)
         self.ca.assert_that_pv_is("STAT:OSC", "No", timeout=10)  # Initialisation seq has a 5s wait at the start
