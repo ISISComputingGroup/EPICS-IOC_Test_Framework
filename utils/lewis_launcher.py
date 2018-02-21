@@ -80,6 +80,10 @@ class LewisNone(object):
         """
         pass
 
+    def backdoor_command(self, command):
+        pass
+
+
     def backdoor_run_function_on_device(self, function_name, arguments=None):
         """
         Does nothing

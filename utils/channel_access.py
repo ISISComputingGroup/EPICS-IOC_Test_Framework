@@ -360,6 +360,9 @@ class ChannelAccess(object):
                     return lambda_value
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
+            except Exception as e:
+                return "Exception in function while waiting for PV. Error was: {}".format(e)
+
             time.sleep(0.5)
             current_time = time.time()
 
@@ -458,6 +461,27 @@ class ChannelAccess(object):
         """
         self.assert_pv_value_over_time(pv, wait, operator.eq)
 
+    def assert_pv_value_causes_func_to_return_true(self, pv, func, timeout=None):
+        """
+        Check that a PV satisfies a given function within some timeout.
+        :param pv: the PV to check
+        :param func: a function that takes one argument, the PV value, and returns True if the value is valid.
+        :param timeout: time to wait for the PV to satisfy the function
+        :raises: AssertionError: If the function does not evaluate to true within the given timeout
+        """
+        def wrapper():
+            value = self.get_pv_value(pv)
+            if func(value):
+                return None
+            else:
+                return "Expected function {} to evaluate to True when reading PV '{}'. Final PV value was '{}'"\
+                    .format(func.__name__, pv, value)
+
+        err = self._wait_for_pv_lambda(wrapper, timeout)
+
+        if err is not None:
+            raise AssertionError(err)
+
     # Using a context manager to put PVs into alarm means they don't accidentally get left in alarm if the test fails
     @contextmanager
     def put_simulated_record_into_alarm(self, pv, alarm):
@@ -470,3 +494,4 @@ class ChannelAccess(object):
             yield
         finally:
             _set_and_check_simulated_alarm(pv, self.ALARM_NONE)
+
