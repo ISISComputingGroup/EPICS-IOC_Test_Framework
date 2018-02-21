@@ -250,9 +250,10 @@ class GemorcTests(unittest.TestCase):
         for pv, default in settings:
             self.ca.assert_that_pv_is_number(pv, default)
 
-    @skip_if_recsim("Calculation logic not performed in Recsim")
+    @skip_if_recsim("ID is emulator specific")
     def test_WHEN_device_is_running_THEN_it_gets_PnP_identity_from_emulator(self):
-        self.ca.assert_that_pv_is("ID", "IBEX_GEMORC_DEVICE_EMULATOR", timeout=20)  # On a very slow scan
+        self.ca.assert_that_pv_is("ID", "0002 0001 ISIS Gem Oscillating Rotary Collimator (IBEX EMULATOR)",
+                                  timeout=20)  # On a very slow scan
 
     def test_GIVEN_standard_test_cases_WHEN_backlash_calculated_locally_THEN_result_is_in_range_supported_by_device(self):
         for _, speed, acceleration in SETTINGS_TEST_CASES:
