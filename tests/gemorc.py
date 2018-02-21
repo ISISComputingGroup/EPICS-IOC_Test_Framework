@@ -141,7 +141,7 @@ class GemorcTests(unittest.TestCase):
 
     @staticmethod
     def period(width, backlash, speed):
-        return (width+backlash)/float(speed)
+        return 2.0*(width+backlash)/float(speed)
 
     @staticmethod
     def frequency(width, backlash, speed):
