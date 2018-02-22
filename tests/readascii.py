@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import EPICS_TOP
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister
 
 DEFAULT_SETTINGS_DIR = \
     os.path.join("C:/", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings")
@@ -24,7 +24,7 @@ DEVICE_PREFIX = "READASCIITEST"
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": os.path.join(EPICS_TOP, "support", "ReadASCII", "master", "iocBoot", "iocReadASCIITest")
+        "directory": os.path.join(EPICS_TOP, "support", "ReadASCII", "master", "iocBoot", "iocReadASCIITest"),
     },
 ]
 
@@ -98,7 +98,7 @@ class ReadasciiTests(unittest.TestCase):
 
     def setUp(self):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
-        self._lewis, self._ioc = get_running_lewis_and_ioc("readascii", DEVICE_PREFIX)
+        self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.ca.wait_for("DIRBASE")
 
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(self):
