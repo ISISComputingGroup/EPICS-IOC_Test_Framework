@@ -87,6 +87,12 @@ class GemorcTests(unittest.TestCase):
         total_time = 0.0
         max_wait = DEFAULT_TIMEOUT
         interval = 1.0
+
+        actual_initialising = None
+        actual_initialised = None
+        actual_initialisation_required = None
+        actual_oscillating = None
+
         while not match and total_time < max_wait:
             actual_initialising = bi_to_bool(self.ca.get_pv_value("INIT:PROGRESS"))
             actual_initialised = bi_to_bool(self.ca.get_pv_value("INIT:DONE"))
@@ -131,11 +137,11 @@ class GemorcTests(unittest.TestCase):
 
     @staticmethod
     def utility(width, backlash):
-        return width/float(width+2*backlash)*100.0
+        return width/float(width+backlash)*100.0
 
     @staticmethod
     def period(width, backlash, speed):
-        return (width+2*backlash)/float(speed)
+        return 2.0*(width+backlash)/float(speed)
 
     @staticmethod
     def frequency(width, backlash, speed):
@@ -238,7 +244,7 @@ class GemorcTests(unittest.TestCase):
     def test_WHEN_settings_reset_requested_THEN_settings_return_to_default_values(self):
         settings = (
             ("WIDTH", DEFAULT_WIDTH), ("ACC", DEFAULT_ACCELERATION),
-            ("SPEED",DEFAULT_SPEED), ("OFFSET", DEFAULT_OFFSET),
+            ("SPEED", DEFAULT_SPEED), ("OFFSET", DEFAULT_OFFSET),
             ("INIT:AUTO", DEFAULT_AUTO_INITIALISE), ("INIT:OPT", DEFAULT_OPT_INITIALISE),
         )
         for pv, default in settings:
@@ -250,9 +256,10 @@ class GemorcTests(unittest.TestCase):
         for pv, default in settings:
             self.ca.assert_that_pv_is_number(pv, default)
 
-    @skip_if_recsim("Calculation logic not performed in Recsim")
+    @skip_if_recsim("ID is emulator specific")
     def test_WHEN_device_is_running_THEN_it_gets_PnP_identity_from_emulator(self):
-        self.ca.assert_that_pv_is("ID", "IBEX_GEMORC_DEVICE_EMULATOR", timeout=20)  # On a very slow scan
+        self.ca.assert_that_pv_is("ID", "0002 0001 ISIS Gem Oscillating Rotary Collimator (IBEX EMULATOR)",
+                                  timeout=20)  # On a very slow scan
 
     def test_GIVEN_standard_test_cases_WHEN_backlash_calculated_locally_THEN_result_is_in_range_supported_by_device(self):
         for _, speed, acceleration in SETTINGS_TEST_CASES:
@@ -342,11 +349,12 @@ class GemorcTests(unittest.TestCase):
     @skip_if_recsim("Initialisation logic not performed in Recsim")
     def test_WHEN_oscillating_THEN_auto_reinitialisation_triggers_after_counter_reaches_auto_trigger_value(self):
         initialisation_interval = 100
+        initial_status_string = "Sequence not run since IOC startup"
         self.ca.set_pv_value("INIT:AUTO", initialisation_interval)
         self.start_oscillating()
         while self.ca.get_pv_value("CYCLES") < initialisation_interval:
             self.ca.assert_that_pv_is("INIT:PROGRESS", "No")
-            self.ca.assert_that_pv_is("INIT:STAT", "Initialisation routine not yet run")
+            self.ca.assert_that_pv_is("INIT:STAT", initial_status_string)
             sleep(1)
-        self.ca.assert_that_pv_is_not("INIT:STAT", "Initialisation routine not yet run")
+        self.ca.assert_that_pv_is_not("INIT:STAT", initial_status_string)
         self.ca.assert_that_pv_is("STAT:OSC", "No", timeout=10)  # Initialisation seq has a 5s wait at the start
