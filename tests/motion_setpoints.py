@@ -126,7 +126,6 @@ class Motion_setpointsTests(unittest.TestCase):
         self.ca1D.assert_that_pv_is("POSITIONED", 1)
         self.ca1D.assert_that_pv_is("POSN", POSITION_OUT, timeout=30)
 
-
     def test_GIVEN_1D_no_axis_WHEN_get_numaxes_THEN_return1(self):
         self.ca1D.assert_that_pv_is("NUMAXES", 1)
 
