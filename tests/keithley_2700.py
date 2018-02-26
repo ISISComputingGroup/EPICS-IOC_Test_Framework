@@ -1,9 +1,27 @@
 import unittest
-from unittest import skipIf
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+import time
 
+DEVICE_PREFIX = "KHLY2700_01"
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("KHLY2700"),
+        "macros": {},
+        "emulator": "keithley_2700",
+    },
+]
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+
+
+class Status(object):
+    ON = "ON"
+    OFF = "OFF"
 
 
 class Keithley_2700Tests(unittest.TestCase):
@@ -12,177 +30,139 @@ class Keithley_2700Tests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700")
-        self.ca = ChannelAccess(default_timeout=30)
-        self.ca.wait_for("KHLY2700_01:IDN")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca.wait_for("IDN")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
+    def test_GIVEN_scan_state_set_WHEN_read_THEN_scan_state_is_as_expected(self):
+        sample_data = [0, 1]
+        expected_state = ["INT", "NONE"]
+        for set_value, expected_value in zip(sample_data, expected_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "SCAN:STATE", "SCAN:STATE:SP", expected_value)
+
     def test_GIVEN_idn_defined_WHEN_read_THEN_idn_is_as_expected(self):
-        self.ca.assert_that_pv_is("KHLY2700_01:IDN", "Keithley 2700 Multimeter emulator.")
+        self.ca.assert_that_pv_is("IDN", "Keithley 2700 Emulator IDN")
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GIVEN_available_AND_reserved_bytes_set_WHEN_read_THEN_staTus_of_memory_is_as_expected(self):
-        self.ca.set_pv_value("KHLY2700_01:BUFFER_SIZE:SP", 100)
-        self._lewis.backdoor_set_on_device("buffer_readings", 10)
-        self._lewis.backdoor_set_on_device("buffer", 100)
-        self.ca.assert_that_pv_is("KHLY2700_01:BUFFER_SIZE.", 100)
-        self.ca.set_pv_value("KHLY2700_01:BUFFER_STATS.PROC", 1)
-        self.ca.assert_that_pv_is("KHLY2700_01:BUFFER_STATS", "92160 bytes,10240 bytes")
-
-    def test_GIVEN_source_set_WHEN_read_THEN_source_is_as_expected(self):
-        sample_data = [0, 1, 2, 3, 4]
-        expected_channel = ["IMM", "EXT", "TIM", "MAN", "BUS"]
-        for input, output in zip(sample_data, expected_channel):
-            self.ca.set_pv_value("KHLY2700_01:CONTROL_SOURCE:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:CONTROL_SOURCE", output)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_delay_state_set_WHEN_read_THEN_delay_state_is_as_expected(self):
         sample_data = [0, 1]
         expected_state = ["OFF", "ON"]
-        for input, output in zip(sample_data, expected_state):
-            self.ca.set_pv_value("KHLY2700_01:DELAY_STATE:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:DELAY_STATE", output)
+        for set_value, expected_value in zip(sample_data, expected_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "DELAYMODE", "DELAYMODE:SP", expected_value)
+
+    def test_GIVEN_source_set_WHEN_read_THEN_source_is_as_expected(self):
+        sample_data = [0, 1, 2, 3, 4]
+        expected_channel = ["IMM", "TIM", "MAN", "BUS", "EXT"]
+        for set_value, expected_value in zip(sample_data, expected_channel):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "CONTROLSOURCE", "CONTROLSOURCE:SP",
+                                                          expected_value)
 
     def test_GIVEN_buffer_size_set_WHEN_read_THEN_buffer_size_is_as_expected_AND_within_range(self):
-
         expected_buffer_size = [5500, 0, 2, 70000]
         alarm_state = [ChannelAccess.ALARM_NONE, ChannelAccess.ALARM_MAJOR, ChannelAccess.ALARM_NONE,
-                            ChannelAccess.ALARM_MAJOR]
-        for input, output in zip(expected_buffer_size, alarm_state):
-            self.ca.set_pv_value("KHLY2700_01:BUFFER_SIZE:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:BUFFER_SIZE", input)
-            self.ca.assert_pv_alarm_is("KHLY2700_01:BUFFER_SIZE", output)
+                       ChannelAccess.ALARM_MAJOR]
+        for set_value, expected_alarm in zip(expected_buffer_size, alarm_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "BUFFER:SIZE", "BUFFER:SIZE:SP",
+                                                          set_value, expected_alarm=expected_alarm)
 
     def test_GIVEN_buffer_feed_set_WHEN_read_THEN_buffer_feed_is_as_expected(self):
         sample_data = [0, 1, 2]
         expected_channel = ["SENS", "CALC", "NONE"]
-        for input, output in zip(sample_data, expected_channel):
-            self.ca.set_pv_value("KHLY2700_01:BUFFER_FEED:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:BUFFER_FEED", output)
-
-    def test_GIVEN_scan_state_set_WHEN_read_THEN_scan_state_is_as_expected(self):
-         sample_data = [0, 1]
-         expected_state = ["NONE", "INT"]
-         for input, output in zip(sample_data, expected_state):
-            self.ca.set_pv_value("KHLY2700_01:SCAN_STATE:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:SCAN_STATE", output)
+        for set_value, expected_value in zip(sample_data, expected_channel):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "BUFFER:SOURCE", "BUFFER:SOURCE:SP",
+                                                          expected_value)
 
     def test_GIVEN_init_state_set_WHEN_read_THEN_init_state_is_as_expected(self):
         sample_data = [0, 1]
         expected_state = ["ON", "OFF"]
-        for input, output in zip(sample_data, expected_state):
-            self.ca.set_pv_value("KHLY2700_01:INIT:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:INIT", output)
+        for set_value, expected_value in zip(sample_data, expected_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "INITMODE", "INITMODE:SP", expected_value)
 
     def test_GIVEN_buffer_control_set_WHEN_read_THEN_buffer_control_is_as_expected(self):
         sample_data = [0, 1, 2]
         expected_channel = ["NEXT", "ALW", "NEV"]
-        for input, output in zip(sample_data, expected_channel):
-            self.ca.set_pv_value("KHLY2700_01:BUFFER_CONTROL:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:BUFFER_CONTROL", output)
+        for set_value, expected_value in zip(sample_data, expected_channel):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "BUFFER:CONTROLMODE", "BUFFER:CONTROLMODE:SP",
+                                                          expected_value)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_buffer_range_set_WHEN_read_then_buffer_within_range_is_returned(self):
-        self._lewis.backdoor_set_on_device("buffer_readings", 10)
-        self.ca.set_pv_value("KHLY2700_01:START", 2)
-        self.ca.set_pv_value("KHLY2700_01:COUNT", 4)
-        self.ca.set_pv_value("KHLY2700_01:LIST_OF_READINGS.PROC", 1)
-        expected_string = self.ca.get_pv_value("KHLY2700_01:LIST_OF_READINGS")
+        self._lewis.backdoor_set_on_device("buffer_range_readings", 10)
+        self.ca.set_pv_value("CH:START", 2)
+        self.ca.set_pv_value("COUNT", 4)
+        self.ca.set_pv_value("BUFFER:READINGS.PROC", 1)
+        expected_string = self.ca.get_pv_value("BUFFER:READINGS")
         self.assertNotEquals(expected_string, "[]")
 
     def test_GIVEN_sample_count_set_WHEN_read_THEN_sample_count_is_as_expected_AND_within_range(self):
         expected_sample_count = [2, 0, 5500, 70000]
         alarm_state = [ChannelAccess.ALARM_NONE, ChannelAccess.ALARM_MAJOR, ChannelAccess.ALARM_NONE,
-                           ChannelAccess.ALARM_MAJOR]
-        for input, output in zip(expected_sample_count, alarm_state):
-            self.ca.set_pv_value("KHLY2700_01:SAMPLE_COUNT:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:SAMPLE_COUNT", input)
-            self.ca.assert_pv_alarm_is("KHLY2700_01:SAMPLE_COUNT", output)
+                       ChannelAccess.ALARM_MAJOR]
+        for set_value, expected_alarm in zip(expected_sample_count, alarm_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "SAMPLECOUNT", "SAMPLECOUNT:SP", set_value,
+                                                          expected_alarm=expected_alarm)
 
     def test_GIVEN_cycles_rate_set_WHEN_read_THEN_cycle_rate_is_as_expected_AND_within_range(self):
-         expected_cycles = [0.1, 0, 2.0, 65.0]
-         alarm_state = [ChannelAccess.ALARM_NONE, ChannelAccess.ALARM_MAJOR, ChannelAccess.ALARM_NONE,
-                            ChannelAccess.ALARM_MAJOR]
-         for input, output in zip(expected_cycles, alarm_state):
-            self.ca.set_pv_value("KHLY2700_01:NPLCYCLES:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:NPLCYCLES", input)
-            self.ca.assert_pv_alarm_is("KHLY2700_01:NPLCYCLES", output)
-
-    def test_GIVEN_buffer_has_stored_reading_WHEN_queried_next_storable_location_returned(self):
-          expected_location = 11
-          self._lewis.backdoor_set_on_device("buffer", 10)
-          self._ioc.set_simulated_value("KHLY2700_01:SIM:BUFFER_LOC", expected_location)
-
-          self.ca.assert_that_pv_is("KHLY2700_01:BUFFER_LOC", expected_location)
+        expected_cycles = [0.1, 0, 2.0, 65.0]
+        alarm_state = [ChannelAccess.ALARM_NONE, ChannelAccess.ALARM_MAJOR, ChannelAccess.ALARM_NONE,
+                       ChannelAccess.ALARM_MAJOR]
+        for set_value, expected_alarm in zip(expected_cycles, alarm_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "FRES:NPLC", "FRES:NPLC:SP", set_value,
+                                                          expected_alarm=expected_alarm)
 
     def test_GIVEN_buffer_state_set_WHEN_read_THEN_buffer_state_is_as_expected(self):
         sample_data = [0, 1]
-        expected_state = ["ON", "OFF"]
-        for input, output in zip(sample_data, expected_state):
-            self.ca.set_pv_value("KHLY2700_01:BUFFER_STATE:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:BUFFER_STATE", output)
+        expected_state = ["OFF", "ON"]
+        for set_value, expected_value in zip(sample_data, expected_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "DELAYMODE", "DELAYMODE:SP", expected_value)
 
-    def test_GIVEN_time_stamp_set_WHEN_read_THEN_time_stamp_is_as_expected(self):
-        sample_data = [0, 1]
-        expected_state = ["ABS", "DELT"]
-        for input, output in zip(sample_data, expected_state):
-            self.ca.set_pv_value("KHLY2700_01:STAMP:SP", input)
-            self.ca.assert_that_pv_is("KHLY2700_01:STAMP", output)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GIVEN_measurement_resolution_set_WHEN_read_THEN_measurement_resolution_is_as_expected(self):
-        self.ca.set_pv_value("KHLY2700_01:CHANNEL_END:SP", 110)
-        self.ca.set_pv_value("KHLY2700_01:DIGIT_RANGE:SP", 6)
-        self.ca.assert_that_pv_is("KHLY2700_01:DIGIT_RANGE", 6)
-        self.ca.assert_that_pv_is("KHLY2700_01:CHANNEL_END", 110)
-
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
     def test_GIVEN_auto_range_set_WHEN_read_THEN_auto_range_is_as_expected(self):
-        self.ca.set_pv_value("KHLY2700_01:CHANNEL_END:SP", 110)
-        self.ca.set_pv_value("KHLY2700_01:AUTO_RANGE:SP", 0)
-        self.ca.assert_that_pv_is("KHLY2700_01:AUTO_RANGE", "ON")
-        self.ca.assert_that_pv_is("KHLY2700_01:CHANNEL_END", 110)
+        sample_data = [0, 1]
+        expected_data = ["ON", "OFF"]
+        for set_value, expected_state in zip(sample_data, expected_data):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "FRES:AUTORANGE", "FRES:AUTORANGE:SP",
+                                                          expected_state)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GIVEN_measurement_mode_set_to_dc_current_WHEN_read_then_measurement_mode_is_dc_current(self):
-        expected_value = 26.0
-        self._lewis.backdoor_set_on_device("reading", expected_value)
-        expected_configuration = "DCI"
-        device_mode = self._lewis.backdoor_command(["device", "get_channel_param", "1", "mode"],
-                                                            returns_single_value=True)
-        #self.assertEquals(device_mode, expected_configuration)
-        self.ca.assert_that_pv_is("KHLY2700_01:MEAS:CURR:DC", expected_value)
+    def test_GIVEN_time_stamp_set_to_absolute_WHEN_read_THEN_time_stamp_is_as_expected(self):
+        sample_data = [0, 1]
+        expected_data = ["ABS", "DELT"]
+        for set_value, expected_state in zip(sample_data, expected_data):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "TIMESTAMP:FORMAT", "TIMESTAMP:FORMAT:SP",
+                                                          expected_state)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GIVEN_measurement_mode_set_to_dc_voltage_WHEN_read_then_measurement_mode_is_dc_voltge(self):
-        expected_value = 26.0
-        self._lewis.backdoor_set_on_device("reading", expected_value)
-        expected_configuration = "DCV"
-        self.ca.assert_that_pv_is("KHLY2700_01:MEAS:VOLT:DC", expected_value)
-        device_mode = self._lewis.backdoor_command(["device", "get_channel_param", "1", "mode"],
-                                                   returns_single_value=True)
-        #self.assertEquals(device_mode, expected_configuration)
+    def test_GIVEN_fres_digits_set_WHEN_read_THEN_fres_digits_is_as_expected_AND_within_range(self):
+        expected_sample_count = [3, 5, 8]
+        alarm_state = [ChannelAccess.ALARM_MAJOR, ChannelAccess.ALARM_NONE,
+                       ChannelAccess.ALARM_MAJOR]
+        for set_value, alarm_state in zip(expected_sample_count, alarm_state):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "FRES:DIGITS:SP",
+                                                          "FRES:DIGITS", set_value,
+                                                          expected_alarm=alarm_state)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GIVEN_data_string_set_WHEN_read_THEN_data_string_is_as_expected(self):
-        self.ca.set_pv_value("KHLY2700_01:LIST_OF_ELEMENTS:SP", "READ,CHAN,TST")
-        self.ca.assert_that_pv_is("KHLY2700_01:LIST_OF_ELEMENTS:SP", "READ,CHAN,TST")
-        self._lewis.backdoor_set_on_device("reading", 45.0)
-        self._lewis.backdoor_set_on_device("channel_number", 110)
-        self._lewis.backdoor_set_on_device("time_stamp", 4)
-        self.ca.set_pv_value("KHLY2700_01:LIST_OF_ELEMENTS.PROC", 1)
-        self.ca.assert_that_pv_is("KHLY2700_01:LIST_OF_ELEMENTS", "45.0,110,4")
+    def test_GIVEN_start_channel_range_set_WHEN_read_THEN_start_channel_is_as_expected(self):
+        sample_channels = [101, 109, 205]
+        for channel in sample_channels:
+            self.ca.assert_setting_setpoint_sets_readback(channel, "CH:START", "CH:START:SP", channel)
 
-    @skipIf(IOCRegister.uses_rec_sim, "In rec sim this test fails")
-    def test_GIVEN_measurement_mode_set_to_ohm_WHEN_read_then_measurement_mode_is_resistance(self):
-        expected_value = 26.0
-        self._lewis.backdoor_set_on_device("reading", expected_value)
-        expected_configuration = "OHM"
-        self.ca.assert_that_pv_is("KHLY2700_01:MEAS:FRES", expected_value)
-        device_mode = self._lewis.backdoor_command(["device", "get_channel_param", "1", "mode"],
-                                       returns_single_value=True)
-        self.assertEquals(device_mode, expected_configuration)
+    def test_GIVEN_end_channel_range_set_WHEN_read_THEN_end_channel_is_as_expected(self):
+        sample_channels = [201, 209, 210]
+        for channel in sample_channels:
+            self.ca.assert_setting_setpoint_sets_readback(channel, "CH:END", "CH:END:SP", channel)
 
+    def test_GIVEN_measurement_mode_set_WHEN_read_THEN_mesaurement_mode_is_as_expected(self):
+        measurement_enums = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        self.ca.set_pv_value("CH:START:SP", 101)
+        self.ca.set_pv_value("CH:END:SP", 210)
+        measurement_strings = ["VOLT", "VOLT:AC", "CURR", "CURR:AC", "RES", "FRES", "CONT", "FREQ", "PER"]
+        for measurement_string, measurement_enum in zip(measurement_strings, measurement_enums):
+            self.ca.assert_setting_setpoint_sets_readback(measurement_enum, "MEASUREMENT",
+                                                          "MEASUREMENT:SP", measurement_string)
 
+    def test_GIVEN_buffer_autoclear_mode_set_WHEN_read_THEN_autoclear_mode_is_as_expected(self):
+        sample_data = [0, 1]
+        expected_data = ["ON", "OFF"]
+        for set_value, expected_state in zip(sample_data, expected_data):
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "BUFFER:CLEAR:AUTO", "BUFFER:CLEAR:AUTO:SP",
+                                                          expected_state)
 
+    def test_GIVEN_elements_set_WHEN_read_THEN_elements_are_as_expected(self):
+        elements = "READ, CHAN, TST"
+        self.ca.assert_setting_setpoint_sets_readback(elements, "DATAELEMENTS", "DATAELEMENTS:SP", elements)
