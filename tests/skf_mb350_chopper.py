@@ -1,9 +1,9 @@
 import unittest
-from unittest import skipIf
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # Device prefix
 DEVICE_PREFIX = "SKFMB350_01"
@@ -33,22 +33,37 @@ INTERLOCKS = [
     "TEST_MODE",
 ]
 
-MACROS = {
-    "PARKPOS": 1,
-    "PARKOPEN": 123,
-}
+PARK_OPEN_POSITION = 123
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("SKFMB350"),
+        "macros": {
+            "PARKPOS": str(1),
+            "PARKOPEN": str(PARK_OPEN_POSITION),
+        },
+        "emulator": "skf_mb350_chopper",
+    },
+]
 
 
-class Skf_mb350_chopperTests(unittest.TestCase):
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+
+
+class SkfMB350ChopperTests(unittest.TestCase):
     """
     Tests for the SKF MB350 Chopper IOC.
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("skf_mb350_chopper")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("skf_mb350_chopper", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
         self.ca.wait_for("FREQ", timeout=30)
+
+        # Wait for emulator to be connected, signified by "STAT:OK"
+        self.ca.assert_that_pv_is("STAT:OK", "OK")
 
     def test_WHEN_frequency_is_set_THEN_actual_frequency_gets_to_the_frequency_just_set(self):
         for frequency in TEST_FREQUENCIES:
@@ -69,7 +84,7 @@ class Skf_mb350_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("PHAS:SP", phase, 0.1)
             self.ca.assert_that_pv_is_number("PHAS:SP:RBV", phase, 0.1)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_WHEN_phase_repeatability_is_set_via_backdoor_THEN_the_repeatability_pv_updates_with_the_same_value(self):
         for phas_err_width in TEST_PHAS_ERR_WIDTHS:
             self._lewis.backdoor_set_on_device("phase_repeatability", phas_err_width)
@@ -81,13 +96,13 @@ class Skf_mb350_chopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("PHAS_ERR:SP", phas_err_width, 0.01)
             self.ca.assert_that_pv_is_number("PHAS_ERR", phas_err_width, 0.01)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_WHEN_phase_percent_ok_is_set_via_backdoor_THEN_the_percent_ok_pv_updates_with_the_same_value(self):
         for percentage in TEST_PERCENTAGES:
             self._lewis.backdoor_set_on_device("phase_percent_ok", percentage)
             self.ca.assert_that_pv_is_number("PHAS:PERCENTOK", percentage, 0.01)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_WHEN_interlock_states_are_set_THEN_the_interlock_pvs_reflect_the_state_that_was_just_set(self):
 
         def _set_and_assert_interlock_state(interlock, on):
@@ -98,7 +113,7 @@ class Skf_mb350_chopperTests(unittest.TestCase):
             _set_and_assert_interlock_state(interlock, True)
             _set_and_assert_interlock_state(interlock, False)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Depends on state which is not implemented in recsim")
+    @skip_if_recsim("Depends on state which is not implemented in recsim")
     def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
         self.ca.set_pv_value("START", 1)
         self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "YES")
@@ -110,7 +125,7 @@ class Skf_mb350_chopperTests(unittest.TestCase):
         # Check initial angle was the park open position - i.e. it was sent at IOC startup
         # This is the only test that sets the rotator angle so run this here - it's the only place which guarantees
         # running this test before the value is overwritten
-        self.ca.assert_that_pv_is_number("ANGLE:ROTATOR", MACROS["PARKOPEN"], 0.01)
+        self.ca.assert_that_pv_is_number("ANGLE:ROTATOR", PARK_OPEN_POSITION, 0.01)
 
         for angle in TEST_ANGLES:
             self.ca.set_pv_value("ANGLE:ROTATOR:SP", angle)

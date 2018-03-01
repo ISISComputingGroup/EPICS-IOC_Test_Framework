@@ -34,12 +34,14 @@ pipeline {
         bat """
             call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat"
             """
-        junit "test-reports/**/*.xml"
       }
     }
   }
   
   post {
+    always {
+      junit "test-reports/**/*.xml"
+    }
     failure {
       step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: 'icp-buildserver@lists.isis.rl.ac.uk', sendToIndividuals: true])
     }

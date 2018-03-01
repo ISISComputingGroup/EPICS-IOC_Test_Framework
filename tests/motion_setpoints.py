@@ -1,15 +1,22 @@
 import unittest
 from unittest import skipIf
 
+import os
+
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
+from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
-# Internal Address of device (must be 2 characters)
-ADDRESS = "01"
+IOCS = [
+    {
+        "name": "motion_setpoints",
+        "directory": os.path.join(EPICS_TOP, "support", "motionSetPoints", "master", "iocBoot",  "iocmotionSetPointsTest"),
+        "macros": {}
+    },
+]
 
-# MACROS to use for the IOC
-MACROS = {"ADDR": ADDRESS}
+TEST_MODES = [TestModes.RECSIM]
 
 # Device prefix
 DEVICE_PREFIX_1D_NO_AXIS = "LKUP:1D"
@@ -39,13 +46,13 @@ POSITIONS_2D = [
 ]
 
 
-class Motion_setpointsTests(unittest.TestCase):
+class MotionSetpointsTests(unittest.TestCase):
     """
     Tests the motion setpoints.
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("motion_setpoints")
+        self._lewis, self._ioc = get_running_lewis_and_ioc(None, "motion_setpoints")
 
         self.ca1D = ChannelAccess(device_prefix=DEVICE_PREFIX_1D_NO_AXIS)
         self.ca2D = ChannelAccess(device_prefix=DEVICE_PREFIX_2D_NO_AXIS)

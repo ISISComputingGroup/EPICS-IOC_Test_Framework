@@ -1,11 +1,28 @@
 import unittest
 from time import sleep
-from unittest import skipIf
 
 import operator
+
+from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+
+
+DEVICE_PREFIX = "CYBAMAN_01"
+
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("CYBAMAN"),
+        "macros": {},
+        "emulator": "cybaman",
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class CybamanTests(unittest.TestCase):
@@ -17,10 +34,15 @@ class CybamanTests(unittest.TestCase):
     test_positions = [-200, -1.23, 0, 180.0]
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("cybaman")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("cybaman", DEVICE_PREFIX)
 
-        self.ca = ChannelAccess(default_timeout=20, device_prefix="CYBAMAN_01")
+        self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
         self.ca.wait_for("INITIALIZE", timeout=30)
+
+        # Check that all the relevant PVs are up.
+        for axis in self.AXES:
+            self.ca.wait_for(axis)
+            self.ca.wait_for("{}:SP".format(axis))
 
         # Initialize the device, do this in setup to avoid doing it in every test
         self.ca.set_pv_value("INITIALIZE", 1)
@@ -29,14 +51,14 @@ class CybamanTests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_WHEN_position_setpoints_are_set_via_backdoor_THEN_positions_move_towards_setpoints(self):
         for axis in self.AXES:
             for pos in self.test_positions:
                 self._lewis.backdoor_set_on_device("{}_setpoint".format(axis.lower()), pos)
                 self.ca.assert_that_pv_is_number("{}".format(axis), pos, tolerance=0.01)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_home_position_is_set_WHEN_home_pv_is_set_THEN_position_moves_towards_home(self):
         for axis in self.AXES:
             for pos in self.test_positions:
@@ -44,7 +66,7 @@ class CybamanTests(unittest.TestCase):
                 self.ca.set_pv_value("{}:HOME".format(axis), 1)
                 self.ca.assert_that_pv_is_number("{}".format(axis), pos, tolerance=0.01)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_a_device_in_some_other_state_WHEN_reset_command_is_sent_THEN_device_is_reset_to_original_state(self):
 
         modifier = 12.34
@@ -79,7 +101,7 @@ class CybamanTests(unittest.TestCase):
                 self.ca.set_pv_value("{}:SP".format(axis.upper()), pos)
                 self.ca.assert_that_pv_is_number("{}".format(axis.upper()), pos)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_a_device_with_a_setpoint_less_than_minus_150_WHEN_homed_THEN_setpoint_is_set_to_minus_150_before_home(self):
         for axis in self.AXES:
             # Ensure home position is known
@@ -98,7 +120,7 @@ class CybamanTests(unittest.TestCase):
             # Let device actually reach home position
             self.ca.assert_that_pv_is_number("{}".format(axis.upper()), 100)
 
-    @skipIf(IOCRegister.uses_rec_sim, "Uses lewis backdoor command")
+    @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_a_device_with_a_setpoint_more_than_minus_150_WHEN_homed_THEN_setpoint_is_not_set_before_home(self):
         for axis in self.AXES:
             # Ensure home position is known
@@ -134,7 +156,7 @@ class CybamanTests(unittest.TestCase):
             # Ensure original position is what it's meant to be
             for axis, setpoint in zip(self.AXES, case["old_pos"]):
                 self.ca.set_pv_value("{}:SP".format(axis.upper()), setpoint)
-                self.ca.assert_that_pv_is_number("{}".format(axis.upper()), setpoint, tolerance = 0.01)
+                self.ca.assert_that_pv_is_number("{}".format(axis.upper()), setpoint, tolerance=0.01)
 
             # Change the relevant axis to a new setpoint
             self.ca.set_pv_value("{}:SP".format(case["axis_to_change"].upper()), case["new_setpoint"])
@@ -155,7 +177,7 @@ class CybamanTests(unittest.TestCase):
         self.ca.set_pv_value("INITIALIZE", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
 
-    @skipIf(IOCRegister.uses_rec_sim, "Homing not implemented in recsim")
+    @skip_if_recsim("Homing not implemented in recsim")
     def test_GIVEN_one_axis_is_homed_WHEN_another_axis_has_its_setpoint_set_THEN_the_homed_axis_does_not_move(self):
         # Put all setpoints to zero
         for axis in self.AXES:
@@ -176,5 +198,3 @@ class CybamanTests(unittest.TestCase):
         # Verify that A has not changed from it's home position
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
         self.ca.assert_pv_value_over_time("A", 5, operator.eq)
-
-
