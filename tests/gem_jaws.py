@@ -18,7 +18,11 @@ IOCS = [
             "AXIS3": "yes",
             "AXIS4": "yes",
             "MTRCTRL": "01",
-            "IFGEMJAWS": " "
+            "IFGEMJAWS": " ",
+            "VELO1": 1000,
+            "VELO2": 1000,
+            "VELO3": 1000,
+            "VELO4": 1000,
         },
     },
 ]
@@ -80,7 +84,11 @@ class GemJawsTests(unittest.TestCase):
     def setUp(self):
         self._ioc = IOCRegister.get_running("gem_jaws")
         self.ca = ChannelAccess(default_timeout=30)
-        self.ca.wait_for(MOTOR_W, timeout=60)
+
+        [self.ca.wait_for(mot) for mot in all_motors]
+        self._stop_all_motors()
+
+    def _stop_all_motors(self):
         [self.ca.set_pv_value(mtr + ".STOP", 1) for mtr in all_motors]
 
     def _test_readback(self, calibrated_axis, to_read_func, x):
@@ -102,17 +110,20 @@ class GemJawsTests(unittest.TestCase):
         for mot, underlying in motors.items():
             for position in TEST_POSITIONS:
                 self._test_set_point(underlying, mot, calc_expected_quad_write, position)
+                self._stop_all_motors()
 
     def test_WHEN_underlying_linear_motor_set_to_a_position_THEN_calibrated_axis_as_expected(self):
         for motor in [MOTOR_N, MOTOR_S]:
             for position in TEST_POSITIONS:
                 self._test_readback(motor, calc_expected_linear_read, position)
+                self._stop_all_motors()
 
     def test_WHEN_calibrated_linear_motor_set_to_a_position_THEN_underlying_motor_as_expected(self):
         motors = {MOTOR_N: UNDERLYING_MTR_NORTH, MOTOR_S: UNDERLYING_MTR_SOUTH}
         for mot, underlying in motors.items():
             for position in TEST_POSITIONS:
                 self._test_set_point(underlying, mot, calc_expected_linear_write, position)
+                self._stop_all_motors()
 
     def test_WHEN_underlying_motor_stops_THEN_calibrated_motor_stops(self):
         # Move motor
