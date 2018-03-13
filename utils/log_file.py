@@ -2,7 +2,6 @@ import os
 from time import sleep
 import threading
 
-
 # Directory for log files
 LOG_FILES_DIRECTORY = os.path.join("logs","IOCTestFramework")
 
@@ -29,40 +28,23 @@ def log_filename(what, device, uses_rec_sim, var_dir):
         device=device, what=what, sim_type=sim_type))
 
 
-class LogFileWriter(object):
-    lines = list()
-    reading = True
-    writing_lock = threading.RLock()
-    ioc_started = False
+class LogFileManager(object):
+    reading_from = 0
 
-    def __init__(self, filename, log_pipe):
-        self.filename = filename
-        self.log_pipe = log_pipe
-        self.read_thread = threading.Thread(target=self.consume_pipe)
-        self.read_thread.setDaemon(True)
-        self.read_thread.start()
+    def __init__(self, filename):
+        self.log_file = open(filename, "w+")
 
-    def write(self, message):
+    def read_log(self):
         """
-        Appends a message to the log.
+        Takes any new lines that have been written to the log and returns them
 
-        Args:
-            message (str): The message to append
+        Returns:
+            new_messages (list): list of any new messages that have been received
         """
-        with self.writing_lock:
-            self.lines.append(message)
-
-    def consume_pipe(self):
-        """
-        Takes any files that have been written to the pipe and puts them in the buffer.
-        """
-        while self.reading:
-            message = self.log_pipe.readline()
-
-            # Look for epics> in the IOC log which means that the IOC has successfully started.
-            self.ioc_started = "epics>" in message
-
-            self.write(message)
+        self.log_file.seek(self.reading_from)
+        new_messages = list(self.log_file)
+        self.reading_from = self.log_file.tell()
+        return new_messages
 
     def wait_for_console(self, timeout):
         """
@@ -72,30 +54,15 @@ class LogFileWriter(object):
             timeout (int): How long to wait before we assume the ioc has not started. (seconds)
         """
         for i in range(timeout):
-            if self.ioc_started:
+            new_messages = self.read_log()
+
+            if any("epics>" in line for line in new_messages):
                 break
+
             sleep(1)
         else:
-            self.flush_to_file()
             raise AssertionError("IOC appears not to have started after {} seconds."
                                  .format(timeout))
 
-    def flush_to_file(self):
-        """
-        Writes the log buffer to file and clears the buffer.
-        """
-        with open(self.filename, "w") as f:
-            f.writelines(self.lines)
-        with self.writing_lock:
-            self.lines = list()
-
-    def stop_logging(self, timeout=0.5):
-        """
-        Stops reading the log pipe.
-
-        Args:
-            timeout (float): The time to wait for the reading thread to join (in seconds)
-        """
-        self.reading = False
-        self.log_pipe.close()
-        self.read_thread.join(timeout)
+    def close(self):
+        self.log_file.close()
