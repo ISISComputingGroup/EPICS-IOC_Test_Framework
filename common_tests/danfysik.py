@@ -11,10 +11,11 @@ EMULATOR_NAME = "danfysik"
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
+POLARITIES = ["+", "-"]
+POWER_STATES = ["Off", "On"]
+
 TEST_CURRENTS = [0.4, 47, 10000]
 TEST_VOLTAGES = TEST_CURRENTS
-
-POLARITIES = ["+", "-"]
 
 
 class DanfysikBase(unittest.TestCase):
@@ -28,10 +29,24 @@ class DanfysikBase(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_run_function_on_device("reset")
 
+    def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
+        for pol in POLARITIES:
+            self.ca.assert_setting_setpoint_sets_readback(pol, "POL")
+
+    @skip_if_recsim("Recsim is not set up properly for this test to work")
+    def test_WHEN_power_setpoint_is_set_THEN_readback_updates_with_set_value(self):
+        for state in POWER_STATES:
+            self.ca.assert_setting_setpoint_sets_readback(state, "POWER")
+
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_current_is_set_via_backdoor_WHEN_current_is_read_THEN_read_value_is_value_just_set(self):
         for curr in TEST_CURRENTS:
             self._lewis.backdoor_set_on_device("current", curr)
+            self.ca.assert_that_pv_is_number("CURR", curr, tolerance=0.5)  # Tolerance 0.5 because readback is integer
+
+    def test_WHEN_current_setpoint_is_set_THEN_current_readback_updates_to_set_value(self):
+        for curr in TEST_CURRENTS:
+            self.ca.set_pv_value("CURR:SP", curr)
             self.ca.assert_that_pv_is_number("CURR", curr, tolerance=0.5)  # Tolerance 0.5 because readback is integer
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -39,7 +54,3 @@ class DanfysikBase(unittest.TestCase):
         for volt in TEST_VOLTAGES:
             self._lewis.backdoor_set_on_device("voltage", volt)
             self.ca.assert_that_pv_is_number("VOLT", volt, tolerance=0.5)  # Tolerance 0.5 because readback is integer
-
-    def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
-        for pol in POLARITIES:
-            self.ca.assert_setting_setpoint_sets_readback(pol, "POL")
