@@ -54,3 +54,6 @@ class DanfysikBase(unittest.TestCase):
         for volt in TEST_VOLTAGES:
             self._lewis.backdoor_set_on_device("voltage", volt)
             self.ca.assert_that_pv_is_number("VOLT", volt, tolerance=0.5)  # Tolerance 0.5 because readback is integer
+
+    def test_GIVEN_no_interlocks_active_WHEN_getting_overall_interlock_status_THEN_it_is_ok(self):
+        self.ca.assert_that_pv_is("ILK", "OK")
