@@ -26,7 +26,7 @@ class DanfysikBase(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
         self._lewis.backdoor_run_function_on_device("reset")
 
     def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):

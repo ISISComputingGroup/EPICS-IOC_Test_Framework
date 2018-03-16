@@ -27,23 +27,19 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 INTERLOCKS = {
-    "fw_diode_overtemp": "ILK:FWDI",
-    "user1": "ILK:USER1",
-    "user2": "ILK:USER2",
-    "user3": "ILK:USER3",
-    "user4": "ILK:USER4",
-    "user5": "ILK:USER5",
-    "user6": "ILK:USER6",
-    "low_water_flow": "ILK:WATER",
-    "door_open": "ILK:DOOR",
-    "diode_heatsink": "ILK:HSDI",
-    "chassis_overtemp": "ILK:CHASSIS",
-    "igbt_heatsink_overtemp": "ILK:IGBTHS",
-    "hf_diode_overtemp": "ILK:HFDI",
-    "switch_reg_ddct_fail": "ILK:DCCT",
-    "switch_reg_supply_fail": "ILK:REGSUP",
-    "igbt_driver_fail": "ILK:IGBT",
-    "overcurrent": "ILK:OVERC",
+    "transistor_fault": "ILK:TRANS",
+    "dc_overcurrent": "ILK:DCOC",
+    "dc_overload": "ILK:DCOL",
+    "reg_mod_fail": "ILK:REGMOD",
+    "prereg_fail": "ILK:PREREG",
+    "phase_fail": "ILK:PHAS",
+    "mps_waterflow_fail": "ILK:MPSWATER",
+    "earth_leak_fail": "ILK:EARTHLEAK",
+    "thermal_fail": "ILK:THERMAL",
+    "mps_overtemperature": "ILK:MPSTEMP",
+    "door_switch": "ILK:DOOR",
+    "mag_waterflow_fail": "ILK:MAGWATER",
+    "mag_overtemp": "ILK:MAGTEMP",
 }
 
 
