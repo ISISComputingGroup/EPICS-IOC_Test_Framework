@@ -50,9 +50,8 @@ class Keithley_2700Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(set_value, "DELAYMODE", "DELAYMODE:SP", expected_value)
 
     def test_GIVEN_source_set_WHEN_read_THEN_source_is_as_expected(self):
-        sample_data = [0, 1, 2, 3, 4]
-        expected_channel = ["IMM", "TIM", "MAN", "BUS", "EXT"]
-        for set_value, expected_value in zip(sample_data, expected_channel):
+        sample_data = { 0: "IMM", 1: "TIM", 2: "MAN", 3: "BUS", 4: "EXT" }
+        for set_value, expected_value in sample_data.items():
             self.ca.assert_setting_setpoint_sets_readback(set_value, "CONTROLSOURCE", "CONTROLSOURCE:SP",
                                                           expected_value)
 
@@ -60,6 +59,7 @@ class Keithley_2700Tests(unittest.TestCase):
         expected_buffer_size = [5500, 0, 2, 70000]
         alarm_state = [ChannelAccess.ALARM_NONE, ChannelAccess.ALARM_MAJOR, ChannelAccess.ALARM_NONE,
                        ChannelAccess.ALARM_MAJOR]
+        sample_data = { 5500: Cha}
         for set_value, expected_alarm in zip(expected_buffer_size, alarm_state):
             self.ca.assert_setting_setpoint_sets_readback(set_value, "BUFFER:SIZE", "BUFFER:SIZE:SP",
                                                           set_value, expected_alarm=expected_alarm)
