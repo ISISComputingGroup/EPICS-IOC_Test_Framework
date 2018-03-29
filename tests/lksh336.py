@@ -19,7 +19,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 
 class Lksh336Tests(unittest.TestCase):
@@ -30,5 +30,7 @@ class Lksh336Tests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Lksh336", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    def test_GIVEN_temp_set_WHEN_read_THEN_temp_is_as_expected(self):
+        test_value = 10
+        self.ca.set_pv_value("SIM:TEMP_A", test_value)
+        self.ca.assert_that_pv_is("SIM:TEMP_A", test_value)
