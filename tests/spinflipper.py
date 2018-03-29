@@ -4,22 +4,22 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+import os
 
-
-DEVICE_PREFIX = "SPINFLIP_01"
-
+DEVICE_PREFIX = "SPINFLIPPER_01"
+EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("SPINFLIP"),
+        "directory": os.path.join(EPICS_TOP, "ioc", "master", "SPINFLIPPER306015", "iocBoot", "iocSPINFLIPPER-IOC-01"),
         "macros": {},
         "emulator": "Spinflipper",
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 
 class SpinflipperTests(unittest.TestCase):
@@ -30,5 +30,6 @@ class SpinflipperTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Spinflipper", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    def test_GIVEN_max_guide_temp_set_WHEN_read_THEN_max_temp_is_as_expected(self):
+        test_value = 150
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "MAXTCOIL", "MAXTCOIL:SP", test_value)
