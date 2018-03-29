@@ -19,7 +19,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 
 class CryvalveTests(unittest.TestCase):
@@ -30,5 +30,8 @@ class CryvalveTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Cryvalve", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    def test_GIVEN_value_is_open_WHEN_get_state_THEN_state_is_open(self):
+        expected_value = "OPEN"
+        self.ca.set_pv_value("SIM:STAT", expected_value)
+
+        self.ca.assert_that_pv_is("STAT", expected_value)
