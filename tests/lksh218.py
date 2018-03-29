@@ -19,7 +19,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 
 class Lksh218Tests(unittest.TestCase):
@@ -31,4 +31,6 @@ class Lksh218Tests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
     def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+        test_value = 50
+        self._lewis.backdoor_set_on_device("TEMP1", test_value)
+        self.ca.assert_that_pv_is("TEMP1", test_value)
