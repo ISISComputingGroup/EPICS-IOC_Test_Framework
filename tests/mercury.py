@@ -4,15 +4,16 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+import os
 
 
 DEVICE_PREFIX = "MERCURY_01"
-
+EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("MERCURY"),
+        "directory": os.path.join(EPICS_TOP, "ioc", "master", "MERCURY_ITC", "iocBoot", "iocMERCURY-IOC-01"),
         "macros": {},
         "emulator": "Mercury",
     },
@@ -20,6 +21,8 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+
+
 
 
 class MercuryTests(unittest.TestCase):
