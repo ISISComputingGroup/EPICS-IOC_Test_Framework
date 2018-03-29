@@ -33,9 +33,4 @@ class HifimagTests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_GIVEN_setpoint1_set_WHEN_read_THEN_setpoint1_is_as_set(self):
-        set_point1 = 1.234
-        self.ca.set_pv_value("1:SETPOINT:SP", set_point1)
-        self.ca.assert_that_pv_is("1:SETPOINT:SP", set_point1)
-        
-        self.ca.assert_that_pv_is("1:SETPOINT", set_point1)
+
