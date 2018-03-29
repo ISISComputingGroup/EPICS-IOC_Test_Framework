@@ -23,8 +23,6 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-
-
 class MercuryTests(unittest.TestCase):
     """
     Tests for the Mercury IOC.
