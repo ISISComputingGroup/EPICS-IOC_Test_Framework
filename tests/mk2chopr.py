@@ -19,7 +19,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 
 class Mk2ChoprTests(unittest.TestCase):
@@ -30,5 +30,7 @@ class Mk2ChoprTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Mk2Chopr", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    def test_GIVEN_unit_set_gauss_WHEN_read_THEN_unit_is_gauss(self):
+        test_value = 10
+        self.ca.set_pv_value("FREQ:SP", test_value)
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "FREQ", "FREQ:SP", test_value)
