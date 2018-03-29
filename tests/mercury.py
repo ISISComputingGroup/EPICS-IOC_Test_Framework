@@ -33,5 +33,5 @@ class MercuryTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Mercury", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
