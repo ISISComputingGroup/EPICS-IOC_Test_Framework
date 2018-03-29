@@ -30,8 +30,8 @@ class Lksh218Tests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Lksh218", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
+    def test_GIVEN_temp_set__WHEN_read_THEN_temp_is_as_expected(self):
         test_value = 50
-        self.ca.set_pv_value("SIM:TEMP1", 50)
+        self.ca.set_pv_value("SIM:TEMP1", test_value)
         self.ca.assert_that_pv_is("SIM:TEMP1", test_value)
         
