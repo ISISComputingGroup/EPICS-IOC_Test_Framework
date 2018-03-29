@@ -32,5 +32,6 @@ class Lksh218Tests(unittest.TestCase):
 
     def test_that_fails(self):
         test_value = 50
-        self._lewis.backdoor_set_on_device("TEMP1", test_value)
-        self.ca.assert_that_pv_is("TEMP1", test_value)
+        self.ca.set_pv_value("SIM:TEMP1", 50)
+        self.ca.assert_that_pv_is("SIM:TEMP1", test_value)
+        
