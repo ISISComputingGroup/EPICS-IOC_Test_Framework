@@ -90,6 +90,10 @@ ENV/
 
 # PyCharm files
 .idea/
+misc.xml
+modules.xml
+workspace.xml
+IOCTestFramework.iml
 
 /test-reports
 NULL
