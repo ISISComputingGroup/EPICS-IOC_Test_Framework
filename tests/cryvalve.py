@@ -32,6 +32,6 @@ class CryvalveTests(unittest.TestCase):
 
     def test_GIVEN_value_is_open_WHEN_get_state_THEN_state_is_open(self):
         expected_value = "OPEN"
-        self.ca.set_pv_value("SIM:STAT", expected_value)
+        self._ioc.set_simulated_value("SIM:STAT", expected_value)
 
         self.ca.assert_that_pv_is("STAT", expected_value)
