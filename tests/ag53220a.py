@@ -28,6 +28,11 @@ class Ag53220ATests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Ag53220A", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca.wait_for("DISABLE", timeout=30)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
+
+    def test_WHEN_start_set_THEN_start_readback_set(self):
+        self.ca.assert_setting_setpoint_sets_readback(0, "START", "START:SP", 0)
+        self.ca.assert_setting_setpoint_sets_readback(1, "START", "START:SP", 1)
