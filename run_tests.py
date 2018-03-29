@@ -1,7 +1,6 @@
 import os
 import imp
 import importlib
-import random
 import unittest
 
 import sys
@@ -79,7 +78,7 @@ def run_test(prefix, test_module, device_launchers):
 
     with modified_environment(**settings), device_launchers:
 
-        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, verbosity=2)
+        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout)
 
         test_classes = [getattr(test_module, s) for s in dir(test_module) if s.endswith("Tests")]
 
@@ -89,9 +88,7 @@ def run_test(prefix, test_module, device_launchers):
         test_results = []
         for test_class in test_classes:
             print("Running tests in {}".format(test_class.__name__))
-            loader = unittest.TestLoader()
-            loader.sortTestMethodsUsing = lambda *a, **k: random.choice([-1, 1])
-            test_suite = loader.loadTestsFromTestCase(test_class)
+            test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
             test_results.append(runner.run(test_suite).wasSuccessful())
         return all(result is True for result in test_results)
 
