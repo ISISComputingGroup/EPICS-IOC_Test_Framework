@@ -5,12 +5,13 @@ from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 import os
+from genie_python import genie as g
 
 
 IOC_PREFIX = "INHIBITR_01"
-
-SIMPLE_VALUE_ONE = "TE:NDW1801:SIMPLE:VALUE1:SP"
-SIMPLE_VALUE_TWO = "TE:NDW1801:SIMPLE:VALUE2:SP"
+DEVICE_PREFIX = g.my_pv_prefix
+SIMPLE_VALUE_ONE = "{}SIMPLE:VALUE1:SP".format(DEVICE_PREFIX)
+SIMPLE_VALUE_TWO = "{}SIMPLE:VALUE2:SP".format(DEVICE_PREFIX)
 
 IOCS = [
     {
@@ -41,6 +42,7 @@ class InhibitrTests(unittest.TestCase):
 
     def setUp(self):
         self._ioc = IOCRegister.get_running(IOC_PREFIX)
+
         self.ca = ChannelAccess(20)
         self.values = ["SIMPLE:VALUE1:SP", "SIMPLE:VALUE2:SP"]
 
