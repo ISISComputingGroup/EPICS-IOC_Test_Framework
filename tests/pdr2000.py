@@ -62,3 +62,4 @@ class Pdr2000Tests(unittest.TestCase):
         set_scale = 123.45
         self.ca.set_pv_value("SIM:SCALE:2", set_scale)
         self.ca.assert_that_pv_is("SCALE:2", set_scale)
+        
