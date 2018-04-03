@@ -42,7 +42,6 @@ class InhibitrTests(unittest.TestCase):
 
     def setUp(self):
         self._ioc = IOCRegister.get_running(IOC_PREFIX)
-
         self.ca = ChannelAccess(20)
         self.values = ["SIMPLE:VALUE1:SP", "SIMPLE:VALUE2:SP"]
 
