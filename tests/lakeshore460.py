@@ -73,7 +73,7 @@ class Lakeshore460Tests(unittest.TestCase):
         for chan in channels:
             set_field_reading = 1.2356
             self._lewis.backdoor_command(["device", "set_channel_param", chan, "field_reading", str(set_field_reading)])
-            self.ca.assert_that_pv_is("{}:FIELDREADING".format(chan), set_field_reading)
+            self.ca.assert_that_pv_is("{}:FIELD:RAW".format(chan), set_field_reading)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_prms_set_rms_WHEN_read_THEN_prms_is_rms(self):
@@ -94,22 +94,6 @@ class Lakeshore460Tests(unittest.TestCase):
             set_value = key
             expected_value = vectors[key]
             self.ca.assert_setting_setpoint_sets_readback(set_value, "SOURCE", "SOURCE:SP", expected_value)
-            
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_max_hold_reading_set_WHEN_read_THEN_max_hold_reading_is_set_value(self):
-        for chan in channels:
-            set_max_hold_reading = 2.1234
-            self._lewis.backdoor_command(
-                ["device", "set_channel_param", chan, "max_hold_reading", str(set_max_hold_reading)])
-            self.ca.assert_that_pv_is("{}:MAXREADING".format(chan), set_max_hold_reading)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_rel_mode_reading_set_WHEN_read_THEN_rel_mode_reading_is_set_value(self):
-        for chan in channels:
-            set_rel_reading = 0.9786
-            self._lewis.backdoor_command(
-                ["device", "set_channel_param", chan, "rel_mode_reading", str(set_rel_reading)])
-            self.ca.assert_that_pv_is("{}:RELMODEREADING".format(chan), set_rel_reading)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_output_mode_set_DC_WHEN_read_THEN_output_mode_is_dc(self):
