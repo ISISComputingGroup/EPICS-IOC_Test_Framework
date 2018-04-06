@@ -78,13 +78,6 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("closed_loop", value)
             self.ca.assert_that_pv_is("CLOSEDLOOP", "On" if value else "Off")
 
-    @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_valve_state_is_set_via_backdoor_THEN_valve_state_pvs_update_with_value_just_set(self):
-        for valve in range(1, 11):
-            for valve_state in [False, True, False]:
-                self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state)])
-                self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), "OPEN" if valve_state else "CLOSED")
-
     @skip_if_recsim("Behaviour too complex for recsim")
     def test_WHEN_channels_are_enabled_and_disabled_via_pv_THEN_the_readback_pv_updates_with_value_just_set(self):
         for chan in VALID_TEMPERATURE_SENSORS:
