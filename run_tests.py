@@ -19,6 +19,7 @@ from utils.test_modes import TestModes
 def package_contents(package_name):
     """
     Finds all the modules in a package.
+
     :param package_name: the name of the package
     :return: a set containing all the module names
     """
@@ -33,6 +34,7 @@ def package_contents(package_name):
 def load_module(name):
     """
     Loads a module based on its name.
+
     :param name: the name of the module
     :return: a reference to the module
     """
@@ -43,6 +45,7 @@ def load_module(name):
 def modified_environment(**kwargs):
     """
     Modifies the environment variables as required then returns them to their original state.
+
     :param kwargs: the settings to apply
     """
     # Copying old values
@@ -59,6 +62,7 @@ def modified_environment(**kwargs):
 def run_test(prefix, test_module, device_launchers):
     """
     Runs the tests for the specified set of devices.
+
     :param prefix: the instrument prefix
     :param test_module: the test module
     :param device_launchers: context manager that launches the necessary iocs and associated emulators
