@@ -5,6 +5,8 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 import time
 
+
+
 DEVICE_PREFIX = "KHLY2700_01"
 
 IOCS = [
@@ -88,8 +90,8 @@ class Keithley_2700Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("buffer_range_readings", 10)
         self.ca.set_pv_value("CH:START", 2)
         self.ca.set_pv_value("COUNT", 4)
-        self.ca.set_pv_value("BUFFER:READINGS.PROC", 1)
-        expected_string = self.ca.get_pv_value("BUFFER:READINGS")
+        self.ca.set_pv_value("BUFF:READ.PROC", 1)
+        expected_string = self.ca.get_pv_value("BUFF:READ")
         self.assertNotEquals(expected_string, "[]")
 
     def test_GIVEN_sample_count_set_WHEN_read_THEN_sample_count_is_as_expected_AND_within_range(self):
