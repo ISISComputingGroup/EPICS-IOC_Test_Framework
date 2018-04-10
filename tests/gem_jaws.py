@@ -94,6 +94,7 @@ class GemJawsTests(unittest.TestCase):
 
     def _test_set_point(self, underlying_motor, calibrated_axis, to_write_func, x):
         self.ca.set_pv_value(calibrated_axis, x)
+        self.ca.assert_that_pv_is_number(underlying_motor + ".DMOV", 1)  # Wait for axis to finish moving
         self.ca.assert_that_pv_is_number(underlying_motor + ".VAL", to_write_func(x), TOLERANCE)
 
     def test_WHEN_underlying_quadratic_motor_set_to_a_position_THEN_calibrated_axis_as_expected(self):
