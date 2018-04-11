@@ -1,12 +1,26 @@
 import unittest
-from unittest import skipIf
 
-from utils.ioc_launcher import IOCRegister
 from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
-# MACROS to use for the IOC
-MACROS = {}
+
+DEVICE_PREFIX = "TPG26X_01"
+
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("TPG26X"),
+        "macros": {},
+        "emulator": "tpg26x",
+        "emulator_protocol": "stream",
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class UnitFlags(object):
@@ -50,49 +64,49 @@ class Tpg26xTests(unittest.TestCase):
     CHANNEL_TWO = 2
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("tpg26x")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("tpg26x", DEVICE_PREFIX)
 
-        self.ca = ChannelAccess()
-        self.ca.wait_for("TPG26X_01:1:PRESSURE")
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self.ca.wait_for("1:PRESSURE")
         # Reset and error flags and alarms
         self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_ONE)
         self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_TWO)
 
     def _set_pressure(self, expected_pressure, channel):
-        pv = "TPG26X_01:SIM:{0:d}:PRESSURE".format(channel)
+        pv = "SIM:{0:d}:PRESSURE".format(channel)
         prop = "pressure%d" % channel
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
     def _set_error(self, expected_error, channel):
-        pv = "TPG26X_01:SIM:{0:d}:ERROR".format(channel)
+        pv = "SIM:{0:d}:ERROR".format(channel)
         prop = "error%d" % channel
         self._lewis.backdoor_set_on_device(prop, expected_error)
         self._ioc.set_simulated_value(pv, expected_error)
 
     def _set_units(self, expected_units):
         self._lewis.backdoor_set_on_device("units", expected_units)
-        self._ioc.set_simulated_value("TPG26X_01:SIM:UNITS", expected_units)
+        self._ioc.set_simulated_value("SIM:UNITS", expected_units)
 
     def test_GIVEN_pressure1_set_WHEN_read_THEN_pressure_is_as_expected(self):
         expected_pressure = 1.23
         self._set_pressure(expected_pressure, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:PRESSURE", expected_pressure)
-        self.ca.assert_pv_alarm_is("TPG26X_01:1:PRESSURE", ChannelAccess.ALARM_NONE)
-        self.ca.assert_that_pv_is("TPG26X_01:1:ERROR", "No Error")
+        self.ca.assert_that_pv_is("1:PRESSURE", expected_pressure)
+        self.ca.assert_pv_alarm_is("1:PRESSURE", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("1:ERROR", "No Error")
 
     def test_GIVEN_negative_pressure1_set_WHEN_read_THEN_pressure1_is_as_expected(self):
         expected_pressure = -123.34
         self._set_pressure(expected_pressure, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:PRESSURE", expected_pressure)
+        self.ca.assert_that_pv_is("1:PRESSURE", expected_pressure)
 
     def test_GIVEN_pressure1_with_no_decimal_places_set_WHEN_read_THEN_pressure1_is_as_expected(self):
         expected_pressure = 7
         self._set_pressure(expected_pressure, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:PRESSURE", expected_pressure)
+        self.ca.assert_that_pv_is("1:PRESSURE", expected_pressure)
 
     def test_GIVEN_pressure1_under_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.UNDER_RANGE
@@ -100,8 +114,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MINOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_over_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.OVER_RANGE
@@ -109,8 +123,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MINOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_sensor_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_ERROR
@@ -118,8 +132,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_sensor_off_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_OFF
@@ -127,8 +141,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_no_sensor_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.NO_SENSOR
@@ -136,8 +150,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_identification_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.IDENTIFICATION_ERROR
@@ -145,28 +159,28 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
-        self.ca.assert_that_pv_is("TPG26X_01:1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_set_WHEN_read_THEN_pressure_is_as_expected(self):
         expected_pressure = 1.23
         self._set_pressure(expected_pressure, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:PRESSURE", expected_pressure)
-        self.ca.assert_pv_alarm_is("TPG26X_01:2:PRESSURE", ChannelAccess.ALARM_NONE)
-        self.ca.assert_that_pv_is("TPG26X_01:2:ERROR", "No Error")
+        self.ca.assert_that_pv_is("2:PRESSURE", expected_pressure)
+        self.ca.assert_pv_alarm_is("2:PRESSURE", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_is("2:ERROR", "No Error")
 
     def test_GIVEN_negative_pressure2_set_WHEN_read_THEN_pressure2_is_as_expected(self):
         expected_pressure = -123.34
         self._set_pressure(expected_pressure, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:PRESSURE", expected_pressure)
+        self.ca.assert_that_pv_is("2:PRESSURE", expected_pressure)
 
     def test_GIVEN_pressure2_with_no_decimal_places_set_WHEN_read_THEN_pressure2_is_as_expected(self):
         expected_pressure = 7
         self._set_pressure(expected_pressure, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:PRESSURE", expected_pressure)
+        self.ca.assert_that_pv_is("2:PRESSURE", expected_pressure)
 
     def test_GIVEN_pressure2_under_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.UNDER_RANGE
@@ -174,8 +188,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MINOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_over_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.OVER_RANGE
@@ -183,8 +197,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MINOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_sensor_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_ERROR
@@ -192,8 +206,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_sensor_off_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_OFF
@@ -201,8 +215,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_no_sensor_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.NO_SENSOR
@@ -210,8 +224,8 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_identification_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.IDENTIFICATION_ERROR
@@ -219,19 +233,19 @@ class Tpg26xTests(unittest.TestCase):
         expected_alarm = ChannelAccess.ALARM_MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
-        self.ca.assert_that_pv_is("TPG26X_01:2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("TPG26X_01:2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
+        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_units_set_WHEN_read_THEN_units_are_as_expected(self):
         expected_units = UnitFlags.PA
         expected_unit_str = UnitStrings.PA
         self._set_units(expected_units)
 
-        self.ca.assert_that_pv_is("TPG26X_01:UNITS", expected_unit_str)
+        self.ca.assert_that_pv_is("UNITS", expected_unit_str)
 
     def test_WHEN_write_units_THEN_units_are_as_expected(self):
         expected_units = UnitFlags.PA
         expected_unit_str = UnitStrings.PA
 
-        self.ca.set_pv_value("TPG26X_01:UNITS:SP", expected_units)
-        self.ca.assert_that_pv_is("TPG26X_01:UNITS", expected_unit_str)
+        self.ca.set_pv_value("UNITS:SP", expected_units)
+        self.ca.assert_that_pv_is("UNITS", expected_unit_str)
