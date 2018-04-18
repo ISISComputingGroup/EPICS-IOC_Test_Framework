@@ -19,7 +19,7 @@ RESISTANCE_TEST_VALUES = 10, 3456
 EXCITATION_TEST_VALUES = PID_TEST_VALUES
 TIME_DELAY_TEST_VALUES = RESISTANCE_TEST_VALUES
 
-VALID_TEMPERATURE_SENSORS = [i for i in range(0, 6)]
+VALID_TEMPERATURE_SENSORS = [i for i in range(1, 7)]
 VALID_PRESSURE_SENSORS = [1, 2, 3, 5]
 
 
@@ -77,13 +77,6 @@ class TritonTests(unittest.TestCase):
         for value in [False, True, False]:  # Need to check both transitions work properly
             self._lewis.backdoor_set_on_device("closed_loop", value)
             self.ca.assert_that_pv_is("CLOSEDLOOP", "On" if value else "Off")
-
-    @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_valve_state_is_set_via_backdoor_THEN_valve_state_pvs_update_with_value_just_set(self):
-        for valve in range(1, 11):
-            for valve_state in [False, True, False]:
-                self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state)])
-                self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), "OPEN" if valve_state else "CLOSED")
 
     @skip_if_recsim("Behaviour too complex for recsim")
     def test_WHEN_channels_are_enabled_and_disabled_via_pv_THEN_the_readback_pv_updates_with_value_just_set(self):
