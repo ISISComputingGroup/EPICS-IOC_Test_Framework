@@ -1,5 +1,4 @@
 import unittest
-import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -122,14 +121,14 @@ class GemJawsTests(unittest.TestCase):
                 self._test_set_point(underlying, mot, calc_expected_linear_write, position)
 
     def test_GIVEN_quad_calibrated_motor_limits_set_THEN_underlying_motor_limits_set(self):
-        for lim in [".DLLM", ".DHLM"]:
+        for lim in [".LLM", ".HLM"]:
             underlying_limit = self.ca.get_pv_value(UNDERLYING_MTR_WEST + lim)
 
             self.ca.assert_that_pv_is_number(MOTOR_W + lim, calc_expected_quad_read(underlying_limit),
                                              TOLERANCE)
 
     def test_GIVEN_linear_calibrated_motor_limits_set_THEN_underlying_motor_limits_set(self):
-        for lim in [".DLLM", ".DHLM"]:
+        for lim in [".LLM", ".HLM"]:
             underlying_limit = self.ca.get_pv_value(UNDERLYING_MTR_NORTH + lim)
 
             self.ca.assert_that_pv_is_number(MOTOR_N + lim, calc_expected_linear_read(underlying_limit),
