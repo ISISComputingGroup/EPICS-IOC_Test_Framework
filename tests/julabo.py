@@ -178,5 +178,5 @@ class JulaboTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("EXTD", start_d)
 
     def test_setting_control_mode_on_device_changes_control_mode_readback(self):
-        for control_mode in ["INTERNAL", "EXTERNAL", "INTERNAL"]:  # Check both transitions
+        for control_mode in ["Internal", "External", "Internal"]:  # Check both transitions
             self.ca.assert_setting_setpoint_sets_readback(control_mode, "CONTROLMODE")
