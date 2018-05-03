@@ -36,7 +36,7 @@ def get_running_lewis_and_ioc(emulator_name, ioc_name):
     """
     Assert that the emulator and ioc have been started if needed.
 
-    :param emulator_name: the name of the lewis emulator
+    :param emulator_name: the name of the lewis emulator; None for don't check the emulator
     :param ioc_name: the name of the IOC
     :return: lewis launcher and ioc launcher tuple
     :rtype: (LewisLauncher, IocLauncher)
@@ -44,11 +44,11 @@ def get_running_lewis_and_ioc(emulator_name, ioc_name):
     lewis = LewisRegister.get_running(emulator_name)
     ioc = IOCRegister.get_running(ioc_name)
 
-    if ioc is None and lewis is None:
+    if ioc is None and (lewis is None and emulator_name is not None):
         raise AssertionError("Emulator ({}) and IOC ({}) are not running".format(emulator_name, ioc_name))
     if ioc is None:
         raise AssertionError("IOC ({}) is not running".format(ioc_name))
-    if lewis is None:
+    if lewis is None and emulator_name is not None:
         raise AssertionError("Emulator ({}) is not running".format(emulator_name))
 
     return lewis, ioc

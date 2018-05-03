@@ -196,7 +196,8 @@ class ChannelAccess(object):
         else:
             return """Values didn't match when reading PV '{PV}'.
                    Expected value: {expected}
-                   Actual value: {actual}""".format(PV=pv, expected=expected_value, actual=pv_value)
+                   Actual value: {actual}""".format(PV=self._create_pv_with_prefix(pv),
+                                                    expected=expected_value, actual=pv_value)
 
     def _values_do_not_match(self, pv, restricted_value):
         """
@@ -212,7 +213,8 @@ class ChannelAccess(object):
         else:
             return """Values match when reading PV '{PV}'.
                    Restricted value: {restricted}
-                   Actual value: {actual}""".format(PV=pv, restricted=restricted_value, actual=pv_value)
+                   Actual value: {actual}""".format(PV=self._create_pv_with_prefix(pv),
+                                                    restricted=restricted_value, actual=pv_value)
 
     def _value_is_an_integer_between(self, pv, min_value, max_value):
         """
@@ -242,7 +244,8 @@ class ChannelAccess(object):
             return float(raw_pv_value)
         except ValueError:
             raise ValueError("""Value was invalid when reading PV '{PV}'.
-                    Expected a numeric value but got: {actual}""".format(PV=pv, actual=raw_pv_value))
+                    Expected a numeric value but got: {actual}""".format(PV=self._create_pv_with_prefix(pv),
+                                                                         actual=raw_pv_value))
 
     def _value_is_number(self, pv, expected_value, tolerance):
         """
@@ -263,7 +266,8 @@ class ChannelAccess(object):
         else:
             return """Value was invalid when reading PV '{PV}'.
                     Expected: {expected} (tolerance: {tolerance}) 
-                    Actual: {actual}""".format(PV=pv, expected=expected_value, tolerance=tolerance, actual=pv_value)
+                    Actual: {actual}""".format(PV=self._create_pv_with_prefix(pv),
+                                               expected=expected_value, tolerance=tolerance, actual=pv_value)
 
     def _value_is_not_number(self, pv, restricted_value, tolerance):
         """
@@ -284,7 +288,8 @@ class ChannelAccess(object):
         else:
             return """Value was invalid when reading PV '{PV}'.
                     Expected: NOT {expected} (tolerance: {tolerance}) 
-                    Actual: {actual}""".format(PV=pv, expected=restricted_value, tolerance=tolerance, actual=pv_value)
+                    Actual: {actual}""".format(PV=self._create_pv_with_prefix(pv),
+                                               expected=restricted_value, tolerance=tolerance, actual=pv_value)
 
     def _value_match_one_of(self, pv, expected_values):
         """
@@ -328,7 +333,7 @@ class ChannelAccess(object):
 
         pv_name = self._create_pv_with_prefix(pv)
         if self.ca.pv_exists(pv_name, timeout):
-            raise AssertionError("PV {pv} exists".format(pv=pv_name))
+            raise AssertionError("PV {pv} exists".format(pv=self._create_pv_with_prefix(pv)))
 
     def _create_pv_with_prefix(self, pv):
         """
@@ -360,6 +365,9 @@ class ChannelAccess(object):
                     return lambda_value
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
+            except Exception as e:
+                return "Exception in function while waiting for PV. Error was: {}".format(e)
+
             time.sleep(0.5)
             current_time = time.time()
 
@@ -422,7 +430,8 @@ class ChannelAccess(object):
         try:
             if not comparator(initial_value, final_value):
                 raise AssertionError("Stated behaviour over time for PV {0} was not satisfied. Initial value: {1}, "
-                                     "final value: {2}".format(pv, initial_value, final_value))
+                                     "final value: {2}".format(self._create_pv_with_prefix(pv),
+                                                               initial_value, final_value))
         # Catch general exception since we have no control over comparator
         except Exception as e:
             AssertionError("Comparison function failed to execute: {0}".format(e.message))
@@ -458,12 +467,38 @@ class ChannelAccess(object):
         """
         self.assert_pv_value_over_time(pv, wait, operator.eq)
 
+    def assert_pv_value_causes_func_to_return_true(self, pv, func, timeout=None):
+        """
+        Check that a PV satisfies a given function within some timeout.
+        :param pv: the PV to check
+        :param func: a function that takes one argument, the PV value, and returns True if the value is valid.
+        :param timeout: time to wait for the PV to satisfy the function
+        :raises: AssertionError: If the function does not evaluate to true within the given timeout
+        """
+        def _wrapper():
+            value = self.get_pv_value(pv)
+            if func(value):
+                return None
+            else:
+                return "Expected function {} to evaluate to True when reading PV '{}'. Final PV value was '{}'"\
+                    .format(func.__name__, self._create_pv_with_prefix(pv), value)
+
+        err = self._wait_for_pv_lambda(_wrapper, timeout)
+
+        if err is not None:
+            raise AssertionError(err)
+
     # Using a context manager to put PVs into alarm means they don't accidentally get left in alarm if the test fails
     @contextmanager
     def put_simulated_record_into_alarm(self, pv, alarm):
-        def _set_and_check_simulated_alarm(pv, alarm):
-            self.set_pv_value("{}.SIMS".format(pv), alarm)
-            self.assert_pv_alarm_is("{}".format(pv), alarm)
+        """
+        Put a simulated record into alarm
+        :param pv: pv to put into alarm
+        :param alarm: type of alarm
+        """
+        def _set_and_check_simulated_alarm(set_check_pv, set_check_alarm):
+            self.set_pv_value("{}.SIMS".format(set_check_pv), set_check_alarm)
+            self.assert_pv_alarm_is("{}".format(set_check_pv), set_check_alarm)
 
         try:
             _set_and_check_simulated_alarm(pv, alarm)
