@@ -7,6 +7,7 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 
+
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
 # Numerical address of the device
@@ -52,14 +53,19 @@ class EurothermTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _set_calibration_file(self, filename):
-        # Setting calibration files too fast causes the second set to be ignored. Not sure why, but
-        # 2 second wait appears to be enough.
-        time.sleep(2)
+        """
+        Sets a calibration file. Retries if it didn't set properly first time.
+        """
+        max_retries = 10
 
-        self.ca.set_pv_value("CAL:SEL", filename)
-        self.ca.assert_pv_alarm_is("CAL:SEL", self.ca.ALARM_NONE)
-        self.ca.assert_that_pv_is("CAL:RBV", filename)
-        self.ca.assert_pv_alarm_is("CAL:RBV", self.ca.ALARM_NONE)
+        for _ in range(max_retries):
+            self.ca.set_pv_value("CAL:SEL", filename)
+            self.ca.assert_pv_alarm_is("CAL:SEL", self.ca.ALARM_NONE)
+            time.sleep(1)
+            if self.ca.get_pv_value("CAL:RBV") == filename:
+                break
+        else:
+            self.fail("Couldn't set calibration file to '{}' after {} tries".format(filename, max_retries))
 
     def _reset_calibration_file(self):
         self._set_calibration_file("None.txt")
@@ -195,14 +201,25 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_is("TEMP:SP.EGU", units)
         self.ca.assert_that_pv_is("TEMP:SP:RBV.EGU", units)
 
+    def _assert_using_mock_table_location(self):
+        for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
+            self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
+            self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Apps/EPICS/support")
+
+    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
+        self._assert_using_mock_table_location()
         with self._use_calibration_file("K.txt"):
             self._assert_units("K")
 
+    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_is_in_units_of_C_THEN_egu_of_temperature_pvs_is_C(self):
+        self._assert_using_mock_table_location()
         with self._use_calibration_file("C.txt"):
             self._assert_units("C")
 
+    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_has_no_units_THEN_egu_of_temperature_pvs_is_K(self):
+        self._assert_using_mock_table_location()
         with self._use_calibration_file("None.txt"):
             self._assert_units("K")
