@@ -1,4 +1,5 @@
 import unittest
+from contextlib import contextmanager
 
 import time
 from utils.channel_access import ChannelAccess
@@ -50,9 +51,29 @@ class EurothermTests(unittest.TestCase):
         self.ca.wait_for("CAL:SEL", timeout=10)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
+    def _set_calibration_file(self, filename):
+        # Setting calibration files too fast causes the second set to be ignored. Not sure why, but
+        # 2 second wait appears to be enough.
+        time.sleep(2)
+
+        self.ca.set_pv_value("CAL:SEL", filename)
+        self.ca.assert_pv_alarm_is("CAL:SEL", self.ca.ALARM_NONE)
+        self.ca.assert_that_pv_is("CAL:RBV", filename)
+        self.ca.assert_pv_alarm_is("CAL:RBV", self.ca.ALARM_NONE)
+
+    def _reset_calibration_file(self):
+        self._set_calibration_file("None.txt")
+
+    @contextmanager
+    def _use_calibration_file(self, filename):
+        self._set_calibration_file(filename)
+        try:
+            yield
+        finally:
+            self._reset_calibration_file()
+
     def _reset_device_state(self):
-        self.ca.set_pv_value("CAL:SEL", "None.txt")
-        self.ca.assert_that_pv_is("CAL:RBV", "None.txt")
+        self._reset_calibration_file()
 
         intial_temp = 0.0
 
@@ -156,11 +177,10 @@ class EurothermTests(unittest.TestCase):
         rbv_change_timeout = 10
         tolerance = 0.01
         self.ca.set_pv_value("RAMPON:SP", 0)
-        self.ca.set_pv_value("CAL:SEL", "None.txt")
-        self.ca.assert_that_pv_is("CAL:RBV", "None.txt")
+        self._reset_calibration_file()
         self.ca.set_pv_value("TEMP:SP", temperature)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
-        self.ca.set_pv_value("CAL:SEL", "C006.txt")
+        self._set_calibration_file("C006.txt")
         self.ca.assert_that_pv_is_not_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
         # Act
@@ -168,3 +188,21 @@ class EurothermTests(unittest.TestCase):
 
         # Assert
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
+
+    def _assert_units(self, units):
+        self.ca.assert_that_pv_is("UNITS", units)
+        self.ca.assert_that_pv_is("TEMP.EGU", units)
+        self.ca.assert_that_pv_is("TEMP:SP.EGU", units)
+        self.ca.assert_that_pv_is("TEMP:SP:RBV.EGU", units)
+
+    def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
+        with self._use_calibration_file("K.txt"):
+            self._assert_units("K")
+
+    def test_WHEN_calibration_file_is_in_units_of_C_THEN_egu_of_temperature_pvs_is_C(self):
+        with self._use_calibration_file("C.txt"):
+            self._assert_units("C")
+
+    def test_WHEN_calibration_file_has_no_units_THEN_egu_of_temperature_pvs_is_K(self):
+        with self._use_calibration_file("None.txt"):
+            self._assert_units("K")
