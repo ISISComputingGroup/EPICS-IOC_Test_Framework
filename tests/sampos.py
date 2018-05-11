@@ -1,8 +1,23 @@
+import os
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister, EPICS_TOP
+from utils.test_modes import TestModes
+
+DEVICE_PREFIX = "SAMPOS"
+
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": os.path.join(EPICS_TOP, "ioc", "master", "SAMPOS", "iocBoot", "iocSAMPOS"),
+        "macros": {},
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM]
 
 
 class SamposTests(unittest.TestCase):
@@ -14,22 +29,22 @@ class SamposTests(unittest.TestCase):
     axes = ['X', 'Y', 'Z', 'W', 'S']
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sampos")
+        self._ioc = IOCRegister.get_running("SAMPOS")
 
-        self.ca = ChannelAccess(20)
-        self.ca.wait_for("SAMPOS:DISABLE", timeout=30)
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self.ca.wait_for("DISABLE", timeout=30)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
-        self.ca.assert_that_pv_is("SAMPOS:DISABLE", "COMMS ENABLED")
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def test_WHEN_values_are_set_THEN_readbacks_update(self):
         for axis in self.axes:
             for value in self.test_values:
-                self.ca.assert_setting_setpoint_sets_readback(value, readback_pv="SAMPOS:{}".format(axis),
-                                                              set_point_pv="SAMPOS:{}:SP".format(axis))
+                self.ca.assert_setting_setpoint_sets_readback(value, readback_pv="{}".format(axis),
+                                                              set_point_pv="{}:SP".format(axis))
 
     def test_WHEN_values_are_set_THEN_setpoint_readbacks_update(self):
         for axis in self.axes:
             for value in self.test_values:
-                self.ca.assert_setting_setpoint_sets_readback(value, readback_pv="SAMPOS:{}:SP:RBV".format(axis),
-                                                              set_point_pv="SAMPOS:{}:SP".format(axis))
+                self.ca.assert_setting_setpoint_sets_readback(value, readback_pv="{}:SP:RBV".format(axis),
+                                                              set_point_pv="{}:SP".format(axis))
