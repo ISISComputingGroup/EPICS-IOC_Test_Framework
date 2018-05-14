@@ -13,7 +13,6 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("ITC503"),
-        "macros": {},
         "emulator": "itc503",
     },
 ]
@@ -43,11 +42,10 @@ class Itc503Tests(unittest.TestCase):
             self.ca.assert_that_pv_is_number(pv, value, tolerance=0.1)  # Only comes back to 1dp
 
     def test_WHEN_setting_flows_THEN_can_be_read_back(self):
-        for pv, value in itertools.product(["SHIELDFLW", "SAMPLEFLW", "GASFLOW"], TEST_VALUES):
-            self.ca.set_pv_value("{}:SP".format(pv), value)
-            self.ca.assert_that_pv_is_number(pv, value, tolerance=0.1)  # Only comes back to 1dp
+        for value in TEST_VALUES:
+            self.ca.set_pv_value("GASFLOW:SP", value)
+            self.ca.assert_that_pv_is_number("GASFLOW", value, tolerance=0.1)  # Only comes back to 1dp
 
-    @skip_if_devsim("")
     def test_WHEN_setting_mode_THEN_can_be_read_back(self):
         for value in ("Auto", "Manual", "Auto"):
             self.ca.assert_setting_setpoint_sets_readback(value, "ACTIVITY")
@@ -57,3 +55,16 @@ class Itc503Tests(unittest.TestCase):
             self.ca.set_pv_value("TEMP:SP", value)
             self.ca.assert_that_pv_is_number("TEMP", value, tolerance=0.1)
             self.ca.assert_that_pv_is_number("TEMP:SP:RBV", value, tolerance=0.1)
+
+    @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
+    def test_WHEN_setting_control_mode_THEN_can_be_read_back(self):
+        for chan in ("FPLock", "EPICS+FPLock", "FPUnlock", "EPICS+FPUnlock"):
+            self.ca.assert_setting_setpoint_sets_readback(chan, "CTRL")
+
+    @skip_if_recsim("Backdoor does not exist in recsim")
+    def test_WHEN_sweeping_mode_is_set_via_backdoor_THEN_it_updates_in_the_ioc(self):
+        self._lewis.backdoor_set_on_device("sweeping", False)
+        self.ca.assert_that_pv_is("SWEEPING", "Not Sweeping")
+
+        self._lewis.backdoor_set_on_device("sweeping", True)
+        self.ca.assert_that_pv_is("SWEEPING", "Sweeping")
