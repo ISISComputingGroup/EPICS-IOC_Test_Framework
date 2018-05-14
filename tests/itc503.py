@@ -4,8 +4,7 @@ import itertools
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim
 
 DEVICE_PREFIX = "ITC503_01"
 
@@ -20,7 +19,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 TEST_VALUES = 0, 23.45
 
@@ -40,12 +39,21 @@ class Itc503Tests(unittest.TestCase):
 
     def test_WHEN_setting_pid_settings_THEN_can_be_read_back(self):
         for pv, value in itertools.product(["P", "I", "D"], TEST_VALUES):
-            self.ca.assert_setting_setpoint_sets_readback(value, pv)
+            self.ca.set_pv_value("{}:SP".format(pv), value)
+            self.ca.assert_that_pv_is_number(pv, value, tolerance=0.1)  # Only comes back to 1dp
 
     def test_WHEN_setting_flows_THEN_can_be_read_back(self):
-        for pv, value in itertools.product(["SHIELDFLW", "SAMPLEFLW"], TEST_VALUES):
-            self.ca.assert_setting_setpoint_sets_readback(value, pv)
+        for pv, value in itertools.product(["SHIELDFLW", "SAMPLEFLW", "GASFLOW"], TEST_VALUES):
+            self.ca.set_pv_value("{}:SP".format(pv), value)
+            self.ca.assert_that_pv_is_number(pv, value, tolerance=0.1)  # Only comes back to 1dp
 
+    @skip_if_devsim("")
     def test_WHEN_setting_mode_THEN_can_be_read_back(self):
         for value in ("Auto", "Manual", "Auto"):
             self.ca.assert_setting_setpoint_sets_readback(value, "ACTIVITY")
+
+    def test_WHEN_temperature_is_set_THEN_temperature_and_setpoint_readbacks_update_to_new_value(self):
+        for value in TEST_VALUES:
+            self.ca.set_pv_value("TEMP:SP", value)
+            self.ca.assert_that_pv_is_number("TEMP", value, tolerance=0.1)
+            self.ca.assert_that_pv_is_number("TEMP:SP:RBV", value, tolerance=0.1)
