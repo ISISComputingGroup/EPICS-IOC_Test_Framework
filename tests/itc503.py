@@ -53,6 +53,8 @@ class Itc503Tests(unittest.TestCase):
         Purely so that the tests run faster, the real IOC scans excruciatingly slowly.
         """
         # Skip setting the PVs if the scan rate is already fast
+        self.ca.wait_for("FAN1")
+        self.ca.wait_for("FAN2")
         if self.ca.get_pv_value("FAN1.SCAN") != ".1 second":
             for i in range(1, 8+1):
                 # Ensure all DLY links are 0 in both FAN records
