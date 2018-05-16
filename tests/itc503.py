@@ -22,7 +22,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
-TEST_VALUES = 0, 23.45
+TEST_VALUES = 0.12345678, 54.321
 
 MODES = [
     "Man heater, man flow",
@@ -46,6 +46,21 @@ class Itc503Tests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("itc503", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
         self.ca.wait_for("DISABLE")
+        self._make_device_scan_faster()
+
+    def _make_device_scan_faster(self):
+        """
+        Purely so that the tests run faster, the real IOC scans excruciatingly slowly.
+        """
+        # Skip setting the PVs if the scan rate is already fast
+        if self.ca.get_pv_value("FAN1.SCAN") != ".1 second":
+            for i in range(1, 8+1):
+                # Ensure all DLY links are 0 in both FAN records
+                self.ca.set_pv_value("FAN1.DLY{}".format(i), 0)
+                self.ca.set_pv_value("FAN2.DLY{}".format(i), 0)
+
+            # Set the scan rate to .1 second (setting string does not work, have to use numeric value)
+            self.ca.set_pv_value("FAN1.SCAN", 9)
 
     def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -66,9 +81,11 @@ class Itc503Tests(unittest.TestCase):
 
     def test_WHEN_temperature_is_set_THEN_temperature_and_setpoint_readbacks_update_to_new_value(self):
         for value in TEST_VALUES:
-            self.ca.set_pv_value("TEMP:SP", value)
-            self.ca.assert_that_pv_is_number("TEMP", value, tolerance=0.1)
-            self.ca.assert_that_pv_is_number("TEMP:SP:RBV", value, tolerance=0.1)
+            self.ca.set_pv_value("TTEMP:SP", value)
+            self.ca.assert_that_pv_is_number("TTEMP", value, tolerance=0.1)
+            self.ca.assert_that_pv_is_number("TEMP1", value, tolerance=0.1)
+            self.ca.assert_that_pv_is_number("TEMP2", value, tolerance=0.1)
+            self.ca.assert_that_pv_is_number("TEMP3", value, tolerance=0.1)
 
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_control_channel_is_set_THEN_control_channel_can_be_read_back(self):
@@ -95,12 +112,6 @@ class Itc503Tests(unittest.TestCase):
 
     @skip_if_recsim("Backdoor does not exist in recsim")
     def test_WHEN_heater_voltage_is_set_THEN_heater_voltage_updates(self):
-        # Ensure the heater range is high enough to handle the maximum test value.
-        heater_max = max(TEST_VALUES)
-        self.ca.set_pv_value("HEATERV:MAX", heater_max)
-        sleep(0.5)  # Give it time to be set
-        self.assertTrue(abs(float(self._lewis.backdoor_get_from_device("heater_v_max")) - heater_max) <= 0.1)
-
         for val in TEST_VALUES:
             self.ca.set_pv_value("HEATERV:SP", val)
             self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
