@@ -1,4 +1,5 @@
 import unittest
+from contextlib import contextmanager
 from time import sleep
 
 from utils.channel_access import ChannelAccess
@@ -14,7 +15,6 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("FERMCHOP"),
-        "macros": {},
         "emulator": "fermichopper",
     },
 ]
@@ -42,37 +42,31 @@ class FermichopperTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper", DEVICE_PREFIX)
 
-        self.ca = ChannelAccess(20, DEVICE_PREFIX)
-        self.ca.wait_for("SPEED", timeout=30)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
+        self.ca.wait_for("SPEED")
+
+        self.ca.set_pv_value("DELAY:SP", 0)
+        self.ca.set_pv_value("GATEWIDTH:SP", 0)
+        self.ca.assert_that_pv_is_number("DELAY:SP:RBV", 0)
+        self.ca.assert_that_pv_is_number("GATEWIDTH", 0)
 
         if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_run_function_on_device("reset")
 
-            # Ensure consistent startup state...
-            self._lewis.backdoor_set_on_device("electronics_temp", 20)
-            self.ca.assert_that_pv_is_number("TEMP:ELECTRONICS", 20, tolerance=0.2)
+    def is_device_broken(self):
+        if IOCRegister.uses_rec_sim:
+            return False  # In recsim, assume device is always ok
+        else:
+            return self._lewis.backdoor_get_from_device("is_broken") != "False"
 
-            self._lewis.backdoor_set_on_device("motor_temp", 20)
-            self.ca.assert_that_pv_is_number("TEMP:MOTOR", 20, tolerance=0.2)
+    def tearDown(self):
+        self.assertFalse(self.is_device_broken(), "Device was broken.")
 
-            for number in [1, 2]:
-                for position in ["upper", "lower"]:
-                    self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
-                    self.ca.assert_that_pv_is_number(
-                        "AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
-
-            self._lewis.backdoor_set_on_device("speed", 0)
-
-            self._lewis.backdoor_set_on_device("do_command", "0001")
-            self.ca.assert_that_pv_is("LASTCOMMAND", "0001")
-
-            self._lewis.backdoor_set_on_device("speed_setpoint", 0)
-            self.ca.assert_that_pv_is("SPEED:SP:RBV", 0)
-
-            self._lewis.backdoor_set_on_device("magneticbearing", False)
-            self.ca.assert_that_pv_is("STATUS.B3", "0")
-
-            self._lewis.backdoor_set_on_device("speed", 0)
-            self.ca.assert_that_pv_is("SPEED", 0)
+    def _turn_on_bearings_and_run(self):
+        self.ca.set_pv_value("COMMAND:SP", 4)  # Switch magnetic bearings on
+        self.ca.assert_that_pv_is("STATUS.B3", "1")
+        self.ca.set_pv_value("COMMAND:SP", 3)  # Switch drive on and run
+        self.ca.assert_that_pv_is("STATUS.B5", "1")
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -80,17 +74,9 @@ class FermichopperTests(unittest.TestCase):
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_last_command_is_set_via_backdoor_THEN_pv_updates(self):
         for value in self.valid_commands:
-            # Doesn't actually execute the commands, so we are safe from entering the "broken" state here.
             self._lewis.backdoor_set_on_device("last_command", value)
             self.ca.assert_that_pv_is("LASTCOMMAND", value)
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_speed_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
-        for value in self.test_chopper_speeds:
-            self._lewis.backdoor_set_on_device("speed_setpoint", value)
-            self.ca.assert_that_pv_is("SPEED:SP:RBV", value)
-
-    # @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
         for speed in self.test_chopper_speeds:
             self.ca.set_pv_value("SPEED:SP", speed)
@@ -99,13 +85,6 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
             self.ca.assert_pv_alarm_is("SPEED:SP:RBV", self.ca.ALARM_NONE)
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_delay_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
-        for value in self.test_delay_durations:
-            self._lewis.backdoor_set_on_device("delay", value)
-            self.ca.assert_that_pv_is_number("DELAY:SP:RBV", value, tolerance=0.05)
-
-    # @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_delay_setpoint_is_set_THEN_readback_updates(self):
         for value in self.test_delay_durations:
             self.ca.set_pv_value("DELAY:SP", value)
@@ -114,13 +93,6 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("DELAY:SP:RBV", value, tolerance=0.05)
             self.ca.assert_pv_alarm_is("DELAY:SP:RBV", self.ca.ALARM_NONE)
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_gatewidth_setpoint_is_set_via_backdoor_THEN_pv_updates(self):
-        for value in self.test_gatewidth_values:
-            self._lewis.backdoor_set_on_device("gatewidth", value)
-            self.ca.assert_that_pv_is_number("GATEWIDTH", value, tolerance=0.05)
-
-    # @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_gatewidth_is_set_THEN_readback_updates(self):
         for value in self.test_gatewidth_values:
             self.ca.set_pv_value("GATEWIDTH:SP", value)
@@ -168,24 +140,20 @@ class FermichopperTests(unittest.TestCase):
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_THEN_chopper_goes_to_setpoint(self):
+
         for speed in self.test_chopper_speeds:
             # Setup setpoint speed
-            self._lewis.backdoor_set_on_device("speed_setpoint", speed)
+            self.ca.set_pv_value("SPEED:SP", speed)
             self.ca.assert_that_pv_is_number("SPEED:SP:RBV", speed)
 
-            # Switch on magnetic bearings
-            self.ca.set_pv_value("COMMAND:SP", 4)
-            self.ca.assert_that_pv_is("LASTCOMMAND", "0004")
-            self.ca.assert_that_pv_is("STATUS.B3", "1")
+            self._turn_on_bearings_and_run()
 
-            # Run mode ON
-            self.ca.set_pv_value("COMMAND:SP", 3)
-            self.ca.assert_that_pv_is("LASTCOMMAND", "0003")
-
-            self.ca.assert_that_pv_is_number("SPEED", speed, tolerance=0.1, timeout=30)
+            self.ca.assert_that_pv_is_number("SPEED", speed, tolerance=0.1)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_without_magnetic_bearings_on_THEN_chopper_does_not_go_to_setpoint(self):
+
+        self.ca.assert_that_pv_is_number("SPEED", 0)
 
         # Switch OFF magnetic bearings
         self.ca.set_pv_value("COMMAND:SP", 5)
@@ -194,7 +162,7 @@ class FermichopperTests(unittest.TestCase):
 
         for speed in self.test_chopper_speeds:
             # Setup setpoint speed
-            self._lewis.backdoor_set_on_device("speed_setpoint", speed)
+            self.ca.set_pv_value("SPEED:SP", speed)
             self.ca.assert_that_pv_is_number("SPEED:SP:RBV", speed)
 
             # Run mode ON
@@ -202,25 +170,19 @@ class FermichopperTests(unittest.TestCase):
             # Ensure the ON command has been ignored and last command is still "switch off bearings"
             self.ca.assert_that_pv_is("LASTCOMMAND", "0005")
 
-            self.ca.assert_that_pv_is_number("SPEED", 0, tolerance=0.1, timeout=30)
+            self.ca.assert_that_pv_is_number("SPEED", 0, tolerance=0.1)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_chopper_at_speed_WHEN_switch_off_magnetic_bearings_command_is_sent_THEN_magnetic_bearings_do_not_switch_off(self):
 
         speed = 150
 
-        # Switch ON magnetic bearings
-        self.ca.set_pv_value("COMMAND:SP", 4)
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0004")
-        self.ca.assert_that_pv_is("STATUS.B3", "1")
-
         # Setup setpoint speed
-        self._lewis.backdoor_set_on_device("speed_setpoint", speed)
+        self.ca.set_pv_value("SPEED:SP", speed)
         self.ca.assert_that_pv_is_number("SPEED:SP:RBV", speed)
 
         # Run mode ON
-        self.ca.set_pv_value("COMMAND:SP", 3)
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0003")
+        self._turn_on_bearings_and_run()
 
         # Wait for chopper to get up to speed
         self.ca.assert_that_pv_is_number("SPEED", speed, tolerance=0.1)
@@ -252,31 +214,15 @@ class FermichopperTests(unittest.TestCase):
 
         too_fast = 700
 
+        # Turn on magnetic bearings otherwise device will report it is broken
+        self._lewis.backdoor_set_on_device("magneticbearing", True)
+        self.ca.assert_that_pv_is("STATUS.B3", "1")
+
         self._lewis.backdoor_set_on_device("speed", too_fast)
         self.ca.assert_that_pv_is("STATUS.BA", "1")
 
         self._lewis.backdoor_set_on_device("speed", 0)
         self.ca.assert_that_pv_is("STATUS.BA", "0")
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_chopper_speed_is_too_high_with_magnetic_bearing_off_THEN_status_updates(self):
-
-        too_fast = 15
-
-        # Magnetic bearings should have been turned off in setUp
-        self.ca.assert_that_pv_is("STATUS.B3", "0")
-
-        self._lewis.backdoor_set_on_device("speed", too_fast)
-        self.ca.assert_that_pv_is("STATUS.BB", "1")
-
-        self._lewis.backdoor_set_on_device("magneticbearing", True)
-        self.ca.assert_that_pv_is("STATUS.BB", "0")
-
-        self._lewis.backdoor_set_on_device("magneticbearing", False)
-        self.ca.assert_that_pv_is("STATUS.BB", "1")
-
-        self._lewis.backdoor_set_on_device("speed", 0)
-        self.ca.assert_that_pv_is("STATUS.BB", "0")
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_chopper_parameters_are_set_THEN_status_updates(self):
@@ -330,6 +276,78 @@ class FermichopperTests(unittest.TestCase):
                 self._lewis.backdoor_set_on_device("voltage", voltage)
                 self._lewis.backdoor_set_on_device("current", current)
                 self.ca.assert_that_pv_is_number("POWER", current * voltage, tolerance=0.5)
+
+    @contextmanager
+    def _lie_about(self, lie):
+        if IOCRegister.uses_rec_sim:
+            raise IOError("Can't use lewis backdoor in recsim!")
+
+        self._lewis.backdoor_set_on_device("is_lying_about_{}".format(lie), True)
+        try:
+            yield
+        finally:
+            self._lewis.backdoor_set_on_device("is_lying_about_{}".format(lie), False)
+
+    def _lie_about_delay_setpoint_readback(self):
+        return self._lie_about("delay_sp_rbv")
+
+    def _lie_about_gatewidth(self):
+        return self._lie_about("gatewidth")
+
+    @skip_if_recsim("Lying about setpoint readback not possible in recsim")
+    def test_GIVEN_device_lies_about_delay_setpoint_WHEN_setting_a_delay_THEN_keeps_trying_until_device_does_not_lie(self):
+
+        test_value = 567.8
+        tolerance = 0.05
+
+        self.ca.set_pv_value("DELAY:SP", test_value)
+        self.ca.assert_that_pv_is_number("DELAY:SP:RBV", test_value, tolerance=tolerance)
+
+        with self._lie_about_delay_setpoint_readback():
+            self.ca.assert_pv_value_causes_func_to_return_true("DELAY:SP:RBV", lambda v: abs(v - test_value) > tolerance)
+
+            # Some time later the driver should resend the setpoint which causes the device to behave properly again:
+            self.ca.assert_that_pv_is_number("DELAY:SP:RBV", test_value, tolerance=tolerance)
+
+    @skip_if_recsim("Lying about gate width not possible in recsim")
+    def test_GIVEN_device_lies_about_gatewidth_WHEN_setting_a_gatewidth_THEN_keeps_trying_until_device_does_not_lie(self):
+
+        test_value = 567.8
+        tolerance = 0.05
+
+        self.ca.set_pv_value("GATEWIDTH:SP", test_value)
+        self.ca.assert_that_pv_is_number("GATEWIDTH", test_value, tolerance=tolerance)
+
+        with self._lie_about_gatewidth():
+            self.ca.assert_pv_value_causes_func_to_return_true("GATEWIDTH", lambda v: abs(v - test_value) > tolerance)
+
+            # Some time later the driver should resend the setpoint which causes the device to behave properly again:
+            self.ca.assert_that_pv_is_number("GATEWIDTH", test_value, tolerance=tolerance)
+
+    @skip_if_recsim("Device breakage not simulated in RECSIM")
+    def test_GIVEN_setpoint_is_already_at_600Hz_WHEN_setting_setpoint_to_600Hz_THEN_device_does_not_break(self):
+
+        self._turn_on_bearings_and_run()
+
+        self.ca.set_pv_value("SPEED:SP", 600)
+        self.ca.assert_that_pv_is_number("SPEED", 600, tolerance=0.1)
+
+        self.ca.set_pv_value("SPEED:SP", 600)
+        self.ca.assert_that_pv_is_number("SPEED", 600, tolerance=0.1)
+
+        # Assertion that device is not broken occurs in tearDown()
+
+    @skip_if_recsim("Device breakage not simulated in RECSIM")
+    def test_GIVEN_setpoint_is_at_600Hz_and_device_already_running_WHEN_send_run_command_THEN_device_does_not_break(self):
+
+        self._turn_on_bearings_and_run()
+
+        self.ca.set_pv_value("SPEED:SP", 600)
+        self.ca.assert_that_pv_is_number("SPEED", 600, tolerance=0.1)
+
+        self.ca.set_pv_value("COMMAND:SP", 3)  # Switch drive on and run
+
+        # Assertion that device is not broken occurs in tearDown()
 
     #
     #   Mandatory safety tests
