@@ -1,8 +1,35 @@
 import functools
 import unittest
+from time import sleep
 
 from utils.ioc_launcher import IOCRegister, IocLauncher
 from utils.lewis_launcher import LewisRegister, LewisLauncher
+
+
+class _AssertLogContext(object):
+    """A context manager used to implement assert_log_messages."""
+    messages = list()
+    first_message = 0
+
+    def __init__(self, log_manager, number_of_messages, in_time):
+        self.in_time = in_time
+        self.log_manager = log_manager
+        self.exp_num_of_messages = number_of_messages
+
+    def __enter__(self):
+        self.log_manager.read_log()  # Read any excess log
+        return self
+
+    def __exit__(self, *args):
+        sleep(self.in_time)
+        self.messages = self.log_manager.read_log()
+        actual_num_of_messages = len(self.messages)
+
+        if actual_num_of_messages != self.exp_num_of_messages:
+            raise AssertionError("Incorrect number of log messages created. Expected {} and found {}"
+                                 .format(self.exp_num_of_messages, actual_num_of_messages))
+
+        return True
 
 
 def get_running_lewis_and_ioc(emulator_name, ioc_name):
@@ -25,6 +52,29 @@ def get_running_lewis_and_ioc(emulator_name, ioc_name):
         raise AssertionError("Emulator ({}) is not running".format(emulator_name))
 
     return lewis, ioc
+
+
+def assert_log_messages(ioc, number_of_messages, in_time=1):
+    """
+    A context object that asserts that the given code produces the given number of ioc log messages in the the given
+    amount of time.
+
+    To assert that only 5 messages are produced in 5 seconds::
+        with assert_log_messages(self._ioc, 5, 5):
+            do_something()
+
+    The context manager will keep a reference to the messages themselves::
+        with assert_log_messages(self._ioc, 5) as cm:
+            do_something()
+
+        self.assertEqual(cm.messages[0], "The first log message")
+
+    Args:
+        ioc (IocLauncher): The IOC that we are checking the logs for.
+        number_of_messages (int): The number of messages that are expected
+        in_time (int): The number of seconds to wait for messages
+    """
+    return _AssertLogContext(ioc.log_file_manager, number_of_messages, in_time)
 
 
 def _skip_if_condition(condition, reason):

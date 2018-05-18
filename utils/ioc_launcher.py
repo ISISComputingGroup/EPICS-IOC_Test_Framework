@@ -3,7 +3,7 @@ import os
 from time import sleep
 
 from utils.channel_access import ChannelAccess
-from utils.log_file import log_filename
+from utils.log_file import log_filename, LogFileManager
 
 
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))
@@ -73,7 +73,7 @@ class IocLauncher(object):
         self._directory = directory
         self.use_rec_sim = use_rec_sim
         self._process = None
-        self._logFile = None
+        self.log_file_manager = None
         self._device = device
         IOCRegister.uses_rec_sim = bool(use_rec_sim)
         self._ca = None
@@ -138,25 +138,17 @@ class IocLauncher(object):
                 f.write('epicsEnvSet("{macro}", "{value}")\n'
                         .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
 
+        self.log_file_manager = LogFileManager(self._log_filename())
+        self.log_file_manager.log_file.write("Started IOC with '{0}'".format(" ".join(ioc_run_commandline)))
+
         # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
         # This does mean that the IOC will need to be closed manually after the tests.
         # Make sure to revert before checking code in
-        self._logFile = open(self._log_filename(), "w")
-        self._logFile.write("Started IOC with '{0}'".format(" ".join(ioc_run_commandline)))
-
         self._process = subprocess.Popen(ioc_run_commandline, creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                         cwd=self._directory, stdin=subprocess.PIPE, stdout=self._logFile,
-                                         stderr=subprocess.STDOUT, env=settings)
+                                         cwd=self._directory, stdin=subprocess.PIPE,
+                                         stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT, env=settings)
 
-        # Look for epics> in the IOC log which means that the IOC has successfully started.
-        for i in range(MAX_TIME_TO_WAIT_FOR_IOC_TO_START):
-            with open(self._log_filename()) as f:
-                if any("epics>" in line for line in f.readlines()):
-                    break
-            sleep(1)
-        else:
-            raise AssertionError("IOC appears not to have started after {} seconds."
-                                 .format(MAX_TIME_TO_WAIT_FOR_IOC_TO_START))
+        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START)
 
         IOCRegister.add_ioc(self._device, self)
 
@@ -167,11 +159,10 @@ class IocLauncher(object):
         print("Terminating IOC ({})".format(self._device))
 
         if self._process is not None:
-            # Need to send "exit" to the console as terminating the process won't work, because we ran a batch file
             self._process.communicate("exit\n")
 
-        if self._logFile is not None:
-            self._logFile.close()
+        if self.log_file_manager is not None:
+            self.log_file_manager.close()
             print("IOC log written to {0}".format(self._log_filename()))
 
     def set_simulated_value(self, pv_name, value):
