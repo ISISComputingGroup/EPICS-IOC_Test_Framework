@@ -3,8 +3,7 @@ from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
-from datetime import datetime, date, timedelta
-
+import time
 
 DEVICE_PREFIX = "HFMAGPSU_01"
 
@@ -18,112 +17,86 @@ IOCS = [
     },
 ]
 
-#TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
-TEST_MODES = [TestModes.DEVSIM]
+
+class EnumValues(object):
+    AMPS = 0
+    TESLA = 1
+    ON = 1
+    OFF = 0
+
+
+class StringValues(object):
+    TESLA = "TESLA"
+    AMPS = "AMPS"
+    ON = "ON"
+    OFF = "OFF"
+
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+
 
 class HfmagpsuTests(unittest.TestCase):
-
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("HFMAGPSU", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
         self.ca.wait_for("DIRECTION")
-
-    ''' Retrieve time from the log message PV and parse to a datetime object '''
-
-    def get_log_message_time(self, log_message):
-        time_string = log_message[:8]
-        time_object = datetime.strptime(time_string, '%H:%M:%S')
-        return time_object
+        time.sleep(8)
 
     def test_GIVEN_midTarget_set_WHEN_read_THEN_midTarget_is_as_expected(self):
         test_value = 2.325
-        self.ca.set_pv_value("MID:SP", test_value)
-        self.ca.assert_that_pv_is("MID", test_value)
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "MID")
 
     def test_GIVEN_rampRate_set_WHEN_read_THEN_rampRate_is_as_expected(self):
         test_value = 0.51
-        self.ca.set_pv_value("RAMPRATE:SP", test_value)
-        self.ca.assert_that_pv_is("RAMPRATE", test_value)
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "RAMPRATE")
 
     def test_GIVEN_maxTarget_set_WHEN_read_THEN_maxTarget_is_as_expected(self):
         test_value = 4.0
-        self.ca.set_pv_value("MAX:SP", test_value)
-        self.ca.assert_that_pv_is("MAX", test_value)
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "MAX")
 
     def test_GIVEN_limit_set_WHEN_read_THEN_limit_is_as_expected(self):
         test_value = 35.5
-        self.ca.set_pv_value("LIMIT:SP", test_value)
-        self.ca.assert_that_pv_is("LIMIT", test_value)
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "LIMIT")
 
     def test_GIVEN_constant_set_WHEN_read_THEN_constant_is_as_expected(self):
         test_value = 0.0032
-        self.ca.set_pv_value("CONSTANT:SP", test_value)
-        self.ca.assert_that_pv_is("CONSTANT", test_value)
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "CONSTANT")
 
     def test_GIVEN_heaterValue_set_WHEN_read_THEN_heaterValue_is_as_expected(self):
         test_value = 15.5
-        self.ca.set_pv_value("HEATERVALUE:SP", test_value)
-        self.ca.assert_that_pv_is("HEATERVALUE", test_value)
+        self.ca.assert_setting_setpoint_sets_readback(test_value, "HEATERVALUE")
 
     def test_GIVEN_pause_set_ON_WHEN_read_THEN_pause_is_as_expected(self):
-        expected_output = 'ON'
-        self.ca.set_pv_value("PAUSE:SP", 1)
-        self.ca.assert_that_pv_is("PAUSE", expected_output)
+        expected_output = StringValues.ON
+        set_value = EnumValues.ON
+        self.ca.assert_setting_setpoint_sets_readback(set_value, "PAUSE", "PAUSE:SP", expected_output)
 
     def test_GIVEN_pause_set_OFF_WHEN_read_THEN_pause_is_as_expected(self):
-        expected_output = 'OFF'
-        self.ca.set_pv_value("PAUSE:SP", 0)
-        self.ca.assert_that_pv_is("PAUSE", expected_output)
-
-    def test_GIVEN_outputMode_set_AMPS_WHEN_read_THEN_outputMode_is_as_expected(self):
-        test_value = 'AMPS'
-        self.ca.set_pv_value("OUTPUTMODE:SP", 0)
-        self.ca.assert_that_pv_is("OUTPUTMODE", test_value)
+        expected_output = StringValues.OFF
+        set_value = EnumValues.OFF
+        self.ca.assert_setting_setpoint_sets_readback(set_value, "PAUSE", "PAUSE:SP", expected_output)
 
     def test_GIVEN_outputMode_set_TESLA_WHEN_read_THEN_outputMode_is_as_expected(self):
-        test_value = 'TESLA'
-        self.ca.set_pv_value("OUTPUTMODE:SP", 1)
-        self.ca.assert_that_pv_is("OUTPUTMODE", test_value)
+        expected_output = StringValues.TESLA
+        set_value = EnumValues.TESLA
+        self.ca.assert_setting_setpoint_sets_readback(set_value, "OUTPUTMODE", "OUTPUTMODE:SP", expected_output)
 
     def test_GIVEN_heaterStatus_set_ON_WHEN_read_THEN_heaterStatus_is_as_expected(self):
-        expected_heaterStatus = 'ON'
-        self.ca.set_pv_value("HEATERSTATUS:SP", 1)
-        self.ca.assert_that_pv_is("HEATERSTATUS", expected_heaterStatus)
+        expected_output = StringValues.ON
+        set_value = EnumValues.ON
+        self.ca.assert_setting_setpoint_sets_readback(set_value, "HEATERSTATUS", "HEATERSTATUS:SP", expected_output)
 
     def test_GIVEN_heaterStatus_set_OFF_WHEN_read_THEN_heaterStatus_is_as_expected(self):
-        expected_heaterStatus = 'OFF'
-        self.ca.set_pv_value("HEATERSTATUS:SP", 0)
-        self.ca.assert_that_pv_is("HEATERSTATUS", expected_heaterStatus)
+        expected_output = StringValues.OFF
+        set_value = EnumValues.OFF
+        self.ca.assert_setting_setpoint_sets_readback(set_value, "HEATERSTATUS", "HEATERSTATUS:SP", expected_output)
 
     def test_GIVEN_rampTarget_set_WHEN_read_THEN_rampTarget_is_as_expected(self):
         ramp_targets = ['ZERO', 'MID', 'MAX']
-        for index, value in enumerate(ramp_targets):
-            self.ca.set_pv_value("RAMPTARGET:SP", index)
-            expected_target = value
-            self.ca.assert_that_pv_is("RAMPTARGET", expected_target)
+        for index, expected_output in enumerate(ramp_targets):
+            self.ca.assert_setting_setpoint_sets_readback(index, "RAMPTARGET", "RAMPTARGET:SP", expected_output)
 
     def test_GIVEN_direction_set_WHEN_read_THEN_direction_is_as_expected(self):
         directions = ["0", "-", "+"]
-        for index, value in enumerate(directions):
-            self.ca.set_pv_value("DIRECTION:SP", index)
-            expected_direction = value
-            self.ca.assert_that_pv_is("DIRECTION", expected_direction)
-    
-        #As the log message contains a timestamp and the setpoint/test timestamps will differ
-        #by a few seconds, we're testing to see if the timestamp difference is within 4 seconds.
-
-    def test_GIVEN_outputmode_set_WHEN_read_then_logmessage_is_as_expected(self):
-        self.ca.set_pv_value("OUTPUTMODE:SP", 0)
-        current_time = datetime.now().replace(year=1900, month=01, day=01)
-        log_message_time = self.get_log_message_time(self.ca.get_pv_value("LOGMESSAGE"))
-        time_difference = current_time - log_message_time
-        self.assertLess(time_difference.seconds, 4)
-
-    def test_GIVEN_limit_set_WHEN_read_then_logmessage_is_as_expected(self):
-        test_value = 33.4
-        self.ca.set_pv_value("LIMIT:SP", test_value)
-        current_time = datetime.now().replace(year=1900, month=01, day=01)
-        log_message_time = self.get_log_message_time(self.ca.get_pv_value("LOGMESSAGE"))
-        time_difference = current_time - log_message_time
-        self.assertLess(time_difference.seconds, 4)
+        for index, expected_output in enumerate(directions):
+            self.ca.assert_setting_setpoint_sets_readback(index, "DIRECTION", "DIRECTION:SP", expected_output)
