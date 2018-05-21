@@ -1,6 +1,7 @@
 import os
 import unittest
 import shutil
+import time
 from contextlib import contextmanager
 
 from utils.channel_access import ChannelAccess
@@ -9,10 +10,10 @@ from utils.test_modes import TestModes
 from utils.ioc_launcher import IOCRegister
 
 DEFAULT_SETTINGS_DIR = \
-    os.path.join("C:/", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings")
+    os.path.join("C:\\", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings")
 DEFAULT_SETTINGS_FILE = "Default.txt"
 
-TEMP_TEST_SETTINGS_DIR = os.path.join("C:/", "Instrument", "var", "tmp", "readascii_test")
+TEMP_TEST_SETTINGS_DIR = os.path.join("C:\\", "Instrument", "var", "tmp", "readascii_test")
 TEMP_SETTINGS_FILE_NAME = "test_temp.txt"
 
 
@@ -68,6 +69,8 @@ class ReadasciiTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(dir, "DIRBASE")
         self.ca.assert_setting_setpoint_sets_readback(name, "RAMP_FILE")
         self.ca.set_pv_value("LUTON", 1)
+        self.ca.assert_that_pv_is_number("LUTON:RBV", 1)
+
 
     @contextmanager
     def _use_test_file(self):
@@ -148,6 +151,17 @@ class ReadasciiTests(unittest.TestCase):
             new_rows = [[item+10 for item in row] for row in rows]
             self._write_contents_of_temporary_test_file(new_rows)
             self.assertNotEqual(rows, new_rows)
+            
+            time.sleep(3) # give time for file change to be noticed by IOC poll
 
             for row in new_rows:
                 self._set_and_check(*row)
+
+    def test_GIVEN_missing_file_THEN_the_pid_not_sent(self):
+        # set a valid file
+        self._set_and_use_file(DEFAULT_SETTINGS_DIR, DEFAULT_SETTINGS_FILE)
+        self.ca.assert_that_pv_is_number("LUTON:RBV", 1)
+        # set a missing file
+        self.ca.set_pv_value("RAMP_FILE:SP", "notthere.txt")
+        self.ca.set_pv_value("LUTON", 1)
+        self.ca.assert_that_pv_is_number("LUTON:RBV", 0)
