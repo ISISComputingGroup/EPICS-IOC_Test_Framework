@@ -1,5 +1,7 @@
 import unittest
+from contextlib import contextmanager
 
+import time
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -29,8 +31,8 @@ TOLERANCE = 0.0001
 HEATER_OFF_STATES = ["Off Mag at 0", "Off Mag at F"]
 
 # Time to wait for the heater to warm up/cool down
-# On a real system this is 30s but this makes the tests run too slowly.
-HEATER_WAIT_TIME = 5
+# On a real system this is 30s but speed it up a bit for the sake of tests.
+HEATER_WAIT_TIME = 10
 
 
 class IpsTests(unittest.TestCase):
@@ -49,11 +51,13 @@ class IpsTests(unittest.TestCase):
         self.ca.set_pv_value("CONTROL:SP", "Remote & Unlocked")
         self.ca.set_pv_value("ACTIVITY:SP", "To Setpoint")
 
-        # Don't run reset as this confuses the IOC's state machine. No matter what the initial state of the device,
-        # the snl should be able to deal with it.
+        # Don't run reset as the sudden change of state confuses the IOC's state machine. No matter what the initial
+        # state of the device the SNL should be able to deal with it.
         # self._lewis.backdoor_run_function_on_device("reset")
 
         self.ca.set_pv_value("HEATER:WAITTIME", HEATER_WAIT_TIME)
+
+        self.ca.set_pv_value("FIELDSWEEPRATE:SP", 10)
 
     def tearDown(self):
         self.assertEqual(self._lewis.backdoor_get_from_device("quenched"), "False")
@@ -62,10 +66,10 @@ class IpsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def _assert_field_is(self, field, timeout=None, check_stable=False):
-        self.ca.assert_that_pv_is_number("FIELD:SP:RBV", field, tolerance=TOLERANCE, timeout=timeout)
         self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE, timeout=timeout)
         if check_stable:
-            self.ca.assert_pv_value_is_unchanged("FIELD", 30)
+            self.ca.assert_pv_value_is_unchanged("FIELD", wait=30)
+            self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE)
 
     def _assert_heater_is(self, heater_state, timeout=None):
         self.ca.assert_that_pv_is("HEATER:STATUS:SP", "On" if heater_state else "Off", timeout=timeout)
@@ -74,11 +78,14 @@ class IpsTests(unittest.TestCase):
         else:
             self.ca.assert_that_pv_is_one_of("HEATER:STATUS", HEATER_OFF_STATES, timeout=timeout)
 
+    def _set_and_check_persistent_mode(self, mode):
+        self.ca.assert_setting_setpoint_sets_readback("YES" if mode else "NO", "PERSISTENT")
+
     def test_GIVEN_persistent_mode_enabled_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_ramps_to_zero(self):
         """
         Happy path test; magnet acts as we want it to.
         """
-        self.ca.assert_setting_setpoint_sets_readback("YES", "PERSISTENT")
+        self._set_and_check_persistent_mode(True)
 
         for val in TEST_VALUES:
             # Field in the magnet already from persistent mode.
@@ -89,6 +96,7 @@ class IpsTests(unittest.TestCase):
 
             # PSU should be ramped to match the persistent field inside the magnet
             self._assert_field_is(persistent_field)
+            self.ca.assert_that_pv_is("ACTIVITY", "To Setpoint")
 
             # Then it is safe to turn on the heater
             self._assert_heater_is(True, timeout=HEATER_WAIT_TIME*2)
@@ -100,9 +108,10 @@ class IpsTests(unittest.TestCase):
             # Now that the correct current is in the magnet, the SNL should turn the heater off
             self._assert_heater_is(False, timeout=HEATER_WAIT_TIME*2)
 
-            # Now that the heater is off, can ramp down the PSU to zero (SNL waits 30s for heater to be off before
+            # Now that the heater is off, can ramp down the PSU to zero (SNL waits some time for heater to be off before
             # ramping PSU to zero)
             self._assert_field_is(0, timeout=HEATER_WAIT_TIME*2)
+            self.ca.assert_that_pv_is("ACTIVITY", "To Zero")
 
             # ...And the magnet should now be in the right state!
             self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", val, tolerance=TOLERANCE)
@@ -111,7 +120,7 @@ class IpsTests(unittest.TestCase):
         """
         Happy path test; magnet acts as we want it to.
         """
-        self.ca.assert_setting_setpoint_sets_readback("NO", "PERSISTENT")
+        self._set_and_check_persistent_mode(False)
 
         for val in TEST_VALUES:
             # Field in the magnet already from persistent mode.
@@ -136,3 +145,50 @@ class IpsTests(unittest.TestCase):
 
             # And the PSU should remain stable providing the required current/field
             self._assert_field_is(val, check_stable=True)
+
+    @contextmanager
+    def _backdoor_magnet_quench(self, reason="Test framework quench"):
+        self._lewis.backdoor_run_function_on_device("quench", [reason])
+        try:
+            yield
+        finally:
+            # Get back out of the quenched state. This is because the tearDown method checks that magnet has not
+            # quenched.
+            self._lewis.backdoor_run_function_on_device("unquench")
+            # Wait for IOC to notice quench state has gone away
+            self.ca.assert_pv_alarm_is("STS:SYSTEM:FAULT", self.ca.ALARM_NONE)
+
+    def test_GIVEN_magnet_quenches_while_at_field_THEN_ioc_displays_this_quench_in_statuses(self):
+
+        for field in TEST_VALUES:
+            self._set_and_check_persistent_mode(False)
+            self.ca.set_pv_value("FIELD:SP", field)
+            self._assert_field_is(field, timeout=HEATER_WAIT_TIME*2)
+
+            with self._backdoor_magnet_quench():
+                self.ca.assert_that_pv_is("STS:SYSTEM:FAULT", "Quenched")
+                self.ca.assert_pv_alarm_is("STS:SYSTEM:FAULT", self.ca.ALARM_MAJOR)
+                self.ca.assert_that_pv_is("CONTROL", "Auto-Run-Down")
+                self.ca.assert_pv_alarm_is("CONTROL", self.ca.ALARM_MAJOR)
+
+                # The trip field should be the field at the point when the magnet quenched.
+                self.ca.assert_that_pv_is_number("TRIPFIELD", field, tolerance=TOLERANCE)
+
+                # Field should be set to zero by emulator (mirroring what the field ought to do in the real device)
+                self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=TOLERANCE)
+                self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", 0, tolerance=TOLERANCE)
+
+    def test_WHEN_inductance_set_via_backdoor_THEN_value_in_ioc_updates(self):
+        for val in TEST_VALUES:
+            self._lewis.backdoor_set_on_device("inductance", val)
+            self.ca.assert_that_pv_is_number("MAGNETINDUCTANCE", val, tolerance=TOLERANCE)
+
+    def test_WHEN_measured_current_set_via_backdoor_THEN_value_in_ioc_updates(self):
+        for val in TEST_VALUES:
+            self._lewis.backdoor_set_on_device("measured_current", val)
+            self.ca.assert_that_pv_is_number("MEASUREDMAGNETCURRENT", val, tolerance=TOLERANCE)
+
+    def test_WHEN_sweep_rate_set_THEN_sweep_rate_on_ioc_updates(self):
+        for val in TEST_VALUES:
+            self.ca.set_pv_value("FIELDSWEEPRATE:SP", val)
+            self.ca.assert_that_pv_is_number("FIELDSWEEPRATE:SP", val, tolerance=TOLERANCE)
