@@ -1,7 +1,6 @@
 import unittest
 from contextlib import contextmanager
 
-import time
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -24,7 +23,8 @@ IOCS = [
 # Only run tests in DEVSIM. Unable to produce detailed enough functionality to be useful in recsim.
 TEST_MODES = [TestModes.DEVSIM]
 
-TEST_VALUES = -0.12345, 7.654321  # Should be able to handle negative polarities
+TEST_VALUES = -0.12345, 6.54321  # Should be able to handle negative polarities
+TEST_SWEEP_RATES = 0.001, 0.9876  # Rate can't be negative or >1
 
 TOLERANCE = 0.0001
 
@@ -82,9 +82,7 @@ class IpsTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("YES" if mode else "NO", "PERSISTENT")
 
     def test_GIVEN_persistent_mode_enabled_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_ramps_to_zero(self):
-        """
-        Happy path test; magnet acts as we want it to.
-        """
+
         self._set_and_check_persistent_mode(True)
 
         for val in TEST_VALUES:
@@ -117,9 +115,7 @@ class IpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", val, tolerance=TOLERANCE)
 
     def test_GIVEN_non_persistent_mode_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_does_not_ramp_to_zero(self):
-        """
-        Happy path test; magnet acts as we want it to.
-        """
+
         self._set_and_check_persistent_mode(False)
 
         for val in TEST_VALUES:
@@ -189,6 +185,8 @@ class IpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("MEASUREDMAGNETCURRENT", val, tolerance=TOLERANCE)
 
     def test_WHEN_sweep_rate_set_THEN_sweep_rate_on_ioc_updates(self):
-        for val in TEST_VALUES:
+        for val in TEST_SWEEP_RATES:
             self.ca.set_pv_value("FIELDSWEEPRATE:SP", val)
             self.ca.assert_that_pv_is_number("FIELDSWEEPRATE:SP", val, tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number("FIELDSWEEPRATE", val, tolerance=TOLERANCE)
+            self.ca.assert_pv_alarm_is("FIELDSWEEPRATE", self.ca.ALARM_NONE)
