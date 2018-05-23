@@ -4,6 +4,7 @@ Channel access tp IOC
 import os
 import time
 import operator
+import ctypes
 from contextlib import contextmanager
 
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
@@ -34,6 +35,15 @@ class ChannelAccess(object):
         :param default_timeout: the default time out to wait for
         """
         self.ca = CaChannelWrapper()
+
+        # Silence CA errors
+        CaChannelWrapper.errorLogFunc = lambda *a, **kw: None
+        try:
+            hcom = ctypes.cdll.LoadLibrary("COM.DLL")
+            hcom.eltc(ctypes.c_int(0))
+        except Exception as e:
+            print("Unable to disable CA errors: ", e)
+
         self.prefix = os.environ["testing_prefix"]
         self._default_timeout = default_timeout
         if not self.prefix.endswith(':'):
