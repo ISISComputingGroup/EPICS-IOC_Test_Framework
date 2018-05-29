@@ -26,7 +26,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-UNITS = ["mbar", "Torr"]
+UNITS = ["mbar", "Torr", "Pa"]
 
 
 class Tpg300Tests(unittest.TestCase):
