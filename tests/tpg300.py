@@ -1,16 +1,12 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
 
 DEVICE_PREFIX = "TPG300_01"
-
-#PV names
-PA1 = "PRESSURE_A1"
-
 
 IOCS = [
     {
@@ -55,5 +51,6 @@ class Tpg300Tests(unittest.TestCase):
 
     def test_WHEN_read_pressure_A1_THEN_pressure_A1_value_is_same_as_backdoor(self):
         expected_pressure = 1.23
-        self._set_pressure(1.23, "a", 1)
+        self._set_pressure(expected_pressure, "a", 1)
+
         self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
