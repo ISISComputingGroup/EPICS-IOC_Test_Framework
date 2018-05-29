@@ -8,6 +8,9 @@ from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "TPG300_01"
 
+#PV names
+PA1 = "PRESSURE_A1"
+
 
 IOCS = [
     {
@@ -20,7 +23,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 UNITS = ["mbar", "Torr"]
@@ -32,9 +35,15 @@ class Tpg300Tests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("tpg300", DEVICE_PREFIX)
 
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+
+    def _set_pressure(self, expected_pressure, letter, channel):
+        pv = "SIM:PRESSURE"
+        prop = "pressure_{}{}".format(letter, channel)
+        self._lewis.backdoor_set_on_device(prop, expected_pressure)
+        self._ioc.set_simulated_value(pv, expected_pressure)
 
     def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -45,5 +54,6 @@ class Tpg300Tests(unittest.TestCase):
             self.ca.assert_that_pv_is("UNITS", unit)
 
     def test_WHEN_read_pressure_A1_THEN_pressure_A1_value_is_same_as_backdoor(self):
-        expected_pressure = 10.0
-        self.ca.assert_that_pv_is(PA1_PV, expected_pressure)
+        expected_pressure = 1.12
+        self._set_pressure(1.23, "a", 1)
+        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
