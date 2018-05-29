@@ -41,7 +41,9 @@ class IpsTests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
+        # Some changes happen on the order of HEATER_WAIT_TIME seconds. Use a significantly longer timeout
+        # to capture a few heater wait times plus some time for PVs to update.
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=HEATER_WAIT_TIME*10)
 
         # Wait for some critical pvs to be connected.
         for pv in ["PERSISTENTMAGNETFIELD", "FIELD", "FIELD:SP:RBV", "HEATER:STATUS"]:
@@ -59,24 +61,30 @@ class IpsTests(unittest.TestCase):
 
         self.ca.set_pv_value("FIELDSWEEPRATE:SP", 10)
 
+        # Wait for statemachine to reach "at field" state before every test.
+        self.ca.assert_that_pv_is_one_of("STATEMACHINE", ["At field", "Initial state"])
+
     def tearDown(self):
+        # Wait for statemachine to reach "at field" state after every test.
+        self.ca.assert_that_pv_is("STATEMACHINE", "At field")
+
         self.assertEqual(self._lewis.backdoor_get_from_device("quenched"), "False")
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def _assert_field_is(self, field, timeout=None, check_stable=False):
-        self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE, timeout=timeout)
+    def _assert_field_is(self, field, check_stable=False):
+        self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE)
         if check_stable:
             self.ca.assert_pv_value_is_unchanged("FIELD", wait=30)
             self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE)
 
-    def _assert_heater_is(self, heater_state, timeout=None):
-        self.ca.assert_that_pv_is("HEATER:STATUS:SP", "On" if heater_state else "Off", timeout=timeout)
+    def _assert_heater_is(self, heater_state):
+        self.ca.assert_that_pv_is("HEATER:STATUS:SP", "On" if heater_state else "Off")
         if heater_state:
-            self.ca.assert_that_pv_is("HEATER:STATUS", "On", timeout=timeout)
+            self.ca.assert_that_pv_is("HEATER:STATUS", "On",)
         else:
-            self.ca.assert_that_pv_is_one_of("HEATER:STATUS", HEATER_OFF_STATES, timeout=timeout)
+            self.ca.assert_that_pv_is_one_of("HEATER:STATUS", HEATER_OFF_STATES)
 
     def _set_and_check_persistent_mode(self, mode):
         self.ca.assert_setting_setpoint_sets_readback("YES" if mode else "NO", "PERSISTENT")
@@ -97,21 +105,22 @@ class IpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("ACTIVITY", "To Setpoint")
 
             # Then it is safe to turn on the heater
-            self._assert_heater_is(True, timeout=HEATER_WAIT_TIME*2)
+            self._assert_heater_is(True)
 
             # Assert that value gets passed to device by SNL. SNL waits 30s for the heater to cool down/warm up
             # after being set.
-            self._assert_field_is(val, timeout=HEATER_WAIT_TIME*2)
+            self._assert_field_is(val)
 
             # Now that the correct current is in the magnet, the SNL should turn the heater off
-            self._assert_heater_is(False, timeout=HEATER_WAIT_TIME*2)
+            self._assert_heater_is(False)
 
             # Now that the heater is off, can ramp down the PSU to zero (SNL waits some time for heater to be off before
             # ramping PSU to zero)
-            self._assert_field_is(0, timeout=HEATER_WAIT_TIME*2)
+            self._assert_field_is(0)
             self.ca.assert_that_pv_is("ACTIVITY", "To Zero")
 
             # ...And the magnet should now be in the right state!
+            self.ca.assert_that_pv_is("STATEMACHINE", "At field")
             self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", val, tolerance=TOLERANCE)
 
     def test_GIVEN_non_persistent_mode_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_does_not_ramp_to_zero(self):
@@ -126,20 +135,21 @@ class IpsTests(unittest.TestCase):
             self.ca.set_pv_value("FIELD:SP", val)
 
             # PSU should be ramped to match the persistent field inside the magnet (if there was one)
-            self._assert_field_is(persistent_field, timeout=HEATER_WAIT_TIME*2)
+            self._assert_field_is(persistent_field)
 
             # Then it is safe to turn on the heater (the heater is explicitly switched on and we wait for it even if it
             # was already on out of an abundance of caution).
-            self._assert_heater_is(True, timeout=HEATER_WAIT_TIME*2)
+            self._assert_heater_is(True)
 
             # Assert that value gets passed to device by SNL. SNL waits 30s for the heater to cool down/warm up
             # after being set.
-            self._assert_field_is(val, timeout=HEATER_WAIT_TIME*2)
+            self._assert_field_is(val)
 
             # ...And the magnet should now be in the right state!
             self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", val, tolerance=TOLERANCE)
 
             # And the PSU should remain stable providing the required current/field
+            self.ca.assert_that_pv_is("STATEMACHINE", "At field")
             self._assert_field_is(val, check_stable=True)
 
     @contextmanager
@@ -159,7 +169,8 @@ class IpsTests(unittest.TestCase):
         for field in TEST_VALUES:
             self._set_and_check_persistent_mode(False)
             self.ca.set_pv_value("FIELD:SP", field)
-            self._assert_field_is(field, timeout=HEATER_WAIT_TIME*2)
+            self._assert_field_is(field)
+            self.ca.assert_that_pv_is("STATEMACHINE", "At field")
 
             with self._backdoor_magnet_quench():
                 self.ca.assert_that_pv_is("STS:SYSTEM:FAULT", "Quenched")
