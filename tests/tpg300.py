@@ -43,3 +43,7 @@ class Tpg300Tests(unittest.TestCase):
         for unit in UNITS:
             self.ca.set_pv_value("UNITS:SP", unit)
             self.ca.assert_that_pv_is("UNITS", unit)
+
+    def test_WHEN_read_pressure_A1_THEN_pressure_A1_value_is_same_as_backdoor(self):
+        expected_pressure = 10.0
+        self.ca.assert_that_pv_is(PA1_PV, expected_pressure)
