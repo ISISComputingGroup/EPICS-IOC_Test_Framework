@@ -85,6 +85,15 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
             self.ca.assert_pv_alarm_is("SPEED:SP:RBV", self.ca.ALARM_NONE)
 
+    @skip_if_recsim("Recsim does not handle this")
+    def test_WHEN_speed_setpoint_is_set_via_gui_pv_THEN_readback_updates(self):
+        for speed in self.test_chopper_speeds:
+            self.ca.set_pv_value("SPEED:SP:GUI", "{} Hz".format(speed))
+            self.ca.assert_that_pv_is("SPEED:SP", speed)
+            self.ca.assert_pv_alarm_is("SPEED:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
+            self.ca.assert_pv_alarm_is("SPEED:SP:RBV", self.ca.ALARM_NONE)
+
     def test_WHEN_delay_setpoint_is_set_THEN_readback_updates(self):
         for value in self.test_delay_durations:
             self.ca.set_pv_value("DELAY:SP", value)
