@@ -50,6 +50,9 @@ class Tpg300Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("units", unit)
         self._ioc.set_simulated_value("SIM:UNITS", UNITS[unit])
 
+    def _set_connected(self, connected):
+        self._lewis.backdoor_set_on_device("connected", connected)
+
     def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
@@ -58,6 +61,7 @@ class Tpg300Tests(unittest.TestCase):
             expected_unit = unit_string
             self._set_units(unit_flag)
             self.ca.assert_that_pv_is("UNITS", expected_unit)
+
 
     def test_GIVEN_floating_point_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
         expected_pressure = 1.23
@@ -109,3 +113,8 @@ class Tpg300Tests(unittest.TestCase):
 
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
+    @skip_if_recsim("This test fails in recsim")
+    def test_GIVEN_asked_for_units_WHEN_emulator_is_disconnected_THEN_ca_alarm_shows_disconnected(self):
+        self._set_connected(False)
+        self.ca.assert_pv_alarm_is('PRESSURE_A1', ChannelAccess.ALARM_INVALID)
+        self._set_connected(True)
