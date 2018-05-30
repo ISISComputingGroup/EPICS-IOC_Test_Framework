@@ -122,5 +122,8 @@ class Tpg300Tests(unittest.TestCase):
     @skip_if_recsim("This test fails in recsim")
     def test_GIVEN_asked_for_units_WHEN_emulator_is_disconnected_THEN_ca_alarm_shows_disconnected(self):
         self._set_connected(False)
-        self.ca.assert_pv_alarm_is('PRESSURE_A1', ChannelAccess.ALARM_INVALID)
+
+        for channel in CHANNELS:
+            pv = "PRESSURE_{}".format(channel.upper())
+            self.ca.assert_pv_alarm_is(pv, ChannelAccess.ALARM_INVALID)
 
