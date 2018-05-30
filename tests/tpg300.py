@@ -49,8 +49,20 @@ class Tpg300Tests(unittest.TestCase):
             self.ca.set_pv_value("UNITS:SP", unit)
             self.ca.assert_that_pv_is("UNITS", unit)
 
-    def test_WHEN_read_pressure_A1_THEN_pressure_A1_value_is_same_as_backdoor(self):
+    def test_GIVEN_floating_point_pressure_value_WHEN_pressure_a1_is_read_THEN_pressure_a1_value_is_same_as_backdoor(self):
         expected_pressure = 1.23
+        self._set_pressure(expected_pressure, "a", 1)
+
+        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
+
+    def test_GIVEN_negative_floating_point_pressure_value_WHEN_pressure_a1_is_read_THEN_pressure_a1_value_is_same_as_backdoor(self):
+        expected_pressure = -10.23
+        self._set_pressure(expected_pressure, "a", 1)
+
+        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
+
+    def test_GIVEN_integer_pressure_WHEN_pressure_a1_is_read_THEN_pressure_A1_value_is_same_as_backdoor(self):
+        expected_pressure = 8
         self._set_pressure(expected_pressure, "a", 1)
 
         self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
