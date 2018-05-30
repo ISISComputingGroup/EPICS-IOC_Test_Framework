@@ -35,9 +35,11 @@ class Tpg300Tests(unittest.TestCase):
 
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
-    def _set_pressure(self, expected_pressure, letter, channel):
-        pv = "SIM:PRESSURE"
-        prop = "pressure_{}{}".format(letter, channel)
+        self.channel_names = ("A1", "A2", "B1", "B2")
+
+    def _set_pressure(self, expected_pressure, channel):
+        prop = "pressure_" + channel.lower()
+        pv = "SIM:" + prop.upper()
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
@@ -55,31 +57,50 @@ class Tpg300Tests(unittest.TestCase):
 
     def test_GIVEN_floating_point_pressure_value_WHEN_pressure_a1_is_read_THEN_pressure_a1_value_is_same_as_backdoor(self):
         expected_pressure = 1.23
-        self._set_pressure(expected_pressure, "a", 1)
 
-        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
+        for channel in self.channel_names:
+            pv = "PRESSURE_" + channel.upper()
+
+            self._set_pressure(expected_pressure, channel)
+
+            self.ca.assert_that_pv_is(pv, expected_pressure)
 
     def test_GIVEN_negative_floating_point_pressure_value_WHEN_pressure_a1_is_read_THEN_pressure_a1_value_is_same_as_backdoor(self):
         expected_pressure = -10.23
-        self._set_pressure(expected_pressure, "a", 1)
 
-        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
+        for channel in self.channel_names:
+            pv = "PRESSURE_" + channel.upper()
+
+            self._set_pressure(expected_pressure, channel)
+
+            self.ca.assert_that_pv_is(pv, expected_pressure)
 
     def test_GIVEN_integer_pressure_WHEN_pressure_a1_is_read_THEN_pressure_A1_value_is_same_as_backdoor(self):
         expected_pressure = 8
-        self._set_pressure(expected_pressure, "a", 1)
 
-        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
+        for channel in self.channel_names:
+            pv = "PRESSURE_" + channel.upper()
+
+            self._set_pressure(expected_pressure, channel)
+
+            self.ca.assert_that_pv_is(pv, expected_pressure)
 
     def test_GIVEN_pressure_in_negative_exponential_form_WHEN_pressure_a1_is_read_THEN_pressure_A1_value_is_same_as_backdoor(self):
         expected_pressure = 1e-6
-        self._set_pressure(expected_pressure, "a", 1)
 
-        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
+        for channel in self.channel_names:
+            pv = "PRESSURE_" + channel.upper()
+
+            self._set_pressure(expected_pressure, channel)
+
+            self.ca.assert_that_pv_is(pv, expected_pressure)
 
     def test_GIVEN_pressure_in_positive_exponential_form_WHEN_pressure_a1_is_read_THEN_pressure_A1_value_is_same_as_backdoor(self):
         expected_pressure = 1e+6
-        self._set_pressure(expected_pressure, "a", 1)
 
-        self.ca.assert_that_pv_is("PRESSURE_A1", expected_pressure)
+        for channel in self.channel_names:
+            pv = "PRESSURE_" + channel.upper()
+            self._set_pressure(expected_pressure, channel)
+
+            self.ca.assert_that_pv_is(pv, expected_pressure)
 
