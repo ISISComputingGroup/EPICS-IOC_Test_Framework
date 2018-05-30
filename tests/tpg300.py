@@ -41,10 +41,14 @@ class Tpg300Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
+    def _set_units(self, unit):
+        self._lewis.backdoor_set_on_device("units", unit)
+        self._ioc.set_simulated_value("SIM:UNITS", unit)
+
     def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_WHEN_units_are_set_THEN_unit_readback_is_the_value_that_was_just_set(self):
+    def test_WHEN_units_are_set_THEN_unit_is_the_same_as_backdoor(self):
         for unit in UNITS:
             self._set_units(unit)
             self.ca.assert_that_pv_is("UNITS", unit)
