@@ -42,7 +42,7 @@ class Tpg300Tests(unittest.TestCase):
 
     def _set_pressure(self, expected_pressure, channel):
         prop = "pressure_" + channel.lower()
-        pv = "SIM:" + prop.upper()
+        pv = "SIM:PRESSURE"
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
@@ -104,6 +104,7 @@ class Tpg300Tests(unittest.TestCase):
 
         for channel in self.channel_names:
             pv = "PRESSURE_" + channel.upper()
+
             self._set_pressure(expected_pressure, channel)
 
             self.ca.assert_that_pv_is(pv, expected_pressure)
