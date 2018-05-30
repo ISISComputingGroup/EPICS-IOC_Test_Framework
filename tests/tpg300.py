@@ -37,9 +37,14 @@ class Tpg300Tests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tpg300", DEVICE_PREFIX)
-
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._reset_values()
 
+    def _reset_values(self):
+        self._lewis.backdoor_set_on_device("pressure_a1", 1.0)
+        self._lewis.backdoor_set_on_device("pressure_a2", 2.0)
+        self._lewis.backdoor_set_on_device("pressure_b1", 3.0)
+        self._lewis.backdoor_set_on_device("pressure_b2", 4.0)
         self._set_connected(True)
 
     def _set_pressure(self, expected_pressure, channel):
@@ -63,7 +68,6 @@ class Tpg300Tests(unittest.TestCase):
             expected_unit = unit_string
             self._set_units(unit_flag)
             self.ca.assert_that_pv_is("UNITS", expected_unit)
-
 
     def test_GIVEN_floating_point_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
         expected_pressure = 1.23
