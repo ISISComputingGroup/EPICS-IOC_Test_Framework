@@ -46,7 +46,7 @@ class IpsTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=HEATER_WAIT_TIME*10)
 
         # Wait for some critical pvs to be connected.
-        for pv in ["PERSISTENTMAGNETFIELD", "FIELD", "FIELD:SP:RBV", "HEATER:STATUS"]:
+        for pv in ["MAGNET:FIELD:PERSISTENT", "FIELD", "FIELD:SP:RBV", "HEATER:STATUS"]:
             self.ca.wait_for(pv)
 
         # Ensure in the correct mode
@@ -59,7 +59,7 @@ class IpsTests(unittest.TestCase):
 
         self.ca.set_pv_value("HEATER:WAITTIME", HEATER_WAIT_TIME)
 
-        self.ca.set_pv_value("FIELDSWEEPRATE:SP", 10)
+        self.ca.set_pv_value("FIELD:RATE:SP", 10)
 
         # Wait for statemachine to reach "at field" state before every test.
         self.ca.assert_that_pv_is_one_of("STATEMACHINE", ["At field", "Initial state"])
@@ -95,7 +95,7 @@ class IpsTests(unittest.TestCase):
 
         for val in TEST_VALUES:
             # Field in the magnet already from persistent mode.
-            persistent_field = float(self.ca.get_pv_value("PERSISTENTMAGNETFIELD"))
+            persistent_field = float(self.ca.get_pv_value("MAGNET:FIELD:PERSISTENT"))
 
             # Set the new field. This will cause all of the following events based on the state machine.
             self.ca.set_pv_value("FIELD:SP", val)
@@ -121,7 +121,7 @@ class IpsTests(unittest.TestCase):
 
             # ...And the magnet should now be in the right state!
             self.ca.assert_that_pv_is("STATEMACHINE", "At field")
-            self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", val, tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE)
 
     def test_GIVEN_non_persistent_mode_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_does_not_ramp_to_zero(self):
 
@@ -129,7 +129,7 @@ class IpsTests(unittest.TestCase):
 
         for val in TEST_VALUES:
             # Field in the magnet already from persistent mode.
-            persistent_field = float(self.ca.get_pv_value("PERSISTENTMAGNETFIELD"))
+            persistent_field = float(self.ca.get_pv_value("MAGNET:FIELD:PERSISTENT"))
 
             # Set the new field. This will cause all of the following events based on the state machine.
             self.ca.set_pv_value("FIELD:SP", val)
@@ -146,7 +146,7 @@ class IpsTests(unittest.TestCase):
             self._assert_field_is(val)
 
             # ...And the magnet should now be in the right state!
-            self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", val, tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE)
 
             # And the PSU should remain stable providing the required current/field
             self.ca.assert_that_pv_is("STATEMACHINE", "At field")
@@ -179,25 +179,25 @@ class IpsTests(unittest.TestCase):
                 self.ca.assert_pv_alarm_is("CONTROL", self.ca.ALARM_MAJOR)
 
                 # The trip field should be the field at the point when the magnet quenched.
-                self.ca.assert_that_pv_is_number("TRIPFIELD", field, tolerance=TOLERANCE)
+                self.ca.assert_that_pv_is_number("FIELD:TRIP", field, tolerance=TOLERANCE)
 
                 # Field should be set to zero by emulator (mirroring what the field ought to do in the real device)
                 self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=TOLERANCE)
-                self.ca.assert_that_pv_is_number("PERSISTENTMAGNETFIELD", 0, tolerance=TOLERANCE)
+                self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", 0, tolerance=TOLERANCE)
 
     def test_WHEN_inductance_set_via_backdoor_THEN_value_in_ioc_updates(self):
         for val in TEST_VALUES:
             self._lewis.backdoor_set_on_device("inductance", val)
-            self.ca.assert_that_pv_is_number("MAGNETINDUCTANCE", val, tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number("MAGNET:INDUCTANCE", val, tolerance=TOLERANCE)
 
     def test_WHEN_measured_current_set_via_backdoor_THEN_value_in_ioc_updates(self):
         for val in TEST_VALUES:
             self._lewis.backdoor_set_on_device("measured_current", val)
-            self.ca.assert_that_pv_is_number("MEASUREDMAGNETCURRENT", val, tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number("MAGNET:CURR:MEAS", val, tolerance=TOLERANCE)
 
     def test_WHEN_sweep_rate_set_THEN_sweep_rate_on_ioc_updates(self):
         for val in TEST_SWEEP_RATES:
-            self.ca.set_pv_value("FIELDSWEEPRATE:SP", val)
-            self.ca.assert_that_pv_is_number("FIELDSWEEPRATE:SP", val, tolerance=TOLERANCE)
-            self.ca.assert_that_pv_is_number("FIELDSWEEPRATE", val, tolerance=TOLERANCE)
-            self.ca.assert_pv_alarm_is("FIELDSWEEPRATE", self.ca.ALARM_NONE)
+            self.ca.set_pv_value("FIELD:RATE:SP", val)
+            self.ca.assert_that_pv_is_number("FIELD:RATE:SP", val, tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number("FIELD:RATE", val, tolerance=TOLERANCE)
+            self.ca.assert_pv_alarm_is("FIELD:RATE", self.ca.ALARM_NONE)
