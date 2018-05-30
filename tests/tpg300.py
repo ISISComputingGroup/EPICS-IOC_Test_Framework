@@ -59,7 +59,7 @@ class Tpg300Tests(unittest.TestCase):
             self._set_units(unit_flag)
             self.ca.assert_that_pv_is("UNITS", expected_unit)
 
-    def test_GIVEN_floating_point_pressure_value_WHEN_pressure_a1_is_read_THEN_pressure_a1_value_is_same_as_backdoor(self):
+    def test_GIVEN_floating_point_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
         expected_pressure = 1.23
 
         for channel in self.channel_names:
@@ -69,7 +69,7 @@ class Tpg300Tests(unittest.TestCase):
 
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
-    def test_GIVEN_negative_floating_point_pressure_value_WHEN_pressure_a1_is_read_THEN_pressure_a1_value_is_same_as_backdoor(self):
+    def test_GIVEN_negative_floating_point_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
         expected_pressure = -10.23
 
         for channel in self.channel_names:
@@ -79,7 +79,7 @@ class Tpg300Tests(unittest.TestCase):
 
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
-    def test_GIVEN_integer_pressure_WHEN_pressure_a1_is_read_THEN_pressure_A1_value_is_same_as_backdoor(self):
+    def test_GIVEN_integer_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
         expected_pressure = 8
 
         for channel in self.channel_names:
@@ -89,7 +89,7 @@ class Tpg300Tests(unittest.TestCase):
 
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
-    def test_GIVEN_pressure_in_negative_exponential_form_WHEN_pressure_a1_is_read_THEN_pressure_A1_value_is_same_as_backdoor(self):
+    def test_GIVEN_pressure_in_negative_exponential_form_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
         expected_pressure = 1e-6
 
         for channel in self.channel_names:
@@ -99,7 +99,7 @@ class Tpg300Tests(unittest.TestCase):
 
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
-    def test_GIVEN_pressure_in_positive_exponential_form_WHEN_pressure_a1_is_read_THEN_pressure_A1_value_is_same_as_backdoor(self):
+    def test_GIVEN_pressure_in_positive_exponential_form_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
         expected_pressure = 1e+6
 
         for channel in self.channel_names:
