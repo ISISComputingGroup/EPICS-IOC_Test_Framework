@@ -3,7 +3,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
 DEVICE_PREFIX = "TPG300_01"
@@ -39,6 +39,8 @@ class Tpg300Tests(unittest.TestCase):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
         self.channel_names = ("A1", "A2", "B1", "B2")
+
+        self._set_connected(True)
 
     def _set_pressure(self, expected_pressure, channel):
         prop = "pressure_" + channel.lower()
@@ -117,4 +119,3 @@ class Tpg300Tests(unittest.TestCase):
     def test_GIVEN_asked_for_units_WHEN_emulator_is_disconnected_THEN_ca_alarm_shows_disconnected(self):
         self._set_connected(False)
         self.ca.assert_pv_alarm_is('PRESSURE_A1', ChannelAccess.ALARM_INVALID)
-        self._set_connected(True)
