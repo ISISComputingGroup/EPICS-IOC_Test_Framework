@@ -38,7 +38,7 @@ class Tpg300Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tpg300", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_values()
+        self._reset_emulators_values()
 
     def _reset_emulators_values(self):
         self._lewis.backdoor_set_on_device("pressure_a1", 1.0)
