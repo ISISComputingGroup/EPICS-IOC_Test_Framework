@@ -63,3 +63,12 @@ class Keithley2400Tests(unittest.TestCase):
     def test_WHEN_voltage_compliance_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in [1.23, 456.789]:
             self.ca.assert_setting_setpoint_sets_readback(val, "V:COMPLIANCE")
+
+    def test_WHEN_source_voltage_is_set_THEN_readback_updates_with_the_value_just_set(self):
+        for val in [1.23, 456.789]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:SP")
+
+    def test_WHEN_source_current_is_set_THEN_readback_updates_with_the_value_just_set(self):
+        for val in [1.23, 456.789]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SP")
+
