@@ -18,8 +18,7 @@ IOCS = [
     },
 ]
 
-
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class Lksh218Tests(unittest.TestCase):
@@ -30,8 +29,10 @@ class Lksh218Tests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Lksh218", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_GIVEN_temp_set__WHEN_read_THEN_temp_is_as_expected(self):
+    def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
+
+    def test_that_GIVEN_temp_set__WHEN_read_THEN_temp_is_as_expected(self):
         test_value = 50
         self.ca.set_pv_value("SIM:TEMP1", test_value)
         self.ca.assert_that_pv_is("SIM:TEMP1", test_value)
-        
