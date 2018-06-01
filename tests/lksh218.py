@@ -60,9 +60,12 @@ class Lksh218Tests(unittest.TestCase):
             self._set_sensor(index, expected_value)
             self.ca.assert_that_pv_is(pv, expected_value)
 
-    def test_that_WHEN_reading_all_temps_pvs_THEN_all_temp_pvs_are_as_expected(self):
-        expected_value = 10.4869
-        self._lewis.backdoor_run_function_on_device("set_temp_all", [expected_value])
-        self._ioc.set_simulated_value("TEMPALL", expected_value)
+    def test_that_WHEN_reading_all_temps_pv_THEN_all_temp_pv_are_as_expected(self):
+        expected_string = "10.4869"
+        self._lewis.backdoor_set_on_device("temp_all", expected_string)
+        self._ioc.set_simulated_value("SIM:TEMPALL", expected_string)
 
-        self.ca.assert_that_pv_is("TEMPALL", str(expected_value))
+        self.ca.process_pv("TEMPALL")
+        self.ca.assert_that_pv_is("TEMPALL", expected_string)
+
+
