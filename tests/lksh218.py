@@ -29,10 +29,15 @@ class Lksh218Tests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Lksh218", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
+    def _set_temperature(self, number, temperature):
+        pv = "SIM:TEMP{}".format(number)
+        self._lewis.backdoor_run_function_on_device("set_temp", [number, temperature])
+        self._ioc.set_simulated_value(pv, temperature)
+
     def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_that_GIVEN_temp_set__WHEN_read_THEN_temp_is_as_expected(self):
-        test_value = 50
-        self.ca.set_pv_value("SIM:TEMP1", test_value)
-        self.ca.assert_that_pv_is("SIM:TEMP1", test_value)
+    def test_that_GIVEN_temp1_set__WHEN_read_in_devsim_THEN_temp1_is_as_expected(self):
+        expected_value = 1.23
+        self._set_temperature(1, expected_value)
+        self.ca.assert_that_pv_is("TEMP1", expected_value)
