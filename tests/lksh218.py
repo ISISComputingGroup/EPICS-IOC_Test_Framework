@@ -68,4 +68,10 @@ class Lksh218Tests(unittest.TestCase):
         self.ca.process_pv("TEMPALL")
         self.ca.assert_that_pv_is("TEMPALL", expected_string)
 
+    def test_that_WHEN_reading_sensor_all_pv_THEN_sensor_all_pv_returns_as_expected(self):
+        expected_string = "12.129"
+        self._lewis.backdoor_set_on_device("sensor_all", expected_string)
+        self._ioc.set_simulated_value("SIM:SENSORALL", expected_string)
 
+        self.ca.process_pv("SENSORALL")
+        self.ca.assert_that_pv_is("SENSORALL", expected_string)
