@@ -75,7 +75,7 @@ class ChannelAccess(object):
         :param pv: the EPICS PV name
         :return: None
         """
-        pv_proc = "{}.PROC".format(pv)
+        pv_proc = "{}.PROC".format(self._create_pv_with_prefix(pv))
         return self.ca.set_pv_value(pv_proc, 1)
 
     def assert_that_pv_is(self, pv, expected_value, timeout=None, msg=""):
