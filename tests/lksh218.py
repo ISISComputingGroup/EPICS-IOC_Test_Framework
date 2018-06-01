@@ -4,6 +4,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from lewis.core.logging import has_log
 
 
 DEVICE_PREFIX = "LKSH218_01"
@@ -21,6 +22,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
+@has_log
 class Lksh218Tests(unittest.TestCase):
     """
     Tests for the Lksh218 IOC.
@@ -37,7 +39,10 @@ class Lksh218Tests(unittest.TestCase):
     def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_that_GIVEN_temp1_set__WHEN_read_in_devsim_THEN_temp1_is_as_expected(self):
-        expected_value = 1.23
-        self._set_temperature(1, expected_value)
-        self.ca.assert_that_pv_is("TEMP1", expected_value)
+    def test_that_GIVEN_temp_float_WHEN_read_THEN_temp_is_as_expected(self):
+        expected_value = 10.586
+
+        for index in range(1, 9):
+            pv = "TEMP{}".format(index)
+            self._set_temperature(index, expected_value)
+            self.ca.assert_that_pv_is(pv, expected_value)
