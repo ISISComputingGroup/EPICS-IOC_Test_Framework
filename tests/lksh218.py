@@ -75,3 +75,12 @@ class Lksh218Tests(unittest.TestCase):
 
         self.ca.process_pv("SENSORALL")
         self.ca.assert_that_pv_is("SENSORALL", expected_string)
+
+    @skip_if_recsim("In rec sim this test fails.")
+    def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP1_and_SENSOR1(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+
+        self.ca.assert_pv_alarm_is("TEMP1", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_pv_alarm_is("SENSOR1", ChannelAccess.ALARM_INVALID)
+
+        self._lewis.backdoor_set_on_device("connected", True)
