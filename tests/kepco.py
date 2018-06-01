@@ -109,5 +109,5 @@ class KepcoTests(unittest.TestCase):
         expected_idn = "000000000000000000111111111111111111111"
         self._set_IDN(expected_idn)
         # Made Proc field force scan as IDN scan is passive
-        self.ca.set_pv_value("IDN.PROC", 1)
+        self.ca.process_pv("IDN")
         self.ca.assert_that_pv_is("IDN", expected_idn)

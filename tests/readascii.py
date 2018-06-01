@@ -100,7 +100,7 @@ class ReadasciiTests(unittest.TestCase):
 
         # The LUTON PV is FLNK'ed to by the IOCs that use ReadASCII after the setpoint changes.
         # Here we're not using any particular IOC so have to trigger the processing manually.
-        self.ca.set_pv_value("LUTON.PROC", 1)
+        self.ca.process_pv("LUTON")
 
         self.ca.assert_that_pv_is_number("OUT_P", p, tolerance=TOLERANCE)
         self.ca.assert_that_pv_is_number("OUT_I", i, tolerance=TOLERANCE)
