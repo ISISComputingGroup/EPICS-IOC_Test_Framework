@@ -4,6 +4,7 @@ from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
+from lewis.core.logging import has_log
 
 # Device prefix
 DEVICE_PREFIX = "KHLY2400_01"
@@ -12,24 +13,26 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KHLY2400"),
-        "emulator": "khly2400"
+        "emulator": "keithley_2400"
     },
 ]
 
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
-
+@has_log
 class Keithley2400Tests(unittest.TestCase):
     """
     Tests for the keithley 2400.
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("khly2400", DEVICE_PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2400", DEVICE_PREFIX)
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+
+        self.log.info("Message")
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -56,6 +59,7 @@ class Keithley2400Tests(unittest.TestCase):
 
     def test_WHEN_source_mode_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in ["Current", "Voltage"]:
+            self.log.info("SOURCE:MODE")
             self.ca.assert_setting_setpoint_sets_readback(val, "SOURCE:MODE")
 
     def test_WHEN_current_compliance_is_set_THEN_readback_updates_with_the_value_just_set(self):
@@ -68,10 +72,10 @@ class Keithley2400Tests(unittest.TestCase):
 
     def test_WHEN_source_voltage_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in [1.23, 456.789]:
+            self.log.info('Setpoint value: {}'.format(val))
             self.ca.assert_setting_setpoint_sets_readback(val, "VOLT")
 
     def test_WHEN_source_current_is_set_THEN_readback_updates_with_the_value_just_set(self):
-        self.log.info('Info')
         for val in [1.23, 456.789]:
             self.ca.assert_setting_setpoint_sets_readback(val, "CURR")
 
