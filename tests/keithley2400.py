@@ -12,11 +12,12 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KHLY2400"),
+        "emulator": "khly2400"
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class Keithley2400Tests(unittest.TestCase):
@@ -25,6 +26,7 @@ class Keithley2400Tests(unittest.TestCase):
     """
 
     def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("khly2400", DEVICE_PREFIX)
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
