@@ -41,14 +41,9 @@ class Tpg300Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tpg300", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_emulators_values()
 
-    def _reset_emulators_values(self):
-        self._lewis.backdoor_set_on_device("pressure_a1", 1.0)
-        self._lewis.backdoor_set_on_device("pressure_a2", 2.0)
-        self._lewis.backdoor_set_on_device("pressure_b1", 3.0)
-        self._lewis.backdoor_set_on_device("pressure_b2", 4.0)
-        self._set_connected(True)
+    def tearDown(self):
+        self._connect_emulator()
 
     def _set_pressure(self, expected_pressure, channel):
         prop = "pressure_{}".format(channel.lower())
