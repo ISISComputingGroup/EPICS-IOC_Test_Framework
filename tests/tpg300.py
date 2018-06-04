@@ -60,8 +60,11 @@ class Tpg300Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("units", unit.value)
         self._ioc.set_simulated_value("SIM:UNITS", unit.name)
 
-    def _set_connected(self, connected):
-        self._lewis.backdoor_set_on_device("connected", connected)
+    def _connect_emulator(self):
+        self._lewis.backdoor_set_on_device("connected", True)
+
+    def _disconnect_emulator(self):
+        self._lewis.backdoor_set_on_device("connected", False)
 
     def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -80,7 +83,7 @@ class Tpg300Tests(unittest.TestCase):
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device")
     def test_GIVEN_asked_for_units_WHEN_emulator_is_disconnected_THEN_ca_alarm_shows_disconnected(self):
-        self._set_connected(False)
+        self._disconnect_emulator()
 
         for channel in CHANNELS:
             pv = "PRESSURE_{}".format(channel.upper())
