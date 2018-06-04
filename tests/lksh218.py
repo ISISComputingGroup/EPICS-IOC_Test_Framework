@@ -4,7 +4,6 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from lewis.core.logging import has_log
 
 
 DEVICE_PREFIX = "LKSH218_01"
@@ -22,7 +21,6 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-@has_log
 class Lksh218Tests(unittest.TestCase):
     """
     Tests for the Lksh218 IOC.
@@ -81,7 +79,7 @@ class Lksh218Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("SENSORALL", expected_string)
 
     @skip_if_recsim("In rec sim this test fails.")
-    def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP1_and_SENSOR1(self):
+    def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP_and_SENSOR(self):
         self._lewis.backdoor_set_on_device("connected", False)
 
         for i in range(1, 9):
