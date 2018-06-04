@@ -119,7 +119,7 @@ class Tpg300Tests(unittest.TestCase):
 
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
-    @skip_if_recsim("This test fails in recsim")
+    @skip_if_recsim("Recsim is unable to simulate a disconnected device")
     def test_GIVEN_asked_for_units_WHEN_emulator_is_disconnected_THEN_ca_alarm_shows_disconnected(self):
         self._set_connected(False)
 
