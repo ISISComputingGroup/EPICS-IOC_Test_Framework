@@ -5,7 +5,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 from enum import Enum
-
+from itertools import product
 
 DEVICE_PREFIX = "TPG300_01"
 
@@ -28,7 +28,9 @@ class Units(Enum):
     Torr = 2
     Pa = 3
 
-CHANNELS = ("A1", "A2", "B1", "B2")
+
+CHANNELS = "A1", "A2", "B1", "B2"
+TEST_PRESSURES = 1.23, -10.23, 8, 1e-6, 1e+6
 
 
 class Tpg300Tests(unittest.TestCase):
@@ -70,54 +72,10 @@ class Tpg300Tests(unittest.TestCase):
             self._set_units(unit)
             self.ca.assert_that_pv_is("UNITS", expected_unit)
 
-    def test_GIVEN_floating_point_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
-        expected_pressure = 1.23
-
-        for channel in CHANNELS:
-            pv = "PRESSURE_{}".format(channel.upper())
-
+    def test_that_GIVEN_pressure_value_WHEN_set_via_backdoor_THEN_updates_in_ioc(self):
+        for expected_pressure, channel in product(TEST_PRESSURES, CHANNELS):
+            pv = "PRESSURE_{}".format(channel)
             self._set_pressure(expected_pressure, channel)
-
-            self.ca.assert_that_pv_is(pv, expected_pressure)
-
-    def test_GIVEN_negative_floating_point_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
-        expected_pressure = -10.23
-
-        for channel in CHANNELS:
-            pv = "PRESSURE_{}".format(channel.upper())
-
-            self._set_pressure(expected_pressure, channel)
-
-            self.ca.assert_that_pv_is(pv, expected_pressure)
-
-    def test_GIVEN_integer_pressure_value_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
-        expected_pressure = 8
-
-        for channel in CHANNELS:
-            pv = "PRESSURE_{}".format(channel.upper())
-
-            self._set_pressure(expected_pressure, channel)
-
-            self.ca.assert_that_pv_is(pv, expected_pressure)
-
-    def test_GIVEN_pressure_in_negative_exponential_form_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
-        expected_pressure = 1e-6
-
-        for channel in CHANNELS:
-            pv = "PRESSURE_{}".format(channel.upper())
-
-            self._set_pressure(expected_pressure, channel)
-
-            self.ca.assert_that_pv_is(pv, expected_pressure)
-
-    def test_GIVEN_pressure_in_positive_exponential_form_WHEN_pressure_is_read_THEN_pressure_value_is_same_as_backdoor(self):
-        expected_pressure = 1e+6
-
-        for channel in CHANNELS:
-            pv = "PRESSURE_{}".format(channel.upper())
-
-            self._set_pressure(expected_pressure, channel)
-
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device")
