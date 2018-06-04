@@ -30,6 +30,10 @@ class Lksh218Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Lksh218", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self._lewis.backdoor_set_on_device("connected", True)
+
+    def tearDown(self):
+        self._lewis.backdoor_set_on_device("connected", True)
 
     def _set_temperature(self, number, temperature):
         pv = "SIM:TEMP{}".format(number)
@@ -80,7 +84,13 @@ class Lksh218Tests(unittest.TestCase):
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP1_and_SENSOR1(self):
         self._lewis.backdoor_set_on_device("connected", False)
 
-        self.ca.assert_pv_alarm_is("TEMP1", ChannelAccess.ALARM_INVALID)
-        self.ca.assert_pv_alarm_is("SENSOR1", ChannelAccess.ALARM_INVALID)
+        for i in range(1, 9):
+            self.ca.assert_pv_alarm_is("TEMP{}".format(i), ChannelAccess.ALARM_INVALID)
+            self.ca.assert_pv_alarm_is("SENSOR{}".format(i), ChannelAccess.ALARM_INVALID)
 
-        self._lewis.backdoor_set_on_device("connected", True)
+    @skip_if_recsim("In rec sim this test fails.")
+    def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_SENSORALL(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+
+        self.ca.process_pv("SENSORALL")
+        self.ca.assert_pv_alarm_is("SENSORALL", ChannelAccess.ALARM_INVALID)
