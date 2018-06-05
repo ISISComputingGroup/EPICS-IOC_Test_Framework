@@ -59,12 +59,13 @@ def modified_environment(**kwargs):
     os.environ.update(old_env)
 
 
-def run_test(prefix, test_module, device_launchers):
+def run_tests(prefix, test_module, test_names, device_launchers):
     """
     Runs the tests for the specified set of devices.
 
     :param prefix: the instrument prefix
     :param test_module: the test module
+    :param test_names: tests to perform
     :param device_launchers: context manager that launches the necessary iocs and associated emulators
     """
     # Define an environment variable with the prefix in it
@@ -76,6 +77,8 @@ def run_test(prefix, test_module, device_launchers):
         'EPICS_CA_ADDR_LIST': "127.255.255.255"
     }
 
+    test_results = []
+
     with modified_environment(**settings), device_launchers:
 
         runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout)
@@ -85,12 +88,21 @@ def run_test(prefix, test_module, device_launchers):
         if len(test_classes) < 1:
             raise ValueError("No test suites found in {}".format(test_module.__name__))
 
-        test_results = []
+
         for test_class in test_classes:
             print("Running tests in {}".format(test_class.__name__))
-            test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
+
+            if test_names is not None:
+                test_suite = unittest.TestSuite()
+                for name in unittest.TestLoader().getTestCaseNames(test_class):
+                    if name in test_names:
+                        test_suite.addTest(unittest.TestLoader().loadTestsFromName(name, test_class))
+            else:
+                test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
+
             test_results.append(runner.run(test_suite).wasSuccessful())
-        return all(result is True for result in test_results)
+
+    return all(result is True for result in test_results)
 
 
 def make_device_launchers_from_module(test_module, recsim):
@@ -159,7 +171,7 @@ def make_device_launchers_from_module(test_module, recsim):
     return device_launchers
 
 
-def load_module_by_name_and_run_tests(module_name):
+def load_module_by_name_and_run_tests(module_name, test_names):
     test_module = load_module("tests.{}".format(module_name))
 
     try:
@@ -173,7 +185,7 @@ def load_module_by_name_and_run_tests(module_name):
             raise ValueError("Invalid test mode provided")
 
         device_launchers = make_device_launchers_from_module(test_module, recsim=(mode == TestModes.RECSIM))
-        test_results.append(run_test(arguments.prefix, test_module, device_collection_launcher(device_launchers)))
+        test_results.append(run_tests(arguments.prefix, test_module, test_names, device_collection_launcher(device_launchers)))
 
     return all(test_result is True for test_result in test_results)
 
@@ -198,6 +210,8 @@ if __name__ == '__main__':
                         help="The path of the lewis.py file")
     parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe",
                         help="The path of python.exe")
+    parser.add_argument('-tn', '--test-names', default=None, type=str, nargs="+",
+                        help="The names of the tests to run")
     parser.add_argument('--var-dir', default=None,
                         help="Directory in which to create a log dir to write log file to and directory in which to "
                              "create tmp dir which contains environments variables for the IOC. Defaults to "
@@ -220,13 +234,15 @@ if __name__ == '__main__':
         print("Cannot run without emulator path")
         sys.exit(-1)
 
+    test_names = arguments.test_names
+
     module_results = []
 
     modules_to_test = arguments.test_module if arguments.test_module is not None else package_contents("tests")
 
     for test_module in modules_to_test:
         try:
-            module_results.append(load_module_by_name_and_run_tests(test_module))
+            module_results.append(load_module_by_name_and_run_tests(test_module, test_names))
         except Exception as e:
             print("---\n---\n---\nError loading module {}: {}: {}\n---\n---\n---\n"
                   .format(test_module, e.__class__.__name__, e))
