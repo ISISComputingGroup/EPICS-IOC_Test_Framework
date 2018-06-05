@@ -66,25 +66,25 @@ class CCD100Tests(unittest.TestCase):
         self.set_up()
         self._test_setpoint_and_readback()
 
-    # @skip_if_recsim("In rec sim this test fails")
-    # def test_GIVEN_not_in_error_WHEN_put_in_error_THEN_three_log_messages_per_pv_logged_in_five_secs(self):
-    #     self.set_up()
-    #     with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
-    #         self._set_error_state(True)
-    #
-    # @skip_if_recsim("In rec sim this test fails")
-    # def test_GIVEN_in_error_WHEN_error_cleared_THEN_one_log_message_per_pv_logged(self):
-    #     self.set_up()
-    #     self._set_error_state(True)
-    #     with assert_log_messages(self._ioc, self.NUM_OF_PVS*1):
-    #         self._set_error_state(False)
-    #
-    # @skip_if_recsim("In rec sim this test fails")
-    # def test_GIVEN_in_error_WHEN_error_string_changed_THEN_three_log_message_per_pv_logged_in_five_secs(self):
-    #     self.set_up()
-    #     new_error = "A_NEW_ERROR"
-    #     self._set_error_state(True)
-    #     with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
-    #         self._lewis.backdoor_set_on_device("out_error", new_error)
-    #
-    #     self.assertTrue(new_error in log.messages[-1])
+    @skip_if_recsim("In rec sim this test fails")
+    def test_GIVEN_not_in_error_WHEN_put_in_error_THEN_three_log_messages_per_pv_logged_in_five_secs(self):
+        self.set_up()
+        with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
+            self._set_error_state(True)
+
+    @skip_if_recsim("In rec sim this test fails")
+    def test_GIVEN_in_error_WHEN_error_cleared_THEN_one_log_message_per_pv_logged(self):
+        self.set_up()
+        self._set_error_state(True)
+        with assert_log_messages(self._ioc, self.NUM_OF_PVS*1):
+            self._set_error_state(False)
+
+    @skip_if_recsim("In rec sim this test fails")
+    def test_GIVEN_in_error_WHEN_error_string_changed_THEN_three_log_message_per_pv_logged_in_five_secs(self):
+        self.set_up()
+        new_error = "A_NEW_ERROR"
+        self._set_error_state(True)
+        with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
+            self._lewis.backdoor_set_on_device("out_error", new_error)
+
+        self.assertTrue(new_error in log.messages[-1])
