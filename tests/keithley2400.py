@@ -76,6 +76,6 @@ class Keithley2400Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(val, "VOLT")
 
     def test_WHEN_source_current_is_set_THEN_readback_updates_with_the_value_just_set(self):
-        for val in [1.23, 456.789]:
+        for val in [0.1, -0.1]:
             self.ca.assert_setting_setpoint_sets_readback(val, "CURR")
 
