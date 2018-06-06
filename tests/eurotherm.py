@@ -197,9 +197,9 @@ class EurothermTests(unittest.TestCase):
 
     def _assert_units(self, units):
         # High timeouts because setting units does not cause processing - wait for normal scan loop to come around.
-        self.ca.assert_that_pv_is("TEMP.EGU", units, timeout=20)
-        self.ca.assert_that_pv_is("TEMP:SP.EGU", units, timeout=20)
-        self.ca.assert_that_pv_is("TEMP:SP:RBV.EGU", units, timeout=20)
+        self.ca.assert_that_pv_is("TEMP.EGU", units, timeout=30)
+        self.ca.assert_that_pv_is("TEMP:SP.EGU", units, timeout=30)
+        self.ca.assert_that_pv_is("TEMP:SP:RBV.EGU", units, timeout=30)
 
     def _assert_using_mock_table_location(self):
         for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
