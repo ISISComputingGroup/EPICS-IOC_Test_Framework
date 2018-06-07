@@ -82,19 +82,19 @@ class Keithley2400Tests(unittest.TestCase):
 
     def test_WHEN_source_current_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in ["On", "Off"]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE:RANGE:AUTO")
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE:AUTORANGE")
 
     def test_WHEN_source_voltage_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in ["On", "Off"]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:SOURCE:RANGE:AUTO")
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:SOURCE:AUTORANGE")
 
     def test_WHEN_measurement_current_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in ["On", "Off"]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:MEAS:RANGE:AUTO")
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:MEAS:AUTORANGE")
 
     def test_WHEN_measurement_voltage_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in ["On", "Off"]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:MEAS:RANGE:AUTO")
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:MEAS:AUTORANGE")
 
     def test_WHEN_source_current_range_is_set_THEN_readback_updates_with_the_appropriate_range_for_value_just_set(self):
         for val in [1.05*pow(10, i) for i in range(-6, 1)]:
