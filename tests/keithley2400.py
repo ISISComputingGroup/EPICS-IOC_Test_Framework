@@ -74,11 +74,11 @@ class Keithley2400Tests(unittest.TestCase):
     def test_WHEN_source_voltage_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in [1.23, 456.789]:
             self.log.info('Setpoint value: {}'.format(val))
-            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT")
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:SOURCE")
 
     def test_WHEN_source_current_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in [0.1, -0.1]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "CURR")
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE")
 
     def test_WHEN_source_current_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in ["On", "Off"]:
