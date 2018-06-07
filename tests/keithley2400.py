@@ -5,6 +5,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
 from lewis.core.logging import has_log
+from math import pow
 
 # Device prefix
 DEVICE_PREFIX = "KHLY2400_01"
@@ -79,3 +80,34 @@ class Keithley2400Tests(unittest.TestCase):
         for val in [0.1, -0.1]:
             self.ca.assert_setting_setpoint_sets_readback(val, "CURR")
 
+    def test_WHEN_source_current_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
+        for val in ["On", "Off"]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE:RANGE:AUTO")
+
+    def test_WHEN_source_voltage_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
+        for val in ["On", "Off"]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:SOURCE:RANGE:AUTO")
+
+    def test_WHEN_measurement_current_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
+        for val in ["On", "Off"]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:MEAS:RANGE:AUTO")
+
+    def test_WHEN_measurement_voltage_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
+        for val in ["On", "Off"]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:MEAS:RANGE:AUTO")
+
+    def test_WHEN_source_current_range_is_set_THEN_readback_updates_with_the_appropriate_range_for_value_just_set(self):
+        for val in [1.05*pow(10, i) for i in range(-6, 1)]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE:RANGE")
+
+    def test_WHEN_source_voltage_range_is_set_THEN_readback_updates_with_the_appropriate_range_for_value_just_set(self):
+        for val in [2.1*pow(10, i) for i in range(-6, 1)]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:SOURCE:RANGE")
+
+    def test_WHEN_volts_measurement_range_is_set_THEN_readback_updates_with_appropriate_range_for_value_just_set(self):
+        for val in [2.1 * pow(10, i) for i in range(-6, 1)]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:MEAS:RANGE")
+
+    def test_WHEN_current_measurement_range_is_set_THEN_readback_updates_with_appropriate_range_for_value_just_set(self):
+        for val in [1.05 * pow(10, i) for i in range(-6, 1)]:
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:MEAS:RANGE")
