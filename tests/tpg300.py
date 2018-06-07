@@ -56,10 +56,10 @@ class Tpg300Tests(unittest.TestCase):
         self._ioc.set_simulated_value("SIM:UNITS", unit.name)
 
     def _connect_emulator(self):
-        self._lewis.backdoor_set_on_device("connected", True)
+        self._lewis.backdoor_run_function_on_device("connect")
 
     def _disconnect_emulator(self):
-        self._lewis.backdoor_set_on_device("connected", False)
+        self._lewis.backdoor_run_function_on_device("disconnect")
 
     def test_that_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
