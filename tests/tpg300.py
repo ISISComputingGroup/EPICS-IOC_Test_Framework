@@ -82,6 +82,6 @@ class Tpg300Tests(unittest.TestCase):
         self._disconnect_emulator()
 
         for channel in CHANNELS:
-            pv = "PRESSURE_{}".format(channel.upper())
+            pv = "PRESSURE_{}".format(channel)
             self.ca.assert_pv_alarm_is(pv, ChannelAccess.ALARM_INVALID)
 
