@@ -20,7 +20,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 class Units(Enum):
@@ -52,7 +52,7 @@ class Tpg300Tests(unittest.TestCase):
         self._ioc.set_simulated_value(pv, expected_pressure)
 
     def _set_units(self, unit):
-        self._lewis.backdoor_set_on_device("units", unit.value)
+        self._lewis.backdoor_run_function_on_device("backdoor_set_unit", [unit.value])
         self._ioc.set_simulated_value("SIM:UNITS", unit.name)
 
     def _connect_emulator(self):
@@ -61,13 +61,14 @@ class Tpg300Tests(unittest.TestCase):
     def _disconnect_emulator(self):
         self._lewis.backdoor_set_on_device("connected", False)
 
-    def test_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
+    def test_that_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_WHEN_units_are_set_THEN_unit_is_the_same_as_backdoor(self):
+    def test_that_WHEN_units_are_set_THEN_unit_is_the_same_as_backdoor(self):
         for unit in Units:
-            expected_unit = unit.name
             self._set_units(unit)
+
+            expected_unit = unit.name
             self.ca.assert_that_pv_is("UNITS", expected_unit)
 
     def test_that_GIVEN_pressure_value_WHEN_set_via_backdoor_THEN_updates_in_ioc(self):
