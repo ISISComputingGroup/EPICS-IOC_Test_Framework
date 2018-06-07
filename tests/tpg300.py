@@ -61,24 +61,24 @@ class Tpg300Tests(unittest.TestCase):
     def _disconnect_emulator(self):
         self._lewis.backdoor_run_function_on_device("disconnect")
 
-    def test_that_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
+    def test_that_GIVEN_a_connected_emulator_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_that_WHEN_units_are_set_THEN_unit_is_the_same_as_backdoor(self):
+    def test_that_GIVEN_a_connected_emulator_WHEN_units_are_set_THEN_unit_is_the_same_as_backdoor(self):
         for unit in Units:
             self._set_units(unit)
 
             expected_unit = unit.name
             self.ca.assert_that_pv_is("UNITS", expected_unit)
 
-    def test_that_GIVEN_pressure_value_WHEN_set_via_backdoor_THEN_updates_in_ioc(self):
+    def test_that_GIVEN_a_connected_emulator_and_pressure_value_WHEN_set_pressure_is_set_THEN_the_ioc_is_updated(self):
         for expected_pressure, channel in product(TEST_PRESSURES, CHANNELS):
             pv = "PRESSURE_{}".format(channel)
             self._set_pressure(expected_pressure, channel)
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device")
-    def test_GIVEN_asked_for_units_WHEN_emulator_is_disconnected_THEN_ca_alarm_shows_disconnected(self):
+    def test_that_GIVEN_a_disconnected_emulator_WHEN_getting_pressure_THEN_INVALID_alarm_shows(self):
         self._disconnect_emulator()
 
         for channel in CHANNELS:
