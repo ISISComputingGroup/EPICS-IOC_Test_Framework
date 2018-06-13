@@ -81,7 +81,7 @@ class Keithley2400Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE")
 
     def test_WHEN_source_current_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
-        for val in ["On", "Off"]:
+        for val in ["Off", "On"]:
             self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE:AUTORANGE")
 
     def test_WHEN_source_voltage_autoranging_is_set_THEN_readback_updates_with_the_value_just_set(self):
@@ -97,17 +97,20 @@ class Keithley2400Tests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:MEAS:AUTORANGE")
 
     def test_WHEN_source_current_range_is_set_THEN_readback_updates_with_the_appropriate_range_for_value_just_set(self):
-        for val in [1.05*pow(10, i) for i in range(-6, 1)]:
+        for val in [pow(10, i) for i in range(-6, 1)]:
             self.ca.assert_setting_setpoint_sets_readback(val, "CURR:SOURCE:RANGE")
 
     def test_WHEN_source_voltage_range_is_set_THEN_readback_updates_with_the_appropriate_range_for_value_just_set(self):
         for val in [2.1*pow(10, i) for i in range(-6, 1)]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:SOURCE:RANGE")
+            self.ca.set_pv_value("VOLT:SOURCE:RANGE:SP", val)
+            self.ca.assert_that_pv_is_number("VOLT:SOURCE:RANGE:SP:RBV", val, tolerance=0.05 * val)
 
     def test_WHEN_volts_measurement_range_is_set_THEN_readback_updates_with_appropriate_range_for_value_just_set(self):
         for val in [2.1 * pow(10, i) for i in range(-6, 1)]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:MEAS:RANGE")
+            self.ca.set_pv_value("VOLT:MEAS:RANGE:SP", val)
+            self.ca.assert_that_pv_is_number("VOLT:MEAS:RANGE:SP:RBV", val, tolerance=0.05 * val)
 
     def test_WHEN_current_measurement_range_is_set_THEN_readback_updates_with_appropriate_range_for_value_just_set(self):
         for val in [1.05 * pow(10, i) for i in range(-6, 1)]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:MEAS:RANGE")
+            self.ca.set_pv_value("CURR:MEAS:RANGE:SP", val)
+            self.ca.assert_that_pv_is_number("CURR:MEAS:RANGE:SP:RBV", val, tolerance=0.05 * val)
