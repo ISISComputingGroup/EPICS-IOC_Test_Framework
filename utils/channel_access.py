@@ -68,6 +68,16 @@ class ChannelAccess(object):
         """
         return self.ca.get_pv_value(self._create_pv_with_prefix(pv))
 
+    def process_pv(self, pv):
+        """
+        Makes the pv process once.
+
+        :param pv: the EPICS PV name
+        :return: None
+        """
+        pv_proc = "{}.PROC".format(self._create_pv_with_prefix(pv))
+        return self.ca.set_pv_value(pv_proc, 1)
+
     def assert_that_pv_is(self, pv, expected_value, timeout=None, msg=""):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout.

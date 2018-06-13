@@ -83,7 +83,7 @@ class Keithley_2700Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("buffer_range_readings", 10)
         self.ca.set_pv_value("CH:START", 2)
         self.ca.set_pv_value("COUNT", 4)
-        self.ca.set_pv_value("BUFF:READ.PROC", 1)
+        self.ca.process_pv("BUFF:READ")
         expected_string = self.ca.get_pv_value("BUFF:READ")
         self.assertNotEquals(expected_string, "[]")
 
