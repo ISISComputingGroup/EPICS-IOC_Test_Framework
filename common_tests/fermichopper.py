@@ -1,29 +1,17 @@
 import unittest
+from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from time import sleep
 
+import six
+
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
-from utils.test_modes import TestModes
+from utils.ioc_launcher import IOCRegister
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
-DEVICE_PREFIX = "FERMCHOP_01"
-
-
-IOCS = [
-    {
-        "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("FERMCHOP"),
-        "emulator": "fermichopper",
-    },
-]
-
-
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
-
-
-class FermichopperTests(unittest.TestCase):
+@six.add_metaclass(ABCMeta)
+class FermichopperBase(unittest.TestCase):
     """
     Tests for the Fermi Chopper IOC.
     """
@@ -39,10 +27,14 @@ class FermichopperTests(unittest.TestCase):
     test_voltage_values = [0, 282.9, 333.3]
     test_autozero_values = [-5.0, -2.22, 0, 1.23, 5]
 
-    def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper", DEVICE_PREFIX)
+    @abstractmethod
+    def _get_device_prefix(self):
+        pass
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
+    def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper", self._get_device_prefix())
+
+        self.ca = ChannelAccess(device_prefix=self._get_device_prefix(), default_timeout=30)
         self.ca.wait_for("SPEED")
 
         self.ca.set_pv_value("DELAY:SP", 0)
@@ -85,6 +77,15 @@ class FermichopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
             self.ca.assert_pv_alarm_is("SPEED:SP:RBV", self.ca.ALARM_NONE)
 
+    @skip_if_recsim("Recsim does not handle this")
+    def test_WHEN_speed_setpoint_is_set_via_gui_pv_THEN_readback_updates(self):
+        for speed in self.test_chopper_speeds:
+            self.ca.set_pv_value("SPEED:SP:GUI", "{} Hz".format(speed))
+            self.ca.assert_that_pv_is("SPEED:SP", speed)
+            self.ca.assert_pv_alarm_is("SPEED:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
+            self.ca.assert_pv_alarm_is("SPEED:SP:RBV", self.ca.ALARM_NONE)
+
     def test_WHEN_delay_setpoint_is_set_THEN_readback_updates(self):
         for value in self.test_delay_durations:
             self.ca.set_pv_value("DELAY:SP", value)
@@ -111,32 +112,11 @@ class FermichopperTests(unittest.TestCase):
                     self.ca.assert_pv_alarm_is("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.ALARM_NONE)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_drive_voltage_is_set_via_backdoor_THEN_pv_updates(self):
-        for voltage in self.test_voltage_values:
-            self._lewis.backdoor_set_on_device("voltage", voltage)
-            self.ca.assert_that_pv_is_number("VOLTAGE", voltage, tolerance=0.1)
-            self.ca.assert_pv_alarm_is("VOLTAGE", self.ca.ALARM_NONE)
-
-    @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_drive_current_is_set_via_backdoor_THEN_pv_updates(self):
         for current in self.test_current_values:
             self._lewis.backdoor_set_on_device("current", current)
             self.ca.assert_that_pv_is_number("CURRENT", current, tolerance=0.1)
             self.ca.assert_pv_alarm_is("CURRENT", self.ca.ALARM_NONE)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_the_electronics_temperature_is_set_via_backdoor_THEN_pv_updates(self):
-        for temp in self.test_temperature_values:
-            self._lewis.backdoor_set_on_device("electronics_temp", temp)
-            self.ca.assert_that_pv_is_number("TEMP:ELECTRONICS", temp, tolerance=0.2)
-            self.ca.assert_pv_alarm_is("TEMP:ELECTRONICS", self.ca.ALARM_NONE)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_the_motor_temperature_is_set_via_backdoor_THEN_pv_updates(self):
-        for temp in self.test_temperature_values:
-            self._lewis.backdoor_set_on_device("motor_temp", temp)
-            self.ca.assert_that_pv_is_number("TEMP:MOTOR", temp, tolerance=0.2)
-            self.ca.assert_pv_alarm_is("TEMP:MOTOR", self.ca.ALARM_NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_THEN_chopper_goes_to_setpoint(self):
@@ -224,33 +204,6 @@ class FermichopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("speed", 0)
         self.ca.assert_that_pv_is("STATUS.BA", "0")
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_chopper_parameters_are_set_THEN_status_updates(self):
-
-        for command_number, b6, b8, b9 in [(6, 1, 0, 0), (7, 0, 1, 0), (8, 0, 0, 1)]:
-
-            # Magnetic bearings should have been turned off in setUp
-            self.ca.assert_that_pv_is("STATUS.B3", "0")
-
-            self.ca.set_pv_value("COMMAND:SP", command_number)
-            self.ca.assert_that_pv_is("LASTCOMMAND", "000{}".format(command_number))
-
-            self.ca.assert_that_pv_is("STATUS.B6", "{}".format(b6))
-            self.ca.assert_that_pv_is("STATUS.B8", "{}".format(b8))
-            self.ca.assert_that_pv_is("STATUS.B9", "{}".format(b9))
-
-    @skip_if_recsim("Uses lewis backdoor")
-    def test_WHEN_electronics_temperature_is_too_high_THEN_over_temperature_is_true(self):
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 0)
-        self._lewis.backdoor_set_on_device("electronics_temp", 46)
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
-
-    @skip_if_recsim("Uses lewis backdoor")
-    def test_WHEN_motor_temperature_is_too_high_THEN_over_temperature_is_true(self):
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 0)
-        self._lewis.backdoor_set_on_device("motor_temp", 46)
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
-
     @skip_if_recsim("Uses lewis backdoor")
     def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(
             self):
@@ -268,14 +221,6 @@ class FermichopperTests(unittest.TestCase):
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
                 self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{p}"
                                                  .format(n=number, p=position.upper()), 0, tolerance=0.1)
-
-    @skip_if_recsim("Uses lewis backdoor")
-    def test_WHEN_voltage_and_current_are_varied_THEN_power_pv_is_the_product_of_current_and_voltage(self):
-        for voltage in self.test_voltage_values:
-            for current in self.test_current_values:
-                self._lewis.backdoor_set_on_device("voltage", voltage)
-                self._lewis.backdoor_set_on_device("current", current)
-                self.ca.assert_that_pv_is_number("POWER", current * voltage, tolerance=0.5)
 
     @contextmanager
     def _lie_about(self, lie):
@@ -412,28 +357,3 @@ class FermichopperTests(unittest.TestCase):
                 # Reset relevant autozero voltage back to zero
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
                 self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_motor_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):
-
-        # Reset last command so that we can tell that it's changed later on
-        self._lewis.backdoor_set_on_device("last_command", "0000")
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
-
-        # Temperature = 46, this is higher than the allowed value (45)
-        self._lewis.backdoor_set_on_device("motor_temp", 46)
-
-        # Assert that "switch drive off" was sent
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0002")
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_electronics_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):
-        # Reset last command so that we can tell that it's changed later on
-        self._lewis.backdoor_set_on_device("last_command", "0000")
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
-
-        # Temperature = 46, this is higher than the allowed value (45)
-        self._lewis.backdoor_set_on_device("electronics_temp", 46)
-
-        # Assert that "switch drive off" was sent
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0002")

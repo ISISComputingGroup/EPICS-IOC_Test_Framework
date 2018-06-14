@@ -59,6 +59,8 @@ class IocLauncher(object):
     Launches an IOC for testing.
     """
 
+    RECORD_THAT_ALWAYS_EXISTS = "DISABLE"
+
     def __init__(self, device, directory, macros, use_rec_sim, var_dir, port):
         """
         Constructor that also launches the IOC.
@@ -120,7 +122,7 @@ class IocLauncher(object):
         ca = self._get_channel_access()
         try:
             print("Check that IOC is not running")
-            ca.assert_pv_does_not_exist("DISABLE")
+            ca.assert_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
         except AssertionError as ex:
             raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
 
@@ -160,6 +162,19 @@ class IocLauncher(object):
 
         if self._process is not None:
             self._process.communicate("exit\n")
+
+            max_wait_for_ioc_to_die = 60
+            wait_per_loop = 0.1
+
+            for _ in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
+                try:
+                    self._get_channel_access().assert_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
+                    break
+                except AssertionError:
+                    sleep(wait_per_loop)
+            else:
+                print("IOC process did not die after {} seconds. Continuing anyway but next set of tests may fail."
+                      .format(max_wait_for_ioc_to_die))
 
         if self.log_file_manager is not None:
             self.log_file_manager.close()
