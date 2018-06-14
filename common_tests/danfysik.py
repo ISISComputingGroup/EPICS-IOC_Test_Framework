@@ -1,5 +1,7 @@
 import unittest
 
+import time
+
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
@@ -26,8 +28,9 @@ class DanfysikBase(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
         self._lewis.backdoor_run_function_on_device("reset")
+        self._lewis.backdoor_set_on_device("comms_initialized", True)
 
     def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
         for pol in POLARITIES:
