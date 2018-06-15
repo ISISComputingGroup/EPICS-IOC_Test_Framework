@@ -58,3 +58,31 @@ class Sp2XxRunCommandTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("STATUS", "Infusing")
+
+class Sp2XxStopCommandTests(unittest.TestCase):
+    """
+    Tests for the Sp2XX IOC stop command.
+    """
+    def setUp(self):
+        # Given
+        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Stopped"])
+
+    def tearDown(self):
+        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Stopped"])
+
+    def _start_running(self):
+        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Infusing"])
+
+    def _stop_running(self):
+        self._lewis.backdoor_run_function_on_device("stop_device_via_the_back_door")
+
+    def test_that_GIVEN_a_running_pump_THEN_the_pump_stops(self):
+        # Given
+        self._start_running()
+        # When:
+        self._stop_running()
+        # Then:
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
+
