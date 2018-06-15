@@ -30,13 +30,13 @@ class Sp2XxRunCommandTests(unittest.TestCase):
         # Given
         self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Stopped"])
+        self._lewis.backdoor_run_function_on_device("stop_device")
 
     def tearDown(self):
-        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Stopped"])
+        self._lewis.backdoor_run_function_on_device("stop_device")
 
     def _start_running(self):
-        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Infusing"])
+        self._lewis.backdoor_run_function_on_device("start_device")
 
     def test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped(self):
         # Then:
@@ -67,20 +67,22 @@ class Sp2XxStopCommandTests(unittest.TestCase):
         # Given
         self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Stopped"])
+        self._stop_running()
 
     def tearDown(self):
-        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Stopped"])
+        self._stop_running()
 
     def _start_running(self):
-        self._lewis.backdoor_run_function_on_device("set_running_status_via_the_back_door", ["Infusing"])
+        self._lewis.backdoor_run_function_on_device("start_device")
 
     def _stop_running(self):
-        self._lewis.backdoor_run_function_on_device("stop_device_via_the_back_door")
+        self._lewis.backdoor_run_function_on_device("stop_device")
 
     def test_that_GIVEN_a_running_pump_THEN_the_pump_stops(self):
         # Given
         self._start_running()
+        self.ca.assert_that_pv_is("STATUS", "Infusing")
+
         # When:
         self._stop_running()
         # Then:
