@@ -31,6 +31,8 @@ class Keithley2400Tests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2400", DEVICE_PREFIX)
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
 
+        self._lewis.backdoor_set_on_device("random_output", False)
+
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
         self.log.info("Message")
@@ -40,12 +42,56 @@ class Keithley2400Tests(unittest.TestCase):
             if value < r:
                 return r / 10
 
+    @skip_if_recsim("Recsim does not work with lewis backdoor tests")
+    def test_WHEN_current_value_is_set_THEN_readback_returns_value_just_set(self):
+        self.ca.set_pv_value("OUTPUT:MODE:SP", "On")
+        for val in [1.23, 456.789, 1e-3]:
+            self._lewis.backdoor_set_on_device("current", val)
+            self.ca.assert_that_pv_is_number("CURR:RAW", val, tolerance=0.05*val)
+
+    @skip_if_recsim("Recsim does not work with lewis backdoor tests")
+    def test_WHEN_voltage_value_is_set_THEN_readback_returns_value_just_set(self):
+        self.ca.set_pv_value("OUTPUT:MODE:SP", "On")
+        for val in [1.23, 456.789, 1e-3]:
+            self._lewis.backdoor_set_on_device("voltage", val)
+            self.ca.assert_that_pv_is_number("VOLT:RAW", val, tolerance=0.05*val)
+
+    @skip_if_recsim("Recsim does not work with lewis backdoor tests")
+    def test_WHEN_voltage_and_current_are_set_THEN_readback_returns_valid_resistance(self):
+        self.ca.set_pv_value("OUTPUT:MODE:SP", "On")
+        for volts in [4.5, 6.7]:
+            for amps in [6.7, 4.5]:
+                self._lewis.backdoor_set_on_device("current", amps)
+                self._lewis.backdoor_set_on_device("voltage", volts)
+
+                resistance = volts/amps
+
+                self.ca.assert_that_pv_is_number("RES", resistance, tolerance=0.05*resistance)
+
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def test_WHEN_output_mode_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for mode in ["On", "Off"]:
             self.ca.assert_setting_setpoint_sets_readback(mode, "OUTPUT:MODE")
+
+    @skip_if_recsim("Recsim does not work with lewis backdoor tests")
+    def test_WHEN_output_mode_is_unset_THEN_current_readback_does_not_update(self):
+        self.ca.set_pv_value("CURR:RAW", 1.0)
+        self.ca.set_pv_value("OUTPUT:MODE:SP", "Off")
+
+        self._lewis.backdoor_set_on_device("current", 5.0)
+
+        self.ca.assert_that_pv_is_number("CURR:RAW", 1.0)
+
+    @skip_if_recsim("Recsim does not work with lewis backdoor tests")
+    def test_WHEN_output_mode_is_unset_THEN_voltage_readback_does_not_update(self):
+        self.ca.set_pv_value("VOLT:RAW", 1.0)
+        self.ca.set_pv_value("OUTPUT:MODE:SP", "Off")
+
+        self._lewis.backdoor_set_on_device("voltage", 5.0)
+
+        self.ca.assert_that_pv_is_number("VOLT:RAW", 1.0)
 
     def test_WHEN_resistance_mode_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for mode in ["Manual", "Auto"]:
@@ -73,11 +119,11 @@ class Keithley2400Tests(unittest.TestCase):
 
     def test_WHEN_current_compliance_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in [1.23, 456.789, 1e-6, -1e-6]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "I:COMPLIANCE")
+            self.ca.assert_setting_setpoint_sets_readback(val, "CURR:COMPLIANCE")
 
     def test_WHEN_voltage_compliance_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in [1.23, 456.789, 1e-5, -1e-5]:
-            self.ca.assert_setting_setpoint_sets_readback(val, "V:COMPLIANCE")
+            self.ca.assert_setting_setpoint_sets_readback(val, "VOLT:COMPLIANCE")
 
     def test_WHEN_source_voltage_is_set_THEN_readback_updates_with_the_value_just_set(self):
         for val in [1.23, 456.789, 1e-5, -1e-5]:
