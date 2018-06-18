@@ -32,6 +32,16 @@ python run_tests.py -tm instron_stress_rig amint2l  # Will run the stress rig te
 
 The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` directory, with the `.py` extension removed.
 
+### Running specific tests by name
+
+Specify the test modules you want to run via the `-tm` argument and the test name you want to run via the `-tn` argument:
+
+```
+python run_tests.py -tm amint2l -tn test_GIVEN_pressure_over_range_set_WHEN_read_THEN_error  # Will run test_GIVEN_pressure_over_range_set_WHEN_read_THEN_error test in amint2l tests.
+```
+
+The `-tm` argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` directory, with the `.py` extension removed. The `-tn` argument is the name of the test in the module containing the test with no arguments or parentheses.
+
 ## Troubleshooting 
 
 If all tests are failing then it is likely that the PV prefix is incorrect.
