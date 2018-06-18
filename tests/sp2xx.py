@@ -186,3 +186,26 @@ class ErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR", error.name)
         self.ca.assert_pv_alarm_is("ERROR", error.alarm_severity)
+
+
+class ModeSwitchingTests(unittest.TestCase):
+    def setUp(self):
+        # Given
+        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._reset_device()
+
+    def tearDown(self):
+        self._reset_device()
+
+    def _reset_device(self):
+        self._lewis.backdoor_run_function_on_device("stop_device")
+        self._lewis.backdoor_run_function_on_device("clear_last_error")
+        self.ca.process_pv("ERROR")
+        self.ca.assert_that_pv_is("ERROR", "No error")
+        self._lewis.backdoor_run_function_on_device("set_mode_via_the_backdoor", ["Infusion"])
+        self.ca.assert_that_pv_is("MODE", "Infusion")
+
+    def test_that_GIVEN_an_initialized_pump_THEN_the_mode_is_set_to_infusing(self):
+        # Then:
+        self.ca.assert_that_pv_is("MODE", "Infusion")
