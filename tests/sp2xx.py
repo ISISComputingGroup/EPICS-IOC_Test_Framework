@@ -1,7 +1,5 @@
 import unittest
 from parameterized import parameterized
-import re
-from enum import Enum
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -22,17 +20,6 @@ IOCS = [
 ]
 
 
-class LastError(Enum):
-    No_error = 0
-    Communication_error = 1
-    Stall = 2
-    Communication_error_and_stall = 3
-    Serial_overrun = 4
-    Serial_error_and_overrun = 5
-    Stall_and_serial_overrun = 6
-    Stall_and_serial_error_and_overrun = 7
-
-
 TEST_MODES = [TestModes.DEVSIM] # TestModes.RECSIM,
 
 
@@ -44,7 +31,6 @@ class RunCommandTests(unittest.TestCase):
         # Given
         self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._lewis.backdoor_run_function_on_device("stop_device")
         self._reset_device()
 
     def tearDown(self):
@@ -56,6 +42,8 @@ class RunCommandTests(unittest.TestCase):
     def _reset_device(self):
         self._lewis.backdoor_run_function_on_device("stop_device")
         self._lewis.backdoor_run_function_on_device("clear_last_error")
+        self.ca.process_pv("ERROR")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     def test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped(self):
         # Then:
@@ -94,15 +82,15 @@ class StopCommandTests(unittest.TestCase):
 
     def _start_running(self):
         self._lewis.backdoor_run_function_on_device("start_device")
-        self.ca.set_pv_value("RUN:SP", 1)
 
     def _stop_running(self):
         self._lewis.backdoor_run_function_on_device("stop_device")
-        self.ca.set_pv_value("STOP:SP", 1)
 
     def _reset_device(self):
-        self._stop_running()
+        self._lewis.backdoor_run_function_on_device("stop_device")
         self._lewis.backdoor_run_function_on_device("clear_last_error")
+        self.ca.process_pv("ERROR")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     def test_that_GIVEN_a_running_pump_THEN_the_pump_stops(self):
         # Given
@@ -125,6 +113,35 @@ class StopCommandTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
 
+class ErrorType(object):
+    """
+    Error Type.
+
+    Attributes:
+        name: String name of the error
+        value: integer value of the error
+        alarm_severity: Alarm severity of the error
+    """
+    def __init__(self, name, value, alarm_severity):
+        self.name = name
+        self.value = value
+        self.alarm_severity = alarm_severity
+
+
+no_error = ErrorType("No error",0, "NO_ALARM")
+comms_error= ErrorType("Comms error", 1, "MAJOR")
+stall_error= ErrorType("Stall", 2, "MAJOR")
+comms_stall_error= ErrorType("Comms error and stall", 3, "MAJOR")
+ser_overrun_error= ErrorType("Serial overrun", 4, "MAJOR")
+ser_and_overrun_error= ErrorType("Serial error and overrun", 5, "MAJOR")
+stall_and_ser_overrun_error= ErrorType("Stall and serial overrun", 6, "MAJOR")
+stall_ser_error_and_overrun= ErrorType("Stall ser err and overun", 7, "MAJOR")
+
+
+errors = [no_error, comms_error, stall_error, comms_stall_error, ser_overrun_error, ser_and_overrun_error,
+          stall_and_ser_overrun_error, stall_ser_error_and_overrun]
+
+
 class ErrorTests(unittest.TestCase):
     """
     Tests for the Sp2XX IOC stop command.
@@ -143,10 +160,13 @@ class ErrorTests(unittest.TestCase):
 
     def _stop_running(self):
         self._lewis.backdoor_run_function_on_device("stop_device")
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
 
     def _reset_device(self):
         self._lewis.backdoor_run_function_on_device("stop_device")
         self._lewis.backdoor_run_function_on_device("clear_last_error")
+        self.ca.process_pv("ERROR")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     def test_that_GIVEN_an_initialized_pump_THEN_the_device_has_no_error(self):
         # Then:
@@ -154,19 +174,15 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", "No error")
         self.ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_NONE)
 
-    @parameterized.expand([(error_type.name, error_type) for error_type in LastError])
-    def test_that_GIVEN_a_device_with_an_error_WHEN_trying_to_start_the_device_THEN_the_error_pv_is_updated(self, _, error_type):
+    @parameterized.expand([(error.name, error) for error in errors])
+    def test_that_GIVEN_a_device_with_an_error_WHEN_trying_to_start_the_device_THEN_the_error_pv_is_updated(self, _, error):
         # Given:
-        self._lewis.backdoor_run_function_on_device("throw_error", [error_type.value])
+        self._lewis.backdoor_run_function_on_device("throw_error_via_the_backdoor",
+                                                    [error.name, error.value, error.alarm_severity])
 
         # When:
         self._start_running()
 
         # Then:
-        if error_type.value == 7:
-            self.ca.assert_that_pv_is("ERROR", "Stall, serial error and overrun")
-            self.ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_INVALID)
-        else:
-            expected = re.sub("_", " ", error_type.name)
-            self.ca.assert_that_pv_is("ERROR", expected)
-            self.ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_is("ERROR", error.name)
+        self.ca.assert_pv_alarm_is("ERROR", error.alarm_severity)
