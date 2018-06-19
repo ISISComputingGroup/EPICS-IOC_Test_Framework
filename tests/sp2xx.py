@@ -231,7 +231,7 @@ class ModeSwitchingTests(unittest.TestCase):
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
 
-        self._lewis.backdoor_run_function_on_device("set_mode_via_the_backdoor", ["i"])
+        self.ca.set_pv_value("MODE:SP", "i")
         self.ca.assert_that_pv_is("MODE", "Infusion")
 
     def test_that_GIVEN_an_initialized_pump_THEN_the_mode_is_set_to_infusing(self):
@@ -239,9 +239,11 @@ class ModeSwitchingTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MODE", "Infusion")
 
     @parameterized.expand([(mode.name, mode) for mode in MODES.values()])
-    def test_that_GIVEN_an__pump_in_one_mode_WHEN_set_to_a_different_mode_THEN_the_mode_is_changed(self, _, mode):
+    def test_that_GIVEN_an__pump_in_one_mode_WHEN_a_different_mode_is_set_THEN_the_mode_is_read(self, _, mode):
         # When:
-        self._lewis.backdoor_run_function_on_device("set_mode_via_the_backdoor", [mode.set_symbol])
+        self.ca.set_pv_value("MODE:SP", mode.set_symbol)
 
         # Then:
         self.ca.assert_that_pv_is("MODE", mode.name)
+
+
