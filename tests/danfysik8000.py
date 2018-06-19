@@ -9,7 +9,7 @@ from utils.testing import skip_if_recsim
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("DFKPS"),
+        "directory": get_default_ioc_dir("DFKPS", iocnum=5),
         "macros": {
             "DEV_TYPE": "8000",
             "CALIBRATED": "0",
