@@ -189,6 +189,15 @@ class ErrorTests(unittest.TestCase):
 
 
 class ModeSwitchingTests(unittest.TestCase):
+
+    MODES = {
+        "i": "Infusion",
+        "w": "Withdrawal",
+        "i//w": "Infusion_Withdrawal",
+        "w//i": "Withdrawal_Infusion",
+        "con": "Continuous"
+    }
+
     def setUp(self):
         # Given
         self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
@@ -203,7 +212,7 @@ class ModeSwitchingTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("clear_last_error")
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
-        self._lewis.backdoor_run_function_on_device("set_mode_via_the_backdoor", ["Infusion"])
+        self._lewis.backdoor_run_function_on_device("set_mode_via_the_backdoor", ["i"])
         self.ca.assert_that_pv_is("MODE", "Infusion")
 
     def test_that_GIVEN_an_initialized_pump_THEN_the_mode_is_set_to_infusing(self):
