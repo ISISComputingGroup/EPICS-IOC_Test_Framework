@@ -33,16 +33,22 @@ class RunCommandTests(unittest.TestCase):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         self._reset_device()
 
-    def _start_running(self):
-        self._lewis.backdoor_run_function_on_device("start_device")
-
     def _reset_device(self):
-        self._lewis.backdoor_run_function_on_device("stop_device")
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
         self._lewis.backdoor_run_function_on_device("clear_last_error")
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
+
+        self._stop_running()
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
+
+        self.ca.set_pv_value("MODE:SP", "i")
+        self.ca.assert_that_pv_is("MODE", "Infusion")
+
+    def _start_running(self):
+        self.ca.set_pv_value("RUN:SP", 1)
+
+    def _stop_running(self):
+        self.ca.set_pv_value("STOP:SP", 1)
 
     def test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped(self):
         # Then:
@@ -58,6 +64,7 @@ class RunCommandTests(unittest.TestCase):
     def test_that_GIVEN_the_pump_is_running_infusion_mode_WHEN_told_to_run_THEN_the_pump_is_still_running_in_infusion_mode(self):
         # Given
         self._start_running()
+        self.ca.assert_that_pv_is("STATUS", "Infusing")
 
         # When
         self._start_running()
@@ -76,20 +83,22 @@ class StopCommandTests(unittest.TestCase):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         self._reset_device()
 
-
-    def _start_running(self):
-        self._lewis.backdoor_run_function_on_device("start_device")
-
-    def _stop_running(self):
-        self._lewis.backdoor_run_function_on_device("stop_device")
-
     def _reset_device(self):
-        self._lewis.backdoor_run_function_on_device("stop_device")
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
         self._lewis.backdoor_run_function_on_device("clear_last_error")
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
+
+        self._stop_running()
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
+
+        self.ca.set_pv_value("MODE:SP", "i")
+        self.ca.assert_that_pv_is("MODE", "Infusion")
+
+    def _start_running(self):
+        self.ca.set_pv_value("RUN:SP", 1)
+
+    def _stop_running(self):
+        self.ca.set_pv_value("STOP:SP", 1)
 
     def test_that_GIVEN_a_running_pump_THEN_the_pump_stops(self):
         # Given
@@ -98,6 +107,7 @@ class StopCommandTests(unittest.TestCase):
 
         # When:
         self._stop_running()
+
         # Then:
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
@@ -151,19 +161,22 @@ class ErrorTests(unittest.TestCase):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         self._reset_device()
 
-    def _start_running(self):
-        self._lewis.backdoor_run_function_on_device("start_device")
-
-    def _stop_running(self):
-        self._lewis.backdoor_run_function_on_device("stop_device")
-
     def _reset_device(self):
-        self._lewis.backdoor_run_function_on_device("stop_device")
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
         self._lewis.backdoor_run_function_on_device("clear_last_error")
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
+
+        self._stop_running()
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
+
+        self.ca.set_pv_value("MODE:SP", "i")
+        self.ca.assert_that_pv_is("MODE", "Infusion")
+
+    def _start_running(self):
+        self.ca.set_pv_value("RUN:SP", 1)
+
+    def _stop_running(self):
+        self.ca.set_pv_value("STOP:SP", 1)
 
     def test_that_GIVEN_an_initialized_pump_THEN_the_device_has_no_error(self):
         # Then:
@@ -171,7 +184,7 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", "No error")
         self.ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_NONE)
 
-    @parameterized.expand([(error.name, error) for error in errors])
+    @parameterized.expand([(error.name, error) for error in errors[1:]])
     def test_that_GIVEN_a_device_with_an_error_WHEN_trying_to_start_the_device_THEN_the_error_pv_is_updated_and_device_is_stopped(self, _, error):
         # Given:
         self._lewis.backdoor_run_function_on_device("throw_error_via_the_backdoor",
@@ -224,7 +237,7 @@ class ModeSwitchingTests(unittest.TestCase):
         self._reset_device()
 
     def _reset_device(self):
-        self._lewis.backdoor_run_function_on_device("stop_device")
+        self._stop_running()
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
         self._lewis.backdoor_run_function_on_device("clear_last_error")
@@ -233,6 +246,12 @@ class ModeSwitchingTests(unittest.TestCase):
 
         self.ca.set_pv_value("MODE:SP", "i")
         self.ca.assert_that_pv_is("MODE", "Infusion")
+
+    def _start_running(self):
+        self.ca.set_pv_value("RUN:SP", 1)
+
+    def _stop_running(self):
+        self.ca.set_pv_value("STOP:SP", 1)
 
     def test_that_GIVEN_an_initialized_pump_THEN_the_mode_is_set_to_infusing(self):
         # Then:
