@@ -59,18 +59,18 @@ class RunCommandTests(unittest.TestCase):
         self._start_running()
 
         # Then:
-        self.ca.assert_that_pv_is("STATUS", "Infusing")
+        self.ca.assert_that_pv_is("STATUS", "Infusion")
 
     def test_that_GIVEN_the_pump_is_running_infusion_mode_WHEN_told_to_run_THEN_the_pump_is_still_running_in_infusion_mode(self):
         # Given
         self._start_running()
-        self.ca.assert_that_pv_is("STATUS", "Infusing")
+        self.ca.assert_that_pv_is("STATUS", "Infusion")
 
         # When
         self._start_running()
 
         # Then:
-        self.ca.assert_that_pv_is("STATUS", "Infusing")
+        self.ca.assert_that_pv_is("STATUS", "Infusion")
 
 
 class StopCommandTests(unittest.TestCase):
@@ -103,7 +103,7 @@ class StopCommandTests(unittest.TestCase):
     def test_that_GIVEN_a_running_pump_THEN_the_pump_stops(self):
         # Given
         self._start_running()
-        self.ca.assert_that_pv_is("STATUS", "Infusing")
+        self.ca.assert_that_pv_is("STATUS", "Infusion")
 
         # When:
         self._stop_running()
@@ -290,12 +290,23 @@ class DirectionTests(unittest.TestCase):
     def _stop_running(self):
         self.ca.set_pv_value("STOP:SP", 1)
 
-    def test_that_GIVEN_a_device_in_infusion_mode_THEN_the_devices_direction_is_infusing(self):
+    @parameterized.expand([("infusion", "i", "Infusion"), ("infusion_withdrawal", "i/w", "Infusion/Withdrawal"), ("continuous", "con", "Continuous")])
+    def test_that_WHEN_a_device_in_set_in_an_infusion_like_mode_THEN_the_devices_direction_is_infusion(self, _, mode_symbol, mode_name):
         # Given:
-        self._lewis.backdoor_run_function_on_device("set_direction_via_the_backdoor", ["I"])
+        self.ca.set_pv_value("MODE:SP", mode_symbol)
+        self.ca.assert_that_pv_is("MODE", mode_name)
 
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", "Infusion")
+
+    @parameterized.expand([("infusion", "w", "Withdrawal"), ("infusion_withdrawal", "w/i", "Withdrawal/Infusion")])
+    def test_that_WHEN_a_device_in_set_in_an_withdrawal_like_mode_THEN_the_devices_direction_is_withdrawal(self, _, mode_symbol, mode_name):
+        # Given:
+        self.ca.set_pv_value("MODE:SP", mode_symbol)
+        self.ca.assert_that_pv_is("MODE", mode_name)
+
+        # Then:
+        self.ca.assert_that_pv_is("DIRECTION", "Withdrawal")
 
 
 
