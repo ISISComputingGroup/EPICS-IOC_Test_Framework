@@ -32,7 +32,7 @@ class SuperlogicsTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("superlogics", PREFIX)
 
         self.ca = ChannelAccess(device_prefix=PREFIX)
-        self.ca.wait_for("{}:1:VALUE".format("01"))
+        self.ca.assert_that_pv_exists("{}:1:VALUE".format("01"))
         self._set_disconnected(False)
 
     def _set_channel_values(self, values, address):
@@ -73,7 +73,7 @@ class SuperlogicsTests(unittest.TestCase):
 
         pv_name = "{}:{}:VALUE".format(address, channel)
         self.ca.assert_that_pv_is(pv_name, expected_value)
-        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_01_all_channels_value_set_WHEN_read_THEN_error_state(self):
@@ -82,7 +82,7 @@ class SuperlogicsTests(unittest.TestCase):
         self._set_channel_values(expected_values, address)
 
         pv_name = "{}:{}:VALUE".format(address, 1)
-        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
 
     def test_GIVEN_address_01_version_set_WHEN_read_THEN_value_is_as_expected(self):
         address = "01"
@@ -91,7 +91,7 @@ class SuperlogicsTests(unittest.TestCase):
         pv_name = "{}:VERSION".format(address)
 
         self.ca.assert_that_pv_is(pv_name, expected_version)
-        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_02_one_value_set_WHEN_read_THEN_error_state(self):
@@ -101,7 +101,7 @@ class SuperlogicsTests(unittest.TestCase):
         self._set_channel_values([expected_value], address)
 
         pv_name = "{}:{}:VALUE".format(address, channel)
-        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_02_two_values_set_WHEN_read_THEN_error_state(self):
@@ -111,7 +111,7 @@ class SuperlogicsTests(unittest.TestCase):
         self._set_channel_values([0., expected_value], address)
 
         pv_name = "{}:{}:VALUE".format(address, channel)
-        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
 
     def test_GIVEN_address_02_all_channels_value_set_WHEN_read_THEN_values_are_as_expected(self):
         address = "02"
@@ -121,7 +121,7 @@ class SuperlogicsTests(unittest.TestCase):
         for channel, expected_value in enumerate(expected_values):
             pv_name = "{}:{}:VALUE".format(address, channel+1)
             self.ca.assert_that_pv_is(pv_name, expected_value)
-            self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
     def test_GIVEN_address_02_version_set_WHEN_read_THEN_value_is_as_expected(self):
         address = "02"
@@ -130,7 +130,7 @@ class SuperlogicsTests(unittest.TestCase):
         pv_name = "{}:VERSION".format(address)
 
         self.ca.assert_that_pv_is(pv_name, expected_version)
-        self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_02_disconnected_WHEN_read_values_THEN_error_state(self):
@@ -141,4 +141,4 @@ class SuperlogicsTests(unittest.TestCase):
 
         for channel, expected_value in enumerate(expected_values):
             pv_name = "{}:{}:VALUE".format(address, channel+1)
-            self.ca.assert_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)
+            self.ca.assert_that_pv_alarm_is(pv_name, ChannelAccess.ALARM_INVALID)

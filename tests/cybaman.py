@@ -37,12 +37,12 @@ class CybamanTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("cybaman", DEVICE_PREFIX)
 
         self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("INITIALIZE", timeout=30)
+        self.ca.assert_that_pv_exists("INITIALIZE", timeout=30)
 
         # Check that all the relevant PVs are up.
         for axis in self.AXES:
-            self.ca.wait_for(axis)
-            self.ca.wait_for("{}:SP".format(axis))
+            self.ca.assert_that_pv_exists(axis)
+            self.ca.assert_that_pv_exists("{}:SP".format(axis))
 
         # Initialize the device, do this in setup to avoid doing it in every test
         self.ca.set_pv_value("INITIALIZE", 1)
@@ -76,7 +76,7 @@ class CybamanTests(unittest.TestCase):
         self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
         self.ca.set_pv_value("INITIALIZE", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
-        self.ca.assert_pv_value_over_time("INITIALIZED", 10, operator.eq)
+        self.ca.assert_that_pv_value_over_time_satisfies_comparator("INITIALIZED", 10, operator.eq)
 
         original = {}
         for axis in self.AXES:
@@ -188,7 +188,7 @@ class CybamanTests(unittest.TestCase):
         # Wait for homing to start
         sleep(2)
         # Assert that A has stopped moving (i.e. homing is finished)
-        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
+        self.ca.assert_that_pv_value_over_time_satisfies_comparator("A", 5, operator.eq)
         home_position = self.ca.get_pv_value("A")
 
         # Modify an unrelated setpoint
@@ -197,4 +197,4 @@ class CybamanTests(unittest.TestCase):
 
         # Verify that A has not changed from it's home position
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
-        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
+        self.ca.assert_that_pv_value_over_time_satisfies_comparator("A", 5, operator.eq)

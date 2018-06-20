@@ -110,7 +110,7 @@ class ReadasciiTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
-        self.ca.wait_for("DIRBASE")
+        self.ca.assert_that_pv_exists("DIRBASE")
         self._set_ramp_status(False)
 
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(self):

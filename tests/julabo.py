@@ -36,7 +36,7 @@ class JulaboTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("julabo", "JULABO_01")
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("TEMP", timeout=30)
+        self.ca.assert_that_pv_exists("TEMP", timeout=30)
         # Turn off circulate
         self.ca.set_pv_value("MODE:SP", 0)
 

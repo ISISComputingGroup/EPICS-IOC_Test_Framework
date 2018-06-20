@@ -64,7 +64,7 @@ class MotionSetpointsTests(unittest.TestCase):
         self.caDN = ChannelAccess(device_prefix=DEVICE_PREFIX_DN)
         self.caDP = ChannelAccess(device_prefix=DEVICE_PREFIX_DP)
         self.motor_ca = ChannelAccess(device_prefix=MOTOR_PREFIX)
-        self.ca1D.wait_for("COORD1:NAME", timeout=30)
+        self.ca1D.assert_that_pv_exists("COORD1:NAME", timeout=30)
         self.ca1D.set_pv_value("COORD1:OFFSET:SP", 0)
         self.ca1D.assert_that_pv_is("STATIONARY", 1)
 
@@ -87,7 +87,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca1D.set_pv_value("POSN:SP", expected_position)
 
             self.ca1D.assert_that_pv_is("POSN", expected_position)
-            self.ca1D.assert_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
+            self.ca1D.assert_that_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
             self.ca1D.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca1D.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca1D.assert_that_pv_is("IPOSN", index)
@@ -151,7 +151,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca2D.set_pv_value("POSN:SP", expected_position)
 
             self.ca2D.assert_that_pv_is("POSN", expected_position)
-            self.ca2D.assert_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
+            self.ca2D.assert_that_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
             self.ca2D.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca2D.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca2D.assert_that_pv_is("IPOSN", index)
@@ -212,7 +212,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca1DAxis.set_pv_value("POSN:SP", expected_position)
 
             self.ca1DAxis.assert_that_pv_is("POSN", expected_position)
-            self.ca1DAxis.assert_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
+            self.ca1DAxis.assert_that_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
             self.ca1DAxis.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca1DAxis.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca1DAxis.assert_that_pv_is("IPOSN", index)
@@ -226,7 +226,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca2DAxis.set_pv_value("POSN:SP", expected_position)
 
             self.ca2DAxis.assert_that_pv_is("POSN", expected_position)
-            self.ca2DAxis.assert_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
+            self.ca2DAxis.assert_that_pv_alarm_is("POSN", ChannelAccess.ALARM_NONE)
             self.ca2DAxis.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca2DAxis.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca2DAxis.assert_that_pv_is("IPOSN", index)
@@ -245,7 +245,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
     def test_GIVEN_2D_WHEN_invalid_position_specified_THEN_alarm(self):
         self.ca2DAxis.set_pv_value("POSN:SP", "an_invalid_position")
-        self.ca2DAxis.assert_pv_alarm_is("POSN:SP", ChannelAccess.ALARM_INVALID)
+        self.ca2DAxis.assert_that_pv_alarm_is("POSN:SP", ChannelAccess.ALARM_INVALID)
         
     def test_GIVEN_2D_WHEN_move_motor_THEN_tolerance_checked(self):
         self.ca2DAxis.set_pv_value("TOLERENCE", 10)

@@ -42,7 +42,7 @@ class Itc503Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("itc503", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
-        self.ca.wait_for("DISABLE")
+        self.ca.assert_that_pv_exists("DISABLE")
         self._make_device_scan_faster()
 
     def _make_device_scan_faster(self):
@@ -50,8 +50,8 @@ class Itc503Tests(unittest.TestCase):
         Purely so that the tests run faster, the real IOC scans excruciatingly slowly.
         """
         # Skip setting the PVs if the scan rate is already fast
-        self.ca.wait_for("FAN1")
-        self.ca.wait_for("FAN2")
+        self.ca.assert_that_pv_exists("FAN1")
+        self.ca.assert_that_pv_exists("FAN2")
         if self.ca.get_pv_value("FAN1.SCAN") != ".1 second":
             for i in range(1, 8+1):
                 # Ensure all DLY links are 0 in both FAN records

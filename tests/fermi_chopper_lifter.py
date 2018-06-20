@@ -33,7 +33,7 @@ class FermiChopperLifterTests(unittest.TestCase):
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
         self.ca = ChannelAccess(default_timeout=30)
-        self.ca.wait_for("MOT:CHOPLIFT:STATUS", timeout=60)
+        self.ca.assert_that_pv_exists("MOT:CHOPLIFT:STATUS", timeout=60)
 
     def test_WHEN_ioc_is_run_THEN_status_record_exists(self):
         # Simulated galil user variables are initialized to zero which maps to "Unknown".

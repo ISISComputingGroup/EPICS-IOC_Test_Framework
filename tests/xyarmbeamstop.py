@@ -78,7 +78,7 @@ class XyarmbeamstopTests(unittest.TestCase):
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
         self.ca = ChannelAccess(default_timeout=30)
-        self.ca.wait_for(MOTOR_X, timeout=60)
+        self.ca.assert_that_pv_exists(MOTOR_X, timeout=60)
         self._set_pv_value(STORE_SP, ACTIVE)
         self._assert_setpoint_and_readback_reached(ACTIVE_X, ACTIVE_Y)
 
