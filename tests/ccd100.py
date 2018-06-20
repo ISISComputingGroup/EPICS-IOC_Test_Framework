@@ -9,19 +9,22 @@ from utils.testing import get_running_lewis_and_ioc, assert_log_messages, skip_i
 # Device prefix
 DEVICE_A_PREFIX = "CCD100_01"
 DEVICE_E_PREFIX = "CCD100_02"
-EMULATOR_NAME = "CCD100"
+
+EMULATOR_DEVICE = "CCD100"
 
 IOCS = [
     {
         "name": DEVICE_A_PREFIX,
         "directory": get_default_ioc_dir("CCD100"),
-        "emulator": EMULATOR_NAME,
+        "emulator": EMULATOR_DEVICE,
+        "emulator_id": DEVICE_A_PREFIX
     },
 
     {
         "name": DEVICE_E_PREFIX,
         "directory": get_default_ioc_dir("CCD100", iocnum=2),
-        "emulator": EMULATOR_NAME,
+        "emulator": EMULATOR_DEVICE,
+        "emulator_id": DEVICE_E_PREFIX,
         "macros": {"ADDRESS": "e"}
     },
 ]
@@ -38,11 +41,10 @@ class CCD100Tests(unittest.TestCase):
     NUM_OF_PVS = 3
 
     def set_up(self, device=DEVICE_A_PREFIX):
-        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, device)
+        self._lewis, self._ioc = get_running_lewis_and_ioc(device, device)
         self.assertIsNotNone(self._lewis)
         self.assertIsNotNone(self._ioc)
 
-        self._lewis.backdoor_set_on_device("out_error", "OLD_ERROR")
         self._set_error_state(False)
 
         self.ca = ChannelAccess(device_prefix=device)
@@ -82,8 +84,10 @@ class CCD100Tests(unittest.TestCase):
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_in_error_WHEN_error_string_changed_THEN_three_log_message_per_pv_logged_in_five_secs(self):
         self.set_up()
-        new_error = "A_NEW_ERROR"
+        self._lewis.backdoor_set_on_device("out_error", "OLD_ERROR")
         self._set_error_state(True)
+
+        new_error = "A_NEW_ERROR"
         with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
             self._lewis.backdoor_set_on_device("out_error", new_error)
 

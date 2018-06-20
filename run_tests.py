@@ -133,24 +133,27 @@ def make_device_launchers_from_module(test_module, recsim):
 
         if "emulator" in ioc and not recsim:
 
-            emulator_name = ioc["emulator"]
+            emulator_device = ioc["emulator"]
+            emulator_id = ioc.get("emulator_id", emulator_device)
             emulator_protocol = ioc.get("emulator_protocol", "stream")
             emulator_device_package = ioc.get("emulator_package", "lewis_emulators")
             emulator_path = ioc.get("emulator_path", os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
 
             lewis_launcher = LewisLauncher(
-                device=emulator_name,
+                device=emulator_device,
                 python_path=os.path.abspath(arguments.python_path),
                 lewis_path=os.path.abspath(arguments.emulator_path),
                 lewis_protocol=emulator_protocol,
                 lewis_additional_path=emulator_path,
                 lewis_package=emulator_device_package,
                 var_dir=var_dir,
-                port=free_port
+                port=free_port,
+                emulator_id=emulator_id
             )
 
         elif "emulator" in ioc:
-            lewis_launcher = LewisNone(ioc["emulator"])
+            emulator_id = ioc.get("emulator_id", ioc["emulator"])
+            lewis_launcher = LewisNone(emulator_id)
         else:
             lewis_launcher = None
 

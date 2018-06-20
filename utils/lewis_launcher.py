@@ -101,7 +101,7 @@ class LewisLauncher(object):
     Launches Lewis.
     """
 
-    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None, lewis_package=None, port=None):
+    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None, lewis_package=None, port=None, emulator_id=None):
         """
         Constructor that also launches Lewis.
 
@@ -113,6 +113,7 @@ class LewisLauncher(object):
         :param lewis_additional_path: additional path to add to lewis usually the location of the device emulators
         :param lewis_package: package to use by lewis
         :param port: the port to use
+        :param emulator_id: the unique id of the emulator
         """
         self._lewis_path = lewis_path
         self._python_path = python_path
@@ -125,10 +126,11 @@ class LewisLauncher(object):
         self._logFile = None
         self._connected = None
         self._var_dir = var_dir
+        self._emulator_id = emulator_id if emulator_id is not None else self._device
 
     def __enter__(self):
         self._open(self.port)
-        LewisRegister.add_emulator(self._device, self)
+        LewisRegister.add_emulator(self._emulator_id, self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -175,7 +177,7 @@ class LewisLauncher(object):
         self._connected = True
 
     def _log_filename(self):
-        return log_filename("lewis", self._device, False, self._var_dir)
+        return log_filename("lewis", self._emulator_id, False, self._var_dir)
 
     def check(self):
         """
