@@ -266,3 +266,36 @@ class ModeSwitchingTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MODE", mode.name)
 
 
+class DirectionTests(unittest.TestCase):
+    def setUp(self):
+        # Given
+        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._reset_device()
+
+    def _reset_device(self):
+        self._stop_running()
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
+
+        self._lewis.backdoor_run_function_on_device("clear_last_error")
+        self.ca.process_pv("ERROR")
+        self.ca.assert_that_pv_is("ERROR", "No error")
+
+        self.ca.set_pv_value("MODE:SP", "i")
+        self.ca.assert_that_pv_is("MODE", "Infusion")
+
+    def _start_running(self):
+        self.ca.set_pv_value("RUN:SP", 1)
+
+    def _stop_running(self):
+        self.ca.set_pv_value("STOP:SP", 1)
+
+    def test_that_GIVEN_a_device_in_infusion_mode_THEN_the_devices_direction_is_infusing(self):
+        # Given:
+        self._lewis.backdoor_run_function_on_device("set_direction_via_the_backdoor", ["I"])
+
+        # Then:
+        self.ca.assert_that_pv_is("DIRECTION", "Infusion")
+
+
+
