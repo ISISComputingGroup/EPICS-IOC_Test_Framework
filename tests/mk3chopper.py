@@ -40,11 +40,11 @@ class Mk3chopperTests(unittest.TestCase):
             # Bug in CA channel. Reports invalid alarm severity if you set enum directly
             self.ca.set_pv_value("SIM:{}.VAL".format(self.COMP_MODE_PV), 1)
         self.ca.assert_that_pv_is(self.COMP_MODE_PV, self.REMOTE)
-        self.ca.assert_that_pv_alarm_is(self.COMP_MODE_PV, ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is(self.COMP_MODE_PV, ChannelAccess.Alarms.NONE)
 
     @skip_if_devsim("Can't switch to local mode in DEVSIM")
     def test_WHEN_ioc_is_in_local_mode_THEN_it_has_a_major_alarm(self):
         # Bug in CA channel. Reports invalid alarm severity if you set enum directly
         self.ca.set_pv_value("SIM:{}.VAL".format(self.COMP_MODE_PV), 0)
         self.ca.assert_that_pv_is(self.COMP_MODE_PV, self.LOCAL)
-        self.ca.assert_that_pv_alarm_is(self.COMP_MODE_PV, ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_that_pv_alarm_is(self.COMP_MODE_PV, ChannelAccess.Alarms.MAJOR)

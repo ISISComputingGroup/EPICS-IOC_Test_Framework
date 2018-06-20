@@ -73,16 +73,16 @@ class Ilm200Tests(unittest.TestCase):
 
     def test_GIVEN_ilm200_THEN_has_version(self):
         self.ca.assert_that_pv_is_not("VERSION", "")
-        self.ca.assert_that_pv_alarm_is("VERSION", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("VERSION", self.ca.Alarms.NONE)
 
     def test_GIVEN_ilm200_THEN_each_channel_has_type(self):
         for i in self.channel_range():
             self.ca.assert_that_pv_is_not(self.ch_pv(i, self.TYPE), "Not in use")
-            self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.TYPE), ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.TYPE), self.ca.Alarms.NONE)
 
     def test_GIVEN_ilm_200_THEN_can_read_level(self):
         for i in self.channel_range():
-            self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.LEVEL), ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.LEVEL), self.ca.Alarms.NONE)
 
     @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm_200_WHEN_level_set_on_device_THEN_reported_level_matches_set_level(self):

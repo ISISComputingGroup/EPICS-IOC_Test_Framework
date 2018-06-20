@@ -128,7 +128,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._set_simulated_value("frequency_setpoint", expected_value)
 
         self.ca.assert_that_pv_is("FREQ:SP:RBV", expected_value)
-        self.ca.assert_that_pv_alarm_is("FREQ:SP:RBV", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("FREQ:SP:RBV", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_phase_setpoint_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -136,7 +136,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._set_simulated_value("phase_setpoint", expected_value)
 
         self.ca.assert_that_pv_is("PHAS:SP:RBV", expected_value)
-        self.ca.assert_that_pv_alarm_is("PHAS:SP:RBV", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("PHAS:SP:RBV", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_phase_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -144,7 +144,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("phase_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("PHAS:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("PHAS:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("PHAS:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_magnetic_bearing_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -152,7 +152,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("magnetic_bearing_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("MB:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("MB:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("MB:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_magnetic_bearing_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -160,7 +160,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("magnetic_bearing_is_on", boolean_value)
 
             self.ca.assert_that_pv_is("MB", expected_value)
-            self.ca.assert_that_pv_alarm_is("MB", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("MB", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -168,7 +168,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("drive_is_on", boolean_value)
 
             self.ca.assert_that_pv_is("DRIVE", expected_value)
-            self.ca.assert_that_pv_alarm_is("DRIVE", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("DRIVE", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_mode_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -176,7 +176,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("drive_mode_is_start", boolean_value)
 
             self.ca.assert_that_pv_is("DRIVE:MODE", expected_value)
-            self.ca.assert_that_pv_alarm_is("DRIVE:MODE", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("DRIVE:MODE", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_l1_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -184,7 +184,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._set_simulated_value("drive_l1_current", expected_value)
 
         self.ca.assert_that_pv_is("DRIVE:L1:CURR", expected_value)
-        self.ca.assert_that_pv_alarm_is("DRIVE:L1:CURR", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("DRIVE:L1:CURR", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_l2_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -192,7 +192,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._set_simulated_value("drive_l2_current", expected_value)
 
         self.ca.assert_that_pv_is("DRIVE:L2:CURR", expected_value)
-        self.ca.assert_that_pv_alarm_is("DRIVE:L2:CURR", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("DRIVE:L2:CURR", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_l3_current_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -200,7 +200,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._set_simulated_value("drive_l3_current", expected_value)
 
         self.ca.assert_that_pv_is("DRIVE:L3:CURR", expected_value)
-        self.ca.assert_that_pv_alarm_is("DRIVE:L3:CURR", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("DRIVE:L3:CURR", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_direction_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -208,7 +208,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("drive_direction_is_cw", boolean_value)
 
             self.ca.assert_that_pv_is("DRIVE:DIR", expected_value)
-            self.ca.assert_that_pv_alarm_is("DRIVE:DIR", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("DRIVE:DIR", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_drive_temperature_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -216,7 +216,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._set_simulated_value("drive_temperature", expected_value)
 
         self.ca.assert_that_pv_is("DRIVE:TEMP", expected_value)
-        self.ca.assert_that_pv_alarm_is("DRIVE:TEMP", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("DRIVE:TEMP", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_phase_outage_WHEN_read_all_status_THEN_value_is_as_expected(self):
@@ -224,7 +224,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._set_simulated_value("phase_outage", expected_value)
 
         self.ca.assert_that_pv_is("PHAS:OUTAGE", expected_value)
-        self.ca.assert_that_pv_alarm_is("PHAS:OUTAGE", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("PHAS:OUTAGE", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_logging_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -232,7 +232,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("logging_is_on", boolean_value)
 
             self.ca.assert_that_pv_is("LOGGING", expected_value)
-            self.ca.assert_that_pv_alarm_is("LOGGING", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("LOGGING", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_dsp_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -240,7 +240,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("dsp_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("DSP:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("DSP:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("DSP:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_er_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -248,7 +248,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_er_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:ER:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:ER:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:ER:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_vacuum_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -256,7 +256,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_vacuum_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:VAC:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:VAC:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:VAC:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_frequency_monitoring_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -264,7 +264,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_frequency_monitoring_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:FREQMON:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:FREQMON:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:FREQMON:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_magnetic_bearing_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -272,7 +272,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:TEMP:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:MB:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:MB:AMP:TEMP:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_magnetic_bearing_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -280,7 +280,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_magnetic_bearing_amplifier_current_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:CURR:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:MB:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:MB:AMP:CURR:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_drive_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -288,7 +288,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_drive_amplifier_temperature_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_interlock_drive_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -296,7 +296,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_drive_amplifier_current_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:CURR:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:DRIVE:AMP:CURR:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:DRIVE:AMP:CURR:STAT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set parameter")
     def test_GIVEN_ups_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
@@ -304,7 +304,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._set_simulated_value("interlock_ups_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:UPS:STAT", expected_value)
-            self.ca.assert_that_pv_alarm_is("INTERLOCK:UPS:STAT", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("INTERLOCK:UPS:STAT", self.ca.Alarms.NONE)
 
     # ***** Test set commands *****
 
@@ -573,4 +573,4 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
                    "INTERLOCK:DRIVE:AMP:CURR:STAT",
                    "INTERLOCK:UPS:STAT"]:
 
-            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.ALARM_INVALID)
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)

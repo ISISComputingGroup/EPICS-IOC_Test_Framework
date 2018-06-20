@@ -106,14 +106,14 @@ class InstronStressRigTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("status", 7680)
 
         self.ca.assert_that_pv_is("STAT:DISP", "System OK")
-        self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim we can not set the code easily")
     def test_WHEN_the_rig_has_other_no_error_THEN_the_status_is_ok(self):
         self._lewis.backdoor_set_on_device("status", 0)
 
         self.ca.assert_that_pv_is("STAT:DISP", "System OK")
-        self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim we can not set the code easily")
     def test_WHEN_the_rig_has_error_THEN_the_status_is_emergency_stop_pushed(self):
@@ -144,7 +144,7 @@ class InstronStressRigTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("status", code_val)
 
             self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val))
-            self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_MAJOR)
+            self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.Alarms.MAJOR)
 
     def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
         self.ca.assert_that_pv_is("GOING", "NO")
@@ -305,7 +305,7 @@ class InstronStressRigTests(unittest.TestCase):
         def _set_and_check(chan, value):
             self.ca.set_pv_value(chan + ":SP", value)
             self.ca.set_pv_value(chan + ":TOLERANCE", 9999)
-            self.ca.assert_that_pv_alarm_is(chan + ":SP:RBV", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is(chan + ":SP:RBV", ChannelAccess.Alarms.NONE)
 
         for chan in POS_STRESS_STRAIN:
             for i in [0.123, 567]:
@@ -317,7 +317,7 @@ class InstronStressRigTests(unittest.TestCase):
         def _set_and_check(chan, value):
             self.ca.set_pv_value(chan + ":SP", value)
             self.ca.set_pv_value(chan + ":TOLERANCE", -1)
-            self.ca.assert_that_pv_alarm_is(chan + ":SP:RBV", ChannelAccess.ALARM_MINOR)
+            self.ca.assert_that_pv_alarm_is(chan + ":SP:RBV", ChannelAccess.Alarms.MINOR)
 
         for chan in POS_STRESS_STRAIN:
             for i in [0.234, 789]:
@@ -379,7 +379,7 @@ class InstronStressRigTests(unittest.TestCase):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:AREA:SP", value)
             self.ca.assert_that_pv_is_number("STRESS:AREA", value, tolerance=0.01)
-            self.ca.assert_that_pv_alarm_is("STRESS:AREA", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("STRESS:AREA", ChannelAccess.Alarms.NONE)
 
         for val in [0.234, 789]:
             _set_and_check(val)
@@ -388,7 +388,7 @@ class InstronStressRigTests(unittest.TestCase):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:AREA:SP", value)
             self.ca.assert_that_pv_is_number("STRESS:DIAMETER", (2*math.sqrt(value/math.pi)), tolerance=0.01)
-            self.ca.assert_that_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.Alarms.NONE)
 
         for val in [0.234, 789]:
             _set_and_check(val)
@@ -397,7 +397,7 @@ class InstronStressRigTests(unittest.TestCase):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:DIAMETER:SP", value)
             self.ca.assert_that_pv_is_number("STRESS:DIAMETER", value, tolerance=0.0005)
-            self.ca.assert_that_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.Alarms.NONE)
 
         for val in [0.234, 789]:
             _set_and_check(val)
@@ -406,7 +406,7 @@ class InstronStressRigTests(unittest.TestCase):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:DIAMETER:SP", value)
             self.ca.assert_that_pv_is_number("STRESS:AREA", ((value/2.0)**2 * math.pi), tolerance=0.0005)
-            self.ca.assert_that_pv_alarm_is("STRESS:AREA", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("STRESS:AREA", ChannelAccess.Alarms.NONE)
 
         for val in [0.234, 789]:
             _set_and_check(val)
@@ -420,7 +420,7 @@ class InstronStressRigTests(unittest.TestCase):
             for val in [1.23, 123.45]:
                 self.ca.set_pv_value("POS:SP", val)
                 self.ca.assert_that_pv_is_number("POS:RAW:SP", val * (1.0/1000.0) * (1/scale), tolerance=0.0000000001)
-                self.ca.assert_that_pv_alarm_is("POS:RAW:SP", ChannelAccess.ALARM_NONE)
+                self.ca.assert_that_pv_alarm_is("POS:RAW:SP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_a_stress_setpoint_is_set_THEN_it_is_converted_correctly(self):
@@ -437,7 +437,7 @@ class InstronStressRigTests(unittest.TestCase):
                     self.ca.set_pv_value("STRESS:SP", val)
                     self.ca.assert_that_pv_is_number("STRESS:RAW:SP", val * (1 / chan_scale) * area,
                                                      tolerance=0.0000000001)
-                    self.ca.assert_that_pv_alarm_is("STRESS:RAW:SP", ChannelAccess.ALARM_NONE)
+                    self.ca.assert_that_pv_alarm_is("STRESS:RAW:SP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_a_strain_setpoint_is_set_THEN_it_is_converted_correctly(self):
@@ -454,7 +454,7 @@ class InstronStressRigTests(unittest.TestCase):
                     self.ca.set_pv_value("STRAIN:SP", val)
                     self.ca.assert_that_pv_is_number("STRAIN:RAW:SP", val * (1 / chan_scale) * length * (1.0/100000.0),
                                                      tolerance=0.0000000001)
-                    self.ca.assert_that_pv_alarm_is("STRAIN:RAW:SP", ChannelAccess.ALARM_NONE)
+                    self.ca.assert_that_pv_alarm_is("STRAIN:RAW:SP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_the_channel_type_updates_on_the_device_THEN_the_pv_updates(self):
@@ -476,7 +476,7 @@ class InstronStressRigTests(unittest.TestCase):
             self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value)
             for chan in POS_STRESS_STRAIN:
                 self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), return_value)
-                self.ca.assert_that_pv_alarm_is("{0}:RAMP:WFTYP".format(chan), ChannelAccess.ALARM_NONE)
+                self.ca.assert_that_pv_alarm_is("{0}:RAMP:WFTYP".format(chan), ChannelAccess.Alarms.NONE)
 
         for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
             _set_and_check(set_value, return_value)
@@ -494,7 +494,7 @@ class InstronStressRigTests(unittest.TestCase):
 
             self.ca.set_pv_value("CHANNEL:SP", index)
 
-            self.ca.assert_that_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_INVALID)
+            self.ca.assert_that_pv_alarm_is("CHANNEL:SP", ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
@@ -506,16 +506,16 @@ class InstronStressRigTests(unittest.TestCase):
             self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "PASS", timeout=30)
 
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.Alarms.NONE)
 
             self.ca.set_pv_value("CHANNEL:SP", index)
-            self.ca.assert_that_pv_alarm_is("CHANNEL:SP", ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("CHANNEL:SP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim we can not disconnect the device from the IOC")
     def test_WHEN_the_rig_is_not_connected_THEN_the_status_has_alarm(self):
         self._lewis.backdoor_set_on_device("status", None)
 
-        self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.Alarms.INVALID)
 
     # Waveform tests
 

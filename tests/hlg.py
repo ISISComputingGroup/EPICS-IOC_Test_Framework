@@ -52,38 +52,38 @@ class HlgTests(unittest.TestCase):
         self._set_level(expected_level)
 
         self.ca.assert_that_pv_is("LEVEL", expected_level)
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.NONE)
 
     def test_GIVEN_high_level_set_WHEN_read_THEN_minor_alarm(self):
         level = hi_level + 1
         self._set_level(level)
 
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_MINOR)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.MINOR)
 
     def test_GIVEN_low_level_set_WHEN_read_THEN_minor_alarm(self):
         level = low_level - 1
         self._set_level(level)
 
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_MINOR)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.MINOR)
 
     def test_GIVEN_hihi_level_set_WHEN_read_THEN_major_alarm(self):
         level = hihi_level + 1
         self._set_level(level)
 
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.MAJOR)
 
     def test_GIVEN_lolo_level_set_WHEN_read_THEN_major_alarm(self):
         level = lolo_level - 1
         self._set_level(level)
 
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_MAJOR)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.MAJOR)
 
     @skip_if_recsim("Can not disconnect in recsim")
     def test_GIVEN_not_connected_WHEN_read_THEN_alarm_error(self):
 
         self._set_level(None)
 
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.INVALID)
 
     @skip_if_recsim("Can not set prefix in recsim")
     def test_GIVEN_prefix_set_incorrectly_WHEN_read_THEN_prefix_is_set_to_none_and_level_is_read(self):
@@ -92,7 +92,7 @@ class HlgTests(unittest.TestCase):
         self._set_level(expected_level)
 
         self.ca.assert_that_pv_is("LEVEL", expected_level)
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Can not set verbosity in recsim")
     def test_GIVEN_verbosity_set_incorrectly_WHEN_read_THEN_verbosity_is_set_to_1_and_level_is_read(self):
@@ -101,4 +101,4 @@ class HlgTests(unittest.TestCase):
         self._set_level(expected_level)
 
         self.ca.assert_that_pv_is("LEVEL", expected_level)
-        self.ca.assert_that_pv_alarm_is("LEVEL", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.NONE)
