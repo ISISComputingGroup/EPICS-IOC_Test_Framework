@@ -308,5 +308,15 @@ class DirectionTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", "Withdrawal")
 
+    def test_that_GIVEN_a_device_in_infusion_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_is_withdrawal(self):
+        # Given:
+        self.ca.set_pv_value("MODE:SP", "i")
+        self.ca.assert_that_pv_is("MODE", "Infusion")
+        self.ca.assert_that_pv_is("DIRECTION", "Infusion")
 
+        # When:
+        self.ca.set_pv_value("DIRECTION:REV", 1)
+
+        # Then:
+        self.ca.assert_that_pv_is("DIRECTION", "Withdrawal")
 
