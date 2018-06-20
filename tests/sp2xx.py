@@ -308,15 +308,60 @@ class DirectionTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", "Withdrawal")
 
-    def test_that_GIVEN_a_device_in_infusion_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_is_withdrawal(self):
+    @parameterized.expand([("infusion", "i", "Infusion", "Withdrawal"), ("withdrawal", "w", "Withdrawal", "Infusion")])
+    def test_that_GIVEN_a_running_device_in_infusion_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_is_withdrawal(self, _, mode_symbol, mode_name, expected_direction):
         # Given:
-        self.ca.set_pv_value("MODE:SP", "i")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-        self.ca.assert_that_pv_is("DIRECTION", "Infusion")
+        self.ca.set_pv_value("MODE:SP", mode_symbol)
+        self.ca.assert_that_pv_is("MODE", mode_name)
+
+        self._start_running()
+        self.ca.assert_that_pv_is("STATUS", "Withdrawal")
+
+        self.ca.assert_that_pv_is("DIRECTION", mode_name)
 
         # When:
         self.ca.set_pv_value("DIRECTION:REV", 1)
 
         # Then:
-        self.ca.assert_that_pv_is("DIRECTION", "Withdrawal")
+        self.ca.assert_that_pv_is("DIRECTION", expected_direction)
+
+    @parameterized.expand(
+        [("infusion", "i", "Infusion", "Infusion"),
+         ("withdrawal", "w", "Withdrawal", "Withdrawal"),
+         ("infusion_withdrawal", "i/w", "Infusion/Withdrawal", "Infusion"),
+         ("withdrawal_infusion", "w/i", "Withdrawal/Infusion", "Withdrawal"),
+         ("continuous", "con", "Continuous", "Infusion")
+         ])
+    def test_that_GIVEN_a_device_stopped_device_WHEN_the_dir_rev_is_queried_THEN_the_devices_direction_has_not_changed(self, _, mode_symbol, mode_name, expected_direction):
+        # Given:
+        self.ca.set_pv_value("MODE:SP", mode_symbol)
+        self.ca.assert_that_pv_is("MODE", mode_name)
+        self.ca.assert_that_pv_is("DIRECTION", expected_direction)
+
+        self._stop_running()
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
+
+        # When:
+        self.ca.set_pv_value("DIRECTION:REV", 1)
+
+        # Then:
+        self.ca.assert_that_pv_is("DIRECTION", expected_direction)
+
+    @parameterized.expand(
+        [("infusion_withdrawal", "i/w", "Infusion/Withdrawal", "Infusion"),
+         ("withdrawal_infusion", "w/i", "Withdrawal/Infusion", "Withdrawal"),
+         ("continuous", "con", "Continuous", "Infusion")
+         ])
+    def test_that_GIVEN_a_device_running_not_in_infusion_or_withdrawal_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_has_not_changed(self, _, mode_symbol, mode_name, expected_direction):
+        # Given:
+        self._start_running()
+        self.ca.set_pv_value("MODE:SP", mode_symbol)
+        self.ca.assert_that_pv_is("MODE", mode_name)
+        self.ca.assert_that_pv_is("DIRECTION", expected_direction)
+
+        # When:
+        self.ca.set_pv_value("DIRECTION:REV", 1)
+
+        # Then:
+        self.ca.assert_that_pv_is("DIRECTION", expected_direction)
 
