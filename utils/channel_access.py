@@ -33,8 +33,6 @@ class ChannelAccess(object):
 
     def __init__(self, default_timeout=5, device_prefix=None):
         """
-        Constructor.
-
         Args:
             device_prefix: the device prefix which will be added to the start of all pvs
             default_timeout: the default time out to wait for
@@ -54,7 +52,7 @@ class ChannelAccess(object):
         if not self.prefix.endswith(':'):
             self.prefix += ':'
         if device_prefix is not None:
-            self.prefix += "{0}:".format(device_prefix)
+            self.prefix += "{}:".format(device_prefix)
 
     def set_pv_value(self, pv, value):
         """
@@ -72,8 +70,8 @@ class ChannelAccess(object):
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
         self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, timeout=self._default_timeout)
-        # Need to give Lewis time to process
-        time.sleep(1)
+        # Give lewis time to process
+        time.sleep(1.0)
 
     def get_pv_value(self, pv):
         """
@@ -96,7 +94,37 @@ class ChannelAccess(object):
         pv_proc = "{}.PROC".format(self._create_pv_with_prefix(pv))
         return self.ca.set_pv_value(pv_proc, 1)
 
+    @contextmanager
+    def put_simulated_record_into_alarm(self, pv, alarm):
+        """
+        Put a simulated record into alarm. Using a context manager to put PVs into alarm means they don't accidentally
+        get left in alarm if the test fails.
+
+        Args:
+             pv: pv to put into alarm
+             alarm: type of alarm
+        Raises:
+            AssertionError if the simulated alarm status could not be set.
+        """
+        def _set_and_check_simulated_alarm(set_check_pv, set_check_alarm):
+            self.set_pv_value("{}.SIMS".format(set_check_pv), set_check_alarm)
+            self.assert_that_pv_alarm_is("{}".format(set_check_pv), set_check_alarm)
+
+        try:
+            _set_and_check_simulated_alarm(pv, alarm)
+            yield
+        finally:
+            _set_and_check_simulated_alarm(pv, self.Alarms.NONE)
+
     def _format_value(self, value):
+        """
+        Formats a PV value for display. Includes type information to ease debugging.
+
+        Args:
+            value: The value to format
+        Returns:
+            The formatted value
+        """
         return "'{}' (type: '{}')".format(value, value.__class__.__name__)
 
     def _create_pv_with_prefix(self, pv):
@@ -168,8 +196,6 @@ class ChannelAccess(object):
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
                 .format(func.__name__, self._create_pv_with_prefix(pv))
 
-        # Need to use functools.partial here because python won't automatically create a closure for a function that
-        # we're not returning.
         err = self._wait_for_pv_lambda(partial(wrapper, message), timeout)
 
         if err is not None:
@@ -215,55 +241,60 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: val != restricted_value, timeout, message=msg)
 
-    def assert_that_pv_is_number(self, pv, expected_value, tolerance=0, timeout=None):
+    def _within_tolerance_condition(self, val, expected, tolerance):
+        """
+        Condition to tell whether a number is equal to another within a tolerance.
+
+        Args:
+            val: The actual value
+            expected: The expected value
+            tolerance:
+        Returns:
+            True if within tolerance, False otherwise.
+        """
+        try:
+            val = float(val)
+        except (ValueError, TypeError):
+            return False
+        return abs(val - expected) <= tolerance
+
+    def assert_that_pv_is_number(self, pv, expected, tolerance=0, timeout=None):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout
         
         Args:
             pv: pv name
-            expected_value: expected value
+            expected: expected value
             tolerance: the allowable deviation from the expected value
             timeout: if it hasn't changed within this time raise assertion error
         Raises:
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
         """
-        def condition(val):
-            try:
-                val = float(val)
-            except (ValueError, TypeError):
-                return False
-            return abs(val - expected_value) <= tolerance
-
         message = "Expected PV value to be equal to {} (tolerance: {})"\
-            .format(self._format_value(expected_value), self._format_value(tolerance))
+            .format(self._format_value(expected), self._format_value(tolerance))
 
-        return self.assert_that_pv_value_causes_func_to_return_true(pv, condition, timeout, message=message)
+        return self.assert_that_pv_value_causes_func_to_return_true(
+            pv, lambda val: self._within_tolerance_condition(val, expected, tolerance), timeout, message=message)
 
-    def assert_that_pv_is_not_number(self, pv, restricted_value, tolerance=0, timeout=None):
+    def assert_that_pv_is_not_number(self, pv, restricted, tolerance=0, timeout=None):
         """
         Assert that the pv is at least tolerance from the restricted value within the timeout
 
         Args:
              pv: pv name
-             restricted_value: the value we don't want the PV to have
+             restricted: the value we don't want the PV to have
              tolerance: the minimal deviation from the expected value
              timeout: if it hasn't changed within this time raise assertion error
         Raises:
              AssertionError: if value does not enter the desired range
              UnableToConnectToPVException: if pv does not exist within timeout
         """
-        def condition(val):
-            try:
-                val = float(val)
-            except (ValueError, TypeError):
-                return False
-            return abs(val - restricted_value) >= tolerance
-
         message = "Expected PV value to be not equal to {} (tolerance: {})"\
-            .format(self._format_value(restricted_value), self._format_value(tolerance))
+            .format(self._format_value(restricted), self._format_value(tolerance))
 
-        return self.assert_that_pv_value_causes_func_to_return_true(pv, condition, timeout=timeout, message=message)
+        return self.assert_that_pv_value_causes_func_to_return_true(
+            pv, lambda val: not self._within_tolerance_condition(val, restricted, tolerance), timeout, message=message)
 
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=None):
         """
@@ -282,7 +313,6 @@ class ChannelAccess(object):
             return val in expected_values
 
         message = "Expected PV value to be in {}".format(expected_values)
-
         return self.assert_that_pv_value_causes_func_to_return_true(pv, condition, timeout, message)
 
     def assert_that_pv_is_an_integer_between(self, pv, min_value, max_value, timeout=None):
@@ -308,7 +338,6 @@ class ChannelAccess(object):
             return min_value <= int_pv_value <= max_value
 
         message = "Expected PV value to be an integer between {} and {}".format(min_value, max_value)
-
         return self.assert_that_pv_value_causes_func_to_return_true(pv, condition, timeout, message)
 
     def assert_that_pv_exists(self, pv, timeout=None):
@@ -354,7 +383,7 @@ class ChannelAccess(object):
              AssertionError: if alarm does not become requested value
              UnableToConnectToPVException: if pv does not exist within timeout
         """
-        self.assert_that_pv_is("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
+        return self.assert_that_pv_is("{}.SEVR".format(pv), alarm, timeout=timeout)
 
     def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None,
                                               expected_alarm=Alarms.NONE, timeout=None):
@@ -393,12 +422,12 @@ class ChannelAccess(object):
              wait: the number of seconds to wait
              comparator: a function taking two arguments; the initial and final values, which should return a boolean
         Raises:
-             AssertionError: if the value of the pv has not increased
+             AssertionError: if the value of the pv did not satisfy the comparator
         """
         initial_value = self.get_pv_value(pv)
         time.sleep(wait)
 
-        message = "Expected value trend to satisfy comparator {}. Initial value was {}."\
+        message = "Expected value trend to satisfy comparator '{}'. Initial value was {}."\
             .format(comparator.__name__, self._format_value(initial_value))
 
         def condition(val):
@@ -406,7 +435,7 @@ class ChannelAccess(object):
 
         return self.assert_that_pv_value_causes_func_to_return_true(pv, condition, message=message)
 
-    # Special cases of assert_pv_value_over_time
+    # Special cases of assert_that_pv_value_over_time_satisfies_comparator
     assert_that_pv_value_is_increasing = \
         partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.gt)
 
@@ -415,25 +444,3 @@ class ChannelAccess(object):
 
     assert_that_pv_value_is_unchanged = \
         partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.eq)
-
-    # Using a context manager to put PVs into alarm means they don't accidentally get left in alarm if the test fails
-    @contextmanager
-    def put_simulated_record_into_alarm(self, pv, alarm):
-        """
-        Put a simulated record into alarm
-
-        Args:
-             pv: pv to put into alarm
-             alarm: type of alarm
-        Raises:
-            AssertionError if the simulated alarm status could not be set.
-        """
-        def _set_and_check_simulated_alarm(set_check_pv, set_check_alarm):
-            self.set_pv_value("{}.SIMS".format(set_check_pv), set_check_alarm)
-            self.assert_that_pv_alarm_is("{}".format(set_check_pv), set_check_alarm)
-
-        try:
-            _set_and_check_simulated_alarm(pv, alarm)
-            yield
-        finally:
-            _set_and_check_simulated_alarm(pv, self.Alarms.NONE)
