@@ -164,22 +164,22 @@ class RikenChangeover(unittest.TestCase):
 
     def test_GIVEN_a_power_supply_is_in_alarm_THEN_the_power_any_pv_is_also_in_alarm(self):
         for supply in self.get_power_supplies():
-            with self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.ALARM_INVALID):
-                self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.ALARM_INVALID)
-            self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.ALARM_NONE)
+            with self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID):
+                self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.INVALID)
+            self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.NONE)
 
     def test_GIVEN_all_power_supply_are_in_alarm_THEN_the_power_any_pv_is_also_in_alarm(self):
         with ExitStack() as stack:
             for supply in self.get_power_supplies():
                 stack.enter_context(
-                    self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.ALARM_INVALID)
+                    self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID)
                 )
-            self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.ALARM_INVALID)
-        self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.INVALID)
+        self.ca.assert_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.NONE)
 
     def test_GIVEN_a_power_supply_is_in_alarm_THEN_the_power_any_pv_reports_that_psus_are_active(self):
         for supply in self.get_power_supplies():
-            with self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.ALARM_INVALID):
+            with self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID):
                 self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 1)
             self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 0)
 
@@ -187,7 +187,7 @@ class RikenChangeover(unittest.TestCase):
         with ExitStack() as stack:
             for supply in self.get_power_supplies():
                 stack.enter_context(
-                    self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.ALARM_INVALID)
+                    self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID)
                 )
             self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 1)
         self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 0)

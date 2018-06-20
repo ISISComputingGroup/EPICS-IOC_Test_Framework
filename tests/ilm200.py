@@ -139,7 +139,7 @@ class Ilm200Tests(unittest.TestCase):
         for i in self.channel_range():
             level = self.FILL/2
             self.set_level_via_backdoor(i, level)
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, "LOW"), self.ca.ALARM_MINOR)
+            self.ca.assert_pv_alarm_is(self.ch_pv(i, "LOW"), self.ca.Alarms.MINOR)
 
     @skip_if_recsim("Cannot do back door in recsim")
     def test_GIVEN_helium_channel_WHEN_helium_current_set_on_THEN_ioc_reports_current(self):

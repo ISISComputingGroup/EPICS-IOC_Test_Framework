@@ -162,7 +162,7 @@ class IpsTests(unittest.TestCase):
             # quenched.
             self._lewis.backdoor_run_function_on_device("unquench")
             # Wait for IOC to notice quench state has gone away
-            self.ca.assert_pv_alarm_is("STS:SYSTEM:FAULT", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("STS:SYSTEM:FAULT", self.ca.Alarms.NONE)
 
     def test_GIVEN_magnet_quenches_while_at_field_THEN_ioc_displays_this_quench_in_statuses(self):
 
@@ -174,9 +174,9 @@ class IpsTests(unittest.TestCase):
 
             with self._backdoor_magnet_quench():
                 self.ca.assert_that_pv_is("STS:SYSTEM:FAULT", "Quenched")
-                self.ca.assert_pv_alarm_is("STS:SYSTEM:FAULT", self.ca.ALARM_MAJOR)
+                self.ca.assert_pv_alarm_is("STS:SYSTEM:FAULT", self.ca.Alarms.MAJOR)
                 self.ca.assert_that_pv_is("CONTROL", "Auto-Run-Down")
-                self.ca.assert_pv_alarm_is("CONTROL", self.ca.ALARM_MAJOR)
+                self.ca.assert_pv_alarm_is("CONTROL", self.ca.Alarms.MAJOR)
 
                 # The trip field should be the field at the point when the magnet quenched.
                 self.ca.assert_that_pv_is_number("FIELD:TRIP", field, tolerance=TOLERANCE)
@@ -200,4 +200,4 @@ class IpsTests(unittest.TestCase):
             self.ca.set_pv_value("FIELD:RATE:SP", val)
             self.ca.assert_that_pv_is_number("FIELD:RATE:SP", val, tolerance=TOLERANCE)
             self.ca.assert_that_pv_is_number("FIELD:RATE", val, tolerance=TOLERANCE)
-            self.ca.assert_pv_alarm_is("FIELD:RATE", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("FIELD:RATE", self.ca.Alarms.NONE)

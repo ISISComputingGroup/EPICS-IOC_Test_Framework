@@ -39,14 +39,14 @@ class MerlinFermiChopperTests(FermichopperBase):
         for temp in self.test_temperature_values:
             self._lewis.backdoor_set_on_device("electronics_temp", temp)
             self.ca.assert_that_pv_is_number("TEMP:ELECTRONICS", temp, tolerance=0.2)
-            self.ca.assert_pv_alarm_is("TEMP:ELECTRONICS", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("TEMP:ELECTRONICS", self.ca.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_the_motor_temperature_is_set_via_backdoor_THEN_pv_updates(self):
         for temp in self.test_temperature_values:
             self._lewis.backdoor_set_on_device("motor_temp", temp)
             self.ca.assert_that_pv_is_number("TEMP:MOTOR", temp, tolerance=0.2)
-            self.ca.assert_pv_alarm_is("TEMP:MOTOR", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("TEMP:MOTOR", self.ca.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_chopper_parameters_are_set_THEN_status_updates(self):
@@ -80,7 +80,7 @@ class MerlinFermiChopperTests(FermichopperBase):
         for voltage in self.test_voltage_values:
             self._lewis.backdoor_set_on_device("voltage", voltage)
             self.ca.assert_that_pv_is_number("VOLTAGE", voltage, tolerance=0.1)
-            self.ca.assert_pv_alarm_is("VOLTAGE", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("VOLTAGE", self.ca.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_motor_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):

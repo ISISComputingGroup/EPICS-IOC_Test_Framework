@@ -319,7 +319,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("FREQ:SP", str(frequency))
 
         self.ca.assert_that_pv_is_number("FREQ", frequency, timeout=30)
-        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_GIVEN_drive_mode_is_stop_WHEN_frequency_setpoint_is_set_THEN_frequency_is_zero(self):
@@ -330,7 +330,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("FREQ:SP", str(frequency))
 
         self.ca.assert_that_pv_is_number("FREQ", 0, timeout=30)
-        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_start_THEN_frequency_reaches_setpoint(self):
@@ -341,7 +341,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
 
         self.ca.assert_that_pv_is_number("FREQ", frequency, timeout=30)
-        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_frequency_is_zero(self):
@@ -352,7 +352,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
 
         self.ca.assert_that_pv_is_number("FREQ", 0, timeout=30)
-        self.ca.assert_pv_alarm_is("FREQ", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("FREQ", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses mbbo record - incompatible with RECSIM")
     def test_WHEN_frequency_setpoint_is_set_THEN_readback_updates(self):
@@ -361,9 +361,9 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("FREQ:SP", frequency_as_string)
 
         self.ca.assert_that_pv_is("FREQ:SP", frequency_as_string)
-        self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("FREQ:SP:RBV", frequency)
-        self.ca.assert_pv_alarm_is("FREQ:SP:RBV", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("FREQ:SP:RBV", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_frequency_THEN_error_is_handled(self):
@@ -373,7 +373,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("error_on_set_frequency", expected_error)
         self.ca.set_pv_value("FREQ:SP", frequency_as_string)
 
-        self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.ALARM_INVALID)
+        self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_is("FREQ:SP:ERROR", expected_error)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
@@ -383,7 +383,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         expected_error = "07;C01NOK;RATIO_SPEED_OUT_OF_RANGE"
         self._lewis.backdoor_set_on_device("error_on_set_frequency", expected_error)
         self.ca.set_pv_value("FREQ:SP", frequency_as_string)
-        self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.ALARM_INVALID)
+        self.ca.assert_pv_alarm_is("FREQ:SP", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_is("FREQ:SP:ERROR", expected_error)
         self._lewis.backdoor_set_on_device("error_on_set_frequency", None)
 
@@ -402,7 +402,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("PHAS:SP", phase)
 
         self.ca.assert_that_pv_is_number("PHAS", phase, timeout=30)
-        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS to implement state machine.  Depends on current state.")
     def test_GIVEN_drive_mode_is_stop_WHEN_phase_setpoint_is_set_THEN_phase_is_zero(self):
@@ -413,7 +413,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("PHAS:SP", phase)
 
         self.ca.assert_that_pv_is_number("PHAS", 0, timeout=30)
-        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS to implement state machine.  Depends on current state.")
     def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_start_THEN_phase_reaches_setpoint(self):
@@ -424,7 +424,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
 
         self.ca.assert_that_pv_is_number("PHAS", phase, timeout=30)
-        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS to implement state machine.  Depends on current state.")
     def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_phase_is_zero(self):
@@ -435,7 +435,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
 
         self.ca.assert_that_pv_is_number("PHAS", 0, timeout=30)
-        self.ca.assert_pv_alarm_is("PHAS", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("PHAS", self.ca.Alarms.NONE)
 
     @skip_if_recsim("PHAS:SP:RBV pushed from protocol")
     def test_WHEN_phase_setpoint_is_set_THEN_readback_updates(self):
@@ -443,9 +443,9 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.set_pv_value("PHAS:SP", phase)
 
         self.ca.assert_that_pv_is("PHAS:SP", phase)
-        self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("PHAS:SP:RBV", phase)
-        self.ca.assert_pv_alarm_is("PHAS:SP:RBV", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("PHAS:SP:RBV", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_phase_THEN_error_is_handled(self):
@@ -454,7 +454,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("error_on_set_phase", expected_error)
         self.ca.set_pv_value("PHAS:SP", phase)
 
-        self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.ALARM_INVALID)
+        self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_is("PHAS:SP:ERROR", expected_error)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
@@ -463,7 +463,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         expected_error = "09;CxxNOK;SETPOINT_PHASE_OUT_OF_RANGE"
         self._lewis.backdoor_set_on_device("error_on_set_phase", expected_error)
         self.ca.set_pv_value("PHAS:SP", phase)
-        self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.ALARM_INVALID)
+        self.ca.assert_pv_alarm_is("PHAS:SP", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_is("PHAS:SP:ERROR", expected_error)
         self._lewis.backdoor_set_on_device("error_on_set_phase", None)
 
@@ -479,9 +479,9 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self.ca.set_pv_value("MB:SP", magnetic_bearing)
 
             self.ca.assert_that_pv_is("MB:SP", magnetic_bearing)
-            self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("MB:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_is("MB", magnetic_bearing)
-            self.ca.assert_pv_alarm_is("MB", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("MB", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_magnetic_bearing_is_on_THEN_error_is_handled(self):
@@ -490,7 +490,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
             self.ca.set_pv_value("MB:SP", magnetic_bearing)
 
-            self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_pv_alarm_is("MB:SP", self.ca.Alarms.INVALID)
             self.ca.assert_that_pv_is("MB:SP:ERROR", expected_error)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
@@ -499,7 +499,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
             self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", expected_error)
             self.ca.set_pv_value("MB:SP", magnetic_bearing)
-            self.ca.assert_pv_alarm_is("MB:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_pv_alarm_is("MB:SP", self.ca.Alarms.INVALID)
             self.ca.assert_that_pv_is("MB:SP:ERROR", expected_error)
             self._lewis.backdoor_set_on_device("error_on_set_magnetic_bearing", None)
 
@@ -515,9 +515,9 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
             self.ca.assert_that_pv_is("DRIVE:MODE:SP", drive_mode)
-            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_is("DRIVE:MODE", drive_mode)
-            self.ca.assert_pv_alarm_is("DRIVE:MODE", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
     def test_GIVEN_error_WHEN_set_drive_mode_is_start_THEN_error_is_handled(self):
@@ -526,7 +526,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
             self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
 
-            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.Alarms.INVALID)
             self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", expected_error)
 
     @skip_if_recsim("Uses LeWIS backdoor command to set error")
@@ -535,7 +535,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             expected_error = "10;CxxNOK;MAGNETIC_BEARING_NOT_OK"
             self._lewis.backdoor_set_on_device("error_on_set_drive_mode", expected_error)
             self.ca.set_pv_value("DRIVE:MODE:SP", drive_mode)
-            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.ALARM_INVALID)
+            self.ca.assert_pv_alarm_is("DRIVE:MODE:SP", self.ca.Alarms.INVALID)
             self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", expected_error)
             self._lewis.backdoor_set_on_device("error_on_set_drive_mode", None)
 

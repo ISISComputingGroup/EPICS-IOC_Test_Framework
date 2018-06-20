@@ -57,9 +57,9 @@ class InstronStressRigTests(unittest.TestCase):
         # Setpoint is zero-indexed
         self.ca.set_pv_value("CHANNEL:SP", CHANNELS[name] - 1)
         self.ca.assert_that_pv_is("CHANNEL.RVAL", CHANNELS[name])
-        self.ca.assert_pv_alarm_is("CHANNEL", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("CHANNEL", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("CHANNEL:GUI", name)
-        self.ca.assert_pv_alarm_is("CHANNEL:GUI", self.ca.ALARM_NONE)
+        self.ca.assert_pv_alarm_is("CHANNEL:GUI", self.ca.Alarms.NONE)
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig", DEVICE_PREFIX)
@@ -218,12 +218,12 @@ class InstronStressRigTests(unittest.TestCase):
             # Put the record into a non-alarm state. This is needed so that we can wait until the record is in alarm
             # later, when we do a command which (expectedly) puts the record into a timeout alarm.
             self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
-            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_NONE)
+            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.Alarms.NONE)
 
             self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value))
             self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value))
             # No response from arbitrary command causes record to be TIMEOUT INVALID - this is expected.
-            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.ALARM_INVALID)
+            self.ca.assert_pv_alarm_is("ARBITRARY", self.ca.Alarms.INVALID)
 
             self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
             self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001, timeout=60)

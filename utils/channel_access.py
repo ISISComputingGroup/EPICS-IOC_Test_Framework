@@ -1,14 +1,20 @@
-"""
-Channel access tp IOC
-"""
-import functools
 import os
 import time
 import operator
 import ctypes
 from contextlib import contextmanager
-
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
+
+from functools import partial
+
+try:
+    # Python 3
+    from functools import partialmethod
+except ImportError:
+    # Workaround for Python 2
+    class partialmethod(partial):
+        def __get__(self, instance, owner):
+            return partial(self.func, instance, *(self.args or ()), **(self.keywords or {}))
 
 
 class ChannelAccess(object):
@@ -16,17 +22,14 @@ class ChannelAccess(object):
     Provides the required channel access commands.
     """
 
-    ALARM_NONE = "NO_ALARM"
-    """Alarm value if there is no alarm"""
-
-    ALARM_MAJOR = "MAJOR"
-    """Alarm value if the record is in major alarm"""
-
-    ALARM_MINOR = "MINOR"
-    """Alarm value if the record is in minor alarm"""
-
-    ALARM_INVALID = "INVALID"
-    """Alarm value if the record has a calc alarm"""
+    class Alarms(object):
+        """
+        Possible alarm states that a PV can be in.
+        """
+        NONE = "NO_ALARM"  # Alarm value if there is no alarm
+        MAJOR = "MAJOR"  # Alarm value if the record is in major alarm
+        MINOR = "MINOR"  # Alarm value if the record is in minor alarm
+        INVALID = "INVALID"  # Alarm value if the record has a calc alarm
 
     def __init__(self, default_timeout=5, device_prefix=None):
         """
@@ -140,12 +143,16 @@ class ChannelAccess(object):
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
         def condition(val):
-            return abs(self._to_float(val) - self._to_float(expected_value)) <= tolerance
+            try:
+                val = float(val)
+            except (ValueError, TypeError):
+                return False
+            return abs(val - expected_value) <= tolerance
 
         message = "Expected PV value to be equal to {} (tolerance: {})"\
             .format(self._format_value(expected_value), self._format_value(tolerance))
 
-        self.assert_pv_value_causes_func_to_return_true(pv, condition, timeout, message=message)
+        return self.assert_pv_value_causes_func_to_return_true(pv, condition, timeout, message=message)
 
     def assert_that_pv_is_not_number(self, pv, restricted_value, tolerance=0, timeout=None):
         """
@@ -158,7 +165,11 @@ class ChannelAccess(object):
         :raises UnableToConnectToPVException: if pv does not exist within timeout
         """
         def condition(val):
-            return abs(self._to_float(val) - restricted_value) >= tolerance
+            try:
+                val = float(val)
+            except (ValueError, TypeError):
+                return False
+            return abs(val - restricted_value) >= tolerance
 
         message = "Expected PV value to be not equal to {} (tolerance: {})"\
             .format(self._format_value(restricted_value), self._format_value(tolerance))
@@ -208,15 +219,6 @@ class ChannelAccess(object):
         message = "Expected PV value to be an integer between {} and {}".format(min_value, max_value)
 
         return self.assert_pv_value_causes_func_to_return_true(pv, condition, timeout, message)
-
-    def _to_float(self, pv):
-        try:
-            raw_pv_value = self.get_pv_value(pv)
-            return float(raw_pv_value)
-        except ValueError:
-            raise ValueError("""Value was invalid when reading PV '{PV}'.
-                    Expected a numeric value but got: {actual}""".format(PV=self._create_pv_with_prefix(pv),
-                                                                         actual=raw_pv_value))
 
     def wait_for(self, pv, timeout=None):
         """
@@ -300,7 +302,7 @@ class ChannelAccess(object):
         self.assert_that_pv_is("{pv}.SEVR".format(pv=pv), alarm, timeout=timeout)
 
     def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None,
-                                              expected_alarm=ALARM_NONE, timeout=None):
+                                              expected_alarm=Alarms.NONE, timeout=None):
         """
         Set a pv to a value and check that the readback has the expected value and alarm state.
         :param value: value to set
@@ -315,7 +317,7 @@ class ChannelAccess(object):
         :raises UnableToConnectToPVException: if a pv does not exist within timeout
         """
         if set_point_pv is None:
-            set_point_pv = "{0}:SP".format(readback_pv)
+            set_point_pv = "{}:SP".format(readback_pv)
         if expected_value is None:
             expected_value = value
 
@@ -338,18 +340,18 @@ class ChannelAccess(object):
         initial_value = self.get_pv_value(pv)
         time.sleep(wait)
 
-        message = "Expected initial value to satisfy comparator {}. Initial value was {}"\
+        message = "Expected value trend to satisfy comparator {}. Initial value was {}."\
             .format(comparator.__name__, self._format_value(initial_value))
 
         def condition(val):
-            return comparator(initial_value, val)
+            return comparator(val, initial_value)
 
         return self.assert_pv_value_causes_func_to_return_true(pv, condition, message=message)
 
     # Special cases of assert_pv_value_over_time
-    assert_pv_value_is_increasing = functools.partial(assert_pv_value_over_time, comparator=operator.gt)
-    assert_pv_value_is_decreasing = functools.partial(assert_pv_value_over_time, comparator=operator.lt)
-    assert_pv_value_is_unchanged = functools.partial(assert_pv_value_over_time, comparator=operator.eq)
+    assert_pv_value_is_increasing = partialmethod(assert_pv_value_over_time, comparator=operator.gt)
+    assert_pv_value_is_decreasing = partialmethod(assert_pv_value_over_time, comparator=operator.lt)
+    assert_pv_value_is_unchanged = partialmethod(assert_pv_value_over_time, comparator=operator.eq)
 
     def assert_pv_value_causes_func_to_return_true(self, pv, func, timeout=None, message=None):
         """
@@ -360,19 +362,27 @@ class ChannelAccess(object):
         :param message: custom message to print on failure
         :raises: AssertionError: If the function does not evaluate to true within the given timeout
         """
-
         def wrapper(message):
             value = self.get_pv_value(pv)
-            if func(value):
+
+            try:
+                return_value = func(value)
+            except Exception as e:
+                return "Exception was thrown while evaluating function '{}' on pv value {}. Exception was: {} {}"\
+                    .format(func.__name__, self._format_value(value), e.__class__.__name__, e.message)
+
+            if return_value:
                 return None
             else:
                 return "{}{}{}".format(message, os.linesep, "Final PV value was {}".format(self._format_value(value)))
 
         if message is None:
-            message = "Expected function {} to evaluate to True when reading PV '{}'." \
+            message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
                 .format(func.__name__, self._create_pv_with_prefix(pv))
 
-        err = self._wait_for_pv_lambda(functools.partial(wrapper, message), timeout)
+        # Need to use functools.partial here because python won't automatically create a closure for a function that
+        # we're not returning.
+        err = self._wait_for_pv_lambda(partial(wrapper, message), timeout)
 
         if err is not None:
             raise AssertionError(err)
@@ -393,4 +403,4 @@ class ChannelAccess(object):
             _set_and_check_simulated_alarm(pv, alarm)
             yield
         finally:
-            _set_and_check_simulated_alarm(pv, self.ALARM_NONE)
+            _set_and_check_simulated_alarm(pv, self.Alarms.NONE)
