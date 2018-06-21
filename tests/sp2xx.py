@@ -432,8 +432,6 @@ class NATests(unittest.TestCase):
 
     def test_that_GIVEN_a_device_in_infusion_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
-        self.ca.set_pv_value("MODE:SP", "i")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
 
         self.ca.set_pv_value("NA", 0)
         self.ca.assert_that_pv_is("NA", "Can't run command")
