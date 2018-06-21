@@ -60,7 +60,7 @@ class SkfMB350ChopperTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("skf_mb350_chopper", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
-        self.ca.wait_for("FREQ", timeout=30)
+        self.ca.assert_that_pv_exists("FREQ", timeout=30)
 
         # Wait for emulator to be connected, signified by "STAT:OK"
         self.ca.assert_that_pv_is("STAT:OK", "OK")

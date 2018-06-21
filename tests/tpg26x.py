@@ -67,7 +67,7 @@ class Tpg26xTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tpg26x", DEVICE_PREFIX)
 
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("1:PRESSURE")
+        self.ca.assert_that_pv_exists("1:PRESSURE")
         # Reset and error flags and alarms
         self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_ONE)
         self._set_error(ErrorFlags.NO_ERROR, self.CHANNEL_TWO)
@@ -93,7 +93,7 @@ class Tpg26xTests(unittest.TestCase):
         self._set_pressure(expected_pressure, self.CHANNEL_ONE)
 
         self.ca.assert_that_pv_is("1:PRESSURE", expected_pressure)
-        self.ca.assert_pv_alarm_is("1:PRESSURE", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("1:PRESSURE", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("1:ERROR", "No Error")
 
     def test_GIVEN_negative_pressure1_set_WHEN_read_THEN_pressure1_is_as_expected(self):
@@ -111,63 +111,63 @@ class Tpg26xTests(unittest.TestCase):
     def test_GIVEN_pressure1_under_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.UNDER_RANGE
         expected_error_str = ErrorStrings.UNDER_RANGE
-        expected_alarm = ChannelAccess.ALARM_MINOR
+        expected_alarm = self.ca.Alarms.MINOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
         self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_over_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.OVER_RANGE
         expected_error_str = ErrorStrings.OVER_RANGE
-        expected_alarm = ChannelAccess.ALARM_MINOR
+        expected_alarm = self.ca.Alarms.MINOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
         self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_sensor_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_ERROR
         expected_error_str = ErrorStrings.SENSOR_ERROR
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
         self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_sensor_off_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_OFF
         expected_error_str = ErrorStrings.SENSOR_OFF
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
         self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_no_sensor_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.NO_SENSOR
         expected_error_str = ErrorStrings.NO_SENSOR
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
         self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure1_identification_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.IDENTIFICATION_ERROR
         expected_error_str = ErrorStrings.IDENTIFICATION_ERROR
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_ONE)
 
         self.ca.assert_that_pv_is("1:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("1:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("1:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_set_WHEN_read_THEN_pressure_is_as_expected(self):
         expected_pressure = 1.23
         self._set_pressure(expected_pressure, self.CHANNEL_TWO)
 
         self.ca.assert_that_pv_is("2:PRESSURE", expected_pressure)
-        self.ca.assert_pv_alarm_is("2:PRESSURE", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("2:PRESSURE", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("2:ERROR", "No Error")
 
     def test_GIVEN_negative_pressure2_set_WHEN_read_THEN_pressure2_is_as_expected(self):
@@ -185,56 +185,56 @@ class Tpg26xTests(unittest.TestCase):
     def test_GIVEN_pressure2_under_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.UNDER_RANGE
         expected_error_str = ErrorStrings.UNDER_RANGE
-        expected_alarm = ChannelAccess.ALARM_MINOR
+        expected_alarm = self.ca.Alarms.MINOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
         self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_over_range_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.OVER_RANGE
         expected_error_str = ErrorStrings.OVER_RANGE
-        expected_alarm = ChannelAccess.ALARM_MINOR
+        expected_alarm = self.ca.Alarms.MINOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
         self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_sensor_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_ERROR
         expected_error_str = ErrorStrings.SENSOR_ERROR
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
         self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_sensor_off_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.SENSOR_OFF
         expected_error_str = ErrorStrings.SENSOR_OFF
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
         self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_no_sensor_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.NO_SENSOR
         expected_error_str = ErrorStrings.NO_SENSOR
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
         self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_pressure2_identification_error_set_WHEN_read_THEN_error(self):
         expected_error = ErrorFlags.IDENTIFICATION_ERROR
         expected_error_str = ErrorStrings.IDENTIFICATION_ERROR
-        expected_alarm = ChannelAccess.ALARM_MAJOR
+        expected_alarm = self.ca.Alarms.MAJOR
         self._set_error(expected_error, self.CHANNEL_TWO)
 
         self.ca.assert_that_pv_is("2:ERROR", expected_error_str)
-        self.ca.assert_pv_alarm_is("2:ERROR", expected_alarm)
+        self.ca.assert_that_pv_alarm_is("2:ERROR", expected_alarm)
 
     def test_GIVEN_units_set_WHEN_read_THEN_units_are_as_expected(self):
         expected_units = UnitFlags.PA

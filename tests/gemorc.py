@@ -70,7 +70,7 @@ class GemorcTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("gemorc", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=DEFAULT_TIMEOUT)
-        self.ca.wait_for("ID", timeout=30)
+        self.ca.assert_that_pv_exists("ID", timeout=30)
         self.reset_ioc()
         if not IOCRegister.uses_rec_sim:
             self.reset_emulator()
@@ -215,7 +215,7 @@ class GemorcTests(unittest.TestCase):
     @skip_if_recsim("Device reset requires Lewis backdoor")
     def test_GIVEN_initialised_WHEN_oscillation_requested_THEN_complete_cycles_increases(self):
         self.start_oscillating()
-        self.ca.assert_pv_value_is_increasing("CYCLES", DEFAULT_TIMEOUT)
+        self.ca.assert_that_pv_value_is_increasing("CYCLES", DEFAULT_TIMEOUT)
 
     @skip_if_recsim("Device reset requires Lewis backdoor")
     def test_GIVEN_oscillating_WHEN_oscillation_stopped_THEN_reports_not_oscillating(self):
@@ -227,7 +227,7 @@ class GemorcTests(unittest.TestCase):
     def test_GIVEN_initialised_WHEN_oscillation_requested_THEN_complete_cycles_does_not_change(self):
         self.start_oscillating()
         self.ca.set_pv_value("STOP", 1)
-        self.ca.assert_pv_value_is_unchanged("CYCLES", DEFAULT_TIMEOUT)
+        self.ca.assert_that_pv_value_is_unchanged("CYCLES", DEFAULT_TIMEOUT)
 
     @skip_if_recsim("Device reset requires Lewis backdoor")
     def test_GIVEN_oscillating_WHEN_initialisation_requested_THEN_initialises(self):

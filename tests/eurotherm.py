@@ -46,8 +46,8 @@ class EurothermTests(unittest.TestCase):
     def _setup_lewis_and_channel_access(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", DEVICE)
         self.ca = ChannelAccess(device_prefix=PREFIX)
-        self.ca.wait_for(RBV_PV, timeout=30)
-        self.ca.wait_for("CAL:SEL", timeout=10)
+        self.ca.assert_that_pv_exists(RBV_PV, timeout=30)
+        self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _reset_device_state(self):
@@ -65,7 +65,7 @@ class EurothermTests(unittest.TestCase):
         self._set_setpoint_and_current_temperature(intial_temp)
         self.ca.assert_that_pv_is("TEMP", intial_temp)
         # Ensure the temperature isn't being changed by a ramp any more
-        self.ca.assert_pv_value_is_unchanged("TEMP", 5)
+        self.ca.assert_that_pv_value_is_unchanged("TEMP", 5)
 
     def _set_setpoint_and_current_temperature(self, temperature):
         if IOCRegister.uses_rec_sim:

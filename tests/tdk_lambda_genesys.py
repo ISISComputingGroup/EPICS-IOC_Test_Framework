@@ -33,7 +33,7 @@ class TdkLambdaGenesysTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tdk_lambda_genesys", "GENESYS_01")
         self.ca = ChannelAccess(default_timeout=10, device_prefix="GENESYS_01")
-        self.ca.wait_for("1:VOLT", timeout=20)
+        self.ca.assert_that_pv_exists("1:VOLT", timeout=20)
 
     def _write_voltage(self, expected_voltage):
         self._lewis.backdoor_set_on_device("voltage", expected_voltage)

@@ -44,9 +44,9 @@ class OscillatingCollimatorTests(unittest.TestCase):
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
-        ChannelAccess().wait_for("MOT:MTR0101", timeout=30)
+        ChannelAccess().assert_that_pv_exists("MOT:MTR0101", timeout=30)
         self.ca = ChannelAccess(device_prefix=PREFIX)
-        self.ca.wait_for("VEL:SP", timeout=30)
+        self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
 
     def test_GIVEN_angle_frequency_and_radius_WHEN_set_THEN_distance_and_velocity_match_LabView_generated_values(self):
 

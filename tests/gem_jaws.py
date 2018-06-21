@@ -84,7 +84,7 @@ class GemJawsTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("gem_jaws")
         self.ca = ChannelAccess(default_timeout=30)
 
-        [self.ca.wait_for(mot) for mot in all_motors]
+        [self.ca.assert_that_pv_exists(mot) for mot in all_motors]
 
     def _test_readback(self, underlying_motor, calibrated_axis, to_read_func, x):
         self.ca.set_pv_value(underlying_motor, x)
