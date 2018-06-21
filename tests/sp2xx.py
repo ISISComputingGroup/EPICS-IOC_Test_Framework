@@ -442,3 +442,40 @@ class NATests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("NA", "")
+
+
+class DiameterTests(unittest.TestCase):
+    def setUp(self):
+        # Given
+        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._reset_device()
+
+    def _reset_device(self):
+        self._stop_running()
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
+
+        self._lewis.backdoor_run_function_on_device("clear_last_error")
+        self.ca.process_pv("ERROR")
+        self.ca.assert_that_pv_is("ERROR", "No error")
+
+        self.ca.set_pv_value("MODE:SP", "i")
+        self.ca.assert_that_pv_is("MODE", "Infusion")
+
+        self.ca.assert_that_pv_is("NA", "")
+
+    def _start_running(self):
+        self.ca.set_pv_value("RUN:SP", 1)
+
+    def _stop_running(self):
+        self.ca.set_pv_value("STOP:SP", 1)
+
+    @parameterized.expand([
+        ("10.05", 10.05),
+        ("01.45", 01.45),
+        ("00.0100000000", 00.0100000000),
+        ("99.87", 99.87)
+    ])
+    def test_that_WHEN_the_diameter_is_set_THEN_it_is_set(self, _, value):
+        # Then:
+        self.ca.assert_setting_setpoint_sets_readback(value, "DIAMETER", "DIAMETER:SP")
