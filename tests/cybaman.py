@@ -76,7 +76,7 @@ class CybamanTests(unittest.TestCase):
         self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
         self.ca.set_pv_value("INITIALIZE", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
-        self.ca.assert_that_pv_value_over_time_satisfies_comparator("INITIALIZED", 10, operator.eq)
+        self.ca.assert_that_pv_value_is_unchanged("INITIALIZED", 10)
 
         original = {}
         for axis in self.AXES:
@@ -188,7 +188,7 @@ class CybamanTests(unittest.TestCase):
         # Wait for homing to start
         sleep(2)
         # Assert that A has stopped moving (i.e. homing is finished)
-        self.ca.assert_that_pv_value_over_time_satisfies_comparator("A", 5, operator.eq)
+        self.ca.assert_that_pv_value_is_unchanged("A", 5)
         home_position = self.ca.get_pv_value("A")
 
         # Modify an unrelated setpoint
@@ -197,4 +197,4 @@ class CybamanTests(unittest.TestCase):
 
         # Verify that A has not changed from it's home position
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
-        self.ca.assert_that_pv_value_over_time_satisfies_comparator("A", 5, operator.eq)
+        self.ca.assert_that_pv_value_is_unchanged("A", 5)
