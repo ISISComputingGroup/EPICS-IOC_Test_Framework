@@ -41,6 +41,9 @@ class Kynctm3KTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("OUT{}_value".format(channel), 0.)
             self._lewis.backdoor_set_on_device("program", "none")
 
+    def test_GIVEN_device_is_started_THEN_raw_status_is_hello_world(self):
+        self.ca.assert_that_pv_is("STATUS:RAW", "Hello, world!")
+
     @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
     def test_GIVEN_input_program_WHEN_measurement_value_is_requested_THEN_appropriate_number_of_output_values_are_returned(self):
 
