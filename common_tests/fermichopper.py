@@ -205,8 +205,7 @@ class FermichopperBase(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS.BA", "0")
 
     @skip_if_recsim("Uses lewis backdoor")
-    def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(
-            self):
+    def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_range_check_fails(self):
         for number in [1, 2]:
             for position in ["upper", "lower"]:
                 self.ca.assert_that_pv_is("AUTOZERO:RANGECHECK", 0)
@@ -336,11 +335,7 @@ class FermichopperBase(unittest.TestCase):
     def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
         for number in [1, 2]:
             for position in ["upper", "lower"]:
-
-                # Reset last command so that we can tell that it's changed later on
-                while not self.ca.get_pv_value("LASTCOMMAND") == "0000":
-                    self._lewis.backdoor_set_on_device("last_command", "0000")
-                    sleep(0.1)
+                self._lewis.backdoor_run_function_on_device("reset")
 
                 # Assert that the last command is zero as expected
                 self.ca.assert_that_pv_is("LASTCOMMAND", "0000")

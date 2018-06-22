@@ -289,7 +289,9 @@ class GemorcTests(unittest.TestCase):
             backlash = self.ca.get_pv_value("BACKLASH")
             self.ca.assert_that_pv_is_number("FREQ", self.frequency(width, backlash, speed), tolerance=DEFAULT_TOLERANCE)
 
+    @skip_if_recsim("This behaviour not implemented in recsim")
     def test_GIVEN_non_zero_offset_WHEN_re_zeroed_to_datum_THEN_offset_is_zero(self):
+        self.ca.assert_setting_setpoint_sets_readback(DEFAULT_OFFSET + 1, "OFFSET", "OFFSET:SP")
         self.ca.assert_that_pv_is_not_number("OFFSET", 0)
         self.ca.set_pv_value("ZERO", 1)
         self.ca.assert_that_pv_is_number("OFFSET", 0)
