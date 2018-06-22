@@ -44,7 +44,7 @@ class RknpsTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
         self.ca = ChannelAccess()
-        self.ca.wait_for("{0}:{1}:ADDRESS".format(PREFIX, ID1), timeout=30)
+        self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID1), timeout=30)
 
     def _activate_interlocks(self):
         """

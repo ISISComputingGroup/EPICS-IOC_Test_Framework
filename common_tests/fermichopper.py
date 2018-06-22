@@ -35,7 +35,7 @@ class FermichopperBase(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper", self._get_device_prefix())
 
         self.ca = ChannelAccess(device_prefix=self._get_device_prefix(), default_timeout=30)
-        self.ca.wait_for("SPEED")
+        self.ca.assert_that_pv_exists("SPEED")
 
         self.ca.set_pv_value("DELAY:SP", 0)
         self.ca.set_pv_value("GATEWIDTH:SP", 0)
@@ -73,34 +73,34 @@ class FermichopperBase(unittest.TestCase):
         for speed in self.test_chopper_speeds:
             self.ca.set_pv_value("SPEED:SP", speed)
             self.ca.assert_that_pv_is("SPEED:SP", speed)
-            self.ca.assert_pv_alarm_is("SPEED:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("SPEED:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
-            self.ca.assert_pv_alarm_is("SPEED:SP:RBV", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("SPEED:SP:RBV", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Recsim does not handle this")
     def test_WHEN_speed_setpoint_is_set_via_gui_pv_THEN_readback_updates(self):
         for speed in self.test_chopper_speeds:
             self.ca.set_pv_value("SPEED:SP:GUI", "{} Hz".format(speed))
             self.ca.assert_that_pv_is("SPEED:SP", speed)
-            self.ca.assert_pv_alarm_is("SPEED:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("SPEED:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
-            self.ca.assert_pv_alarm_is("SPEED:SP:RBV", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("SPEED:SP:RBV", self.ca.Alarms.NONE)
 
     def test_WHEN_delay_setpoint_is_set_THEN_readback_updates(self):
         for value in self.test_delay_durations:
             self.ca.set_pv_value("DELAY:SP", value)
             self.ca.assert_that_pv_is("DELAY:SP", value)
-            self.ca.assert_pv_alarm_is("DELAY:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("DELAY:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_is_number("DELAY:SP:RBV", value, tolerance=0.05)
-            self.ca.assert_pv_alarm_is("DELAY:SP:RBV", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("DELAY:SP:RBV", self.ca.Alarms.NONE)
 
     def test_WHEN_gatewidth_is_set_THEN_readback_updates(self):
         for value in self.test_gatewidth_values:
             self.ca.set_pv_value("GATEWIDTH:SP", value)
             self.ca.assert_that_pv_is("GATEWIDTH:SP", value)
-            self.ca.assert_pv_alarm_is("GATEWIDTH:SP", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("GATEWIDTH:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_is_number("GATEWIDTH", value, tolerance=0.05)
-            self.ca.assert_pv_alarm_is("GATEWIDTH", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("GATEWIDTH", self.ca.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_autozero_voltages_are_set_via_backdoor_THEN_pvs_update(self):
@@ -109,14 +109,14 @@ class FermichopperBase(unittest.TestCase):
                 for value in self.test_autozero_values:
                     self._lewis.backdoor_set_on_device("autozero_{n}_{b}".format(n=number, b=boundary), value)
                     self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), value, tolerance=0.05)
-                    self.ca.assert_pv_alarm_is("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.ALARM_NONE)
+                    self.ca.assert_that_pv_alarm_is("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_drive_current_is_set_via_backdoor_THEN_pv_updates(self):
         for current in self.test_current_values:
             self._lewis.backdoor_set_on_device("current", current)
             self.ca.assert_that_pv_is_number("CURRENT", current, tolerance=0.1)
-            self.ca.assert_pv_alarm_is("CURRENT", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("CURRENT", self.ca.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_THEN_chopper_goes_to_setpoint(self):
@@ -205,8 +205,7 @@ class FermichopperBase(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS.BA", "0")
 
     @skip_if_recsim("Uses lewis backdoor")
-    def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(
-            self):
+    def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_range_check_fails(self):
         for number in [1, 2]:
             for position in ["upper", "lower"]:
                 self.ca.assert_that_pv_is("AUTOZERO:RANGECHECK", 0)
@@ -249,7 +248,7 @@ class FermichopperBase(unittest.TestCase):
         self.ca.assert_that_pv_is_number("DELAY:SP:RBV", test_value, tolerance=tolerance)
 
         with self._lie_about_delay_setpoint_readback():
-            self.ca.assert_pv_value_causes_func_to_return_true("DELAY:SP:RBV", lambda v: abs(v - test_value) > tolerance)
+            self.ca.assert_that_pv_value_causes_func_to_return_true("DELAY:SP:RBV", lambda v: abs(v - test_value) > tolerance)
 
             # Some time later the driver should resend the setpoint which causes the device to behave properly again:
             self.ca.assert_that_pv_is_number("DELAY:SP:RBV", test_value, tolerance=tolerance)
@@ -264,7 +263,7 @@ class FermichopperBase(unittest.TestCase):
         self.ca.assert_that_pv_is_number("GATEWIDTH", test_value, tolerance=tolerance)
 
         with self._lie_about_gatewidth():
-            self.ca.assert_pv_value_causes_func_to_return_true("GATEWIDTH", lambda v: abs(v - test_value) > tolerance)
+            self.ca.assert_that_pv_value_causes_func_to_return_true("GATEWIDTH", lambda v: abs(v - test_value) > tolerance)
 
             # Some time later the driver should resend the setpoint which causes the device to behave properly again:
             self.ca.assert_that_pv_is_number("GATEWIDTH", test_value, tolerance=tolerance)
@@ -336,16 +335,12 @@ class FermichopperBase(unittest.TestCase):
     def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
         for number in [1, 2]:
             for position in ["upper", "lower"]:
-
-                # Reset last command so that we can tell that it's changed later on
-                while not self.ca.get_pv_value("LASTCOMMAND") == "0000":
-                    self._lewis.backdoor_set_on_device("last_command", "0000")
-                    sleep(0.1)
+                self._lewis.backdoor_run_function_on_device("reset")
 
                 # Assert that the last command is zero as expected
                 self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
                 # Check that the last command is not being set to something else by the IOC
-                self.ca.assert_pv_value_is_unchanged("LASTCOMMAND", wait=10)
+                self.ca.assert_that_pv_value_is_unchanged("LASTCOMMAND", wait=10)
 
                 # Set autozero voltage too high and set device moving
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 3.2)

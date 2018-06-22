@@ -32,7 +32,7 @@ class SamposTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("SAMPOS")
 
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("DISABLE", timeout=30)
+        self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")

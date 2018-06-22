@@ -28,7 +28,7 @@ class RotscTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
-        self.ca.wait_for("POSN")
+        self.ca.assert_that_pv_exists("POSN")
 
     def test_WHEN_position_set_to_value_THEN_readback_set_to_value(self):
         for val in [1, 16]:

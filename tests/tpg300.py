@@ -83,5 +83,4 @@ class Tpg300Tests(unittest.TestCase):
 
         for channel in CHANNELS:
             pv = "PRESSURE_{}".format(channel)
-            self.ca.assert_pv_alarm_is(pv, ChannelAccess.ALARM_INVALID)
-
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
