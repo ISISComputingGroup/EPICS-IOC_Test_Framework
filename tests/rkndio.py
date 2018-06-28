@@ -56,3 +56,19 @@ class RkndioVersionTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_alarm_is("IDN", self.ca.Alarms.INVALID)
+
+    def test_that_we_can_get_the_status_of_the_device(self):
+        # Given
+        status_message = "No Error"
+        self._lewis.backdoor_set_on_device("status", status_message)
+
+        # When/Then:
+        self.ca.assert_that_pv_is("STATUS", status_message)
+
+    def test_that_we_can_get_the_error_status_of_the_device(self):
+        # Given:
+        error_message = "Some Error"
+        self._lewis.backdoor_set_on_device("error", error_message)
+
+        # When/Then:
+        self.ca.assert_that_pv_is("ERROR", error_message)
