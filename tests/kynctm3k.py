@@ -4,7 +4,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from lewis.core.logging import has_log
+
 
 EMULATOR_NAME = "kynctm3k"
 
@@ -21,7 +21,6 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-@has_log
 class Kynctm3KTests(unittest.TestCase):
     """
     Tests for the Keyence TM-3001P IOC.
@@ -59,6 +58,7 @@ class Kynctm3KTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
         self._lewis.backdoor_set_on_device("OUT_values", self.init_OUT_VALUES)
+        self._lewis.backdoor_set_on_device("truncated_output", False)
 
     def specify_program_for_device(self, program, channel_value_multiplier):
         """
@@ -98,6 +98,7 @@ class Kynctm3KTests(unittest.TestCase):
                         continue
                     else:
                         self.ca.assert_that_pv_is_number(pv, expected_value, tolerance=0.01*abs(expected_value))
+                        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
     @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
     def test_GIVEN_input_program_WHEN_all_OUT_values_are_out_of_range_THEN_disconnected_is_shown_for_all(self):
@@ -107,8 +108,7 @@ class Kynctm3KTests(unittest.TestCase):
 
         for channel in range(1, 17):
             pv = "MEAS:OUT:{:02d}".format(channel)
-            self.log.info(self.ca.get_pv_value(pv))
-            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.MAJOR)
 
     @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
     def test_GIVEN_input_program_WHEN_some_measurement_values_are_out_of_range_THEN_appropriate_number_of_output_values_are_returned(self):
@@ -119,10 +119,13 @@ class Kynctm3KTests(unittest.TestCase):
 
                 for channel_to_test, expected_value in enumerate(expected_values):
                     pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
-                    if expected_value in ("off", "out_of_range"):
-                        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
-                    else:
+                    if expected_value == "out_of_range":
+                        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.MAJOR)
+                    elif type(expected_value) is float:
                         self.ca.assert_that_pv_is_number(pv, expected_value, tolerance=0.01*abs(expected_value))
+                        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+                    else:
+                        pass
 
     def test_GIVEN_input_program_WHEN_all_OUT_measurements_turned_off_THEN_all_pv_alarms_are_raised(self):
         expected_values = self.specify_program_for_device(self.program_modes["all_off"], 1.)
@@ -142,15 +145,32 @@ class Kynctm3KTests(unittest.TestCase):
 
             for channel_to_test, expected_value in enumerate(expected_values):
                 pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
-                if expected_value in ("off", "out_of_range"):
+                if expected_value == "off":
                     self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
-                else:
+                elif type(expected_value) is float:
                     self.ca.assert_that_pv_is_number(pv, expected_value, tolerance=0.01 * abs(expected_value))
+                    self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+                else:
+                    pass
 
+    @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
     def test_GIVEN_a_truncated_output_string_THEN_all_pv_alarms_are_raised(self):
-        expected_values = self.specify_program_for_device(self.program_modes["all_on"], 2.)#
+        expected_values = self.specify_program_for_device(self.program_modes["all_on"], 2.)
 
         self._lewis.backdoor_set_on_device("truncated_output", True)
 
         self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
+        for channel in range(1, 17):
+            pv = "MEAS:OUT:{:02d}".format(channel)
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+
+    def test_GIVEN_emulator_is_in_auto_send_state_THEN_auto_send_is_unset_and_pvs_read_normally(self):
+        expected_values = self.specify_program_for_device(self.program_modes["all_on"], 2.)
+
+        self._lewis.backdoor_set_on_device("auto_send", True)
+
+        for channel_to_test, expected_value in enumerate(expected_values):
+            pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+
+            self.ca.assert_that_pv_is_number(pv, expected_value, tolerance=0.01 * abs(expected_value))
