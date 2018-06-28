@@ -72,3 +72,14 @@ class RkndioVersionTests(unittest.TestCase):
 
         # When/Then:
         self.ca.assert_that_pv_is("ERROR", error_message)
+
+    def test_that_we_can_read_a_digital_input(self):
+        # Given
+        pin = 2
+        pv = "PIN_{}".format(pin)
+        self._lewis.backdoor_run_function_on_device("set_read_state_via_the_backdoor", [pin, "True"])
+
+        # When/Then:
+        self.ca.process_pv(pv)
+        self.ca.assert_that_pv_is(pv, "True")
+
