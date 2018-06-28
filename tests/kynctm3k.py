@@ -4,6 +4,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from lewis.core.logging import has_log
 
 EMULATOR_NAME = "kynctm3k"
 
@@ -20,12 +21,13 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
+@has_log
 class Kynctm3KTests(unittest.TestCase):
     """
     Tests for the Keyence TM-3001P IOC.
     """
 
-    # defines program modes
+    # Defines the OUT channels which are on/off for each program
     program_modes = {"none": [False]*16,
                      "only_first": [True, False, False, False, False, False, False, False,
                                     False, False, False, False, False, False, False, False],
@@ -43,30 +45,64 @@ class Kynctm3KTests(unittest.TestCase):
 
         self._lewis.backdoor_set_on_device("OUT_values", self.init_OUT_VALUES)
 
+    def specify_program_for_device(self, program, channel_value_multiplier):
+        """
+        Generates a 'program' to write to the emulator, with measurement values or False if a channel is off.
+        Args:
+            program: A 16 element Bool array denoting whether an OUTput is on (True) or off (False)
+
+            channel_value_multiplier: A constant to multiply the channel number by to obtain its emulated value
+
+        Returns:
+            expected_values: A 16 element array containing floats, or False if an OUT address is off.
+        """
+        expected_values = []
+        for channel_to_set, channel_on in enumerate(program):
+
+            if channel_on:
+                channel_value = channel_value_multiplier*(channel_to_set+1)
+            else:
+                channel_value = False
+
+            expected_values.append(channel_value)
+
+        return expected_values
+
     @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
     def test_GIVEN_input_program_WHEN_measurement_value_is_requested_THEN_appropriate_number_of_output_values_are_returned(self):
-
         for program in self.program_modes:
+            for multiplier in [2., -2.718, 2.718]:
+                expected_values = self.specify_program_for_device(self.program_modes[program], multiplier)
+                self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
-            expected_values = []
-            # Assign test values to only the active OUTs in the emulator
-            for channel_to_set, channel_on in enumerate(self.program_modes[program]):
+                for channel_to_test, expected_value in enumerate(expected_values):
+                    pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+                    if not expected_value:
+                        continue
+                    else:
+                        self.ca.assert_that_pv_is_number(pv, expected_value, tolerance=0.01*abs(expected_value))
 
-                if channel_on:
-                    # Channel values set to twice their OUT numbers
-                    channel_value = 2.*(channel_to_set+1)
-                else:
-                    channel_value = False
+    @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
+    def test_GIVEN_input_program_WHEN_no_OUT_values_are_set_THEN_disconnected_is_shown_for_all(self):
+        expected_values = self.specify_program_for_device(self.program_modes['none'], 1.)
 
-                expected_values.append(channel_value)
+        self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
-            self._lewis.backdoor_set_on_device("OUT_values", expected_values)
+        for channel in range(1, 17):
+            pv = "MEAS:OUT:{:02d}".format(channel)
+            self.log.info(self.ca.get_pv_value(pv))
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
 
-            # Read in the measurement values just set
-            for channel_to_test, expected_value in enumerate(expected_values):
-                if not expected_value:
-                    continue
-                else:
-                    self.ca.assert_that_pv_is_number("MEAS:OUT:{:02d}".format(channel_to_test+1),
-                                                     expected_value, tolerance=0.01*expected_value)
+    @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
+    def test_GIVEN_input_program_WHEN_some_measurement_values_are_not_set_THEN_appropriate_number_of_output_values_are_returned(self):
+        for program in self.program_modes:
+            for multiplier in [2., -2.718, 2.718]:
+                expected_values = self.specify_program_for_device(self.program_modes[program], multiplier)
+                self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
+                for channel_to_test, expected_value in enumerate(expected_values):
+                    pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+                    if not expected_value:
+                        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+                    else:
+                        self.ca.assert_that_pv_is_number(pv, expected_value, tolerance=0.01*abs(expected_value))
