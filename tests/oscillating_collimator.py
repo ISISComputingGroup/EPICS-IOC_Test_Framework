@@ -31,8 +31,6 @@ IOCS = [
     },
 ]
 
-COLLIMATOR_RADIUS_DEFAULT = 284
-
 TEST_MODES = [TestModes.DEVSIM]
 
 
