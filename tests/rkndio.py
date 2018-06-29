@@ -38,8 +38,8 @@ class RkndioVersionTests(unittest.TestCase):
 
         self._lewis.backdoor_run_function_on_device("reset_error")
 
-        self.ca.assert_that_pv_is("STATUS", "No Error")
-        self.ca.assert_that_pv_is("ERROR", "No Error")
+        self.ca.assert_that_pv_is("STATUS", "No error")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
