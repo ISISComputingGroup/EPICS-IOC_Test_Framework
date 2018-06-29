@@ -206,6 +206,33 @@ def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
 ```
 Testing different types of values can quickly catch simple errors in the IOC’s records or protocol file, for example accidentally having a %i (integer) instead of %d (double) format converter.
 
+The above was the old way of parameterizing tests. After installing `parameterized` using pip, you can parameterize your tests so that a new test runs for each case. Documentation for parameterized can be found at https://github.com/wolever/parameterized.
+
+Example code:
+
+```python
+@parameterized.expand([
+        ("Pin_{}".format(i), i) for i in range(2, 8)
+    ])
+    def test_that_we_can_read_a_digital_input(self, _, pin):
+        # Given
+        pv = "PIN_{}".format(pin)
+        self._lewis.backdoor_run_function_on_device("set_input_state_via_the_backdoor", [pin, "FALSE"])
+        self.ca.assert_that_pv_is(pv, "FALSE")
+
+        self._lewis.backdoor_run_function_on_device("set_input_state_via_the_backdoor", [pin, "TRUE"])
+
+        # When:
+        self.ca.process_pv(pv)
+
+        # Then:
+        self.ca.assert_that_pv_is(pv, "TRUE")
+```
+
+This runs a new test for each case with the name `test_that_we_can_read_a_digital_input_{j}_Pin_{i}` where `{j}` indexes the tests from `0` to `5` and `{i}` runs from `2` to `7`.
+
+**Note:** Trying to run a single test using `-tn test_that_we_can_read_a_digital_input` will result in *no tests* being run. However, you can run a single test with the correct suffix, e.g `-tn test_that_we_can_read_a_digital_input_0_Pin_2` runs the test case with `pin = 2`.
+
 ### Rounding errors
 
 For a non-trivial IOC you might get rounding errors, e.g. setpoint = 2.5, readback = 2.4997. To avoid this use the custom assert `assert_that_pv_is_number` with a tolerance:
