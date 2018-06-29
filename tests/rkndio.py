@@ -30,8 +30,28 @@ class RkndioVersionTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rkndio", DEVICE_PREFIX)
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._reset_device()
+
+    def _reset_device(self):
         self._connect_emulator()
         self.ca.assert_that_pv_exists("IDN")
+
+        self._lewis.backdoor_set_on_device("status", "No Error")
+        self.ca.assert_that_pv_is("STATUS", "No Error")
+
+        self._lewis.backdoor_set_on_device("error", "No Error")
+        self.ca.assert_that_pv_is("ERROR", "No Error")
+
+        for pin in range(2, 8):
+            pv = "PIN_{}".format(pin)
+            self._lewis.backdoor_run_function_on_device("set_read_state_via_the_backdoor", [pin, "False"])
+            self.ca.assert_that_pv_is(pv, "False")
+
+        for pin in range(8, 14):
+            pv = "PIN_{}".format(pin)
+            self.ca.set_pv_value(pv, "False")
+            result = self._lewis.backdoor_run_function_on_device("get_set_state_via_the_backdoor", [pin])
+            self.assertEqual(result, "False")
 
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
