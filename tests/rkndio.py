@@ -64,7 +64,7 @@ class RkndioVersionTests(unittest.TestCase):
         self.ca.process_pv("IDN")
 
         # Then:
-        self.ca.assert_that_pv_is("IDN", "RIKENFE Prototype v1.0", timeout=100)
+        self.ca.assert_that_pv_is("IDN", "RIKENFE Prototype v2.0", timeout=100)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device")
     def test_that_GIVEN_a_disconnected_emulator_WHEN_getting_pressure_THEN_INVALID_alarm_shows(self):
@@ -79,7 +79,7 @@ class RkndioVersionTests(unittest.TestCase):
 
     def test_that_we_can_get_the_status_of_the_device(self):
         # Given
-        status_message = "No Error"
+        status_message = "A Status"
         self._lewis.backdoor_set_on_device("status", status_message)
 
         # When/Then:
