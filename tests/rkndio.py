@@ -75,7 +75,7 @@ class RkndioVersionTests(unittest.TestCase):
 
     def test_that_we_can_get_the_error_status_of_the_device(self):
         # Given:
-        error_message = "Some Error"
+        error_message = "The pin is not readable"
         self._lewis.backdoor_set_on_device("error", error_message)
 
         # When/Then:
