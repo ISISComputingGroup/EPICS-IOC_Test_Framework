@@ -1,5 +1,5 @@
 import unittest
-import parameterized
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -42,17 +42,6 @@ class RkndioVersionTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("error", "No Error")
         self.ca.assert_that_pv_is("ERROR", "No Error")
 
-        for pin in range(2, 8):
-            pv = "PIN_{}".format(pin)
-            self._lewis.backdoor_run_function_on_device("set_read_state_via_the_backdoor", [pin, "False"])
-            self.ca.assert_that_pv_is(pv, "False")
-
-        for pin in range(8, 14):
-            pv = "PIN_{}".format(pin)
-            self.ca.set_pv_value(pv, "False")
-            result = self._lewis.backdoor_run_function_on_device("get_set_state_via_the_backdoor", [pin])
-            self.assertEqual(result, "False")
-
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
 
@@ -93,13 +82,21 @@ class RkndioVersionTests(unittest.TestCase):
         # When/Then:
         self.ca.assert_that_pv_is("ERROR", error_message)
 
-    def test_that_we_can_read_a_digital_input(self):
+    @parameterized.expand([
+        ("Pin_{}".format(i), i) for i in range(2, 8)
+    ])
+    def test_that_we_can_read_a_digital_input(self, _, i):
         # Given
-        pin = 2
+        pin = i
         pv = "PIN_{}".format(pin)
-        self._lewis.backdoor_run_function_on_device("set_read_state_via_the_backdoor", [pin, "True"])
+        self._lewis.backdoor_run_function_on_device("set_input_state_via_the_backdoor", [pin, "False"])
+        self.ca.assert_that_pv_is(pv, "False")
 
-        # When/Then:
+        self._lewis.backdoor_run_function_on_device("set_input_state_via_the_backdoor", [pin, "True"])
+
+        # When:
         self.ca.process_pv(pv)
+
+        # Then:
         self.ca.assert_that_pv_is(pv, "True")
 
