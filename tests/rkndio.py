@@ -19,8 +19,8 @@ IOCS = [
     },
 ]
 
-
-TEST_MODES = [TestModes.DEVSIM] #, TestModes.RECSIM]
+# Kathryn confirmed she is happy with the tests only running in devsim.
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class RkndioVersionTests(unittest.TestCase):
@@ -52,7 +52,7 @@ class RkndioVersionTests(unittest.TestCase):
         self.ca.process_pv("IDN")
 
         # Then:
-        self.ca.assert_that_pv_is("IDN", "RIKENFE Prototype v2.0", timeout=100)
+        self.ca.assert_that_pv_is("IDN", "RIKENFE Prototype v2.0")
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device")
     def test_that_GIVEN_a_disconnected_emulator_WHEN_getting_pressure_THEN_INVALID_alarm_shows(self):
@@ -86,7 +86,7 @@ class RkndioVersionTests(unittest.TestCase):
     ])
     def test_that_we_can_read_a_digital_input(self, _, pin):
         # Given
-        pv = "PIN_{}".format(pin)
+        pv = "PIN:{}".format(pin)
         self._lewis.backdoor_run_function_on_device("set_input_state_via_the_backdoor", [pin, "FALSE"])
         self.ca.assert_that_pv_is(pv, "FALSE")
 
@@ -103,7 +103,7 @@ class RkndioVersionTests(unittest.TestCase):
     ])
     def test_that_we_can_write_to_a_digital_output(self, _, pin):
         # Given
-        pv = "PIN_{}".format(pin)
+        pv = "PIN:{}".format(pin)
         self.ca.set_pv_value(pv, "FALSE")
         reset_check = self._lewis.backdoor_run_function_on_device("get_output_state_via_the_backdoor", [pin])[0]
         self.assertEqual(reset_check, "FALSE")
