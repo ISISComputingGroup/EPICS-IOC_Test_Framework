@@ -18,7 +18,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, ]
 
 
 class Kynctm3KTests(unittest.TestCase):
@@ -57,8 +57,7 @@ class Kynctm3KTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-        self._lewis.backdoor_set_on_device("OUT_values", self.init_OUT_VALUES)
-        self._lewis.backdoor_set_on_device("truncated_output", False)
+        self._lewis.backdoor_run_function_on_device("reset_device")
 
     def specify_program_for_device(self, program, channel_value_multiplier):
         """
@@ -165,12 +164,15 @@ class Kynctm3KTests(unittest.TestCase):
             pv = "MEAS:OUT:{:02d}".format(channel)
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
 
+    @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
     def test_GIVEN_emulator_is_in_auto_send_state_THEN_auto_send_is_unset_and_pvs_read_normally(self):
         expected_values = self.specify_program_for_device(self.program_modes["all_on"], 2.)
 
-        self._lewis.backdoor_set_on_device("auto_send", True)
+        self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
         for channel_to_test, expected_value in enumerate(expected_values):
             pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+
+            self._lewis.backdoor_set_on_device("auto_send", True)
 
             self.ca.assert_that_pv_is_number(pv, expected_value, tolerance=0.01 * abs(expected_value))
