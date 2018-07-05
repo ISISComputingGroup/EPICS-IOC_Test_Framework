@@ -28,28 +28,19 @@ class Kynctm3KTests(unittest.TestCase):
 
     # Defines the OUT channels which are on/off for each program
     program_modes = {"all_off": ["off"]*16,
+
                      "all_out_of_range": ["out_of_range"]*16,
 
-                     "first_on_rest_out_of_range": ["on",
-                                                    "out_of_range", "out_of_range", "out_of_range", "out_of_range",
-                                                    "out_of_range", "out_of_range", "out_of_range", "out_of_range",
-                                                    "out_of_range", "out_of_range", "out_of_range", "out_of_range",
-                                                    "out_of_range", "out_of_range", "out_of_range"],
+                     "first_on_rest_out_of_range": ["on"] + ["out_of_range"]*15,
 
-                     "first_on_rest_off": ["on",  "off", "off", "off", "off",
-                                           "off", "off", "off", "off", "off",
-                                           "off", "off", "off", "off", "off",
-                                           "off"],
+                     "first_on_rest_off": ["on"] + ["off"]*15,
 
                      "all_on": ["on"]*16,
 
-                     "even_on_odd_out_of_range": ["out_of_range", "on", "out_of_range", "on", "out_of_range", "on",
-                                                  "out_of_range", "on", "out_of_range", "on", "out_of_range", "on",
-                                                  "out_of_range", "on", "out_of_range", "on"],
+                     "even_on_odd_out_of_range": ["out_of_range", "on"]*8,
 
-                     "even_on_odd_off": ["off", "on", "off", "on", "off", "on",
-                                         "off", "on", "off", "on", "off", "on",
-                                         "off", "on", "off", "on"]}
+                     "even_on_odd_off": ["off", "on"]*8
+                     }
 
     init_OUT_VALUES = ["off"]*16
 
