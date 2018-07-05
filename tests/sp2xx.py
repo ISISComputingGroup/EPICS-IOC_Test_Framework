@@ -20,7 +20,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM] # TestModes.RECSIM,
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class RunCommandTests(unittest.TestCase):
@@ -182,7 +182,7 @@ class ErrorTests(unittest.TestCase):
         # Then:
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
-        self.ca.assert_pv_alarm_is("ERROR", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("ERROR", ChannelAccess.Alarms.NONE)
 
     @parameterized.expand([(error.name, error) for error in errors[1:]])
     def test_that_GIVEN_a_device_with_an_error_WHEN_trying_to_start_the_device_THEN_the_error_pv_is_updated_and_device_is_stopped(self, _, error):
@@ -195,7 +195,7 @@ class ErrorTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("ERROR", error.name)
-        self.ca.assert_pv_alarm_is("ERROR", error.alarm_severity)
+        self.ca.assert_that_pv_alarm_is("ERROR", error.alarm_severity)
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
 
@@ -354,7 +354,6 @@ class DirectionTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
         self.ca.assert_that_pv_is("NA", "Can't run command")
 
-
     @parameterized.expand([
         ("infusion_withdrawal", "Infusion/Withdrawal", "Infusion/Withdrawal", "Infusion"),
         ("withdrawal_infusion", "Withdrawal/Infusion", "Withdrawal/Infusion", "Withdrawal"),
@@ -428,7 +427,6 @@ class NATests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("NA", "")
-
 
     def test_that_GIVEN_a_device_in_infusion_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
