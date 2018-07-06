@@ -60,7 +60,7 @@ class EurothermTests(unittest.TestCase):
 
         for _ in range(max_retries):
             self.ca.set_pv_value("CAL:SEL", filename)
-            self.ca.assert_pv_alarm_is("CAL:SEL", self.ca.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is("CAL:SEL", self.ca.Alarms.NONE)
             time.sleep(1)
             if self.ca.get_pv_value("CAL:RBV") == filename:
                 break
