@@ -2,6 +2,8 @@ import functools
 import unittest
 from time import sleep
 
+import six
+
 from utils.ioc_launcher import IOCRegister, IocLauncher
 from utils.lewis_launcher import LewisRegister, LewisLauncher
 
@@ -90,7 +92,7 @@ def _skip_if_condition(condition, reason):
         reason (str): The reason for skipping the test
     """
     def decorator(func):
-        @functools.wraps(func)
+        @six.wraps(func)
         def wrapper(*args, **kwargs):
             if condition():
                 raise unittest.SkipTest(reason)
