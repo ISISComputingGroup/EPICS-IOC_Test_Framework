@@ -34,7 +34,7 @@ class Keithley_2700Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("IDN")
+        self.ca.assert_that_pv_exists("IDN")
 
     def test_WHEN_scan_state_set_THEN_scan_state_matches_the_set_state(self):
         sample_data = {0: "INT", 1: "NONE"}

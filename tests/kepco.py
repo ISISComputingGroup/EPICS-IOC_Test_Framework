@@ -45,7 +45,7 @@ class KepcoTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("kepco", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("VOLTAGE", timeout=30)
+        self.ca.assert_that_pv_exists("VOLTAGE", timeout=30)
 
     def _write_voltage(self, expected_voltage):
         self._lewis.backdoor_set_on_device("voltage", expected_voltage)

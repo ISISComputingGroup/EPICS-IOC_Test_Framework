@@ -122,7 +122,7 @@ class IocLauncher(object):
         ca = self._get_channel_access()
         try:
             print("Check that IOC is not running")
-            ca.assert_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
+            ca.assert_that_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
         except AssertionError as ex:
             raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
 
@@ -168,7 +168,7 @@ class IocLauncher(object):
 
             for _ in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
                 try:
-                    self._get_channel_access().assert_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
+                    self._get_channel_access().assert_that_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
                     break
                 except AssertionError:
                     sleep(wait_per_loop)

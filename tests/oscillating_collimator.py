@@ -13,7 +13,7 @@ PREFIX = "MOT:OSCCOL"
 # Commonly used PVs
 ANGLE = "ANGLE:SP"
 FREQUENCY = "FREQ:SP"
-RADIUS = "RADIUS:SP"
+RADIUS = "RADIUS"
 VELOCITY = "VEL:SP"
 DISTANCE = "DIST:SP"
 DISCRIMINANT = "VEL:SP:DISC:CHECK"
@@ -31,7 +31,6 @@ IOCS = [
     },
 ]
 
-
 TEST_MODES = [TestModes.DEVSIM]
 
 
@@ -44,9 +43,9 @@ class OscillatingCollimatorTests(unittest.TestCase):
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
-        ChannelAccess().wait_for("MOT:MTR0101", timeout=30)
+        ChannelAccess().assert_that_pv_exists("MOT:MTR0101", timeout=30)
         self.ca = ChannelAccess(device_prefix=PREFIX)
-        self.ca.wait_for("VEL:SP", timeout=30)
+        self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
 
     def test_GIVEN_angle_frequency_and_radius_WHEN_set_THEN_distance_and_velocity_match_LabView_generated_values(self):
 
@@ -102,10 +101,6 @@ class OscillatingCollimatorTests(unittest.TestCase):
     def test_WHEN_frq_set_greater_than_two_THEN_angle_is_two(self):
         self.ca.set_pv_value(ANGLE, 5.0)
         self.ca.assert_that_pv_is_number(ANGLE, 2.0)
-
-    def test_WHEN_mounting_radius_set_negative_THEN_mounting_radius_is_zero(self):
-        self.ca.set_pv_value(RADIUS, -1.0)
-        self.ca.assert_that_pv_is_number(RADIUS, 0.0)
 
     def test_WHEN_input_values_cause_discriminant_to_be_negative_THEN_discriminant_pv_is_one(self):
 
