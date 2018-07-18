@@ -248,7 +248,7 @@ class DirectionTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
     @parameterized.expand([
         ("Infusion", "Infusion"),
@@ -313,7 +313,7 @@ class NATests(unittest.TestCase):
         _start_running(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
     @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_withdrawal_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
@@ -329,7 +329,7 @@ class NATests(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS", "Withdrawal")
 
         # Then:
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
     @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_infusion_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
@@ -343,7 +343,7 @@ class NATests(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS", "Infusion")
 
         # Then:
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
 
 class DiameterTests(unittest.TestCase):
