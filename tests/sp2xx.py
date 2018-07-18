@@ -20,7 +20,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 # Useful commands to help run tests
@@ -158,19 +158,22 @@ class ErrorTests(unittest.TestCase):
         # Given
         self._lewis, self._ioc, self.ca = _reset_device()
 
+    @skip_if_recsim("Recsim does not do errors")
     def test_that_GIVEN_an_initialized_pump_THEN_the_device_has_no_error(self):
         # Then:
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
         self.ca.assert_that_pv_alarm_is("ERROR", ChannelAccess.Alarms.NONE)
 
+
     @parameterized.expand([(error.name, error) for error in errors[1:]])
+    @skip_if_recsim("Recsim does not do errors")
     def test_that_GIVEN_a_device_with_an_error_WHEN_trying_to_start_the_device_THEN_the_error_pv_is_updated_and_device_is_stopped(self, _, error):
         # Given:
         self._lewis.backdoor_run_function_on_device("throw_error_via_the_backdoor",
                                                     [error.name, error.value, error.alarm_severity])
 
-        # When:
+        # When:x
         _start_running(self.ca)
 
         # Then:
@@ -254,6 +257,7 @@ class DirectionTests(unittest.TestCase):
         ("Withdrawal/Infusion", "Withdrawal"),
         ("Continuous", "Infusion")
         ])
+    @skip_if_recsim("Can not test NA in rec sim")
     def test_that_GIVEN_a_device_stopped_device_WHEN_the_dir_rev_is_queried_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, initial_mode, expected_direction):
         # Given:
         self.ca.set_pv_value("MODE:SP", initial_mode)
@@ -275,6 +279,7 @@ class DirectionTests(unittest.TestCase):
         ("Withdrawal/Infusion", "Withdrawal"),
         ("Continuous", "Infusion")
         ])
+    @skip_if_recsim("Can not test NA in rec sim")
     def test_that_GIVEN_a_device_running_not_in_infusion_or_withdrawal_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, mode, expected_direction):
         # Given:
         self.ca.set_pv_value("MODE:SP", mode)
@@ -297,7 +302,8 @@ class NATests(unittest.TestCase):
     def setUp(self):
         # Given
         self._lewis, self._ioc, self.ca = _reset_device()
-        
+
+    @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_withdrawal_mode_WHEN_starting_the_device_THEN_NA_is_not_triggered(self):
         # Given:
         self.ca.set_pv_value("MODE:SP", "Withdrawal")
@@ -309,6 +315,7 @@ class NATests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("NA", "")
 
+    @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_withdrawal_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
         self.ca.set_pv_value("MODE:SP", "Withdrawal")
@@ -324,6 +331,7 @@ class NATests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("NA", "")
 
+    @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_infusion_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
 
@@ -378,6 +386,7 @@ class VolumeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VOL:INF:UNITS:SP", units)
         self.ca.assert_that_pv_is("VOL:INF:SP.EGU", units)
 
+    @skip_if_recsim("Can not set units in device via back door")
     def test_GIVEN_infusion_unit_set_in_device_WHEN_nothing_THEN_units_are_set_on_readback(self):
         ul = "ul"
         self._lewis.backdoor_set_on_device("infusion_volume_units", ul)
@@ -408,6 +417,7 @@ class VolumeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VOL:WDR:UNITS:SP", units)
         self.ca.assert_that_pv_is("VOL:WDR:SP.EGU", units)
 
+    @skip_if_recsim("Can not set backdoor in rec sim mode")
     def test_GIVEN_withdrawal_unit_set_in_device_WHEN_nothing_THEN_units_are_set_on_readback(self):
         ul = "ul"
         self._lewis.backdoor_set_on_device("withdrawal_volume_units", ul)
