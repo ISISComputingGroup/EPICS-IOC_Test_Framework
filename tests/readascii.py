@@ -3,6 +3,7 @@ from __future__ import division
 import os
 import unittest
 import shutil
+import time
 from contextlib import contextmanager
 
 from utils.channel_access import ChannelAccess
@@ -59,6 +60,7 @@ class ReadasciiTests(unittest.TestCase):
             for row in data:
                 assert len(row) == 5, "Each row should have exactly 5 elements"
                 f.write("{}\n".format(" ".join(str(d) for d in row)))
+        time.sleep(5) # allow new file on disk to be noticed
 
     @contextmanager
     def _generate_temporary_test_file(self, data):
@@ -100,6 +102,8 @@ class ReadasciiTests(unittest.TestCase):
 
         # The LUTON PV is FLNK'ed to by the IOCs that use ReadASCII after the setpoint changes.
         # Here we're not using any particular IOC so have to trigger the processing manually.
+        self.ca.assert_that_pv_is("LUTON:RBV", "1")
+        self.ca.assert_that_pv_is("LUTON", "1")
         self.ca.process_pv("LUTON")
 
         self.ca.assert_that_pv_is_number("OUT_P", p, tolerance=TOLERANCE)
