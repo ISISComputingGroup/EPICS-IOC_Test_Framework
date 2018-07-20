@@ -220,6 +220,9 @@ This can be avoided by calling the decorator like ` @skip_if_recsim("In rec sim 
 * Solution is to ensure a consistent startup state in the setUp method of the tests. 
 This will run before each test, and it should “reset” all relevant properties of the device so that each test always starts from a consistent starting state
 * Doing lots in the setup method will make the tests run a bit slower – this is preferable to having inconsistently passing tests!
+* When creating base classes for tests please have your base class inherit from `object` and your subclasses inherit
+from your base class and `unittest.TestCase`. See [Python unit tests with base and sub class](https://stackoverflow.com/questions/1323455/python-unit-test-with-base-and-sub-class)
+for more discussion.
 
 ### Parameterised tests
 You can create tests which check a few values, e.g. boundaries, negative numbers, zero, floats and integers (if applicable to the device):
