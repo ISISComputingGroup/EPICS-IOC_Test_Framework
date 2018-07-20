@@ -4,6 +4,39 @@ import os
 from contextlib import contextmanager
 
 
+def package_contents(package_name):
+    """
+    Finds all the modules in a package.
+
+    :param package_name: the name of the package
+    :return: a set containing all the module names
+    """
+    filename, pathname, description = imp.find_module(package_name)
+    if filename:
+        raise ImportError('Not a package: %r', package_name)
+    # Use a set because some may be both source and compiled.
+    return set([os.path.splitext(module)[0] for module in os.listdir(pathname)
+                if module.endswith('.py') and not module.startswith("__init__")])
+
+
+@contextmanager
+def modified_environment(**kwargs):
+    """
+    Modifies the environment variables as required then returns them to their original state.
+
+    :param kwargs: the settings to apply
+    """
+    # Copying old values
+    old_env = {name: os.environ.get(name, '') for name in kwargs.keys()}
+
+    # Apply new settings and then yield
+    os.environ.update(kwargs)
+    yield
+
+    # Restore old values
+    os.environ.update(old_env)
+
+
 class ModuleTests(object):
     """
     Object which contains information about tests in a module to be run.
@@ -72,34 +105,3 @@ def check_test_modes(module):
     return modes
 
 
-def package_contents(package_name):
-    """
-    Finds all the modules in a package.
-
-    :param package_name: the name of the package
-    :return: a set containing all the module names
-    """
-    filename, pathname, description = imp.find_module(package_name)
-    if filename:
-        raise ImportError('Not a package: %r', package_name)
-    # Use a set because some may be both source and compiled.
-    return set([os.path.splitext(module)[0] for module in os.listdir(pathname)
-                if module.endswith('.py') and not module.startswith("__init__")])
-
-
-@contextmanager
-def modified_environment(**kwargs):
-    """
-    Modifies the environment variables as required then returns them to their original state.
-
-    :param kwargs: the settings to apply
-    """
-    # Copying old values
-    old_env = {name: os.environ.get(name, '') for name in kwargs.keys()}
-
-    # Apply new settings and then yield
-    os.environ.update(kwargs)
-    yield
-
-    # Restore old values
-    os.environ.update(old_env)
