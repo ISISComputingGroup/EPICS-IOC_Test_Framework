@@ -1,3 +1,5 @@
+import unittest
+
 from common_tests.riken_changeover import RikenChangeover, build_iocs, build_power_supplies_list
 from utils.test_modes import TestModes
 
@@ -16,7 +18,7 @@ IOCS = build_iocs(RIKEN_SETUP)
 POWER_SUPPLIES = build_power_supplies_list(RIKEN_SETUP)
 
 
-class RikenRb2ModeChangeoverTests(RikenChangeover):
+class RikenRb2ModeChangeoverTests(RikenChangeover, unittest.TestCase):
     """
     Tests for a riken RB2 mode change.
 
