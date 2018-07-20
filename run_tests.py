@@ -1,62 +1,17 @@
-import os
-import imp
-import importlib
-import unittest
-
-import sys
-
-import xmlrunner
 import argparse
-from contextlib import contextmanager
+import os
+import sys
+import unittest
+import xmlrunner
+
+from run_utils import check_test_modes, load_module, package_contents, modified_environment
+from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.lewis_launcher import LewisLauncher, LewisNone
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
-
-
-def package_contents(package_name):
-    """
-    Finds all the modules in a package.
-
-    :param package_name: the name of the package
-    :return: a set containing all the module names
-    """
-    filename, pathname, description = imp.find_module(package_name)
-    if filename:
-        raise ImportError('Not a package: %r', package_name)
-    # Use a set because some may be both source and compiled.
-    return set([os.path.splitext(module)[0] for module in os.listdir(pathname)
-                if module.endswith('.py') and not module.startswith("__init__")])
-
-
-def load_module(name):
-    """
-    Loads a module based on its name.
-
-    :param name: the name of the module
-    :return: a reference to the module
-    """
-    return importlib.import_module(name, )
-
-
-@contextmanager
-def modified_environment(**kwargs):
-    """
-    Modifies the environment variables as required then returns them to their original state.
-
-    :param kwargs: the settings to apply
-    """
-    # Copying old values
-    old_env = {name: os.environ.get(name, '') for name in kwargs.keys()}
-
-    # Apply new settings and then yield
-    os.environ.update(kwargs)
-    yield
-
-    # Restore old values
-    os.environ.update(old_env)
 
 
 def run_tests(prefix, test_module, test_names, device_launchers):
@@ -87,7 +42,6 @@ def run_tests(prefix, test_module, test_names, device_launchers):
 
         if len(test_classes) < 1:
             raise ValueError("No test suites found in {}".format(test_module.__name__))
-
 
         for test_class in test_classes:
             print("Running tests in {}".format(test_class.__name__))
@@ -176,14 +130,10 @@ def make_device_launchers_from_module(test_module, recsim):
 
 def load_module_by_name_and_run_tests(module_name, test_names):
     test_module = load_module("tests.{}".format(module_name))
-
-    try:
-        modes = test_module.TEST_MODES
-    except AttributeError:
-        raise ValueError("Expected test module {} to contain a TEST_MODES attribute".format(test_module.__name__))
+    modes = check_test_modes(test_module)
 
     test_results = []
-    for mode in set(modes):
+    for mode in modes:
         if mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
             raise ValueError("Invalid test mode provided")
 
@@ -191,6 +141,73 @@ def load_module_by_name_and_run_tests(module_name, test_names):
         test_results.append(run_tests(arguments.prefix, test_module, test_names, device_collection_launcher(device_launchers)))
 
     return all(test_result is True for test_result in test_results)
+
+
+def load_and_run_dotted_tests(dotted_unit_tests):
+    """
+    Loads and runs the dotted unit tests to be run.
+
+    Args:
+        dotted_unit_tests: List of dotted unit tests to run.
+
+    Returns:
+        boolean: True if all tests pass and false otherwise.
+    """
+    modules_to_be_loaded = (test.split(".")[0].strip() for test in dotted_unit_tests)
+    modules_to_be_tested = [ModuleTests(module) for module in modules_to_be_loaded]
+
+    modes = set()
+
+    for module in modules_to_be_tested:
+        module.tests = [test for test in dotted_unit_tests if test.startswith(module.name)]
+        modes.update(module.modes)
+
+    test_results = []
+
+    for mode in modes:
+        if mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
+            raise ValueError("Invalid test mode provided")
+
+        modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
+
+        for module in modules_to_be_tested_in_current_mode:
+            device_launchers = make_device_launchers_from_module(module.file, recsim=(mode == TestModes.RECSIM))
+            test_results.append(
+                run_dotted_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers)))
+
+    return all(test_result is True for test_result in test_results)
+
+
+def run_dotted_tests(prefix, dotted_unit_tests, device_launchers):
+    """
+    Runs dotted unit tests.
+
+    Args:
+        prefix: The instrument prefix.
+        dotted_unit_tests: List of dotted unit tests to be run.
+        device_launchers: Context manager that launches the necessary iocs and associated emulators.
+
+    Returns:
+        bool: True if all tests pass and false otherwise.
+    """
+    os.environ["testing_prefix"] = prefix
+
+    # Need to set epics address list to local broadcast otherwise channel access won't work
+    settings = {
+        'EPICS_CA_ADDR_LIST': "127.255.255.255"
+    }
+
+    dotted_unit_tests = ["tests.{}".format(test) for test in dotted_unit_tests]
+
+    with modified_environment(**settings), device_launchers:
+
+        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout)
+
+        test_suite = unittest.TestLoader().loadTestsFromNames(dotted_unit_tests)
+
+        result = runner.run(test_suite).wasSuccessful()
+
+    return result
 
 
 if __name__ == '__main__':
@@ -219,6 +236,11 @@ if __name__ == '__main__':
                         help="Directory in which to create a log dir to write log file to and directory in which to "
                              "create tmp dir which contains environments variables for the IOC. Defaults to "
                              "environment variable ICPVARDIR and current dir if empty.")
+    parser.add_argument('-t', '--unit-tests', default=None, nargs="+",
+                        help="""Dotted names of tests to run. These are of the form module.class.method. 
+                        Module just runs the tests in a module. 
+                        Module.class runs the the test class in Module.
+                        Module.class.method runs a specific test.""")
 
     arguments = parser.parse_args()
 
@@ -239,17 +261,26 @@ if __name__ == '__main__':
 
     test_names = arguments.test_names
 
+    unit_tests = arguments.unit_tests
+
     module_results = []
 
     modules_to_test = arguments.test_module if arguments.test_module is not None else package_contents("tests")
 
-    for test_module in modules_to_test:
+    if unit_tests:
         try:
-            module_results.append(load_module_by_name_and_run_tests(test_module, test_names))
+            module_results.append(load_and_run_dotted_tests(unit_tests))
         except Exception as e:
-            print("---\n---\n---\nError loading module {}: {}: {}\n---\n---\n---\n"
-                  .format(test_module, e.__class__.__name__, e))
+            print("---\n---\n---\nError loading tests\n---\n---\n---\n")
             module_results.append(False)
+    else:
+        for test_module in modules_to_test:
+            try:
+                module_results.append(load_module_by_name_and_run_tests(test_module, test_names))
+            except Exception as e:
+                print("---\n---\n---\nError loading module {}: {}: {}\n---\n---\n---\n"
+                      .format(test_module, e.__class__.__name__, e))
+                module_results.append(False)
 
     success = all(result is True for result in module_results)
     sys.exit(0 if success else 1)
