@@ -22,14 +22,32 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM] #, TestModes.RECSIM]
 
+##############################################
+#
+#       Useful functions to run tests
+#
+##############################################
+
+
+def reset_device():
+    """Reset the sp2xx device"""
+    lewis, ioc = get_running_lewis_and_ioc("ngpspsu", DEVICE_PREFIX)
+    ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+    return lewis, ioc, ca
+
+
+##############################################
+#
+#       Unit tests
+#
+##############################################
 
 class NgpspsuVersionTests(unittest.TestCase):
     """
     Tests for the Ngpspsu IOC.
     """
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("ngpspsu", DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self._lewis, self._ioc, self.ca = reset_device()
 
     def test_that_WHEN_requested_we_THEN_get_the_version_and_firmware(self):
         # When:
