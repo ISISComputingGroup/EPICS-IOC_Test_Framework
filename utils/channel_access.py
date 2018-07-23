@@ -54,13 +54,14 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += "{}:".format(device_prefix)
 
-    def set_pv_value(self, pv, value):
+    def set_pv_value(self, pv, value, wait=False):
         """
         Sets the specified PV to the supplied value.
 
         Args:
             pv: the EPICS PV name
             value: the value to set
+            wait: wait for completion callback (default: False)
         """
         # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try to jump the gun
         # and attempt to write to a PV that doesn't exist yet
@@ -69,7 +70,7 @@ class ChannelAccess(object):
         # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
-        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, timeout=self._default_timeout)
+        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
         # Give lewis time to process
         time.sleep(1.0)
 
