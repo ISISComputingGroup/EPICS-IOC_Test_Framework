@@ -1,6 +1,5 @@
 import unittest
 from parameterized import parameterized
-from hamcrest import assert_that, is_, equal_to
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -36,22 +35,17 @@ def reset_device():
     ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
     _stop_device(ca)
-    check_device_status_is("Off", lewis)
+    ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
     return lewis, ioc, ca
 
 
 def _stop_device(ca):
-    ca.set_pv_value("OFF:SP", 1)
+    ca.process_pv("STOP")
 
 
 def _start_device(ca):
-    ca.set_pv_value("ON:SP", 1)
-
-
-def check_device_status_is(expected_status, lewis):
-    status = lewis.backdoor_run_function_on_device("get_status_via_the_backdoor")[0]
-    assert_that(status, is_(equal_to(expected_status)))
+    ca.process_pv("START")
 
 ##############################################
 #
@@ -61,9 +55,7 @@ def check_device_status_is(expected_status, lewis):
 
 
 class NgpspsuVersionTests(unittest.TestCase):
-    """
-    Tests for the Ngpspsu IOC.
-    """
+
     def setUp(self):
         self._lewis, self._ioc, self.ca = reset_device()
 
@@ -76,9 +68,7 @@ class NgpspsuVersionTests(unittest.TestCase):
 
 
 class NgpspsuStartTests(unittest.TestCase):
-    """
-    Tests for the Ngpspsu IOC.
-    """
+
     def setUp(self):
         self._lewis, self._ioc, self.ca = reset_device()
 
@@ -87,29 +77,36 @@ class NgpspsuStartTests(unittest.TestCase):
         _start_device(self.ca)
 
         # Then:
-        check_device_status_is("On", self._lewis)
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
 
 
 class NgpspsuStopTests(unittest.TestCase):
-    """
-    Tests for the Ngpspsu IOC.
-    """
+
     def setUp(self):
         self._lewis, self._ioc, self.ca = reset_device()
 
-    def test_that_WHEN_on_setup_THEN_the_device_is_off(self):
+    def test_that_GIVEN_a_fresh_device_THEN_the_device_is_off(self):
         # When/Then:
-        status = self._lewis.backdoor_run_function_on_device("get_status_via_the_backdoor")[0]
-        assert_that(status, is_(equal_to("Off")))
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
     def test_that_GIVEN_a_device_which_is_running_THEN_the_device_turns_off(self):
         # Given:
         _start_device(self.ca)
-        check_device_status_is("On", self._lewis)
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
 
         # When
         _stop_device(self.ca)
 
         # Then:
-        check_device_status_is("Off", self._lewis)
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
+
+class NgpspsuStatusTests(unittest.TestCase):
+
+    def setUp(self):
+        self._lewis, self._ioc, self.ca = reset_device()
+
+    def test_that_GIVEN_a_setup_device_THEN_the_status_is_zero(self):
+        # When/Then:
+        for digit in range(1, 9):
+            self.ca.assert_that_pv_is("STAT:HEX:{}".format(digit), 0)
