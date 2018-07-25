@@ -58,7 +58,7 @@ class NgpspsuVersionTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VERSION", "NGPS 100-50:0.9.01")
 
 
-class NgpspsuStarTests(unittest.TestCase):
+class NgpspsuStartTests(unittest.TestCase):
     """
     Tests for the Ngpspsu IOC.
     """
