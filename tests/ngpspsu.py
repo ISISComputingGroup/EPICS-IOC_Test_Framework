@@ -34,14 +34,31 @@ def reset_device():
     """Reset the sp2xx device"""
     lewis, ioc = get_running_lewis_and_ioc("ngpspsu", DEVICE_PREFIX)
     ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+
+    _stop_device(ca)
+    check_device_status_is("Off", lewis)
+
     return lewis, ioc, ca
 
+
+def _stop_device(ca):
+    ca.set_pv_value("OFF:SP", 1)
+
+
+def _start_device(ca):
+    ca.set_pv_value("ON:SP", 1)
+
+
+def check_device_status_is(expected_status, lewis):
+    status = lewis.backdoor_run_function_on_device("get_status_via_the_backdoor")[0]
+    assert_that(status, is_(equal_to(expected_status)))
 
 ##############################################
 #
 #       Unit tests
 #
 ##############################################
+
 
 class NgpspsuVersionTests(unittest.TestCase):
     """
