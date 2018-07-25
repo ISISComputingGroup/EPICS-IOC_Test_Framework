@@ -46,7 +46,7 @@ class DanfysikBase(object):
     def test_WHEN_current_setpoint_is_set_THEN_current_readback_updates_to_set_value(self):
         for curr in TEST_CURRENTS:
             self.ca.set_pv_value("CURR:SP", curr)
-            self.ca.assert_that_pv_is_number("CURR", curr, tolerance=0.5)  # Tolerance 0.5 because readback is integer
+            self.ca.assert_that_pv_is_number("CURR", curr, tolerance=0.5, timeout=2)  # Tolerance 0.5 because readback is integer
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_voltage_is_set_via_backdoor_WHEN_voltage_is_read_THEN_read_value_is_value_just_set(self):
