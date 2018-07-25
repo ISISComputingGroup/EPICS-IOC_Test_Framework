@@ -22,25 +22,39 @@ python run_tests.py
 
 There is a batch file which does this for you, called `run_tests.bat`
 
-### Running specific tests
+### Running tests in modules
 
-Specify the test modules you want to run via the `-tm` argument:
-
-```
-python run_tests.py -tm instron_stress_rig amint2l  # Will run the stress rig tests and then the amint2l tests.
-```
-
-The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` directory, with the `.py` extension removed.
-
-### Running specific tests by name
-
-Specify the test modules you want to run via the `-tm` argument and the test name you want to run via the `-tn` argument:
+You can run tests in specific modules using the `-t` argument as follows:
 
 ```
-python run_tests.py -tm amint2l -tn test_GIVEN_pressure_over_range_set_WHEN_read_THEN_error  # Will run test_GIVEN_pressure_over_range_set_WHEN_read_THEN_error test in amint2l tests.
+python run_tests.py -t instron_stress_rig amint2l  # Will run the stress rig tests and then the amint2l tests.
 ```
 
-The `-tm` argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` directory, with the `.py` extension removed. The `-tn` argument is the name of the test in the module containing the test with no arguments or parentheses.
+The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` 
+directory, with the `.py` extension removed.
+
+### Running tests in classes
+
+You can run classes of tests in modules using the `-t` argument as follows:
+
+```
+python run_tests.py -t sp2xx.RunCommandTests # This will run all the tests in the RunCommandTests class in the sp2xx module. 
+```
+
+The argument is the "dotted name" of the class containing the tests. The dotted name takes the form `module.class`.
+You can run the tests in multiple classes in different modules.
+
+### Running tests by name
+
+You can run tests by name using `-t` argument as follows:
+
+```
+python run_tests.py -t sp2xx.RunCommandTests.test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped # This will run the test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped test in the RunCommandTests class in the sp2xx module. 
+```
+
+The argument is the "dotted name" of the test containing the tests. The dotted name takes the form `module.class.test`.
+You can run multiple tests from multiple classes in different modules.
+
 
 ## Troubleshooting 
 
@@ -206,6 +220,9 @@ This can be avoided by calling the decorator like ` @skip_if_recsim("In rec sim 
 * Solution is to ensure a consistent startup state in the setUp method of the tests. 
 This will run before each test, and it should “reset” all relevant properties of the device so that each test always starts from a consistent starting state
 * Doing lots in the setup method will make the tests run a bit slower – this is preferable to having inconsistently passing tests!
+* When creating base classes for tests please have your base class inherit from `object` and your subclasses inherit
+from your base class and `unittest.TestCase`. See [Python unit tests with base and sub class](https://stackoverflow.com/questions/1323455/python-unit-test-with-base-and-sub-class)
+for more discussion.
 
 ### Parameterised tests
 You can create tests which check a few values, e.g. boundaries, negative numbers, zero, floats and integers (if applicable to the device):

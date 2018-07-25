@@ -1,3 +1,4 @@
+import unittest
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import skip_if_recsim
@@ -24,7 +25,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-class MerlinFermiChopperTests(FermichopperBase):
+class MerlinFermiChopperTests(FermichopperBase, unittest.TestCase):
     """
     Most tests inherited from FermiChopperBase
 

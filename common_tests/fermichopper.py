@@ -1,4 +1,3 @@
-import unittest
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from time import sleep
@@ -11,7 +10,7 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
 @six.add_metaclass(ABCMeta)
-class FermichopperBase(unittest.TestCase):
+class FermichopperBase(object):
     """
     Tests for the Fermi Chopper IOC.
     """

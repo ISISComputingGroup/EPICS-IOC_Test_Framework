@@ -1,5 +1,4 @@
 import os
-import unittest
 import itertools
 import six
 from abc import ABCMeta, abstractmethod
@@ -63,7 +62,7 @@ def build_power_supplies_list(riken_setup):
 
 
 @six.add_metaclass(ABCMeta)
-class RikenChangeover(unittest.TestCase):
+class RikenChangeover(object):
     """
     Tests for a riken changeover.
 
