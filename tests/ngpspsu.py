@@ -1,5 +1,6 @@
 import unittest
 from parameterized import parameterized
+from hamcrest import assert_that, is_, equal_to
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -56,3 +57,18 @@ class NgpspsuVersionTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("VERSION", "NGPS 100-50:0.9.01")
 
+
+class NgpspsuStarTests(unittest.TestCase):
+    """
+    Tests for the Ngpspsu IOC.
+    """
+    def setUp(self):
+        self._lewis, self._ioc, self.ca = reset_device()
+
+    def test_that_WHEN_started_THEN_the_device_is_on(self):
+        # When:
+        self.ca.set_pv_value("ON:SP", 1)
+
+        # Then:
+        status = self._lewis.backdoor_run_function_on_device("get_status_via_the_backdoor")[0]
+        assert_that(status, is_(equal_to("On")))
