@@ -187,6 +187,18 @@ Any test which includes a Lewis backdoor command MUST have this annotation, othe
 
 There is also an equivalent `skip_if_devsim` annotation which can be used.
 
+If you do not call the decorator with a message as its first argument, the test will fail with a message like:
+```
+Traceback (most recent call last):
+  File "C:\Instrument\Apps\EPICS\support\IocTestFramework\master\utils\testing.py", line 93, in decorator
+    @functools.wraps(func)
+  File "C:\Instrument\Apps\Python\lib\functools.py", line 33, in update_wrapper
+    setattr(wrapper, attr, getattr(wrapped, attr))
+AttributeError: 'obj' object has no attribute '__name__'
+```
+
+This can be avoided by calling the decorator like ` @skip_if_recsim("In rec sim this test fails") `
+
 ### Avoiding tests affecting other tests
 
 * When run by the IOC test framework, the IOC + emulator state persists between tests

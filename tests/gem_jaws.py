@@ -87,12 +87,12 @@ class GemJawsTests(unittest.TestCase):
         [self.ca.assert_that_pv_exists(mot) for mot in all_motors]
 
     def _test_readback(self, underlying_motor, calibrated_axis, to_read_func, x):
-        self.ca.set_pv_value(underlying_motor, x)
+        self.ca.set_pv_value(underlying_motor, x, wait=True)
         self.ca.assert_that_pv_is_number(underlying_motor + ".DMOV", 1)  # Wait for axis to finish moving
         self.ca.assert_that_pv_is_number(calibrated_axis + ".RBV", to_read_func(x), TOLERANCE)
 
     def _test_set_point(self, underlying_motor, calibrated_axis, to_write_func, x):
-        self.ca.set_pv_value(calibrated_axis, x)
+        self.ca.set_pv_value(calibrated_axis, x, wait=True)
         self.ca.assert_that_pv_is_number(underlying_motor + ".DMOV", 1)  # Wait for axis to finish moving
         self.ca.assert_that_pv_is_number(underlying_motor + ".VAL", to_write_func(x), TOLERANCE)
 
