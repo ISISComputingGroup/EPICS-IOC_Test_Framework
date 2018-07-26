@@ -161,3 +161,14 @@ class NgpspsuResetTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("ERROR", "0")
+
+
+class NgpspsuVoltageTests(unittest.TestCase):
+
+    def setUp(self):
+        self._lewis, self._ioc, self.ca = reset_emulator()
+
+    def test_that_GIVEN_a_device_after_set_up_THEN_the_voltage_is_zero(self):
+        # Then:
+        self.ca.assert_that_pv_is("VOLT", 0.0)
+
