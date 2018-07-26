@@ -29,7 +29,7 @@ TEST_MODES = [TestModes.DEVSIM] #, TestModes.RECSIM]
 ##############################################
 
 
-def reset_device():
+def reset_emulator():
     """Reset the sp2xx device"""
     lewis, ioc = get_running_lewis_and_ioc("ngpspsu", DEVICE_PREFIX)
     ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
@@ -54,6 +54,10 @@ def _start_device(ca):
 def _reset_error(ca):
     ca.set_pv_value("ERROR", "0")
 
+
+def _reset_device(ca):
+    ca.process_pv("RESET:SP")
+
 ##############################################
 #
 #       Unit tests
@@ -64,7 +68,7 @@ def _reset_error(ca):
 class NgpspsuVersionTests(unittest.TestCase):
 
     def setUp(self):
-        self._lewis, self._ioc, self.ca = reset_device()
+        self._lewis, self._ioc, self.ca = reset_emulator()
 
     def test_that_WHEN_requested_we_THEN_get_the_version_and_firmware(self):
         # When:
@@ -77,7 +81,7 @@ class NgpspsuVersionTests(unittest.TestCase):
 class NgpspsuStartAndStopTests(unittest.TestCase):
 
     def setUp(self):
-        self._lewis, self._ioc, self.ca = reset_device()
+        self._lewis, self._ioc, self.ca = reset_emulator()
 
     def test_that_WHEN_started_THEN_the_device_turns_on(self):
         # When:
@@ -105,7 +109,7 @@ class NgpspsuStartAndStopTests(unittest.TestCase):
 class NgpspsuStatusTests(unittest.TestCase):
 
     def setUp(self):
-        self._lewis, self._ioc, self.ca = reset_device()
+        self._lewis, self._ioc, self.ca = reset_emulator()
 
     def test_that_GIVEN_a_setup_device_THEN_the_status_is_zero(self):
         # When/Then:
@@ -116,7 +120,7 @@ class NgpspsuStatusTests(unittest.TestCase):
 class NgpspsuErrorTests(unittest.TestCase):
 
     def setUp(self):
-        self._lewis, self._ioc, self.ca = reset_device()
+        self._lewis, self._ioc, self.ca = reset_emulator()
 
     def test_that_GIVEN_a_setup_device_THEN_there_is_no_error_state(self):
         # When/Then:
@@ -138,6 +142,22 @@ class NgpspsuErrorTests(unittest.TestCase):
 
         # When
         _stop_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR", "0")
+
+
+class NgpspsuResetTests(unittest.TestCase):
+
+    def setUp(self):
+        self._lewis, self._ioc, self.ca = reset_emulator()
+
+    def test_that_GIVEN_a_running_device_WHEN_reset_THEN_the_device_stops(self):
+        # Given
+        _start_device(self.ca)
+
+        # When
+        _reset_device(self.ca)
 
         # Then:
         self.ca.assert_that_pv_is("ERROR", "0")
