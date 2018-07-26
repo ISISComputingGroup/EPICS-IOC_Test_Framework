@@ -34,6 +34,9 @@ def reset_device():
     lewis, ioc = get_running_lewis_and_ioc("ngpspsu", DEVICE_PREFIX)
     ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
+    _reset_error(ca)
+    ca.assert_that_pv_is("ERROR", "0")
+
     _stop_device(ca)
     ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
@@ -46,6 +49,10 @@ def _stop_device(ca):
 
 def _start_device(ca):
     ca.process_pv("START")
+
+
+def _reset_error(ca):
+    ca.set_pv_value("ERROR", "0")
 
 ##############################################
 #
@@ -110,3 +117,23 @@ class NgpspsuStatusTests(unittest.TestCase):
         # When/Then:
         for digit in range(1, 9):
             self.ca.assert_that_pv_is("STAT:HEX:{}".format(digit), 0)
+
+
+class NgpspsuErrorTests(unittest.TestCase):
+
+    def setUp(self):
+        self._lewis, self._ioc, self.ca = reset_device()
+
+    def test_that_GIVEN_a_setup_device_THEN_there_is_no_error_state(self):
+        # When/Then:
+        self.ca.assert_that_pv_is("ERROR", "0")
+
+    def test_that_GIVEN_a_running_device__WHEN_told_to_run_THEN_the_device_throws_an_error(self):
+        # Given:
+        _start_device(self.ca)
+
+        # When:
+        _start_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR", "09")
