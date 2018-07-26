@@ -74,7 +74,7 @@ class NgpspsuVersionTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VERSION", "NGPS 100-50:0.9.01")
 
 
-class NgpspsuStartTests(unittest.TestCase):
+class NgpspsuStartAndStopTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc, self.ca = reset_device()
@@ -85,12 +85,6 @@ class NgpspsuStartTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
-
-
-class NgpspsuStopTests(unittest.TestCase):
-
-    def setUp(self):
-        self._lewis, self._ioc, self.ca = reset_device()
 
     def test_that_GIVEN_a_fresh_device_THEN_the_device_is_off(self):
         # When/Then:
