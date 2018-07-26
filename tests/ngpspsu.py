@@ -37,19 +37,18 @@ def reset_device():
     _reset_error(ca)
     ca.assert_that_pv_is("ERROR", "0")
 
-    if ca.get_pv_value("STAT:ON_OFF") != "OFF":
-        _stop_device(ca)
+    _stop_device(ca)
     ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
     return lewis, ioc, ca
 
 
 def _stop_device(ca):
-    ca.process_pv("STOP")
+    ca.set_pv_value("ON_OFF:SP", 0)
 
 
 def _start_device(ca):
-    ca.process_pv("START")
+    ca.set_pv_value("ON_OFF:SP", 1)
 
 
 def _reset_error(ca):
@@ -129,12 +128,22 @@ class NgpspsuErrorTests(unittest.TestCase):
         # When/Then:
         self.ca.assert_that_pv_is("ERROR", "0")
 
-    def test_that_GIVEN_a_running_device__WHEN_told_to_run_THEN_the_device_throws_an_error(self):
-        # Given:
+    def test_that_GIVEN_a_running_device_WHEN_making_it_run_THEN_there_is_no_error_state(self):
+        # Given
         _start_device(self.ca)
 
-        # When:
+        # When
         _start_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "09")
+        self.ca.assert_that_pv_is("ERROR", "0")
+
+    def test_that_GIVEN_a_stopped_device_WHEN_making_it_stop_THEN_there_is_no_error_state(self):
+        # Given
+        _stop_device(self.ca)
+
+        # When
+        _stop_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR", "0")
