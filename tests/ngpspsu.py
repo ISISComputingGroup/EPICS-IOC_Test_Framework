@@ -146,6 +146,16 @@ class NgpspsuErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR", "0")
 
+    def test_that_GIVEN_device_which_is_off_WHEN_setting_the_voltage_setpoint_THEN_an_error_is_caught(self):
+        # Given
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+
+        # When
+        self.ca.set_pv_value("VOLT:SP", 1.05)
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR", "13")
+
 
 class NgpspsuResetTests(unittest.TestCase):
 
@@ -172,3 +182,19 @@ class NgpspsuVoltageTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("VOLT", 0.0)
 
+    @parameterized.expand([
+        ("12.006768", 12.006768),
+        ("23", 23),
+        ("-5", -5),
+        ("-2.78", -2.78),
+        ("3e-5", 3e-5),
+        ("0.00445676e4", 0.00445676e4),
+        ("0", 0)
+    ])
+    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_voltage_setpoint_THEN_the_voltage_setpoint_is_set(self, _, value):
+        # Given:
+        _start_device(self.ca)
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+
+        # When\Then:
+        self.ca.assert_setting_setpoint_sets_readback(value, "VOLT:SP:RBV", "VOLT:SP")
