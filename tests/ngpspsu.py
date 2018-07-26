@@ -37,7 +37,8 @@ def reset_device():
     _reset_error(ca)
     ca.assert_that_pv_is("ERROR", "0")
 
-    _stop_device(ca)
+    if ca.get_pv_value("STAT:ON_OFF") != "OFF":
+        _stop_device(ca)
     ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
     return lewis, ioc, ca
