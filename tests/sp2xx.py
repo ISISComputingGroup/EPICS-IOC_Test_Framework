@@ -38,8 +38,7 @@ def _reset_device():
     ca.process_pv("ERROR")
     ca.assert_that_pv_is("ERROR", "No error")
 
-    ca.set_pv_value("MODE:SP", "Infusion")
-    ca.assert_that_pv_is("MODE", "Infusion")
+    ca.assert_setting_setpoint_sets_readback("Infusion", "MODE")
 
     return lewis, ioc, ca
 
@@ -173,7 +172,7 @@ class ErrorTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("throw_error_via_the_backdoor",
                                                     [error.name, error.value, error.alarm_severity])
 
-        # When:x
+        # When:
         _start_running(self.ca)
 
         # Then:
@@ -201,11 +200,7 @@ class ModeSwitchingTests(unittest.TestCase):
 
     @parameterized.expand(MODES)
     def test_that_GIVEN_an__pump_in_one_mode_WHEN_a_different_mode_is_set_THEN_the_mode_is_read(self, mode):
-        # When:
-        self.ca.set_pv_value("MODE:SP", mode)
-
-        # Then:
-        self.ca.assert_that_pv_is("MODE", mode)
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
 
 class DirectionTests(unittest.TestCase):
@@ -217,8 +212,7 @@ class DirectionTests(unittest.TestCase):
         ["Infusion", "Infusion/Withdrawal", "Continuous"])
     def test_that_WHEN_a_device_in_set_in_an_infusion_like_mode_THEN_the_devices_direction_is_infusion(self, mode):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode)
-        self.ca.assert_that_pv_is("MODE", mode)
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", "Infusion")
@@ -226,8 +220,7 @@ class DirectionTests(unittest.TestCase):
     @parameterized.expand(["Withdrawal", "Withdrawal/Infusion"])
     def test_that_WHEN_a_device_in_set_in_an_withdrawal_like_mode_THEN_the_devices_direction_is_withdrawal(self, mode):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode)
-        self.ca.assert_that_pv_is("MODE", mode)
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", "Withdrawal")
@@ -235,8 +228,7 @@ class DirectionTests(unittest.TestCase):
     @parameterized.expand([("Infusion", "Withdrawal"), ("Withdrawal", "Infusion")])
     def test_that_GIVEN_a_running_device_WHEN_the_device_is_told_to_reverse_the_direction_THEN_the_direction_is_reversed_an_NA_has_not_been_triggered(self, inital_mode, expected_direction):
         # Given:
-        self.ca.set_pv_value("MODE:SP", inital_mode)
-        self.ca.assert_that_pv_is("MODE", inital_mode)
+        self.ca.assert_setting_setpoint_sets_readback(inital_mode, "MODE")
 
         self.ca.assert_that_pv_is("DIRECTION", inital_mode)
 
@@ -260,8 +252,7 @@ class DirectionTests(unittest.TestCase):
     @skip_if_recsim("Can not test NA in rec sim")
     def test_that_GIVEN_a_device_stopped_device_WHEN_the_dir_rev_is_queried_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, initial_mode, expected_direction):
         # Given:
-        self.ca.set_pv_value("MODE:SP", initial_mode)
-        self.ca.assert_that_pv_is("MODE", initial_mode)
+        self.ca.assert_setting_setpoint_sets_readback(initial_mode, "MODE")
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
 
         _stop_running(self.ca)
@@ -282,8 +273,7 @@ class DirectionTests(unittest.TestCase):
     @skip_if_recsim("Can not test NA in rec sim")
     def test_that_GIVEN_a_device_running_not_in_infusion_or_withdrawal_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, mode, expected_direction):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode)
-        self.ca.assert_that_pv_is("MODE", mode)
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
         _start_running(self.ca)
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
@@ -306,8 +296,7 @@ class NATests(unittest.TestCase):
     @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_withdrawal_mode_WHEN_starting_the_device_THEN_NA_is_not_triggered(self):
         # Given:
-        self.ca.set_pv_value("MODE:SP", "Withdrawal")
-        self.ca.assert_that_pv_is("MODE", "Withdrawal")
+        self.ca.assert_setting_setpoint_sets_readback("Withdrawal", "MODE")
 
         # When:
         _start_running(self.ca)
@@ -318,8 +307,7 @@ class NATests(unittest.TestCase):
     @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_withdrawal_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
-        self.ca.set_pv_value("MODE:SP", "Withdrawal")
-        self.ca.assert_that_pv_is("MODE", "Withdrawal")
+        self.ca.assert_setting_setpoint_sets_readback("Withdrawal", "MODE")
 
         self.ca.set_pv_value("NA", 0)
         self.ca.assert_that_pv_is("NA", "Can't run command")
