@@ -1,5 +1,3 @@
-import unittest
-
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
@@ -14,11 +12,11 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 POLARITIES = ["+", "-"]
 POWER_STATES = ["Off", "On"]
 
-TEST_CURRENTS = [0.4, 47, 10000]
+TEST_CURRENTS = [1.4, 47, 10000]
 TEST_VOLTAGES = TEST_CURRENTS
 
 
-class DanfysikBase(unittest.TestCase):
+class DanfysikBase(object):
     """
     Tests for danfysik.
     """

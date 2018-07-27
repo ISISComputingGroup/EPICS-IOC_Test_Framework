@@ -1,4 +1,4 @@
-from time import sleep
+import unittest
 
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
@@ -43,7 +43,7 @@ INTERLOCKS = {
 }
 
 
-class Danfysik8000Tests(DanfysikBase):
+class Danfysik8000Tests(DanfysikBase, unittest.TestCase):
     """
     Tests for danfysik model 8000. Tests inherited from DanfysikBase.
     """
