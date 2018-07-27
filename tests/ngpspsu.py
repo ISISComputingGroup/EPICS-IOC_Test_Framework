@@ -40,6 +40,8 @@ def reset_emulator():
     _stop_device(ca)
     ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
+    _connect_emulator()
+
     return lewis, ioc, ca
 
 
@@ -58,6 +60,10 @@ def _reset_error(ca):
 def _reset_device(ca):
     ca.process_pv("RESET:SP")
 
+
+def _connect_emulator(self):
+    self._lewis.backdoor_run_function_on_device("connect")
+
 ##############################################
 #
 #       Unit tests
@@ -65,10 +71,17 @@ def _reset_device(ca):
 ##############################################
 
 
-class NgpspsuVersionTests(unittest.TestCase):
+class NgpspsuMiscTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc, self.ca = reset_emulator()
+
+    def _disconnect_emulator(self):
+        self._lewis.backdoor_run_function_on_device("disconnect")
+
+    def test_that_GIVEN_a_connected_emulator_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
+        # When/Then:
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def test_that_WHEN_requested_we_THEN_get_the_version_and_firmware(self):
         # When:
@@ -76,6 +89,17 @@ class NgpspsuVersionTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("VERSION", "NGPS 100-50:0.9.01")
+
+    @skip_if_recsim("Recsim is unable to simulate a disconnected device")
+    def test_that_GIVEN_a_disconnected_device_WHEN_getting_starting_the_device_THEN_INVALID_alarm_shows(self):
+        # Given
+        self._disconnect_emulator()
+
+        # When:
+        _start_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_alarm_is("ON_OFF:SP", self.ca.Alarms.INVALID)
 
 
 class NgpspsuStartAndStopTests(unittest.TestCase):
