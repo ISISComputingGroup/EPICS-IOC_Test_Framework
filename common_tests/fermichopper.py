@@ -292,6 +292,24 @@ class FermichopperBase(object):
 
         # Assertion that device is not broken occurs in tearDown()
 
+    @skip_if_recsim("Cannot use backdoor in recsim")
+    def test_GIVEN_speed_setpoint_has_been_sent_to_device_WHEN_the_device_decides_to_go_to_another_setpoint_THEN_the_original_setpoint_is_resent(self):
+        """
+        This test simulates some behaviour seen on MERLIN where the device just decided to reset it's speed setpoint
+        without being provoked.
+        """
+        self._turn_on_bearings_and_run()
+
+        for speed in self.test_chopper_speeds:
+            self.ca.assert_setting_setpoint_sets_readback(speed, set_point_pv="SPEED:SP", readback_pv="SPEED:SP:RBV")
+
+            # At some point the device starts to do it's own thing...
+            self._lewis.backdoor_set_on_device("speed_setpoint", speed - 50)
+            self.ca.assert_that_pv_is("SPEED:SP:RBV", speed - 50)
+
+            # Within a minute, the IOC should notice and resend the setpoint to what it should really be
+            self.ca.assert_that_pv_is("SPEED:SP:RBV", speed, timeout=60)
+
     #
     #   Mandatory safety tests
     #
