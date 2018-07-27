@@ -191,10 +191,37 @@ class NgpspsuVoltageTests(unittest.TestCase):
         ("0.00445676e4", 0.00445676e4),
         ("0", 0)
     ])
-    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_voltage_setpoint_THEN_the_voltage_setpoint_is_set(self, _, value):
+    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_voltage_setpoint_THEN_it_is_set(self, _, value):
         # Given:
         _start_device(self.ca)
         self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
 
         # When\Then:
         self.ca.assert_setting_setpoint_sets_readback(value, "VOLT:SP:RBV", "VOLT:SP")
+
+
+class NgpspsuCurrentTests(unittest.TestCase):
+
+    def setUp(self):
+        self._lewis, self._ioc, self.ca = reset_emulator()
+
+    def test_that_GIVEN_a_device_after_set_up_THEN_the_current_is_zero(self):
+        # Then:
+        self.ca.assert_that_pv_is("CURR", 0.0)
+
+    @parameterized.expand([
+        ("12.006768", 12.006768),
+        ("23", 23),
+        ("-5", -5),
+        ("-2.78", -2.78),
+        ("3e-5", 3e-5),
+        ("0.00445676e4", 0.00445676e4),
+        ("0", 0)
+    ])
+    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_current_setpoint_THEN_it_is_set(self, _, value):
+        # Given:
+        _start_device(self.ca)
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+
+        # When\Then:
+        self.ca.assert_setting_setpoint_sets_readback(value, "CURR:SP:RBV", "CURR:SP")
