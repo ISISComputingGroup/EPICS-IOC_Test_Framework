@@ -23,7 +23,7 @@ Then `cd` to `C:\Instrument\Apps\EPICS\support\IocTestFramework\master` and use:
 python run_tests.py
 ```
 
-There is a batch file which does this for you, called `run_tests.bat`
+There is a batch file which does this for you, called `run_all_tests.bat`
 
 ### Running tests in modules
 
