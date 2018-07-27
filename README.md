@@ -17,6 +17,9 @@ To run all the tests in the test framework, use:
 
 ```
 C:\Instrument\Apps\EPICS\config_env.bat
+```
+Then `cd` to `C:\Instrument\Apps\EPICS\support\IocTestFramework\master` and use:
+```
 python run_tests.py
 ```
 
