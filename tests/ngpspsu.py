@@ -172,6 +172,26 @@ class NgpspsuResetTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR", "0")
 
+    def test_that_GIVEN_a_running_device_WHEN_reset_THEN_current_is_set_to_zero(self):
+        # Given
+        _start_device(self.ca)
+
+        # When
+        _reset_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("CURR", 0)
+
+    def test_that_GIVEN_a_running_device_WHEN_reset_THEN_voltage_is_set_to_zero(self):
+        # Given
+        _start_device(self.ca)
+
+        # When
+        _reset_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("VOLT", 0)
+
 
 class NgpspsuVoltageTests(unittest.TestCase):
 
