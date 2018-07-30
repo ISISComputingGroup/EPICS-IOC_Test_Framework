@@ -342,10 +342,18 @@ class NgpspsuFaultTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STAT:FAULT", "No fault")
         self.ca.assert_that_pv_alarm_is("STAT:FAULT", self.ca.Alarms.NONE)
 
+    @parameterized.expand([
+        ("fault_condition", "fault_condition"),
+        ("mains_fault", "mains_fault"),
+        ("earth_leakage_fault", "earth_leakage_fault"),
+        ("earth_fuse_fault", "earth_fuse_fault"),
+        ("regulation_fault", "regulation_fault"),
+        ("dcct_fault", "dcct_fault")
+    ])
     @skip_if_recsim("Can't see faults from the status")
-    def test_that_GIVEN_a_device_experiencing_a_fault_condition_THEN_the_fault_pv_is_in_alarm(self):
+    def test_that_GIVEN_a_device_experiencing_a_fault_THEN_the_fault_pv_is_in_alarm(self, _, fault):
         # Given:
-        self._lewis.backdoor_run_function_on_device("fault_condition")
+        self._lewis.backdoor_run_function_on_device(fault)
 
         # Then:
         self.ca.assert_that_pv_is("STAT:FAULT", "Fault")
