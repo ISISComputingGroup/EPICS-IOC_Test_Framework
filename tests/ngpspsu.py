@@ -184,6 +184,29 @@ class NgpspsuErrorTests(unittest.TestCase):
         self.ca.set_pv_value("VOLT:SP", 1.05)
 
         # Then:
+        self.ca.assert_that_pv_is("ERROR", "13")    \
+
+    @skip_if_recsim("Can't reset the device in RECSIM.")
+    def test_that_GIVEN_device_which_is_on_WHEN_turning_it_on_THEN_an_error_is_caught(self):
+        # Given
+        _start_device(self.ca)
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+
+        # When
+        self.ca.set_pv_value("ON_OFF:SP:RAW", 1)
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR", "09")
+
+    @skip_if_recsim("Can't reset the device in RECSIM.")
+    def test_that_GIVEN_device_which_is_off_WHEN_turning_it_off_THEN_an_error_is_caught(self):
+        # Given
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+
+        # When
+        self.ca.set_pv_value("ON_OFF:SP:RAW", 0)
+
+        # Then:
         self.ca.assert_that_pv_is("ERROR", "13")
 
 
@@ -351,9 +374,9 @@ class NgpspsuFaultTests(unittest.TestCase):
         ("dcct_fault", "dcct_fault")
     ])
     @skip_if_recsim("Can't see faults from the status")
-    def test_that_GIVEN_a_device_experiencing_a_fault_THEN_the_fault_pv_is_in_alarm(self, _, fault):
+    def test_that_GIVEN_a_device_experiencing_a_fault_THEN_the_fault_pv_is_in_alarm(self, _, fault_name):
         # Given:
-        self._lewis.backdoor_run_function_on_device(fault)
+        self._lewis.backdoor_run_function_on_device("fault", [fault_name])
 
         # Then:
         self.ca.assert_that_pv_is("STAT:FAULT", "Fault")
