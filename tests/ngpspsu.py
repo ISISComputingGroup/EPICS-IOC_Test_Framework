@@ -34,13 +34,13 @@ def reset_emulator():
     lewis, ioc = get_running_lewis_and_ioc("ngpspsu", DEVICE_PREFIX)
     ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
+    _reset_device(ca)
     _reset_error(ca)
-    ca.assert_that_pv_is("ERROR", "")
 
-    _stop_device(ca)
+    ca.assert_that_pv_is("ERROR", "")
     ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
-    _connect_emulator(lewis)
+    _connect_device(lewis)
 
     return lewis, ioc, ca
 
@@ -61,7 +61,7 @@ def _reset_device(ca):
     ca.process_pv("RESET:SP")
 
 
-def _connect_emulator(lewis):
+def _connect_device(lewis):
     lewis.backdoor_run_function_on_device("connect")
 
 
@@ -326,3 +326,27 @@ class NgpspsuRecsimOnlyVoltageAndCurrentTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("VOLT:SP:RBV", value)
+
+
+class NgpspsuFaultTests(unittest.TestCase):
+
+    def setUp(self):
+        self._lewis, self._ioc, self.ca = reset_emulator()
+
+    @skip_if_recsim("Can't see faults from the status")
+    def test_that_GIVEN_a_reset_device_THEN_the_fault_pv_is_not_in_alarm(self):
+        # Given:
+        _reset_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("STAT:FAULT", "No fault")
+        self.ca.assert_that_pv_alarm_is("STAT:FAULT", self.ca.Alarms.NONE)
+
+    @skip_if_recsim("Can't see faults from the status")
+    def test_that_GIVEN_a_device_experiencing_a_fault_condition_THEN_the_fault_pv_is_in_alarm(self):
+        # Given:
+        self._lewis.backdoor_run_function_on_device("fault_condition")
+
+        # Then:
+        self.ca.assert_that_pv_is("STAT:FAULT", "Fault")
+        self.ca.assert_that_pv_alarm_is("STAT:FAULT", self.ca.Alarms.MAJOR)
