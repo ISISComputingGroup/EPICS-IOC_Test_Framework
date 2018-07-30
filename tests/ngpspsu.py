@@ -248,6 +248,18 @@ class NgpspsuResetTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("VOLT", 0)
 
+    @skip_if_recsim("Can't reset the device in RECSIM.")
+    def test_that_GIVEN_an_error_WHEN_reset_THEN_the_error_goes_away(self):
+        # Given
+        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+        self.ca.set_pv_value("ON_OFF:SP:RAW", 0)
+        self.ca.assert_that_pv_is("ERROR", "13")
+
+        # When:
+        _reset_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR", "")
 
 class NgpspsuVoltageTests(unittest.TestCase):
 
