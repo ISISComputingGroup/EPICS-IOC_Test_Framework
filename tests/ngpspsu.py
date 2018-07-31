@@ -396,3 +396,13 @@ class NgpspsuFaultTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("STAT:FAULT", "Fault")
         self.ca.assert_that_pv_alarm_is("STAT:FAULT", self.ca.Alarms.MAJOR)
+
+    @skip_if_recsim("Can't see faults from the status")
+    def test_that_GIVEN_a_device_experiencing_two_faults_THEN_the_fault_pv_is_in_alarm(self):
+        # Given:
+        for fault_name in ["fault_condition", "mains_fault"]:
+            self._lewis.backdoor_run_function_on_device("fault", [fault_name])
+
+        # Then:
+        self.ca.assert_that_pv_is("STAT:FAULT", "Fault")
+        self.ca.assert_that_pv_alarm_is("STAT:FAULT", self.ca.Alarms.MAJOR)
