@@ -3,8 +3,8 @@ from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim
+from utils.test_modes import TestModes
 
 
 DEVICE_PREFIX = "NGPSPSU_01"
@@ -36,7 +36,6 @@ def reset_emulator():
 
     _reset_device(ca)
     _reset_error(ca)
-
     ca.assert_that_pv_is("ERROR", "")
     ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
@@ -80,11 +79,11 @@ class NgpspsuMiscTests(unittest.TestCase):
     def _disconnect_emulator(self):
         self._lewis.backdoor_run_function_on_device("disconnect")
 
-    def test_that_GIVEN_a_connected_emulator_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
+    def test_that_WHEN_the_ioc_is_started_THEN_the_ioc_is_not_disabled(self):
         # When/Then:
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_that_WHEN_requested_we_THEN_get_the_version_and_firmware(self):
+    def test_that_WHEN_requested_THEN_we_get_the_version_and_firmware(self):
         # When:
         self.ca.process_pv("VERSION")
 
@@ -92,7 +91,7 @@ class NgpspsuMiscTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VERSION", "NGPS 100-50:0.9.01")
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device")
-    def test_that_GIVEN_a_disconnected_device_WHEN_starting_the_device_THEN_INVALID_alarm_shows(self):
+    def test_that_GIVEN_a_disconnected_device_WHEN_started_THEN_an_INVALID_alarm_shows(self):
         # Given
         self._disconnect_emulator()
 
@@ -154,7 +153,7 @@ class NgpspsuErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", "")
 
     @skip_if_recsim("Cannot catch errors in RECSIM")
-    def test_that_GIVEN_a_running_device_WHEN_making_it_run_THEN_there_is_no_error_state(self):
+    def test_that_GIVEN_a_running_device_WHEN_told_to_start_THEN_it_does_not_with_no_error_state(self):
         # Given
         _start_device(self.ca)
 
@@ -165,7 +164,7 @@ class NgpspsuErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", "")
 
     @skip_if_recsim("Cannot catch errors in RECSIM")
-    def test_that_GIVEN_a_stopped_device_WHEN_making_it_stop_THEN_there_is_no_error_state(self):
+    def test_that_GIVEN_a_stopped_device_WHEN_told_to_stop_THEN_it_does_not_with_no_error_state(self):
         # Given
         _stop_device(self.ca)
 
@@ -184,10 +183,10 @@ class NgpspsuErrorTests(unittest.TestCase):
         self.ca.set_pv_value("VOLT:SP", 1.05)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "13")    \
+        self.ca.assert_that_pv_is("ERROR", "13")
 
     @skip_if_recsim("Can't reset the device in RECSIM.")
-    def test_that_GIVEN_device_which_is_on_WHEN_turning_it_on_THEN_an_error_is_caught(self):
+    def test_that_GIVEN_device_which_is_on_WHEN_RAW_is_turned_on_THEN_an_error_is_caught(self):
         # Given
         _start_device(self.ca)
         self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
@@ -199,7 +198,7 @@ class NgpspsuErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", "09")
 
     @skip_if_recsim("Can't reset the device in RECSIM.")
-    def test_that_GIVEN_device_which_is_off_WHEN_turning_it_off_THEN_an_error_is_caught(self):
+    def test_that_GIVEN_device_which_is_off_WHEN_RAW_is_turned_off_THEN_an_error_is_caught(self):
         # Given
         self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
 
@@ -249,7 +248,7 @@ class NgpspsuResetTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VOLT", 0)
 
     @skip_if_recsim("Can't reset the device in RECSIM.")
-    def test_that_GIVEN_an_error_WHEN_reset_THEN_the_error_goes_away(self):
+    def test_that_GIVEN_an_error_WHEN_reset_THEN_the_error_disappears(self):
         # Given
         self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
         self.ca.set_pv_value("ON_OFF:SP:RAW", 0)
@@ -261,13 +260,17 @@ class NgpspsuResetTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR", "")
 
+
 class NgpspsuVoltageTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc, self.ca = reset_emulator()
 
-    def test_that_GIVEN_a_device_after_set_up_THEN_the_voltage_is_zero(self):
-        # Then:
+    def test_that_GIVEN_a_reset_device_THEN_the_voltage_is_zero(self):
+        # Given:
+        _reset_device(self.ca)
+
+        # When/Then:
         self.ca.assert_that_pv_is("VOLT", 0.0)
 
     @parameterized.expand([
