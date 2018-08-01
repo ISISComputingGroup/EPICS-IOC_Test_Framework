@@ -33,7 +33,7 @@ class TtiplpTests(unittest.TestCase):
         self.ca.wait_for("DISABLE")
         self._lewis.backdoor_run_function_on_device("reset")
         
-    def set_init_state(self,volt_sp=0,curr_sp=0,ov_volt_sp=0,ov_curr_sp=0,output="Off"):
+    def set_init_state(self, volt_sp=0., curr_sp=0., ov_volt_sp=0., ov_curr_sp=0., output="Off"):
         self.ca.set_pv_value("OUTPUT:SP", "Off")
         self.ca.set_pv_value("OVERCURR:SP", ov_curr_sp)
         self.ca.set_pv_value("OVERVOLT:SP", ov_volt_sp)
@@ -52,35 +52,35 @@ class TtiplpTests(unittest.TestCase):
             self.ca.assert_that_pv_is("CURRENT:SP:RBV", curr)
             
     def test_GIVEN_overvolt_and_overcurrent_more_than_output_current_and_output_voltage_WHEN_output_set_THEN_output_readback_updates(self):
-        self.set_init_state(1,0.01,10,0.1,"Off")
-        self.ca.assert_that_pv_is("OUTPUT","Off")
-        for state in ["Off","On","Off"]:
-            self.ca.set_pv_value("OUTPUT:SP",state)
-            self.ca.assert_that_pv_is("OUTPUT",state)
+        self.set_init_state(1, 0.01, 10, 0.1, "Off")
+        self.ca.assert_that_pv_is("OUTPUT", "Off")
+        for state in ["Off", "On", "Off"]:
+            self.ca.set_pv_value("OUTPUT:SP", state)
+            self.ca.assert_that_pv_is("OUTPUT", state)
             
-    @skip_if_recsim("In rec sim this test fails")
+    @skip_if_recsim("Behaviour not modelled in recsim")
     def test_GIVEN_overvolt_and_overcurrent_more_than_output_current_and_output_voltage_WHEN_overvolt_set_less_than_output_voltage_THEN_output_readback_turns_off(self):
-        self.set_init_state(10,0.01,20,0.1,"On")
-        self.ca.assert_that_pv_is("OUTPUT","On")
-        self.ca.set_pv_value("OVERVOLT:SP",8)
-        self.ca.assert_that_pv_is("OVERVOLT:SP:RBV",8)
-        self.ca.assert_that_pv_is("OUTPUT","Off")
+        self.set_init_state(10, 0.01, 20, 0.1, "On")
+        self.ca.assert_that_pv_is("OUTPUT", "On")
+        self.ca.set_pv_value("OVERVOLT:SP", 8)
+        self.ca.assert_that_pv_is("OVERVOLT:SP:RBV", 8)
+        self.ca.assert_that_pv_is("OUTPUT", "Off")
     
-    @skip_if_recsim("In rec sim this test fails")
+    @skip_if_recsim("Behaviour not modelled in recsim")
     def test_GIVEN_overvolt_and_overcurrent_more_than_output_current_and_output_voltage_WHEN_overcurrent_set_less_than_output_current_THEN_output_readback_turns_off(self):
-        self.set_init_state(10,0.1,20,1,"On")
-        self.ca.assert_that_pv_is("OUTPUT","On")
-        self.ca.set_pv_value("OVERCURR:SP",0.05)
-        self.ca.assert_that_pv_is("OVERCURR:SP:RBV",0.05)
-        self.ca.assert_that_pv_is("OUTPUT","Off")
+        self.set_init_state(10, 0.1, 20, 1, "On")
+        self.ca.assert_that_pv_is("OUTPUT", "On")
+        self.ca.set_pv_value("OVERCURR:SP", 0.05)
+        self.ca.assert_that_pv_is("OVERCURR:SP:RBV", 0.05)
+        self.ca.assert_that_pv_is("OUTPUT", "Off")
         
-    @skip_if_recsim("In rec sim this test fails")
+    @skip_if_recsim("Behaviour not modelled in recsim")
     def test_GIVEN_overvolt_and_overcurrent_less_than_output_current_and_output_voltage_WHEN_output_set_to_on_THEN_output_readback_stays_off(self):
-        self.set_init_state(10,0.1,10,0.01,"Off")
-        self.ca.assert_that_pv_is("OUTPUT","Off")
-        for state in ["Off","On","Off"]:
-            self.ca.set_pv_value("OUTPUT:SP",state)
-            self.ca.assert_that_pv_is("OUTPUT","Off")
+        self.set_init_state(10, 0.1, 10, 0.01, "Off")
+        self.ca.assert_that_pv_is("OUTPUT", "Off")
+        for state in ["Off", "On", "Off"]:
+            self.ca.set_pv_value("OUTPUT:SP", state)
+            self.ca.assert_that_pv_is("OUTPUT", "Off")
             
     def test_WHEN_over_voltage_setpoint_is_set_THEN_over_voltage_readback_updates(self):
         for volt in [0, 1, 2]:
@@ -93,19 +93,19 @@ class TtiplpTests(unittest.TestCase):
             self.ca.assert_that_pv_is("OVERCURR:SP:RBV", curr)
 
     def test_GIVEN_set_output_conditions_WHEN_the_output_is_on_THEN_readback_voltage_is_close_to_the_voltage_setpoint(self):
-        self.set_init_state(10,0.1,20,1,"On")
-        self.ca.assert_that_pv_is("OUTPUT","On")
+        self.set_init_state(10, 0.1, 20, 1, "On")
+        self.ca.assert_that_pv_is("OUTPUT", "On")
         for volt in [0, 5, 10]:
             self.ca.set_pv_value("VOLTAGE:SP", volt)
-            self.ca.assert_that_pv_is("OUTPUT","On")
+            self.ca.assert_that_pv_is("OUTPUT", "On")
             self.ca.assert_that_pv_is("VOLTAGE:SP:RBV", volt)
             self.ca.assert_that_pv_is_number("VOLTAGE", volt, tolerance=0.1)
 
     def test_GIVEN_set_output_conditions_WHEN_the_output_is_on_THEN_readback_current_is_close_to_the_current_setpoint(self):
-        self.set_init_state(10,0.1,20,1,"On")
-        self.ca.assert_that_pv_is("OUTPUT","On")
+        self.set_init_state(10, 0.1, 20, 1, "On")
+        self.ca.assert_that_pv_is("OUTPUT", "On")
         for curr in [0, 0.1, 0.2]:
             self.ca.set_pv_value("CURRENT:SP", curr)
-            self.ca.assert_that_pv_is("OUTPUT","On")
+            self.ca.assert_that_pv_is("OUTPUT", "On")
             self.ca.assert_that_pv_is("CURRENT:SP:RBV", curr)
             self.ca.assert_that_pv_is_number("CURRENT", curr, tolerance=0.01)
