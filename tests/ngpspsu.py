@@ -36,8 +36,8 @@ def reset_emulator():
 
     _reset_device(ca)
     _reset_error(ca)
-    ca.assert_that_pv_is("ERROR", "")
-    ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+    ca.assert_that_pv_is("ERROR", "No error")
+    ca.assert_that_pv_is("STAT:POWER", "OFF")
 
     _connect_device(lewis)
 
@@ -45,15 +45,15 @@ def reset_emulator():
 
 
 def _stop_device(ca):
-    ca.set_pv_value("ON_OFF:SP", 0)
+    ca.set_pv_value("POWER:SP", "OFF")
 
 
 def _start_device(ca):
-    ca.set_pv_value("ON_OFF:SP", 1)
+    ca.set_pv_value("POWER:SP", "ON")
 
 
 def _reset_error(ca):
-    ca.set_pv_value("ERROR", "")
+    ca.set_pv_value("ERROR", "No error")
 
 
 def _reset_device(ca):
@@ -99,7 +99,7 @@ class NgpspsuMiscTests(unittest.TestCase):
         _start_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_alarm_is("ON_OFF:SP:RAW", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is("POWER:SP:RAW", self.ca.Alarms.INVALID)
 
 
 class NgpspsuStartAndStopTests(unittest.TestCase):
@@ -109,7 +109,7 @@ class NgpspsuStartAndStopTests(unittest.TestCase):
 
     def test_that_GIVEN_a_fresh_device_THEN_the_device_is_off(self):
         # When/Then:
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+        self.ca.assert_that_pv_is("STAT:POWER", "OFF")
 
     @skip_if_recsim("Can't test if the device is turned on")
     def test_that_WHEN_started_THEN_the_device_turns_on(self):
@@ -117,19 +117,19 @@ class NgpspsuStartAndStopTests(unittest.TestCase):
         _start_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+        self.ca.assert_that_pv_is("STAT:POWER", "ON")
 
     @skip_if_recsim("Can't test if the device is turned on")
     def test_that_GIVEN_a_device_which_is_running_THEN_the_device_turns_off(self):
         # Given:
         _start_device(self.ca)
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+        self.ca.assert_that_pv_is("STAT:POWER", "ON")
 
         # When
         _stop_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+        self.ca.assert_that_pv_is("STAT:POWER", "OFF")
 
 
 class NgpspsuStatusTests(unittest.TestCase):
@@ -150,7 +150,7 @@ class NgpspsuErrorTests(unittest.TestCase):
 
     def test_that_GIVEN_a_setup_device_THEN_there_is_no_error_state(self):
         # When/Then:
-        self.ca.assert_that_pv_is("ERROR", "")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     @skip_if_recsim("Cannot catch errors in RECSIM")
     def test_that_GIVEN_a_running_device_WHEN_told_to_start_THEN_it_does_not_with_no_error_state(self):
@@ -161,7 +161,7 @@ class NgpspsuErrorTests(unittest.TestCase):
         _start_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     @skip_if_recsim("Cannot catch errors in RECSIM")
     def test_that_GIVEN_a_stopped_device_WHEN_told_to_stop_THEN_it_does_not_with_no_error_state(self):
@@ -172,12 +172,12 @@ class NgpspsuErrorTests(unittest.TestCase):
         _stop_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     @skip_if_recsim("Can't reset the device in RECSIM.")
     def test_that_GIVEN_device_which_is_off_WHEN_setting_the_voltage_setpoint_THEN_an_error_is_caught(self):
         # Given
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+        self.ca.assert_that_pv_is("STAT:POWER", "OFF")
 
         # When
         self.ca.set_pv_value("VOLT:SP", 1.05)
@@ -189,10 +189,10 @@ class NgpspsuErrorTests(unittest.TestCase):
     def test_that_GIVEN_device_which_is_on_WHEN_RAW_is_turned_on_THEN_an_error_is_caught(self):
         # Given
         _start_device(self.ca)
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+        self.ca.assert_that_pv_is("STAT:POWER", "ON")
 
         # When
-        self.ca.set_pv_value("ON_OFF:SP:RAW", 1)
+        self.ca.set_pv_value("POWER:SP:RAW", 1)
 
         # Then:
         self.ca.assert_that_pv_is("ERROR", "09")
@@ -200,10 +200,10 @@ class NgpspsuErrorTests(unittest.TestCase):
     @skip_if_recsim("Can't reset the device in RECSIM.")
     def test_that_GIVEN_device_which_is_off_WHEN_RAW_is_turned_off_THEN_an_error_is_caught(self):
         # Given
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
+        self.ca.assert_that_pv_is("STAT:POWER", "OFF")
 
         # When
-        self.ca.set_pv_value("ON_OFF:SP:RAW", 0)
+        self.ca.set_pv_value("POWER:SP:RAW", 0)
 
         # Then:
         self.ca.assert_that_pv_is("ERROR", "13")
@@ -223,7 +223,7 @@ class NgpspsuResetTests(unittest.TestCase):
         _reset_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
     @skip_if_recsim("Can't reset the device in RECSIM.")
     def test_that_GIVEN_a_running_device_WHEN_reset_THEN_current_is_set_to_zero(self):
@@ -250,15 +250,15 @@ class NgpspsuResetTests(unittest.TestCase):
     @skip_if_recsim("Can't reset the device in RECSIM.")
     def test_that_GIVEN_an_error_WHEN_reset_THEN_the_error_disappears(self):
         # Given
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "OFF")
-        self.ca.set_pv_value("ON_OFF:SP:RAW", 0)
+        self.ca.assert_that_pv_is("STAT:POWER", "OFF")
+        self.ca.set_pv_value("POWER:SP:RAW", 0)
         self.ca.assert_that_pv_is("ERROR", "13")
 
         # When:
         _reset_device(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "")
+        self.ca.assert_that_pv_is("ERROR", "No error")
 
 
 class NgpspsuVoltageTests(unittest.TestCase):
@@ -286,7 +286,7 @@ class NgpspsuVoltageTests(unittest.TestCase):
     def test_that_GIVEN_device_which_is_on_WHEN_setting_the_voltage_setpoint_THEN_it_is_set(self, _, value):
         # Given:
         _start_device(self.ca)
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+        self.ca.assert_that_pv_is("STAT:POWER", "ON")
 
         # When\Then:
         self.ca.assert_setting_setpoint_sets_readback(value, "VOLT:SP:RBV", "VOLT:SP")
@@ -314,7 +314,7 @@ class NgpspsuCurrentTests(unittest.TestCase):
     def test_that_GIVEN_device_which_is_on_WHEN_setting_the_current_setpoint_THEN_it_is_set(self, _, value):
         # Given:
         _start_device(self.ca)
-        self.ca.assert_that_pv_is("STAT:ON_OFF", "ON")
+        self.ca.assert_that_pv_is("STAT:POWER", "ON")
 
         # When\Then:
         self.ca.assert_setting_setpoint_sets_readback(value, "CURR:SP:RBV", "CURR:SP")
