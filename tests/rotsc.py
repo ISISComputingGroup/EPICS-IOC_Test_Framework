@@ -14,11 +14,13 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("ROTSC"),
         "macros": {},
+        "emulator": "rotating_sample_changer",
+        "emulator_protocol": "POLARIS",
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class RotscTests(unittest.TestCase):
