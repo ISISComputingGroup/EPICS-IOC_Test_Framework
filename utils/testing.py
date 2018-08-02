@@ -106,3 +106,21 @@ skip_if_recsim = functools.partial(_skip_if_condition, lambda: IOCRegister.uses_
 
 """Decorator to skip tests if running in devsim"""
 skip_if_devsim = functools.partial(_skip_if_condition, lambda: not IOCRegister.uses_rec_sim)
+
+
+def add_method(method):
+    """
+    Class decorator which as the method to the decorated class.
+
+    This is inspired by https://stackoverflow.com/questions/9443725/add-method-to-a-class-dynamically-with-decorator
+    and https://gist.github.com/victorlei/5968685.
+
+    Args:
+        method (func): The method to add to the class decorated.
+    """
+
+    @six.wraps(method)
+    def wrapper(class_to_decorate):
+        setattr(class_to_decorate, method.__name__, method)
+        return class_to_decorate
+    return wrapper
