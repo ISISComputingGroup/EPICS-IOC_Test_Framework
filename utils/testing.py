@@ -116,7 +116,7 @@ def add_method(method):
     and https://gist.github.com/victorlei/5968685.
 
     Args:
-        method (func): The method to add to the class decorated.
+        method (func): The method to add to the class decorated. Should be callable.
     """
 
     @six.wraps(method)
@@ -138,8 +138,9 @@ def parameterized_list(cases):
          cases: list of cases to use in tests
 
     Returns:
-        list: list of tuples of the form (case.__str__, case)
+        list: list of tuples of where the first item is str(case)
     """
+
     return_list = []
 
     for case in cases:
