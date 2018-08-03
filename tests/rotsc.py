@@ -55,7 +55,6 @@ class RotscTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("MOTOR_0_ACTIVE", "ACTIVE")
 
-    #@skip_if_recsim("Recsim cannot model complex behaviour (motor motion)")
     def test_GIVEN_current_position_WHEN_position_set_to_current_position_THEN_setpoint_not_sent(self):
         # GIVEN
         self.ca.set_pv_value("POSN:SP", 3)
