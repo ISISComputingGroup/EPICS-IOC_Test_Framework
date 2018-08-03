@@ -377,12 +377,12 @@ class NgpspsuFaultTests(unittest.TestCase):
 
     @parameterized.expand(
         parameterized_list([
-            "fault_condition",
-            "mains_fault",
-            "earth_leakage_fault",
-            "earth_fuse_fault",
-            "regulation_fault",
-            "dcct_fault"
+            "Fault condition",
+            "Mains fault",
+            "Earth leakage",
+            "Earth fuse",
+            "Regulation fault",
+            "DCCT fault"
         ])
     )
     @skip_if_recsim("Can't see faults from the status")
@@ -397,7 +397,7 @@ class NgpspsuFaultTests(unittest.TestCase):
     @skip_if_recsim("Can't see faults from the status")
     def test_that_GIVEN_a_device_experiencing_two_faults_THEN_the_fault_pv_is_in_alarm(self):
         # Given:
-        for fault_name in ["fault_condition", "mains_fault"]:
+        for fault_name in ["Fault condition", "Mains fault"]:
             self._lewis.backdoor_run_function_on_device("fault", [fault_name])
 
         # Then:
