@@ -124,3 +124,31 @@ def add_method(method):
         setattr(class_to_decorate, method.__name__, method)
         return class_to_decorate
     return wrapper
+
+
+def parameterized_list(cases):
+    """
+    Creates a list of cases for parameterized to use to run tests.
+
+    E.g.
+    parameterized_list([1.3435,12321,1.0])
+        = [("1.3435", 1.3435),("12321", 12321), ("1.0",1.0)]
+
+    Args:
+         cases: list of cases to use in tests
+
+    Returns:
+        list: list of tuples of the form (case.__str__, case)
+    """
+    return_list = []
+
+    for case in cases:
+        test_case = (str(case),)
+        try:
+            return_list.append(test_case + case)
+        except TypeError:
+            return_list.append(test_case + (case,))
+
+    return return_list
+
+
