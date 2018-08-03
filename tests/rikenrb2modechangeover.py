@@ -27,5 +27,5 @@ class RikenRb2ModeChangeoverTests(RikenChangeover, unittest.TestCase):
     def get_power_supplies(self):
         return POWER_SUPPLIES
 
-    def get_prefix(self):
+    def get_coord_prefix(self):
         return "COORD_01:RB2C"

@@ -1,64 +1,11 @@
-import os
-import itertools
 import six
 from abc import ABCMeta, abstractmethod
-
-from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
 from utils.channel_access import ChannelAccess
 
 try:
     from contextlib import ExitStack  # PY3
 except ImportError:
     from contextlib2 import ExitStack  # PY2
-
-
-INPUT_PV = "SIMPLE:VALUE1"
-OUTPUT_PV = "SIMPLE:VALUE2"
-
-
-def build_iocs(riken_setup):
-    iocs = [
-        {
-            "name": "COORD_01",
-            "directory": get_default_ioc_dir("COORD"),
-            "macros": {
-                "IFRIKEN": " ",
-                "RIKEN_PC_IN": INPUT_PV,
-                "RIKEN_PC_OUT": OUTPUT_PV,
-                "RIKEN_RB2C_IN": INPUT_PV,
-                "RIKEN_RB2C_OUT": OUTPUT_PV,
-            },
-        },
-        {
-            "name": "SIMPLE",
-            "directory": os.path.join(EPICS_TOP, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple"),
-            "macros": {},
-        },
-    ]
-
-    # Add RKNPS IOCs corresponding to RIKEN_SETUP
-    for ioc_num, psus in riken_setup.iteritems():
-        iocs.append({
-            "name": "RKNPS_{:02d}".format(ioc_num),
-            "directory": get_default_ioc_dir("RKNPS", iocnum=ioc_num),
-            "macros": dict(itertools.chain(
-                # This is just a succinct way of setting macros like:
-                # ADR1 = 001, ADR2 = 002, ...
-                # ID1 = RB1, ID2 = RB2, ... (as defined in RIKEN_SETUP above)
-                {"ID{}".format(number): name for number, name in enumerate(psus, 1)}.iteritems(),
-                {"ADR{}".format(number): "{:03d}".format(number) for number in range(1, len(psus) + 1)}.iteritems()
-            )),
-        })
-
-    return iocs
-
-
-def build_power_supplies_list(riken_setup):
-    power_supplies = []
-    for ioc_num, supplies in riken_setup.iteritems():
-        for supply in supplies:
-            power_supplies.append("RKNPS_{:02d}:{}".format(ioc_num, supply))
-    return power_supplies
 
 
 @six.add_metaclass(ABCMeta)
@@ -69,24 +16,28 @@ class RikenChangeover(object):
     This class is inherited by the riken port changeover tests and also the RB2 mode change tests as they are very
     similar (just the PSUs that they look at / control are different)
     """
-    @staticmethod
-    def get_input_pv():
-        return INPUT_PV
+    @abstractmethod
+    def get_input_pv(self):
+        return ""
 
-    @staticmethod
-    def get_acknowledgement_pv():
-        return OUTPUT_PV
+    @abstractmethod
+    def get_acknowledgement_pv(self):
+        return ""
 
     @abstractmethod
     def get_power_supplies(self):
-        pass
+        return []
+
+    @abstractmethod
+    def get_coord_prefix(self):
+        return ""
 
     @abstractmethod
     def get_prefix(self):
-        pass
+        return ""
 
     def _set_input_pv(self, ok_to_run_psus):
-        self.ca.set_pv_value("{}:SP".format(self.get_input_pv()), 1 if ok_to_run_psus else 0)
+        self.ca.set_pv_value("{}:SIM".format(self.get_input_pv()), 1 if ok_to_run_psus else 0)
 
     def _set_power_supply_state(self, supply, on):
         self.ca.set_pv_value("{}:POWER:SP".format(supply), 1 if on else 0)
@@ -104,14 +55,14 @@ class RikenChangeover(object):
             self._assert_power_supply_disabled(supply, disabled)
 
     def setUp(self):
-        self.ca = ChannelAccess()
+        self.ca = ChannelAccess(device_prefix=self.get_prefix(), default_timeout=10)
 
         # Wait for PVs that we care about to exist.
-        self.ca.assert_that_pv_exists("{}:PSUS:DISABLE".format(self.get_prefix()), timeout=30)
-        self.ca.assert_that_pv_exists(self.get_input_pv(), timeout=30)
-        self.ca.assert_that_pv_exists(self.get_acknowledgement_pv(), timeout=30)
+        self.ca.assert_that_pv_exists("{}:PSUS:DISABLE".format(self.get_coord_prefix()), timeout=30)
+        self.ca.assert_that_pv_exists(self.get_input_pv())
+        self.ca.assert_that_pv_exists(self.get_acknowledgement_pv())
         for id in self.get_power_supplies():
-            self.ca.assert_that_pv_exists("{}:POWER".format(id), timeout=30)
+            self.ca.assert_that_pv_exists("{}:POWER".format(id))
 
         self._set_input_pv(True)
         self._set_all_power_supply_states(False)
@@ -119,7 +70,7 @@ class RikenChangeover(object):
     def test_GIVEN_value_on_input_ioc_changes_THEN_coord_psus_disable_pv_updates_with_the_same_value(self):
         def _set_and_check(ok_to_run_psus):
             self._set_input_pv(ok_to_run_psus)
-            self.ca.assert_that_pv_is("{}:PSUS:DISABLE".format(self.get_prefix()),
+            self.ca.assert_that_pv_is("{}:PSUS:DISABLE".format(self.get_coord_prefix()),
                                       "ENABLED" if ok_to_run_psus else "DISABLED")
 
         for ok_to_run_psus in [True, False, True]:  # Check both transitions
@@ -137,14 +88,14 @@ class RikenChangeover(object):
 
         self._set_all_power_supply_states(False)
 
-        self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 0)
+        self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_coord_prefix()), 0)
 
         for psu in self.get_power_supplies():
             self._set_power_supply_state(psu, True)
-            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 1)
+            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_coord_prefix()), 1)
 
             self._set_power_supply_state(psu, False)
-            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 0)
+            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_coord_prefix()), 0)
 
     def test_GIVEN_power_supplies_on_WHEN_value_on_input_ioc_changes_THEN_power_supplies_are_not_disabled_until_they_are_switched_off(self):
         self._set_all_power_supply_states(True)
@@ -164,8 +115,8 @@ class RikenChangeover(object):
     def test_GIVEN_a_power_supply_is_in_alarm_THEN_the_power_any_pv_is_also_in_alarm(self):
         for supply in self.get_power_supplies():
             with self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID):
-                self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.INVALID)
-            self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.NONE)
+                self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_coord_prefix()), self.ca.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_coord_prefix()), self.ca.Alarms.NONE)
 
     def test_GIVEN_all_power_supply_are_in_alarm_THEN_the_power_any_pv_is_also_in_alarm(self):
         with ExitStack() as stack:
@@ -173,14 +124,14 @@ class RikenChangeover(object):
                 stack.enter_context(
                     self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID)
                 )
-            self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_prefix()), self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_coord_prefix()), self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is("{}:PSUS:POWER".format(self.get_coord_prefix()), self.ca.Alarms.NONE)
 
     def test_GIVEN_a_power_supply_is_in_alarm_THEN_the_power_any_pv_reports_that_psus_are_active(self):
         for supply in self.get_power_supplies():
             with self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID):
-                self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 1)
-            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 0)
+                self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_coord_prefix()), 1)
+            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_coord_prefix()), 0)
 
     def test_GIVEN_all_power_supply_are_in_alarm_THEN_the_power_any_pv_reports_that_psus_are_active(self):
         with ExitStack() as stack:
@@ -188,8 +139,8 @@ class RikenChangeover(object):
                 stack.enter_context(
                     self.ca.put_simulated_record_into_alarm("{}:POWER".format(supply), self.ca.Alarms.INVALID)
                 )
-            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 1)
-        self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_prefix()), 0)
+            self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_coord_prefix()), 1)
+        self.ca.assert_that_pv_is_number("{}:PSUS:POWER".format(self.get_coord_prefix()), 0)
 
     def test_GIVEN_changeover_initiated_WHEN_power_supplies_off_THEN_acknowledgement_pv_true(self):
         self._set_all_power_supply_states(False)
