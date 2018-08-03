@@ -38,6 +38,7 @@ class RikenChangeover(object):
 
     def _set_input_pv(self, ok_to_run_psus):
         self.ca.set_pv_value("{}:SIM".format(self.get_input_pv()), 1 if ok_to_run_psus else 0)
+        self.ca.assert_that_pv_is("{}".format(self.get_input_pv()), 1 if ok_to_run_psus else 0)
 
     def _set_power_supply_state(self, supply, on):
         self.ca.set_pv_value("{}:POWER:SP".format(supply), 1 if on else 0)
@@ -54,17 +55,20 @@ class RikenChangeover(object):
         for supply in self.get_power_supplies():
             self._assert_power_supply_disabled(supply, disabled)
 
-    def setUp(self):
-        self.ca = ChannelAccess(device_prefix=self.get_prefix(), default_timeout=10)
-
-        # Wait for PVs that we care about to exist.
-        self.ca.assert_that_pv_exists("{}:PSUS:DISABLE".format(self.get_coord_prefix()), timeout=30)
+    def _assert_necessary_pvs_exist(self):
+        self.ca.assert_that_pv_exists("{}:PSUS:DISABLE".format(self.get_coord_prefix()))
         self.ca.assert_that_pv_exists(self.get_input_pv())
         self.ca.assert_that_pv_exists(self.get_acknowledgement_pv())
         for id in self.get_power_supplies():
             self.ca.assert_that_pv_exists("{}:POWER".format(id))
 
+    def setUp(self):
+        self.ca = ChannelAccess(device_prefix=self.get_prefix(), default_timeout=10)
+
+        self._assert_necessary_pvs_exist()
+
         self._set_input_pv(True)
+        self._assert_all_power_supplies_disabled(False)
         self._set_all_power_supply_states(False)
 
     def test_GIVEN_value_on_input_ioc_changes_THEN_coord_psus_disable_pv_updates_with_the_same_value(self):
@@ -160,3 +164,4 @@ class RikenChangeover(object):
         self.ca.assert_that_pv_is(self.get_acknowledgement_pv(), 1)
         self._set_input_pv(True)  # Some time later, changeover is finished
         self._assert_all_power_supplies_disabled(False)  # Power supplies should now be reenabled
+        self.ca.assert_that_pv_is(self.get_acknowledgement_pv(), 0)  # And "ok to run changeover" line should be cleared

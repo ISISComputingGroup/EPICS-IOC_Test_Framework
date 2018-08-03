@@ -15,7 +15,7 @@ IOCS = [{
         "CHAIN1_ADR1": 1,
 
         "CHAIN1_ID2": "RQ19",
-        "CHAIN1_ADR2": 1,
+        "CHAIN1_ADR2": 2,
 
         "CHAIN2_ID1": "RQ20",
         "CHAIN2_ADR1": 1,
