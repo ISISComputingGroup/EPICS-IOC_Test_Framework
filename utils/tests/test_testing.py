@@ -52,6 +52,18 @@ class ParameterizedListTests(unittest.TestCase):
 
         assert_that(result, is_(equal_to(expected_result)))
 
+    def test_that_GIVEN_a_list_of_strings__THEN_a_list_of_extended_tuples_is_returned(self):
+        # Given:
+        test = ["abc", "edf", "ght"]
+
+        # When:
+        result = parameterized_list(test)
+
+        # Then:
+        expected_result = [("abc", "abc"), ("edf", "edf"), ("ght", "ght")]
+
+        assert_that(result, is_(equal_to(expected_result)))
+
 
 class AddMethodTests(unittest.TestCase):
 
