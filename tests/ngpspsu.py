@@ -3,8 +3,9 @@ from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim, add_method
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim, add_method, parameterized_list
 from utils.test_modes import TestModes
+
 
 
 DEVICE_PREFIX = "NGPSPSU_01"
@@ -204,6 +205,7 @@ class NgpspsuErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR", "13")
 
+
 @add_method(setUp)
 class NgpspsuResetTests(unittest.TestCase):
 
@@ -264,15 +266,17 @@ class NgpspsuVoltageTests(unittest.TestCase):
         # When/Then:
         self.ca.assert_that_pv_is("VOLT", 0.0)
 
-    @parameterized.expand([
-        ("12.006768", 12.006768),
-        ("23", 23),
-        ("-5", -5),
-        ("-2.78", -2.78),
-        ("3e-5", 3e-5),
-        ("0.00445676e4", 0.00445676e4),
-        ("0", 0)
-    ])
+    @parameterized.expand(
+        parameterized_list([
+            12.006768,
+            23,
+            -5,
+            -2.78,
+            3e-5,
+            0.00445676e4,
+            0
+        ])
+    )
     @skip_if_recsim("Can't test if the device is turned on")
     def test_that_GIVEN_device_which_is_on_WHEN_setting_the_voltage_setpoint_THEN_it_is_set(self, _, value):
         # Given:
@@ -290,15 +294,17 @@ class NgpspsuCurrentTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("CURR", 0.0)
 
-    @parameterized.expand([
-        ("12.006768", 12.006768),
-        ("23", 23),
-        ("-5", -5),
-        ("-2.78", -2.78),
-        ("3e-5", 3e-5),
-        ("0.00445676e4", 0.00445676e4),
-        ("0", 0)
-    ])
+    @parameterized.expand(
+        parameterized_list([
+            12.006768,
+            23,
+            -5,
+            -2.78,
+            3e-5,
+            0.00445676e4,
+            0
+        ])
+    )
     @skip_if_recsim("Can't test if the device is turned on")
     def test_that_GIVEN_device_which_is_on_WHEN_setting_the_current_setpoint_THEN_it_is_set(self, _, value):
         # Given:
@@ -318,15 +324,17 @@ class NgpspsuRecsimOnlyVoltageAndCurrentTests(unittest.TestCase):
     def _set_current_setpoint(self, value):
         self._ioc.set_simulated_value("SIM:CURR:SP", value)
 
-    @parameterized.expand([
-        ("12.006768", 12.006768),
-        ("23", 23),
-        ("-5", -5),
-        ("-2.78", -2.78),
-        ("3e-5", 3e-5),
-        ("0.00445676e4", 0.00445676e4),
-        ("0", 0)
-    ])
+    @parameterized.expand(
+        parameterized_list([
+            12.006768,
+            23,
+            -5,
+            -2.78,
+            3e-5,
+            0.00445676e4,
+            0
+        ])
+    )
     @skip_if_devsim("These tests will fail in devsim as the device is not on.")
     def test_that_WHEN_setting_the_current_setpoint_THEN_it_is_set(self, _, value):
         # When
@@ -335,15 +343,17 @@ class NgpspsuRecsimOnlyVoltageAndCurrentTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("CURR:SP:RBV", value)
 
-    @parameterized.expand([
-        ("12.006768", 12.006768),
-        ("23", 23),
-        ("-5", -5),
-        ("-2.78", -2.78),
-        ("3e-5", 3e-5),
-        ("0.00445676e4", 0.00445676e4),
-        ("0", 0)
-    ])
+    @parameterized.expand(
+        parameterized_list([
+            12.006768,
+            23,
+            -5,
+            -2.78,
+            3e-5,
+            0.00445676e4,
+            0
+        ])
+    )
     @skip_if_devsim("These tests will fail in devsim as the device is not on.")
     def test_that_WHEN_setting_the_voltage_setpoint_THEN_it_is_set(self, _, value):
         # When
@@ -365,14 +375,16 @@ class NgpspsuFaultTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STAT:FAULT", "No fault")
         self.ca.assert_that_pv_alarm_is("STAT:FAULT", self.ca.Alarms.NONE)
 
-    @parameterized.expand([
-        ("fault_condition", "fault_condition"),
-        ("mains_fault", "mains_fault"),
-        ("earth_leakage_fault", "earth_leakage_fault"),
-        ("earth_fuse_fault", "earth_fuse_fault"),
-        ("regulation_fault", "regulation_fault"),
-        ("dcct_fault", "dcct_fault")
-    ])
+    @parameterized.expand(
+        parameterized_list([
+            "fault_condition",
+            "mains_fault",
+            "earth_leakage_fault",
+            "earth_fuse_fault",
+            "regulation_fault",
+            "dcct_fault"
+        ])
+    )
     @skip_if_recsim("Can't see faults from the status")
     def test_that_GIVEN_a_device_experiencing_a_fault_THEN_the_fault_pv_is_in_alarm(self, _, fault_name):
         # Given:
