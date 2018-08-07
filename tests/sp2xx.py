@@ -20,35 +20,56 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
+
+# Useful commands to help run tests
+###################################
+
+def _reset_device():
+    """Reset the sp2xx device"""
+    lewis, ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
+    ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+
+    _stop_running(ca)
+    ca.assert_that_pv_is("STATUS", "Stopped")
+
+    lewis.backdoor_run_function_on_device("clear_last_error")
+    ca.process_pv("ERROR")
+    ca.assert_that_pv_is("ERROR", "No error")
+
+    ca.assert_setting_setpoint_sets_readback("Infusion", "MODE")
+
+    return lewis, ioc, ca
+
+
+def _start_running(ca):
+    """
+    Start device running
+    Args:
+        ca: channel access object
+    """
+    ca.set_pv_value("RUN:SP", 1)
+
+
+def _stop_running(ca):
+    """
+    Stop device running
+    Args:
+        ca: channel access object
+    """
+
+    ca.set_pv_value("STOP:SP", 1)
+
+
+# Tests in various classes
+##########################
 
 class RunCommandTests(unittest.TestCase):
-    """
-    Tests for the Sp2XX IOC run command.
-    """
+    
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
-
-    def _reset_device(self):
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-    def _start_running(self):
-        self.ca.set_pv_value("RUN:SP", 1)
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
+        self._lewis, self._ioc, self.ca = _reset_device()
 
     def test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped(self):
         # Then:
@@ -56,67 +77,46 @@ class RunCommandTests(unittest.TestCase):
 
     def test_that_GIVEN_a_pump_in_infusion_mode_which_is_not_running_THEN_the_pump_starts_running_(self):
         # When
-        self._start_running()
+        _start_running(self.ca)
 
         # Then:
         self.ca.assert_that_pv_is("STATUS", "Infusion")
 
     def test_that_GIVEN_the_pump_is_running_infusion_mode_WHEN_told_to_run_THEN_the_pump_is_still_running_in_infusion_mode(self):
         # Given
-        self._start_running()
+        _start_running(self.ca)
         self.ca.assert_that_pv_is("STATUS", "Infusion")
 
         # When
-        self._start_running()
+        _start_running(self.ca)
 
         # Then:
         self.ca.assert_that_pv_is("STATUS", "Infusion")
 
 
 class StopCommandTests(unittest.TestCase):
-    """
-    Tests for the Sp2XX IOC stop command.
-    """
+    
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
-
-    def _reset_device(self):
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-    def _start_running(self):
-        self.ca.set_pv_value("RUN:SP", 1)
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
+        self._lewis, self._ioc, self.ca = _reset_device()
 
     def test_that_GIVEN_a_running_pump_THEN_the_pump_stops(self):
         # Given
-        self._start_running()
+        _start_running(self.ca)
         self.ca.assert_that_pv_is("STATUS", "Infusion")
 
         # When:
-        self._stop_running()
+        _stop_running(self.ca)
 
         # Then:
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
     def test_that_GIVEN_a_stopped_pump_THEN_the_pump_remains_stopped(self):
         # Given
-        self._stop_running()
+        _stop_running(self.ca)
 
         # When:
-        self._stop_running()
+        _stop_running(self.ca)
 
         # Then:
         self.ca.assert_that_pv_is("STATUS", "Stopped")
@@ -152,46 +152,28 @@ errors = [no_error, comms_error, stall_error, comms_stall_error, ser_overrun_err
 
 
 class ErrorTests(unittest.TestCase):
-    """
-    Tests for the Sp2XX IOC stop command.
-    """
+
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
+        self._lewis, self._ioc, self.ca = _reset_device()
 
-    def _reset_device(self):
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-    def _start_running(self):
-        self.ca.set_pv_value("RUN:SP", 1)
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
-
+    @skip_if_recsim("Recsim does not do errors")
     def test_that_GIVEN_an_initialized_pump_THEN_the_device_has_no_error(self):
         # Then:
         self.ca.process_pv("ERROR")
         self.ca.assert_that_pv_is("ERROR", "No error")
         self.ca.assert_that_pv_alarm_is("ERROR", ChannelAccess.Alarms.NONE)
 
+
     @parameterized.expand([(error.name, error) for error in errors[1:]])
+    @skip_if_recsim("Recsim does not do errors")
     def test_that_GIVEN_a_device_with_an_error_WHEN_trying_to_start_the_device_THEN_the_error_pv_is_updated_and_device_is_stopped(self, _, error):
         # Given:
         self._lewis.backdoor_run_function_on_device("throw_error_via_the_backdoor",
                                                     [error.name, error.value, error.alarm_severity])
 
         # When:
-        self._start_running()
+        _start_running(self.ca)
 
         # Then:
         self.ca.assert_that_pv_is("ERROR", error.name)
@@ -199,152 +181,81 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
 
-class Mode(object):
-    """
-    Operation mode for the device.
-
-    Attributes:
-        set_symbol (string): Symbol for setting the mode
-        response (string): Response to a query for the mode.
-        name: Description of the mode.
-    """
-    def __init__(self, set_symbol, response, name):
-        self.set_symbol = set_symbol
-        self.response = response
-        self.name = name
-
-
-infusion = Mode("Infusion", "Infusion", "Infusion")
-withdrawal = Mode("Withdrawal", "Withdrawal", "Withdrawal")
-infusion_withdrawal = Mode("Infusion/Withdrawal", "Infusion/Withdrawal", "Infusion/Withdrawal")
-withdrawal_infusion = Mode("Withdrawal/Infusion", "Withdrawal/Infusion", "Withdrawal/Infusion")
-continuous = Mode("Continuous", "Continuous", "Continuous")
-
-MODES = {
-    "Infusion/Withdrawal": infusion_withdrawal,
-    "Withdrawal/Infusion": withdrawal_infusion,
-    "Infusion": infusion,
-    "Withdrawal": withdrawal,
-    "Continuous": continuous
-}
-
-
 class ModeSwitchingTests(unittest.TestCase):
+
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
+        self._lewis, self._ioc, self.ca = _reset_device()
 
-    def _reset_device(self):
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-    def _start_running(self):
-        self.ca.set_pv_value("RUN:SP", 1)
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
+    MODES = [
+        "Infusion/Withdrawal",
+        "Withdrawal/Infusion",
+        "Infusion",
+        "Withdrawal",
+        "Continuous"]
 
     def test_that_GIVEN_an_initialized_pump_THEN_the_mode_is_set_to_infusing(self):
         # Then:
         self.ca.assert_that_pv_is("MODE", "Infusion")
 
-    @parameterized.expand([(mode.name, mode) for mode in MODES.values()])
-    def test_that_GIVEN_an__pump_in_one_mode_WHEN_a_different_mode_is_set_THEN_the_mode_is_read(self, _, mode):
-        # When:
-        self.ca.set_pv_value("MODE:SP", mode.set_symbol)
-
-        # Then:
-        self.ca.assert_that_pv_is("MODE", mode.name)
+    @parameterized.expand(MODES)
+    def test_that_GIVEN_an__pump_in_one_mode_WHEN_a_different_mode_is_set_THEN_the_mode_is_read(self, mode):
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
 
 class DirectionTests(unittest.TestCase):
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
-
-    def _reset_device(self):
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-    def _start_running(self):
-        self.ca.set_pv_value("RUN:SP", 1)
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
+        self._lewis, self._ioc, self.ca = _reset_device()
 
     @parameterized.expand(
-        [("infusion", "Infusion", "Infusion"),
-         ("infusion_withdrawal", "Infusion/Withdrawal", "Infusion/Withdrawal"),
-         ("continuous", "Continuous", "Continuous")])
-    def test_that_WHEN_a_device_in_set_in_an_infusion_like_mode_THEN_the_devices_direction_is_infusion(self, _, mode_symbol, mode_name):
+        ["Infusion", "Infusion/Withdrawal", "Continuous"])
+    def test_that_WHEN_a_device_in_set_in_an_infusion_like_mode_THEN_the_devices_direction_is_infusion(self, mode):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode_symbol)
-        self.ca.assert_that_pv_is("MODE", mode_name)
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", "Infusion")
 
-    @parameterized.expand([
-        ("infusion","Withdrawal", "Withdrawal"),
-        ("infusion_withdrawal", "Withdrawal/Infusion", "Withdrawal/Infusion")])
-    def test_that_WHEN_a_device_in_set_in_an_withdrawal_like_mode_THEN_the_devices_direction_is_withdrawal(self, _, mode_symbol, mode_name):
+    @parameterized.expand(["Withdrawal", "Withdrawal/Infusion"])
+    def test_that_WHEN_a_device_in_set_in_an_withdrawal_like_mode_THEN_the_devices_direction_is_withdrawal(self, mode):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode_symbol)
-        self.ca.assert_that_pv_is("MODE", mode_name)
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", "Withdrawal")
 
-    @parameterized.expand([("infusion", "Infusion", "Infusion", "Withdrawal"), ("withdrawal", "Withdrawal", "Withdrawal", "Infusion")])
-    def test_that_GIVEN_a_running_device_WHEN_the_device_is_told_to_reverse_the_direction_THEN_the_direction_is_reversed_an_NA_has_not_been_triggered(self, _, mode_symbol, mode_name, expected_direction):
+    @parameterized.expand([("Infusion", "Withdrawal"), ("Withdrawal", "Infusion")])
+    def test_that_GIVEN_a_running_device_WHEN_the_device_is_told_to_reverse_the_direction_THEN_the_direction_is_reversed_an_NA_has_not_been_triggered(self, inital_mode, expected_direction):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode_symbol)
-        self.ca.assert_that_pv_is("MODE", mode_name)
+        self.ca.assert_setting_setpoint_sets_readback(inital_mode, "MODE")
 
-        self.ca.assert_that_pv_is("DIRECTION", mode_name)
+        self.ca.assert_that_pv_is("DIRECTION", inital_mode)
 
-        self._start_running()
-        self.ca.assert_that_pv_is("STATUS", mode_name)
+        _start_running(self.ca)
+        self.ca.assert_that_pv_is("STATUS", inital_mode)
 
         # When:
         self.ca.set_pv_value("DIRECTION:REV", 1)
 
         # Then:
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
     @parameterized.expand([
-        ("infusion", "Infusion", "Infusion", "Infusion"),
-        ("withdrawal", "Withdrawal", "Withdrawal", "Withdrawal"),
-        ("infusion_withdrawal", "Infusion/Withdrawal", "Infusion/Withdrawal", "Infusion"),
-        ("withdrawal_infusion", "Withdrawal/Infusion", "Withdrawal/Infusion", "Withdrawal"),
-        ("continuous", "Continuous", "Continuous", "Infusion")
+        ("Infusion", "Infusion"),
+        ("Withdrawal", "Withdrawal"),
+        ("Infusion/Withdrawal", "Infusion"),
+        ("Withdrawal/Infusion", "Withdrawal"),
+        ("Continuous", "Infusion")
         ])
-    def test_that_GIVEN_a_device_stopped_device_WHEN_the_dir_rev_is_queried_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, _, mode_symbol, mode_name, expected_direction):
+    @skip_if_recsim("Can not test NA in rec sim")
+    def test_that_GIVEN_a_device_stopped_device_WHEN_the_dir_rev_is_queried_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, initial_mode, expected_direction):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode_symbol)
-        self.ca.assert_that_pv_is("MODE", mode_name)
+        self.ca.assert_setting_setpoint_sets_readback(initial_mode, "MODE")
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
 
-        self._stop_running()
+        _stop_running(self.ca)
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
         # When:
@@ -355,16 +266,16 @@ class DirectionTests(unittest.TestCase):
         self.ca.assert_that_pv_is("NA", "Can't run command")
 
     @parameterized.expand([
-        ("infusion_withdrawal", "Infusion/Withdrawal", "Infusion/Withdrawal", "Infusion"),
-        ("withdrawal_infusion", "Withdrawal/Infusion", "Withdrawal/Infusion", "Withdrawal"),
-        ("continuous", "Continuous", "Continuous", "Infusion")
+        ("Infusion/Withdrawal", "Infusion"),
+        ("Withdrawal/Infusion", "Withdrawal"),
+        ("Continuous", "Infusion")
         ])
-    def test_that_GIVEN_a_device_running_not_in_infusion_or_withdrawal_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, _, mode_symbol, mode_name, expected_direction):
+    @skip_if_recsim("Can not test NA in rec sim")
+    def test_that_GIVEN_a_device_running_not_in_infusion_or_withdrawal_mode_WHEN_the_direction_is_reverse_THEN_the_devices_direction_has_not_changed_and_NA_is_triggered(self, mode, expected_direction):
         # Given:
-        self.ca.set_pv_value("MODE:SP", mode_symbol)
-        self.ca.assert_that_pv_is("MODE", mode_name)
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE")
 
-        self._start_running()
+        _start_running(self.ca)
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
         self.ca.assert_that_pv_is("STATUS", expected_direction)
 
@@ -377,57 +288,38 @@ class DirectionTests(unittest.TestCase):
 
 
 class NATests(unittest.TestCase):
+    
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
+        self._lewis, self._ioc, self.ca = _reset_device()
 
-    def _reset_device(self):
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-        self.ca.assert_that_pv_is("NA", "")
-
-    def _start_running(self):
-        self.ca.set_pv_value("RUN:SP", 1)
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
-
+    @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_withdrawal_mode_WHEN_starting_the_device_THEN_NA_is_not_triggered(self):
         # Given:
-        self.ca.set_pv_value("MODE:SP", "Withdrawal")
-        self.ca.assert_that_pv_is("MODE", "Withdrawal")
+        self.ca.assert_setting_setpoint_sets_readback("Withdrawal", "MODE")
 
         # When:
-        self._start_running()
+        _start_running(self.ca)
 
         # Then:
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
+    @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_withdrawal_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
-        self.ca.set_pv_value("MODE:SP", "Withdrawal")
-        self.ca.assert_that_pv_is("MODE", "Withdrawal")
+        self.ca.assert_setting_setpoint_sets_readback("Withdrawal", "MODE")
 
         self.ca.set_pv_value("NA", 0)
         self.ca.assert_that_pv_is("NA", "Can't run command")
 
         # When:
-        self._start_running()
+        _start_running(self.ca)
         self.ca.assert_that_pv_is("STATUS", "Withdrawal")
 
         # Then:
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
+    @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_infusion_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
 
@@ -435,38 +327,17 @@ class NATests(unittest.TestCase):
         self.ca.assert_that_pv_is("NA", "Can't run command")
 
         # When:
-        self._start_running()
+        _start_running(self.ca)
         self.ca.assert_that_pv_is("STATUS", "Infusion")
 
         # Then:
-        self.ca.assert_that_pv_is("NA", "")
+        self.ca.assert_that_pv_is("NA", "No error")
 
 
 class DiameterTests(unittest.TestCase):
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
-
-    def _reset_device(self):
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-        self.ca.assert_that_pv_is("NA", "")
-
-    def _start_running(self):
-        self.ca.set_pv_value("RUN:SP", 1)
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
+        self._lewis, self._ioc, self.ca = _reset_device()
 
     @parameterized.expand([
         ("10.05", 10.05),
@@ -482,25 +353,7 @@ class DiameterTests(unittest.TestCase):
 class VolumeTests(unittest.TestCase):
     def setUp(self):
         # Given
-        self._lewis, self._ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self._reset_device()
-
-    def _reset_device(self):
-        self._stop_running()
-        self.ca.assert_that_pv_is("STATUS", "Stopped")
-
-        self._lewis.backdoor_run_function_on_device("clear_last_error")
-        self.ca.process_pv("ERROR")
-        self.ca.assert_that_pv_is("ERROR", "No error")
-
-        self.ca.set_pv_value("MODE:SP", "Infusion")
-        self.ca.assert_that_pv_is("MODE", "Infusion")
-
-        self.ca.assert_that_pv_is("NA", "")
-
-    def _stop_running(self):
-        self.ca.set_pv_value("STOP:SP", 1)
+        self._lewis, self._ioc, self.ca = _reset_device()
 
     @parameterized.expand([
         (123, 'ml'),
@@ -521,6 +374,7 @@ class VolumeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VOL:INF:UNITS:SP", units)
         self.ca.assert_that_pv_is("VOL:INF:SP.EGU", units)
 
+    @skip_if_recsim("Can not set units in device via back door")
     def test_GIVEN_infusion_unit_set_in_device_WHEN_nothing_THEN_units_are_set_on_readback(self):
         ul = "ul"
         self._lewis.backdoor_set_on_device("infusion_volume_units", ul)
@@ -551,6 +405,7 @@ class VolumeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VOL:WDR:UNITS:SP", units)
         self.ca.assert_that_pv_is("VOL:WDR:SP.EGU", units)
 
+    @skip_if_recsim("Can not set backdoor in rec sim mode")
     def test_GIVEN_withdrawal_unit_set_in_device_WHEN_nothing_THEN_units_are_set_on_readback(self):
         ul = "ul"
         self._lewis.backdoor_set_on_device("withdrawal_volume_units", ul)
