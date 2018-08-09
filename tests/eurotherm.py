@@ -102,7 +102,9 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_is("SIM:TEMP:SP:RBV", temperature)
         else:
             self._lewis.backdoor_set_on_device("current_temperature", temperature)
+            self.ca.assert_that_pv_is_number("TEMP", temperature, 0.1)
             self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
+            self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, 0.1)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
@@ -123,16 +125,17 @@ class EurothermTests(unittest.TestCase):
         setpoint_temperature = 25.0
 
         self._set_setpoint_and_current_temperature(start_temperature)
-        self.ca.set_pv_value("TEMP:SP", start_temperature)
 
         self.ca.set_pv_value("RATE:SP", ramp_rate)
+        self.ca.assert_that_pv_is_number("RATE", ramp_rate, 0.1)
         self.ca.set_pv_value("RAMPON:SP", ramp_on)
         self.ca.set_pv_value("TEMP:SP", setpoint_temperature)
 
         start = time.time()
-        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, timeout=60)
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, tolerance=0.1, timeout=60)
         end = time.time()
-        self.assertAlmostEquals(end-start, 20, delta=1)
+        self.assertAlmostEquals(end-start, 60. * (setpoint_temperature-start_temperature)/ramp_rate,
+                                delta=0.1*(end-start))  # Tolerance of 10%. Tolerance of 1s is too tight given scan rate
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
