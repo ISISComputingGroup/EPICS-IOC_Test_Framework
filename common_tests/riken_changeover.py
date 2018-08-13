@@ -150,7 +150,7 @@ class RikenChangeover(object):
         self._set_all_power_supply_states(False)
         self._set_input_pv(False)
 
-        self.ca.assert_that_pv_is_number(self.get_acknowledgement_pv(), 1)
+        self.ca.assert_that_pv_is_not_number(self.get_acknowledgement_pv(), 0)
 
         self._set_input_pv(True)  # Some time later the PLC sends signal to say it has finished the changeover sequence
         self.ca.assert_that_pv_is_number(self.get_acknowledgement_pv(), 0)
@@ -161,7 +161,7 @@ class RikenChangeover(object):
         self._assert_all_power_supplies_disabled(False)  # Power supplies not disabled because still powered on
         self._set_all_power_supply_states(False)  # Power supplies now switched off so changeover can continue
         self._assert_all_power_supplies_disabled(True)  # All power supplies are now disabled
-        self.ca.assert_that_pv_is(self.get_acknowledgement_pv(), 1)
+        self.ca.assert_that_pv_is_not_number(self.get_acknowledgement_pv(), 0)
         self._set_input_pv(True)  # Some time later, changeover is finished
         self._assert_all_power_supplies_disabled(False)  # Power supplies should now be reenabled
         self.ca.assert_that_pv_is(self.get_acknowledgement_pv(), 0)  # And "ok to run changeover" line should be cleared
