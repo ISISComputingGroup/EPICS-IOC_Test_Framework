@@ -36,9 +36,10 @@ def reset_emulator():
     ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
     _reset_device(ca)
+    ca.assert_that_pv_is("STAT:POWER", "OFF")
+
     _reset_error(ca)
     ca.assert_that_pv_is("ERROR", "No error")
-    ca.assert_that_pv_is("STAT:POWER", "OFF")
 
     _connect_device(lewis)
 
