@@ -131,8 +131,8 @@ def parameterized_list(cases):
     Creates a list of cases for parameterized to use to run tests.
 
     E.g.
-    parameterized_list([1.3435,12321,1.0])
-        = [("1.3435", 1.3435),("12321", 12321), ("1.0",1.0)]
+    parameterized_list([1.3435, 12321, 1.0])
+        = [("1.3435", 1.3435),("12321", 12321), ("1.0", 1.0)]
 
     Args:
          cases: list of cases to use in tests
