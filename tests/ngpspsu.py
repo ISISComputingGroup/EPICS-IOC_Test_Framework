@@ -1,5 +1,5 @@
-import unittest
 from parameterized import parameterized
+import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -287,6 +287,20 @@ class NgpspsuVoltageTests(unittest.TestCase):
         # When\Then:
         self.ca.assert_setting_setpoint_sets_readback(value, "VOLT:SP:RBV", "VOLT:SP")
 
+    @skip_if_recsim("Can't test if the device is turned on")
+    def test_that_GIVEN_a_device_with_a_voltage_WHEN_powered_off_THEN_the_voltage_is_zero(self):
+        # Given:
+        _start_device(self.ca)
+        self.ca.assert_that_pv_is("STAT:POWER", "ON")
+        self.ca.set_pv_value("VOLT:SP", 5.3)
+        self.ca.assert_that_pv_is("VOLT", 5.3)
+
+        # When:
+        _stop_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("VOLT", 0)
+
 
 @add_method(setUp)
 class NgpspsuCurrentTests(unittest.TestCase):
@@ -314,6 +328,21 @@ class NgpspsuCurrentTests(unittest.TestCase):
 
         # When\Then:
         self.ca.assert_setting_setpoint_sets_readback(value, "CURR:SP:RBV", "CURR:SP")
+
+    @skip_if_recsim("Can't test if the device is turned on")
+    def test_that_GIVEN_a_device_with_a_current_WHEN_powered_off_THEN_the_current_is_zero(self):
+        # Given:
+        _start_device(self.ca)
+        self.ca.assert_that_pv_is("STAT:POWER", "ON")
+        self.ca.set_pv_value("CURR:SP", 4.5)
+        self.ca.assert_that_pv_is("CURR", 4.5)
+
+        # When:
+        _stop_device(self.ca)
+
+        # Then:
+        self.ca.assert_that_pv_is("CURR", 0)
+
 
 
 @add_method(setUp)
