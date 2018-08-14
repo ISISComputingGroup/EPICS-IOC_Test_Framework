@@ -226,3 +226,14 @@ class EurothermTests(unittest.TestCase):
         self._assert_using_mock_table_location()
         with self._use_calibration_file("None.txt"):
             self._assert_units("K")
+
+    @skip_if_recsim("Recsim does not use mocked set of tables")
+    def test_WHEN_config_file_and_temperature_unit_changed_THEN_then_ramp_rate_unit_changes(self):
+        self._assert_using_mock_table_location()
+        with self._use_calibration_file("None.txt"):
+            self._assert_units("K")
+            self.ca.assert_that_pv_is("RATE.EGU", "K/min")
+
+        with self._use_calibration_file("C.txt"):
+            self._assert_units("C")
+            self.ca.assert_that_pv_is("RATE.EGU", "C/min")
