@@ -83,23 +83,23 @@ def make_device_launchers_from_module(test_module, recsim):
     return device_launchers
 
 
-def load_and_run_tests(tests):
+def load_and_run_tests(test_names):
     """
     Loads and runs the dotted unit tests to be run.
 
     Args:
-        tests: List of dotted unit tests to run.
+        test_names: List of dotted unit tests to run.
 
     Returns:
         boolean: True if all tests pass and false otherwise.
     """
-    modules_to_be_loaded = sorted({test.split(".")[0].strip() for test in tests})
+    modules_to_be_loaded = sorted({test.split(".")[0].strip() for test in test_names})
     modules_to_be_tested = [ModuleTests(module) for module in modules_to_be_loaded]
 
     modes = set()
 
     for module in modules_to_be_tested:
-        module.tests = [test for test in tests if test.startswith(module.name)]
+        module.tests = [test for test in test_names if test.startswith(module.name)]
         modes.update(module.modes)
 
     test_results = []
@@ -118,13 +118,13 @@ def load_and_run_tests(tests):
     return all(test_result is True for test_result in test_results)
 
 
-def run_tests(prefix, tests, device_launchers):
+def run_tests(prefix, tests_to_run, device_launchers):
     """
     Runs dotted unit tests.
 
     Args:
         prefix: The instrument prefix.
-        tests: List of dotted unit tests to be run.
+        tests_to_run: List of dotted unit tests to be run.
         device_launchers: Context manager that launches the necessary iocs and associated emulators.
 
     Returns:
@@ -137,13 +137,13 @@ def run_tests(prefix, tests, device_launchers):
         'EPICS_CA_ADDR_LIST': "127.255.255.255"
     }
 
-    tests = ["tests.{}".format(test) for test in tests]
+    test_names = ["tests.{}".format(test) for test in tests_to_run]
 
     with modified_environment(**settings), device_launchers:
 
         runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout)
 
-        test_suite = unittest.TestLoader().loadTestsFromNames(tests)
+        test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
 
         result = runner.run(test_suite).wasSuccessful()
 
