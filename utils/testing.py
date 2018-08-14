@@ -135,10 +135,10 @@ def parameterized_list(cases):
         = [("1.3435", 1.3435),("12321", 12321), ("1.0", 1.0)]
 
     Args:
-         cases: list of cases to use in tests
+         cases: List of cases to use in tests.
 
     Returns:
-        list: list of tuples of where the first item is str(case)
+        list: list of tuples of where the first item is str(case).
     """
 
     return_list = []
