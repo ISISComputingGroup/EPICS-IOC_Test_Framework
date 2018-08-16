@@ -62,3 +62,21 @@ class KickerCurrentTests(KickerBaseTests):
     record = "CURR"
     channel = 2
     calibration = CURRENT_CALIBRATION_RATIO
+
+
+class KickerPowerTests(unittest.TestCase):
+
+    def setUp(self):
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+
+    def test_that_GIVEN_a_turned_off_device_THEN_the_status_is_off(self):
+        # Given:
+        self.ca.assert_that_pv_is("POWER", "OFF")
+
+        # When:
+        # Will need to change this
+        self.ca.set_pv_value("POWER:SIM")
+
+        # Then:
+        self.ca.assert_that_pv_is("POWER", "ON")
+
