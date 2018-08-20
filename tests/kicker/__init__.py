@@ -1,7 +1,7 @@
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 
-from test_basic_commands import KickerVoltageTests, KickerCurrentTests
+from test_basic_commands import VoltageTests, CurrentTests
 
 DEVICE_PREFIX = "KICKER_01"
 
