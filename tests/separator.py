@@ -60,19 +60,15 @@ class VoltageTests(unittest.TestCase):
         self.ca.set_pv_value("VOLT:SP", 0)
         self.ca.assert_that_pv_is("VOLT:SP", 0)
 
-    def test_GIVEN_sim_val_0_and_acquire_not_processed_WHEN_voltage_set_point_changed_THEN_daq_acquire_processes_and_daq_data_changed(self):
+    def test_GIVEN_sim_val_0_and_data_0_WHEN_voltage_set_point_changed_THEN_data_changed(self):
         # GIVEN
         self.ca.set_pv_value("{}:VOLT:SIM".format(DAQ), 0)
         self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 0)
-        self.ca.set_pv_value("{}:VOLT:SP:ACQUIRE".format(DAQ), 0)
-        self.ca.assert_that_pv_is("{}:VOLT:SP:ACQUIRE".format(DAQ), 'stop')
-
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 20.)
         # THEN
         self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_SCALE_FACTOR)
-        # self.ca.assert_that_pv_is("{}:VOLT:SP:CALC".format(DAQ), 1)
-        # self.ca.assert_that_pv_is("{}:VOLT:SP:ACQUIRE".format(DAQ), 'run')
+
 
     def test_WHEN_set_THEN_the_voltage_changes(self):
         # WHEN
@@ -80,14 +76,20 @@ class VoltageTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("VOLT", 50.)
 
-    def test_WHEN_setpoint_goes_above_range_THEN_triggers_alarm(self):
+    def test_GIVEN_voltage_in_range_WHEN_setpoint_goes_above_range_THEN_setpoint_max(self):
+        # GIVEN
+        self.ca.set_pv_value("VOLT:SP", 30)
+        self.ca.assert_that_pv_is("VOLT", 30)
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 215.)
         # THEN
-        self.ca.assert_that_pv_alarm_is("VOLT", self.ca.Alarms.MINOR)
+        self.ca.assert_that_pv_is("VOLT", 200)
 
-    def test_WHEN_setpoint_goes_below_range_THEN_triggers_alarm(self):
+    def test_GIVEN_voltage_in_range_WHEN_setpoint_goes_above_range_THEN_setpoint_min(self):
+        # GIVEN
+        self.ca.set_pv_value("VOLT:SP", 30)
+        self.ca.assert_that_pv_is("VOLT", 30)
         # WHEN
-        self.ca.set_pv_value("VOLT:SP", -15.)
+        self.ca.set_pv_value("VOLT:SP", -50)
         # THEN
-        self.ca.assert_that_pv_alarm_is("VOLT", self.ca.Alarms.MINOR)
+        self.ca.assert_that_pv_is("VOLT", 0)
