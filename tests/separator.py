@@ -31,9 +31,9 @@ TEST_MODES = [TestModes.RECSIM]
 class PowerStatusTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        # self.ca.assert_that_pv_is("CURR:SP", 0)
         self.ca.set_pv_value("VOLT:SP", 0)
         self.ca.assert_that_pv_is("VOLT:SP", 0)
+        self.ca.assert_that_pv_is("POWER:STAT", "OFF")
 
     def test_GIVEN_psu_off_WHEN_voltage_setpoint_changed_higher_than_threshold_THEN_psu_status_changes_on(self):
         # GIVEN
@@ -41,17 +41,17 @@ class PowerStatusTests(unittest.TestCase):
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 100)
         # THEN
-        self.ca.assert_that_pv_is("POWER", "ON")
+        self.ca.assert_that_pv_is("POWER:STAT", "ON")
 
     def test_GIVEN_psu_on_WHEN_voltage_setpoint_changed_lower_than_threshold_THEN_psu_status_changes_off(self):
         # GIVEN
         self.ca.set_pv_value("VOLT:SP", 10)
         self.ca.assert_that_pv_is("VOLT", 10)
-        self.ca.assert_that_pv_is("POWER", "ON")
+        self.ca.assert_that_pv_is("POWER:STAT", "ON")
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 0)
         # THEN
-        self.ca.assert_that_pv_is("POWER", "OFF")
+        self.ca.assert_that_pv_is("POWER:STAT", "OFF")
 
 
 class VoltageTests(unittest.TestCase):
