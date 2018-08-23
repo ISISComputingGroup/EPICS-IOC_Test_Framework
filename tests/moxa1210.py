@@ -18,8 +18,8 @@ IOCS = [
         "emulator": "moxa1210",
         "emulator_protocol": "modbus",
         "macros": {
-    "IEOS": r"\\r\\n",
-    "OEOS": r"\\r\\n",
+            "IEOS": r"\\r\\n",
+            "OEOS": r"\\r\\n",
         }
     },
 ]
