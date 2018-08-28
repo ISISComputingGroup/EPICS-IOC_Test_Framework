@@ -107,6 +107,8 @@ To add a suite of tests as a Python module:
 * Include the tests you want to run in the `__init__.py` so the IOC Test Framework can find the tests.
 * Done!
 
+See the Kicker IOC tests for an example of how this is done.
+
 ### The `IOCS` attribute
 
 The `IOCS` attribute tells the test framework which IOCs need to be launched. Any number of IOCs are allowed. The `IOCS` attribute should be a list of dictionaries, where each dictionary contains information about one IOC/emulator combination. 
