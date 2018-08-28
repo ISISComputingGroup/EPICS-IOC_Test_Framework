@@ -97,6 +97,16 @@ To add a another suite of tests:
 * Create a test class (deriving from `unittest.TestCase`) in your module and fill it with tests. This no longer has to have a specific name. You can have multiple test classes within a test module, all of them will be executed. 
 * Done!
 
+#### Adding a suite of tests as a Python module
+
+To add a suite of tests as a Python module:
+
+* Create a Python module by creating a new folder with an `__init__.py` file.
+* Ensure the essential attributes `IOCS` and `TEST_MODES` are included in the `__init__.py` file.
+* Create a new Python file within your Python Module and add a test class (deriving from `unittest.TestCase`) to your file and fill it with tests.
+* Include the tests you want to run in the `__init__.py` so the IOC Test Framework can find the tests.
+* Done!
+
 ### The `IOCS` attribute
 
 The `IOCS` attribute tells the test framework which IOCs need to be launched. Any number of IOCs are allowed. The `IOCS` attribute should be a list of dictionaries, where each dictionary contains information about one IOC/emulator combination. 
