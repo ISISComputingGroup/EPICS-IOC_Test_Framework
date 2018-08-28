@@ -56,6 +56,18 @@ class BaseTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_alarm_is(self.record, self.ca.Alarms.MAJOR)
 
+    @parameterized.expand(
+        parameterized_list([10, 0])
+    )
+    def test_that_GIVEN_an_edge_value_THEN_the_pv_is_in_alarm(self, _, value_to_set):
+        # Given:
+        self._simulate_value(value_to_set)
+        expected_calibrated_value = self.calibration * value_to_set
+        self.ca.assert_that_pv_is_number(self.record, expected_calibrated_value, 0.01)
+
+        # Then:
+        self.ca.assert_that_pv_alarm_is(self.record, self.ca.Alarms.MAJOR)
+
 
 class VoltageTests(BaseTests):
     record = "VOLT"
