@@ -24,6 +24,7 @@ class BaseTests(unittest.TestCase):
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
         self._simulate_value(0)
 
     def _simulate_value(self, value):
