@@ -28,12 +28,13 @@ class BaseTests(unittest.TestCase):
         self._simulate_value(0)
 
     def _simulate_value(self, value):
+        array_of_value = [value] * 1000
         pv_root = "DAQ:{}".format(self.record)
-        self.ca.set_pv_value("{}:SIM".format(pv_root), value)
-        self.ca.assert_that_pv_is("{}:SIM".format(pv_root), value)
+        self.ca.set_pv_value("{}:WV:SIM".format(pv_root), array_of_value)
+        self.ca.assert_that_pv_is("{}:WV:SIM".format(pv_root), array_of_value)
 
-        value_to_check = self.ca.get_pv_value("{}:_RAW".format(pv_root))[0]
-        assert_that(value_to_check, is_(equal_to(value)))
+        value_to_check = self.ca.get_pv_value("{}:_RAW".format(pv_root))
+        assert_that(value_to_check, is_(equal_to(array_of_value)))
 
     @parameterized.expand(
         parameterized_list([4.68, 6, 10, 0, 4e-3])
