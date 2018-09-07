@@ -14,7 +14,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KHLY2001"),
         "macros": {},
-        "emulator": "Keithley_2001",
+        "emulator": "keithley_2001",
     },
 ]
 
@@ -27,7 +27,7 @@ class Keithley_2001Tests(unittest.TestCase):
     Tests for the Keithley_2001 IOC.
     """
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("Keithley_2001", DEVICE_PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
     def test_that_fails(self):
