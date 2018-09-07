@@ -104,7 +104,8 @@ To add a suite of tests as a Python package:
 * Create a Python module by creating a new folder with an `__init__.py` file.
 * Ensure the essential attributes `IOCS` and `TEST_MODES` are included in the `__init__.py` file.
 * Create a new Python file within your Python Module and add a test class (deriving from `unittest.TestCase`) to your file and fill it with tests.
-* Include the tests you want to run in the `__init__.py` so the IOC Test Framework can find the tests.
+* Remember to include the tests you want to run in the `__init__.py` so the IOC Test Framework can find the tests. The
+IOC test framework only runs tests within a module and does not run any tests within any submodules.
 * Done!
 
 Reasons to use a Python package instead of a Python module include:
