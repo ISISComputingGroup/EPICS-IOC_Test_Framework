@@ -1,3 +1,4 @@
+from __future__ import division
 from hamcrest import assert_that, is_, equal_to
 from parameterized import parameterized
 import unittest
