@@ -117,3 +117,5 @@ class CurrentTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_alarm_is("CURR", self.ca.Alarms.MAJOR)
+
+# No tests for the power supply because it is to simulate using RECSIM and requires a Modbus emulator to test in DEVSIM.
