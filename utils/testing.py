@@ -151,5 +151,3 @@ def parameterized_list(cases):
             return_list.append(test_case + (case,))
 
     return return_list
-
-
