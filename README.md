@@ -210,6 +210,8 @@ A number of custom assert statements are available in the test framework:
 
 If you find yourself needing other assert functions, please add them!
 
+Note: If using PyCharm, you can add code completeion/suggestions for function names by opening the folder `IoCTestFramework`, rightclick on `master` in the project explorer on the left, and selecting `Mark Directory as... > Sources Root`. 
+
 ### Skipping tests in RECSIM
 
 RECSIM is not as advanced as DEVSIM – for any reasonably complex emulator, the emulator will have some functionality which RECSIM doesn’t. Tests that require Lewis will error in RECSIM mode.

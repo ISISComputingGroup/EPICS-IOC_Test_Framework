@@ -13,6 +13,8 @@ IOCS = [{
     "macros": {
         "CHAIN1_ID1": "RB2",
         "CHAIN1_ADR1": 1,
+        "CHAIN1_ID2": "RB2-2",
+        "CHAIN1_ADR2": 2,
     },
 }]
 
@@ -24,7 +26,7 @@ class RikenRb2ModeChangeoverTests(RikenChangeover, unittest.TestCase):
     Main tests are inherited from RikenChangeover
     """
     def get_power_supplies(self):
-        return ["RB2"]
+        return ["RB2", "RB2-2"]
 
     def get_coord_prefix(self):
         return "RB2C"
