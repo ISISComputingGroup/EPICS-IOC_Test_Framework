@@ -97,9 +97,9 @@ To add a another suite of tests:
 * Create a test class (deriving from `unittest.TestCase`) in your module and fill it with tests. This no longer has to have a specific name. You can have multiple test classes within a test module, all of them will be executed. 
 * Done!
 
-#### Adding a suite of tests as a Python module
+#### Adding a suite of tests as a Python package
 
-To add a suite of tests as a Python module:
+To add a suite of tests as a Python package:
 
 * Create a Python module by creating a new folder with an `__init__.py` file.
 * Ensure the essential attributes `IOCS` and `TEST_MODES` are included in the `__init__.py` file.
@@ -107,7 +107,16 @@ To add a suite of tests as a Python module:
 * Include the tests you want to run in the `__init__.py` so the IOC Test Framework can find the tests.
 * Done!
 
-See the Kicker IOC tests for an example of how this is done.
+Reasons to use a Python package instead of a Python module include:
+
+- You have too many tests and your file is becoming very large. Using a package allows you to separate out your tests
+into different files making your tests easier to read.
+- The IOC (and tests) are created from several different tickets. This means that you can have a different file 
+to test the functionality each ticket adds to the IOC. This allows several developers to work on distinct 
+features of an IOC at the same time and not change the same test file.
+
+##### Example
+The Kicker IOC tests are an example of how this is done.
 
 ### The `IOCS` attribute
 
