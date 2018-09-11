@@ -62,6 +62,9 @@ class PowerStatusTests(unittest.TestCase):
 
 
 class VoltageTests(unittest.TestCase):
+    voltage_values = [0, 10.1111111, 10e1, 20e-2, 200]
+    voltage_out_of_bounds_values = [-50, 250]
+
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         self.ca.set_pv_value("VOLT:SP", 0)
@@ -76,12 +79,20 @@ class VoltageTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_WRITE_SCALE_FACTOR)
 
-
-    def test_WHEN_set_THEN_the_voltage_changes(self):
+    @parameterized.expand(parameterized_list(voltage_values))
+    def test_WHEN_set_THEN_the_voltage_changes(self, _, value):
         # WHEN
-        self.ca.set_pv_value("VOLT:SP", 50.)
+        self.ca.set_pv_value("VOLT:SP", value)
         # THEN
-        self.ca.assert_that_pv_is("VOLT", 50.)
+        self.ca.assert_that_pv_is_number("VOLT", value, MARGIN_OF_ERROR)
+
+    @parameterized.expand(parameterized_list(voltage_out_of_bounds_values))
+    def test_WHEN_voltage_out_of_range_THEN_alarm_raised(self, _, value):
+        # WHEN
+        self.ca.set_pv_value("{}:VOLT:SP:DATA".format(DAQ), value * DAQ_VOLT_WRITE_SCALE_FACTOR)
+        self.ca.assert_that_pv_is("VOLT", value)
+        # THEN
+        self.ca.assert_that_pv_alarm_is("VOLT", ChannelAccess.Alarms.MINOR)
 
     def test_GIVEN_voltage_in_range_WHEN_setpoint_goes_above_range_THEN_setpoint_max(self):
         # GIVEN
