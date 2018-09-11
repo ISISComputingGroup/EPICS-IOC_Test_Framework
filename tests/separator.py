@@ -14,8 +14,10 @@ DAQ = "DAQ"
 MAX_DAQ_VOLT = 10.
 MAX_SEPARATOR_VOLT = 200.
 MAX_SEPARATOR_CURR = 2.5
-DAQ_VOLT_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_VOLT
-DAQ_CURR_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_CURR
+DAQ_VOLT_WRITE_SCALE_FACTOR = MAX_DAQ_VOLT /MAX_SEPARATOR_VOLT
+DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
+
+MARGIN_OF_ERROR = 1e-5
 
 IOCS = [
     {
@@ -72,7 +74,7 @@ class VoltageTests(unittest.TestCase):
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 20.)
         # THEN
-        self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_SCALE_FACTOR)
+        self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_WRITE_SCALE_FACTOR)
 
 
     def test_WHEN_set_THEN_the_voltage_changes(self):
