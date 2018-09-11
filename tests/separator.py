@@ -1,8 +1,13 @@
+from __future__ import division
+from parameterized import parameterized
 import unittest
+
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
+from utils.testing import parameterized_list
+
 
 DEVICE_PREFIX = "SEPRTR_01"
 DAQ = "DAQ"
@@ -93,3 +98,23 @@ class VoltageTests(unittest.TestCase):
         self.ca.set_pv_value("VOLT:SP", -50)
         # THEN
         self.ca.assert_that_pv_is("VOLT", 0)
+
+
+class CurrentTests(unittest.TestCase):
+    current_values = [0, 1.33333, 5e1, 10e-3, 10]
+
+    def _simulate_current(self, current):
+        curr_array = [current] * 1000
+        self.ca.set_pv_value("{}:CURR:WV:SIM".format(DAQ), curr_array)
+
+    def setUp(self):
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._simulate_current(0)
+        self.ca.assert_that_pv_is("CURR", 0)
+
+    @parameterized.expand(parameterized_list(current_values))
+    def test_GIVEN_current_value_THEN_calibrated_current_readback_changes(self, _, value):
+        # GIVEN
+        self._simulate_current(value)
+        self.ca.assert_that_pv_is_number("CURR", value * DAQ_CURR_READ_SCALE_FACTOR, MARGIN_OF_ERROR)
+
