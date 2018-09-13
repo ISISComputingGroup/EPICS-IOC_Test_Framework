@@ -1,6 +1,5 @@
 import unittest
 from time import sleep
-
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
@@ -46,9 +45,9 @@ class IndfurnTests(unittest.TestCase):
     def test_that_disable_pv_exists(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
+    @skip_if_recsim("Recsim does not emulate version command")
     def test_that_version_pv_exists(self):
-        self.ca.assert_that_pv_is("VERSION",
-                                  "INDFURN RECSIM" if IOCRegister.uses_rec_sim else "EMULATED INDUCTION FURNACE")
+        self.ca.assert_that_pv_is("VERSION", "EMULATED INDUCTION FURNACE")
 
     @parameterized.expand(parameterized_list(TEST_TEMPERATURES))
     def test_GIVEN_a_setpoint_WHEN_ask_for_the_setpoint_readback_THEN_get_the_value_just_set(self, _, temp):
@@ -95,6 +94,10 @@ class IndfurnTests(unittest.TestCase):
     def test_GIVEN_pid_direction_is_set_THEN_it_can_be_read_back(self):
         for mode in ["Heating", "Cooling", "Heating"]:  # Check both transitions
             self.ca.assert_setting_setpoint_sets_readback(mode, "PID:DIRECTION")
+
+    def test_GIVEN_pid_run_status_is_set_THEN_it_can_be_read_back(self):
+        for mode in ["Stopped", "Running", "Stopped"]:  # Check both transitions
+            self.ca.assert_setting_setpoint_sets_readback(mode, "PID:RUNNING")
 
     @parameterized.expand(parameterized_list(TEST_PID_LIMITS))
     def test_GIVEN_pid_lower_limit_is_set_THEN_it_can_be_read_back(self, _, pid_limit):
