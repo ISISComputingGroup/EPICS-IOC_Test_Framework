@@ -42,7 +42,7 @@ SAMPLE_LEN = 1000
 SAMPLETIME = 1E-3
 
 
-def stream_data(ca, n_repeat, curr, volt):
+def stream_data(ca, n_repeat, curr, volt, stop_event):
     """
     Sends a stream of data over the channel access link. This will perform n_repeat writes per second.
     Args:
@@ -50,11 +50,12 @@ def stream_data(ca, n_repeat, curr, volt):
         n_repeat: integer, The maximum number of writes which will be performed per second
         curr: List of float, The current data to be written over CA
         volt: List of float, The voltage data to be written over CA
+        stop_event: threading.Event() object which tells the process to exit
 
     Returns:
 
     """
-    while True:
+    while not stop_event.is_set():
         time1 = clock()
 
         for i in range(n_repeat):
@@ -64,7 +65,7 @@ def stream_data(ca, n_repeat, curr, volt):
         #second_counter = clock() - time1
         #if second_counter < 1.0:
         #    sleep(1.0 - second_counter)
-        sleep(1.5)
+        sleep(1.1)
 
 
 def simulate_current_data():
@@ -177,23 +178,23 @@ class VoltageTests(unittest.TestCase):
 
 
 class SepLogicTests(unittest.TestCase):
+    STOP_DATA_THREAD = threading.Event()
+
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
         self.ca.set_pv_value("VOLT:CALC", [VOLT_STEADY] * SAMPLE_LEN)
         self.ca.set_pv_value("CURR:CALC", [CURR_STEADY] * SAMPLE_LEN)
 
-        #self.ca.set_pv_value("_SAMPLEBUFFER.RES", 1)
         self.ca.set_pv_value("STABILITY", 0)
         self.ca.set_pv_value("RESETWINDOW", 1)
         self.ca.set_pv_value("_ADDCOUNTS", 0)
-        #self.ca.set_pv_value("_MOVINGBUFFER.RES", 1)
 
-        # Define a 1ms polling time
         self.ca.set_pv_value("SAMPLETIME", SAMPLETIME)
-        self.ca.assert_that_pv_is_number("SAMPLETIME", SAMPLETIME, tolerance=0.05*abs(SAMPLETIME))
 
         self.ca.set_pv_value("_COUNTERTIMING.SCAN", "1 second")
+
+        self.STOP_DATA_THREAD.set()
 
     def evaluate_current_instability(self, current_values):
         """
@@ -258,14 +259,12 @@ class SepLogicTests(unittest.TestCase):
         ("random_noise_current_and_voltage", simulate_current_data(), simulate_voltage_data())
     ])
     def test_GIVEN_current_and_voltage_data_WHEN_limits_are_tested_THEN_number_of_samples_out_of_range_returned(self, _, curr_data, volt_data):
-        self.ca.set_pv_value("_ADDCOUNTS", 0)
-
         self.ca.set_pv_value("CURR:CALC", curr_data, wait=True, sleep_after_set=0.0)
         self.ca.set_pv_value("VOLT:CALC", volt_data, wait=True, sleep_after_set=0.0)
 
         expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data)
 
-        self.ca.assert_that_pv_is_number("_ADDCOUNTS", expected_out_of_range_samples, tolerance=0.05*expected_out_of_range_samples)
+        self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples, tolerance=0.05*expected_out_of_range_samples)
 
     @parameterized.expand([
         ("random_current_steady_voltage", simulate_current_data(), [VOLT_STEADY] * SAMPLE_LEN),
@@ -274,29 +273,21 @@ class SepLogicTests(unittest.TestCase):
     ])
     def test_GIVEN_multiple_samples_in_one_second_WHEN_buffer_read_THEN_buffer_reads_all_out_of_range_samples(self, _, curr_data, volt_data):
 
-        # Setting this to 4 as channel access takes ~0.25s. All writes need to occur within 1 second, which is asserted.
-        number_of_writes = 4
+        # Setting this to 3 as channel access takes ~0.25s.
+        writes_per_second = 3
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data) * number_of_writes
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data) * writes_per_second
 
-        for i in range(number_of_writes):
-            self.ca.set_pv_value("CURR:CALC", CURRENT_DATA, wait=True, sleep_after_set=0.0)
-            self.ca.set_pv_value("VOLT:CALC", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
+        self.STOP_DATA_THREAD.clear()
 
-        #data_supply_thread = threading.Thread(target=SupplyData, args=(self.ca, 4, curr_data, volt_data))
-
-        data_supply_thread = threading.Thread(target=stream_data, args=(self.ca, number_of_writes, curr_data, volt_data))
-        data_supply_thread.daemon = True
+        data_supply_thread = threading.Thread(target=stream_data,
+                                              args=(self.ca, writes_per_second, curr_data, volt_data, self.STOP_DATA_THREAD))
         data_supply_thread.start()
 
-        time1 = clock()
-
-        processtime = clock() - time1
-
+        self.assertGreater(writes_per_second, 1)
         self.ca.assert_that_pv_is_number("_ADDCOUNTS", expected_out_of_range_samples, timeout=60.0)
-        self.assertLess(processtime, 1.0)
 
-        del data_supply_thread
+        self.STOP_DATA_THREAD.set()
 
     def test_GIVEN_buffer_with_data_WHEN_resetwindow_PV_processed_THEN_buffer_is_cleared(self):
         number_of_writes = 50
