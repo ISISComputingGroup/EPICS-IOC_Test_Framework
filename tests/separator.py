@@ -44,7 +44,7 @@ SAMPLETIME = 1E-3
 
 def stream_data(ca, n_repeat, curr, volt, stop_event):
     """
-    Sends a stream of data over the channel access link. This will perform n_repeat writes per second.
+    Sends a stream of data over the channel access link. This will attempt n_repeat writes per second.
     Args:
         ca: Object, The channel access link
         n_repeat: integer, The maximum number of writes which will be performed per second
@@ -56,15 +56,12 @@ def stream_data(ca, n_repeat, curr, volt, stop_event):
 
     """
     while not stop_event.is_set():
-        time1 = clock()
 
         for i in range(n_repeat):
             ca.set_pv_value("CURR:CALC", curr, wait=True, sleep_after_set=0.0)
             ca.set_pv_value("VOLT:CALC", volt, wait=True, sleep_after_set=0.0)
 
-        #second_counter = clock() - time1
-        #if second_counter < 1.0:
-        #    sleep(1.0 - second_counter)
+        # This sleep allows the PV to be read with updated value. PV clears once a second.
         sleep(1.1)
 
 
@@ -282,9 +279,13 @@ class SepLogicTests(unittest.TestCase):
 
         data_supply_thread = threading.Thread(target=stream_data,
                                               args=(self.ca, writes_per_second, curr_data, volt_data, self.STOP_DATA_THREAD))
+
+        # GIVEN
         data_supply_thread.start()
 
         self.assertGreater(writes_per_second, 1)
+
+        # THEN
         self.ca.assert_that_pv_is_number("_ADDCOUNTS", expected_out_of_range_samples, timeout=60.0)
 
         self.STOP_DATA_THREAD.set()
@@ -295,14 +296,17 @@ class SepLogicTests(unittest.TestCase):
         expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA,
                                                                       VOLTAGE_DATA) * number_of_writes * SAMPLETIME
 
+        # GIVEN
         for i in range(number_of_writes):
             self.ca.set_pv_value("CURR:CALC", CURRENT_DATA, wait=True, sleep_after_set=0.0)
             self.ca.set_pv_value("VOLT:CALC", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
 
         self.ca.assert_that_pv_is_number("STABILITY", expected_out_of_range_samples)
 
+        # WHEN
         self.ca.set_pv_value("RESETWINDOW", 1.0)
 
+        # THEN
         self.ca.assert_that_pv_is_number("STABILITY", 0)
 
     def test_GIVEN_full_buffer_WHEN_more_data_added_to_buffer_THEN_oldest_values_overwritten(self):
@@ -318,11 +322,14 @@ class SepLogicTests(unittest.TestCase):
 
             self.ca.set_pv_value("_COUNTERTIMING.PROC", 1, wait=True, sleep_after_set=0.0)
 
+        # GIVEN
         self.ca.assert_that_pv_is_number("STABILITY", length_of_buffer)
 
+        # WHEN
         self.ca.set_pv_value("_ADDCOUNTS", 50.0/SAMPLETIME, wait=True, sleep_after_set=0.0)
         self.ca.set_pv_value("_COUNTERTIMING.PROC", 1, wait=True, sleep_after_set=0.0)
 
+        # THEN
         self.ca.assert_that_pv_is_number("STABILITY", (length_of_buffer-1.)+testvalue)
 
     def test_GIVEN_input_data_over_several_seconds_WHEN_stability_PV_read_THEN_all_unstable_time_counted(self):
