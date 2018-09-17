@@ -38,6 +38,13 @@ TEST_MODES = [TestModes.RECSIM]
 
 
 class VerticalJawsTests(unittest.TestCase):
+
+    def set_motor_speeds(self):
+        self.ca.set_pv_value(UNDERLYING_MTR_NORTH + ".VMAX", 20)
+        self.ca.set_pv_value(UNDERLYING_MTR_NORTH + ".VELO", 20)
+        self.ca.set_pv_value(UNDERLYING_MTR_SOUTH + ".VMAX", 20)
+        self.ca.set_pv_value(UNDERLYING_MTR_SOUTH + ".VELO", 20)
+
     """
     Tests for vertical jaws
     """
@@ -45,6 +52,7 @@ class VerticalJawsTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("vertical_jaws")
         self.ca = ChannelAccess(default_timeout=30)
 
+        self.set_motor_speeds()
         [self.ca.assert_that_pv_exists(mot) for mot in all_motors]
 
     @parameterized.expand(parameterized_list(TEST_POSITIONS))
