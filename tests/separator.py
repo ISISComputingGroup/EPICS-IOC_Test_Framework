@@ -16,18 +16,6 @@ MAX_SEPARATOR_CURR = 2.5
 DAQ_VOLT_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_VOLT
 DAQ_CURR_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_CURR
 
-IOCS = [
-    {
-        "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("SEPRTR"),
-        "macros": {"DAQMX": DAQ,
-                   },
-    },
-]
-
-
-TEST_MODES = [TestModes.RECSIM]
-
 # Voltage and current stability limits
 
 VOLT_LOWERLIM = 4.0
@@ -40,6 +28,22 @@ CURR_LIMIT = 0.5
 
 SAMPLE_LEN = 1000
 SAMPLETIME = 1E-3
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("SEPRTR"),
+        "macros": {"DAQMX": DAQ,
+                   "VUPPERLIM": VOLT_UPPERLIM,
+                   "VLOWERLIM": VOLT_LOWERLIM,
+                   "ISTEADY": CURR_STEADY,
+                   "ILIMIT": CURR_LIMIT
+                   },
+    },
+]
+
+
+TEST_MODES = [TestModes.RECSIM]
 
 
 def stream_data(ca, n_repeat, curr, volt, stop_event):
@@ -101,8 +105,6 @@ CURRENT_DATA = simulate_current_data()
 VOLTAGE_DATA = simulate_voltage_data()
 
 
-TEST_MODES = [TestModes.RECSIM]
-
 # Note that it is difficult to test the Current readback in Recsim because it is only a readback value, and relates
 # closely to the voltage.
 
@@ -147,7 +149,6 @@ class VoltageTests(unittest.TestCase):
         self.ca.set_pv_value("VOLT:SP", 20.)
         # THEN
         self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_SCALE_FACTOR)
-
 
     def test_WHEN_set_THEN_the_voltage_changes(self):
         # WHEN
@@ -256,7 +257,7 @@ class SepLogicTests(unittest.TestCase):
 
         ("unsteady_current_steady_voltage", CURRENT_DATA, [VOLT_STEADY] * SAMPLE_LEN),
 
-        ("random_noise_current_and_voltage", simulate_current_data(), simulate_voltage_data())
+        ("unsteady_current_and_voltage", simulate_current_data(), simulate_voltage_data())
     ])
     def test_GIVEN_current_and_voltage_data_WHEN_limits_are_tested_THEN_number_of_samples_out_of_range_returned(self, _, curr_data, volt_data):
         self.ca.set_pv_value("DAQ:CURR:WV:SIM", curr_data, wait=True, sleep_after_set=0.0)
@@ -273,7 +274,7 @@ class SepLogicTests(unittest.TestCase):
     ])
     def test_GIVEN_multiple_samples_in_one_second_WHEN_buffer_read_THEN_buffer_reads_all_out_of_range_samples(self, _, curr_data, volt_data):
 
-        # Setting this to 3 as channel access takes ~0.25s.
+        # Setting this to 3 as channel access takes ~0.25s. May need lowering for slow machines.
         writes_per_second = 3
 
         expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data) * writes_per_second
