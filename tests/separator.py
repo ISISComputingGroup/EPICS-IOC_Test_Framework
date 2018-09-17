@@ -58,8 +58,8 @@ def stream_data(ca, n_repeat, curr, volt, stop_event):
     while not stop_event.is_set():
 
         for i in range(n_repeat):
-            ca.set_pv_value("CURR:CALC", curr, wait=True, sleep_after_set=0.0)
-            ca.set_pv_value("VOLT:CALC", volt, wait=True, sleep_after_set=0.0)
+            ca.set_pv_value("DAQ:CURR:WV:SIM", curr, wait=True, sleep_after_set=0.0)
+            ca.set_pv_value("DAQ:VOLT:WV:SIM", volt, wait=True, sleep_after_set=0.0)
 
         # This sleep allows the PV to be read with updated value. PV clears once a second.
         sleep(1.1)
@@ -180,8 +180,8 @@ class SepLogicTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
-        self.ca.set_pv_value("VOLT:CALC", [VOLT_STEADY] * SAMPLE_LEN)
-        self.ca.set_pv_value("CURR:CALC", [CURR_STEADY] * SAMPLE_LEN)
+        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", [VOLT_STEADY] * SAMPLE_LEN)
+        self.ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY] * SAMPLE_LEN)
 
         self.ca.set_pv_value("STABILITY", 0)
         self.ca.set_pv_value("RESETWINDOW", 1)
@@ -190,6 +190,9 @@ class SepLogicTests(unittest.TestCase):
         self.ca.set_pv_value("SAMPLETIME", SAMPLETIME)
 
         self.ca.set_pv_value("_COUNTERTIMING.SCAN", "1 second")
+
+        self.ca.set_pv_value("_VOLTCALIBCONST", 1.0)
+        self.ca.set_pv_value("_CURRCALIBCONST", 1.0)
 
         self.STOP_DATA_THREAD.set()
 
@@ -256,8 +259,8 @@ class SepLogicTests(unittest.TestCase):
         ("random_noise_current_and_voltage", simulate_current_data(), simulate_voltage_data())
     ])
     def test_GIVEN_current_and_voltage_data_WHEN_limits_are_tested_THEN_number_of_samples_out_of_range_returned(self, _, curr_data, volt_data):
-        self.ca.set_pv_value("CURR:CALC", curr_data, wait=True, sleep_after_set=0.0)
-        self.ca.set_pv_value("VOLT:CALC", volt_data, wait=True, sleep_after_set=0.0)
+        self.ca.set_pv_value("DAQ:CURR:WV:SIM", curr_data, wait=True, sleep_after_set=0.0)
+        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", volt_data, wait=True, sleep_after_set=0.0)
 
         expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data)
 
@@ -298,13 +301,13 @@ class SepLogicTests(unittest.TestCase):
 
         # GIVEN
         for i in range(number_of_writes):
-            self.ca.set_pv_value("CURR:CALC", CURRENT_DATA, wait=True, sleep_after_set=0.0)
-            self.ca.set_pv_value("VOLT:CALC", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
+            self.ca.set_pv_value("DAQ:CURR:WV:SIM", CURRENT_DATA, wait=True, sleep_after_set=0.0)
+            self.ca.set_pv_value("DAQ:VOLT:WV:SIM", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
 
         self.ca.assert_that_pv_is_number("STABILITY", expected_out_of_range_samples)
 
         # WHEN
-        self.ca.set_pv_value("RESETWINDOW", 1.0)
+        self.ca.set_pv_value("RESETWINDOW", 1)
 
         # THEN
         self.ca.assert_that_pv_is_number("STABILITY", 0)
@@ -326,7 +329,7 @@ class SepLogicTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("STABILITY", length_of_buffer)
 
         # WHEN
-        self.ca.set_pv_value("_ADDCOUNTS", 50.0/SAMPLETIME, wait=True, sleep_after_set=0.0)
+        self.ca.set_pv_value("_ADDCOUNTS", testvalue/SAMPLETIME, wait=True, sleep_after_set=0.0)
         self.ca.set_pv_value("_COUNTERTIMING.PROC", 1, wait=True, sleep_after_set=0.0)
 
         # THEN
@@ -342,10 +345,11 @@ class SepLogicTests(unittest.TestCase):
                                                                       VOLTAGE_DATA) * number_of_writes * SAMPLETIME
 
         for i in range(number_of_writes):
-            self.ca.set_pv_value("CURR:CALC", CURRENT_DATA, wait=True, sleep_after_set=0.0)
-            self.ca.set_pv_value("VOLT:CALC", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
+            self.ca.set_pv_value("DAQ:CURR:WV:SIM", CURRENT_DATA, wait=True, sleep_after_set=0.0)
+            self.ca.set_pv_value("DAQ:VOLT:WV:SIM", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
 
         processtime = clock() - time1
         self.assertGreater(processtime, 1.)
         self.ca.assert_that_pv_is_number("STABILITY", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
+
