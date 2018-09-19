@@ -1,11 +1,10 @@
-from hamcrest import assert_that, is_, equal_to
 import unittest
 import ast
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, add_method
 
 
 DEVICE_PREFIX = "KHLY2001_01"
@@ -23,36 +22,102 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-class StartUpTests(unittest.TestCase):
+def setUp(self):
+    self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
+    self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+    self.ca.assert_that_pv_exists("IDN")
+    # Given:
+    self.ca.process_pv("startup")
+
+
+setup_tests = add_method(setUp)
+
+
+@setup_tests
+class ScanStartUpTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
-
-    @skip_if_recsim("Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
         # Given:
         self.ca.process_pv("startup")
 
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_initialization_mode_is_set_to_continuous(self):
+        # Then:
+        initialization_mode = list(self._lewis.backdoor_get_from_device("initialization_mode"))
+        self._lewis.assert_that_emulator_value_is(initialization_mode, "continuous")
+
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_scan_rate_is_set_to_half_a_second(self):
+        # Then:
+        expected_scan_rate = 0.5
+        scan_rate = float(self._lewis.backdoor_get_from_device("scan_rate"))
+        self._lewis.assert_that_emulator_value_is(scan_rate, expected_scan_rate)
+
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_read_back_elements_are_reading_and_unit(self):
+        # Then:
+        expected_read_back_elements = {"READ", "UNIT"}
+        read_back_elements = set(ast.literal_eval(self._lewis.backdoor_get_from_device("read_back_elements")))
+        self._lewis.assert_that_emulator_value_is(read_back_elements, expected_read_back_elements)
+
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_the_device_is_set_to_scan(self):
+        # Then:
+        expected_scan_status = "SCANNING"
+        scan_status = float(self._lewis.backdoor_get_from_device("scan_status"))
+        self._lewis.assert_that_emulator_value_is(scan_status, expected_scan_status)
+
+
+@setup_tests
+class BufferStartUpTests(unittest.TestCase):
+
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
         # Then:
         buffer_cleared = self._lewis.backdoor_get_from_device("buffer_cleared")
-        assert_that(buffer_cleared, is_(False))
+        self._lewis.assert_that_emulator_value_is(buffer_cleared, False)
 
-    @skip_if_recsim("Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_with_no_channels_set_to_active_THEN_no_channels_are_set_to_scan(
-            self):
-        # Given:
-        self.ca.process_pv("startup")
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_buffer_autoclear_is_turned_on(self):
+        # Then:
+        voltage_precision = self._lewis.backdoor_get_from_device("buffer_autoclear")
+        self._lewis.assert_that_emulator_value_is(voltage_precision, True)
 
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_buffer_reads_raw_values(self):
+        # Then:
+        buffer_source = self._lewis.backdoor_get_from_device("buffer_source")
+        self._lewis.assert_that_emulator_value_is(buffer_source, "RAW")
+
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_buffer_control_mode_is_set_to_always(self):
+        # Then:
+        buffer_control_mode = self._lewis.backdoor_get_from_device("buffer_control_mode")
+        self._lewis.assert_that_emulator_value_is(buffer_control_mode, "ALWAYS")
+
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_buffer_size_is_1000(self):
+        # Then:
+        expected_buffer_size = 1000
+        buffer_size = self._lewis.backdoor_get_from_device("buffer_size")
+        self._lewis.assert_that_emulator_value_is(buffer_size, expected_buffer_size)
+
+
+@setup_tests
+class ChannelSetupTests(unittest.TestCase):
+
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_with_no_channels_set_to_active_THEN_no_channels_are_set_to_scan(self):
         # Then:
         expected_channels = [1]
         channels_to_scan = list(self._lewis.backdoor_get_from_device("channels_to_scan"))
-        assert_that(channels_to_scan, is_(equal_to(expected_channels)))
+        self._lewis.assert_that_emulator_value_is(channels_to_scan, expected_channels)
 
-    @skip_if_recsim("Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(
-            self):
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(self):
         # Given:
         self.ca.set_pv_value("CHAN:01:ACTIVE", 1)
         self.ca.process_pv("startup")
@@ -60,9 +125,9 @@ class StartUpTests(unittest.TestCase):
         # Then:
         expected_channels = [1]
         channels_to_scan = list(self._lewis.backdoor_get_from_device("channels_to_scan"))
-        assert_that(channels_to_scan, is_(equal_to(expected_channels)))
+        self._lewis.assert_that_emulator_value_is(channels_to_scan, expected_channels)
 
-    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
     def GIVEN_a_fresh_IOC_with_first_four_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(
             self):
         # Given:
@@ -74,30 +139,14 @@ class StartUpTests(unittest.TestCase):
 
         # Then:
         channels_to_scan = list(self._lewis.backdoor_get_from_device("channels_to_scan"))
-        assert_that(channels_to_scan, is_(equal_to(expected_channels)))
+        self._lewis.assert_that_emulator_value_is(channels_to_scan, expected_channels)
 
-    def GIVEN_a_fresh_IOC_THEN_the_initialization_mode_is_set_to_continuous(self):
-        # Given:
-        self.ca.process_pv("startup")
 
-        # Then:
-        initialization_mode = list(self._lewis.backdoor_get_from_device("initialization_mode"))
-        assert_that(initialization_mode, is_(equal_to("continuous")))
+@setup_tests
+class MeasurementSetupTests(unittest.TestCase):
 
-    @skip_if_recsim("Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_scan_rate_is_set_to_half_a_second(self):
-        # Given:
-        self.ca.process_pv("startup")
-
-        # Then:
-        scan_rate = float(self._lewis.backdoor_get_from_device("scan_rate"))
-        assert_that(scan_rate, is_(equal_to(0.5)))
-
-    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
     def GIVEN_a_fresh_IOC_THEN_the_measurement_mode_for_each_channel_is_VDC(self):
-        # Given:
-        self.ca.process_pv("startup")
-
         # Then:
         expected_measurement_modes = {
             "CHAN:01": "V:DC",
@@ -110,40 +159,32 @@ class StartUpTests(unittest.TestCase):
             "CHAN:09": "V:DC"
         }
         measurement_modes = ast.literal_eval(self._lewis.backdoor_get_from_device("scan_rate"))
-        assert_that(measurement_modes, is_(equal_to(expected_measurement_modes)))
+        self._lewis.assert_that_emulator_value_is(measurement_modes, expected_measurement_modes)
 
-    def test_WHEN_fres_digits_set_THEN_fres_digits_matches_the_set_state_AND_alarm_is_major(self):
-        expected_alarm = "MAJOR"
-        sample_data = [3, 8, 10]
-        for sample_value in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(sample_value, "FRES:DIGITS", expected_alarm=expected_alarm)
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_precision_of_VOLT_DC_measurement_mode_is_5(self):
+        # Then:
+        precision = 5
+        voltage_precision = self._lewis.backdoor_get_from_device("voltage_precision")
+        self._lewis.assert_that_emulator_value_is(voltage_precision, precision)
 
-    def test_WHEN_fres_digits_set_THEN_fres_digits_matches_the_set_state_AND_alarm_is_none(self):
-        expected_alarm = "NO_ALARM"
-        sample_data = [4, 6]
-        for sample_value in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(sample_value, "FRES:DIGITS", expected_alarm=expected_alarm)
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_VOLT_DC_autorange_is_ON(self):
+        # Then:
+        voltage_precision = self._lewis.backdoor_get_from_device("voltage_autorange")
+        self._lewis.assert_that_emulator_value_is(voltage_precision, "ON")
 
-    def test_WHEN_start_channel_range_set_THEN_start_channel_matches_the_set_state(self):
-        sample_channels = [101, 109, 205]
-        for channel in sample_channels:
-            self.ca.assert_setting_setpoint_sets_readback(channel, "CH:START")
+    @skip_if_recsim(" Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_auto_aperture_of_volt_dc_is_on(self):
+        # Then:
+        auto_aperture_mode = self._lewis.backdoor_get_from_device("auto_aperture_mode")
+        self._lewis.assert_that_emulator_value_is(auto_aperture_mode, True)
 
-    def test_WHEN_end_channel_range_set_THEN_end_channel_matches_the_set_state(self):
-        sample_channels = [201, 209, 210]
-        for channel in sample_channels:
-            self.ca.assert_setting_setpoint_sets_readback(channel, "CH:END")
 
-    def test_WHEN_measurement_mode_set_THEN_mesaurement_mode_matches_the_set_state(self):
-        self.ca.set_pv_value("CH:START:SP", 101)
-        self.ca.set_pv_value("CH:END:SP", 210)
-        sample_data = {0: "VOLT:DC", 1: "VOLT:AC", 2: "CURR:DC", 3: "CURR:AC", 4: "RES", 5: "FRES", 6: "CONT",
-                       7: "FREQ", 8: "PER"}
-        for measurement_enum, measurement_string in sample_data.items():
-            self.ca.assert_setting_setpoint_sets_readback(measurement_string, "MEASUREMENT",
-                                                          expected_value=measurement_string)
+@setup_tests
+class ErrorTests(unittest.TestCase):
 
-    def test_WHEN_elements_set_THEN_elements_are_as_expected(self):
-        elements = "READ, CHAN, TST"
-        self.ca.assert_setting_setpoint_sets_readback(elements, "DATAELEMENTS")
-
+    def GIVEN_a_set_up_device_THEN_their_are_no_errors(self):
+        # Then:
+        expected_error_status = "No error"
+        self.ca.assert_that_pv_is("ERROR", expected_error_status)
