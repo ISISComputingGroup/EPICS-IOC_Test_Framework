@@ -1,4 +1,6 @@
+from hamcrest import assert_that, is_, equal_to
 import unittest
+import ast
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -20,114 +22,95 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
-on_off_status = {False: "OFF", True: "ON"}
 
+class StartUpTests(unittest.TestCase):
 
-class Status(object):
-    ON = "ON"
-    OFF = "OFF"
-
-
-class Keithley_2001Tests(unittest.TestCase):
-    """
-    Tests for the Keithley_2001 IOC.
-    """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
 
-    def test_WHEN_scan_state_set_THEN_scan_state_matches_the_set_state(self):
-        sample_data = {0: "INT", 1: "NONE"}
-        for enum_value, string_value in sample_data.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "SCAN:STATE", expected_value=string_value)
+    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
+        # Given:
+        self.ca.process_pv("startup")
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_delay_state_set_THEN_delay_state_matches_the_set_state(self):
-        for enum_value, string_value in on_off_status.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "DELAYMODE", expected_value=string_value)
+        # Then:
+        buffer_cleared = self._lewis.backdoor_get_from_device("buffer_cleared")
+        assert_that(buffer_cleared, is_(False))
 
-    def test_WHEN_source_set_THEN_source_matches_the_set_state(self):
-        sample_data = {0: "IMM", 1: "TIM", 2: "MAN", 3: "BUS", 4: "EXT"}
-        for enum_value, string_value in sample_data.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "CONTROLSOURCE", expected_value=string_value)
+    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_with_no_channels_set_to_active_THEN_no_channels_are_set_to_scan(
+            self):
+        # Given:
+        self.ca.process_pv("startup")
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_buffer_size_set_THEN_buffer_size_matches_the_set_state_AND_alarm_is_major(self):
-        expected_alarm = "MAJOR"
-        sample_data = [0, 70000]
-        for sample_data in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(sample_data, "BUFF:SIZE", expected_alarm=expected_alarm)
+        # Then:
+        expected_channels = [1]
+        channels_to_scan = list(self._lewis.backdoor_get_from_device("channels_to_scan"))
+        assert_that(channels_to_scan, is_(equal_to(expected_channels)))
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_buffer_size_set_THEN_buffer_size_matches_the_set_state_AND_alarm_is_none(self):
-        expected_alarm = "NO_ALARM"
-        sample_data = [5500, 2]
-        for sample_data in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(sample_data, "BUFF:SIZE", expected_alarm=expected_alarm)
+    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(
+            self):
+        # Given:
+        self.ca.set_pv_value("CHAN:01:ACTIVE", 1)
+        self.ca.process_pv("startup")
 
-    def test_WHEN_buffer_feed_set_THEN_buffer_feed_matches_the_set_state(self):
-        sample_data = {0: "SENS", 1: "CALC", 2: "NONE"}
-        for enum_value, string_value in sample_data.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "BUFF:SOURCE", expected_value=string_value)
+        # Then:
+        expected_channels = [1]
+        channels_to_scan = list(self._lewis.backdoor_get_from_device("channels_to_scan"))
+        assert_that(channels_to_scan, is_(equal_to(expected_channels)))
 
-    def test_WHEN_init_state_set_THEN_init_state_matches_the_set_state(self):
-        for enum_value, string_value in on_off_status.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "INITMODE", expected_value=string_value)
+    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_with_first_four_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(
+            self):
+        # Given:
+        expected_channels = [1, 2, 3, 4]
 
-    def test_WHEN_buffer_control_set_THEN_buffer_control_matches_the_set_state(self):
-        sample_data = {0: "NEXT", 1: "ALW", 2: "NEV"}
-        for enum_value, string_value in sample_data.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "BUFF:CONTROLMODE", expected_value=string_value)
+        for i in expected_channels:
+            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(i), 1)
+        self.ca.process_pv("startup")
 
-    def test_WHEN_buffer_range_set_then_buffer_within_range_is_returned(self):
-        self._lewis.backdoor_set_on_device("buffer_range_readings", 10)
-        self.ca.set_pv_value("CH:START", 2)
-        self.ca.set_pv_value("COUNT", 4)
-        self.ca.process_pv("BUFF:READ")
-        expected_string = self.ca.get_pv_value("BUFF:READ")
-        self.assertNotEquals(expected_string, "[]")
+        # Then:
+        channels_to_scan = list(self._lewis.backdoor_get_from_device("channels_to_scan"))
+        assert_that(channels_to_scan, is_(equal_to(expected_channels)))
 
-    def test_WHEN_sample_count_set_THEN_sample_count_matches_the_set_state_AND_within_alarm_is_major(self):
-        expected_alarm = "MAJOR"
-        sample_data = [0, 70000]
-        for set_value in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(set_value, "SAMPLECOUNT", expected_alarm=expected_alarm)
+    def GIVEN_a_fresh_IOC_THEN_the_initialization_mode_is_set_to_continuous(self):
+        # Given:
+        self.ca.process_pv("startup")
 
-    def test_WHEN_sample_count_set_THEN_sample_count_matches_the_set_state_AND_within_alarm_is_none(self):
-        expected_alarm = "NO_ALARM"
-        sample_data = [2, 55000]
-        for enum_value in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "SAMPLECOUNT", expected_value=enum_value,
-                                                          expected_alarm=expected_alarm)
+        # Then:
+        initialization_mode = list(self._lewis.backdoor_get_from_device("initialization_mode"))
+        assert_that(initialization_mode, is_(equal_to("continuous")))
 
-    def test_WHEN_cycles_rate_set_THEN_cycle_rate_matches_the_set_state_AND_within_alarm_is_major(self):
-        expected_alarm = "MAJOR"
-        sample_data = [0, 65.0]
-        for set_value in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(set_value, "FRES:NPLC", expected_alarm=expected_alarm)
+    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_scan_rate_is_set_to_half_a_second(self):
+        # Given:
+        self.ca.process_pv("startup")
 
-    def test_WHEN_cycles_rate_set_THEN_cycle_rate_matches_the_set_state_AND_within_alarm_is_none(self):
-        expected_alarm = "NO_ALARM"
-        sample_data = [0.1, 2.0]
-        for enum_value in sample_data:
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "FRES:NPLC", expected_value=enum_value,
-                                                          expected_alarm=expected_alarm)
+        # Then:
+        scan_rate = float(self._lewis.backdoor_get_from_device("scan_rate"))
+        assert_that(scan_rate, is_(equal_to(0.5)))
 
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_buffer_state_set_THEN_buffer_state_matches_the_set_state(self):
-        for enum_value, string_value in on_off_status.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "DELAYMODE", expected_value=string_value)
+    @skip_if_recsim("Lewis backdoor used with RECSIM")
+    def GIVEN_a_fresh_IOC_THEN_the_measurement_mode_for_each_channel_is_VDC(self):
+        # Given:
+        self.ca.process_pv("startup")
 
-    def test_WHEN_auto_range_set_THEN_auto_range_matches_the_set_state(self):
-        for enum_value, expected_state in on_off_status.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "FRES:AUTORANGE", expected_value=expected_state)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_time_stamp_set_to_absolute_THEN_time_stamp_matches_the_set_state(self):
-        sample_data = {0: "ABS", 1: "DELT"}
-        for enum_value, expected_state in sample_data.items():
-            self.ca.assert_setting_setpoint_sets_readback(enum_value, "TIME:FORMAT", expected_value=expected_state)
+        # Then:
+        expected_measurement_modes = {
+            "CHAN:01": "V:DC",
+            "CHAN:02": "V:DC",
+            "CHAN:03": "V:DC",
+            "CHAN:04": "V:DC",
+            "CHAN:06": "V:DC",
+            "CHAN:07": "V:DC",
+            "CHAN:08": "V:DC",
+            "CHAN:09": "V:DC"
+        }
+        measurement_modes = ast.literal_eval(self._lewis.backdoor_get_from_device("scan_rate"))
+        assert_that(measurement_modes, is_(equal_to(expected_measurement_modes)))
 
     def test_WHEN_fres_digits_set_THEN_fres_digits_matches_the_set_state_AND_alarm_is_major(self):
         expected_alarm = "MAJOR"
