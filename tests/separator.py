@@ -130,4 +130,3 @@ class CurrentTests(unittest.TestCase):
         # GIVEN
         self._simulate_current(value)
         self.ca.assert_that_pv_is_number("CURR", value * DAQ_CURR_READ_SCALE_FACTOR, MARGIN_OF_ERROR)
-
