@@ -5,10 +5,14 @@ import os
 import subprocess
 
 import sys
-from time import sleep
+from time import sleep, time
+from functools import partial
 
 from utils.free_ports import get_free_ports
 from utils.log_file import log_filename
+from utils.channel_access import format_value
+
+from utils.emulator_exceptions import UnableToConnectToEmulatorException
 
 
 class LewisRegister(object):
@@ -83,7 +87,6 @@ class LewisNone(object):
     def backdoor_command(self, command):
         pass
 
-
     def backdoor_run_function_on_device(self, function_name, arguments=None):
         """
         Does nothing
@@ -101,7 +104,7 @@ class LewisLauncher(object):
     Launches Lewis.
     """
 
-    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None, lewis_package=None, port=None, emulator_id=None):
+    def __init__(self, device, python_path, lewis_path, var_dir, lewis_protocol, lewis_additional_path=None, lewis_package=None, port=None, emulator_id=None, default_timeout = 5):
         """
         Constructor that also launches Lewis.
 
@@ -127,6 +130,7 @@ class LewisLauncher(object):
         self._connected = None
         self._var_dir = var_dir
         self._emulator_id = emulator_id if emulator_id is not None else self._device
+        self._default_timeout = default_timeout
 
     def __enter__(self):
         self._open(self.port)
@@ -284,3 +288,91 @@ class LewisLauncher(object):
         :return: the variables value, as a string
         """
         return "".join(self.backdoor_command(["device", str(variable_name)]))
+
+    def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None):
+        """
+        Assert that the pv has the expected value or that it becomes the expected value within the timeout.
+
+        Args:
+            emulator_property: emulator property to check
+            expected_value: expected value
+            timeout: if it hasn't changed within this time raise assertion error
+            message: Extra message to print
+        Raises:
+            AssertionError: if emulator property is not the expected value
+            UnableToConnectToPVException: if emulator property does not exist within timeout
+        """
+
+        if message is None:
+            message = "Expected PV to have value {}.".format(format_value(expected_value))
+
+        return self.assert_that_emulator_value_value_causes_func_to_return_true(
+            emulator_property, lambda val: val == expected_value, timeout=timeout, message=message)
+
+    def assert_that_emulator_value_value_causes_func_to_return_true(
+            self, emulator_property, func, timeout=None, message=None):
+        """
+        Check that a emulator property satisfies a given function within some timeout.
+
+        Args:
+            emulator_property: emulator property to check
+            func: a function that takes one argument, the emulator property value, and returns True if the value is
+                valid.
+            timeout: time to wait for the PV to satisfy the function
+            message: custom message to print on failure
+        Raises:
+            AssertionError: If the function does not evaluate to true within the given timeout
+        """
+
+        def wrapper(message):
+            value = getattr(self._device, emulator_property)
+            try:
+                return_value = func(value)
+            except Exception as e:
+                return "Exception was thrown while evaluating function '{}' on emulator property {}. " \
+                       "Exception was: {} {}".format(func.__name__,
+                                                     format_value(value), e.__class__.__name__, e.message)
+            if return_value:
+                return None
+            else:
+                return "{}{}{}".format(message, os.linesep, "Final emulator property value was {}"
+                                       .format(format_value(value)))
+
+        if message is None:
+            message = "Expected function '{}' to evaluate to True when reading emulator property '{}'." \
+                .format(func.__name__, emulator_property)
+
+        err = self._wait_for_emulator_lambda(partial(wrapper, message), timeout)
+
+        if err is not None:
+            raise AssertionError(err)
+
+    def _wait_for_emulator_lambda(self, wait_for_lambda, timeout):
+        """
+        Wait for a lambda containing a emulator property to become None; return value or timeout and return actual value.
+
+        Args:
+            wait_for_lambda: lambda we expect to be None
+            timeout: time out period
+        Returns:
+            final value of lambda
+        """
+        start_time = time()
+        current_time = start_time
+
+        if timeout is None:
+            timeout = self._default_timeout
+
+        while current_time - start_time < timeout:
+            try:
+                lambda_value = wait_for_lambda()
+                if lambda_value is None:
+                    return lambda_value
+            except UnableToConnectToEmulatorException:
+                pass  # try again next loop maybe the emulator property will have changed
+
+            sleep(0.5)
+            current_time = time()
+
+        # last try
+        return wait_for_lambda()

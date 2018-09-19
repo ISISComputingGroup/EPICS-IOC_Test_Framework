@@ -17,6 +17,18 @@ except ImportError:
             return partial(self.func, instance, *(self.args or ()), **(self.keywords or {}))
 
 
+def format_value(value):
+    """
+    Formats a value for display. Includes type information to ease debugging.
+
+    Args:
+        value: The value to format.
+    Returns:
+        string: The formatted value.
+    """
+    return "'{}' (type: '{}')".format(value, value.__class__.__name__)
+
+
 class ChannelAccess(object):
     """
     Provides the required channel access commands.
@@ -117,17 +129,6 @@ class ChannelAccess(object):
         finally:
             _set_and_check_simulated_alarm(pv, self.Alarms.NONE)
 
-    def _format_value(self, value):
-        """
-        Formats a PV value for display. Includes type information to ease debugging.
-
-        Args:
-            value: The value to format
-        Returns:
-            The formatted value
-        """
-        return "'{}' (type: '{}')".format(value, value.__class__.__name__)
-
     def _create_pv_with_prefix(self, pv):
         """
         Create the full pv name with instrument prefix.
@@ -187,11 +188,11 @@ class ChannelAccess(object):
                 return_value = func(value)
             except Exception as e:
                 return "Exception was thrown while evaluating function '{}' on pv value {}. Exception was: {} {}"\
-                    .format(func.__name__, self._format_value(value), e.__class__.__name__, e.message)
+                    .format(func.__name__, format_value(value), e.__class__.__name__, e.message)
             if return_value:
                 return None
             else:
-                return "{}{}{}".format(message, os.linesep, "Final PV value was {}".format(self._format_value(value)))
+                return "{}{}{}".format(message, os.linesep, "Final PV value was {}".format(format_value(value)))
 
         if message is None:
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
@@ -217,7 +218,7 @@ class ChannelAccess(object):
         """
 
         if msg is None:
-            msg = "Expected PV to have value {}.".format(self._format_value(expected_value))
+            msg = "Expected PV to have value {}.".format(format_value(expected_value))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: val == expected_value, timeout=timeout, message=msg)
@@ -237,7 +238,7 @@ class ChannelAccess(object):
             UnableToConnectToPVException: if pv does not exist within timeout
         """
         if msg is None:
-            msg = "Expected PV to not have value {}.".format(self._format_value(restricted_value))
+            msg = "Expected PV to not have value {}.".format(format_value(restricted_value))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: val != restricted_value, timeout, message=msg)
@@ -273,7 +274,7 @@ class ChannelAccess(object):
             UnableToConnectToPVException: if pv does not exist within timeout
         """
         message = "Expected PV value to be equal to {} (tolerance: {})"\
-            .format(self._format_value(expected), self._format_value(tolerance))
+            .format(format_value(expected), format_value(tolerance))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: self._within_tolerance_condition(val, expected, tolerance), timeout, message=message)
@@ -292,7 +293,7 @@ class ChannelAccess(object):
              UnableToConnectToPVException: if pv does not exist within timeout
         """
         message = "Expected PV value to be not equal to {} (tolerance: {})"\
-            .format(self._format_value(restricted), self._format_value(tolerance))
+            .format(format_value(restricted), format_value(tolerance))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: not self._within_tolerance_condition(val, restricted, tolerance), timeout, message=message)
@@ -429,7 +430,7 @@ class ChannelAccess(object):
         time.sleep(wait)
 
         message = "Expected value trend to satisfy comparator '{}'. Initial value was {}."\
-            .format(comparator.__name__, self._format_value(initial_value))
+            .format(comparator.__name__, format_value(initial_value))
 
         def condition(val):
             return comparator(val, initial_value)
