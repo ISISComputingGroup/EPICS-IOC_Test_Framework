@@ -162,3 +162,14 @@ class ErrorTests(unittest.TestCase):
         # Then:
         expected_error_status = "No error"
         self.ca.assert_that_pv_is("ERROR", expected_error_status)
+
+
+@setup_tests
+class ChannelReadingTests(unittest.TestCase):
+    TEST_VOLTAGES = [0, -2.3586, +1.05e9, 589, 2, 2.8654852]
+
+    @parameterized.expand(parameterized_list(zip(TEST_VOLTAGES, CHANNEL_LIST)))
+    def GIVEN_a_fresh_IOC_THEN_the_channels_are_reading_the_correct_values_from_the_buffer(self, _, voltage, channel):
+        # Then:
+        self._lewis.backdoor_set_on_device("CHAN:0{}".format(channel), voltage)
+        self.ca.assert_that_pv_is("CHAN:0{}".format(channel), voltage)
