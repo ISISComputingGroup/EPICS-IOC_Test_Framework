@@ -1,6 +1,8 @@
 import ast
+import itertools
 from parameterized import parameterized
 import unittest
+import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -23,6 +25,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 CHANNEL_LIST = [1, 2, 3, 4, 6, 7, 8, 9]
+
 
 def setUp(self):
     self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
@@ -162,6 +165,21 @@ class ErrorTests(unittest.TestCase):
         # Then:
         expected_error_status = "No error"
         self.ca.assert_that_pv_is("ERROR", expected_error_status)
+
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def GIVEN_a_device_with_errors_WHEN_clearing_the_errors_THEN_the(self):
+        # Given:
+        error_status_to_be_set = "ERORR CODE 14 - An error"
+        self._lewis.backdoor_set_on_device("error", error_status_to_be_set)
+        time.sleep(1)
+        self.ca.assert_that_pv_is("ERROR", error_status_to_be_set)
+
+        # When:
+        self.ca.process_pv("ERROR:CLEAR")
+
+        # Then:
+        expected_cleared_error_status = "No error"
+        self.ca.assert_that_pv_is("ERROR", expected_cleared_error_status)
 
 
 @setup_tests
