@@ -186,7 +186,7 @@ class ErrorTests(unittest.TestCase):
 class ChannelReadingTests(unittest.TestCase):
     TEST_VOLTAGES = [0, -2.3586, +1.05e9, 589, 2, 2.8654852]
 
-    @parameterized.expand(parameterized_list(zip(TEST_VOLTAGES, CHANNEL_LIST)))
+    @parameterized.expand(parameterized_list(itertools.product(TEST_VOLTAGES, CHANNEL_LIST)))
     def GIVEN_a_fresh_IOC_THEN_the_channels_are_reading_the_correct_values_from_the_buffer(self, _, voltage, channel):
         # Then:
         self._lewis.backdoor_set_on_device("CHAN:0{}".format(channel), voltage)
