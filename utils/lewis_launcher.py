@@ -294,10 +294,10 @@ class LewisLauncher(object):
         Assert that the pv has the expected value or that it becomes the expected value within the timeout.
 
         Args:
-            emulator_property: emulator property to check
+            emulator_property (string): emulator property to check
             expected_value: expected value
-            timeout: if it hasn't changed within this time raise assertion error
-            message: Extra message to print
+            timeout (float): if it hasn't changed within this time raise assertion error
+            message (string): Extra message to print
         Raises:
             AssertionError: if emulator property is not the expected value
             UnableToConnectToPVException: if emulator property does not exist within timeout
@@ -307,25 +307,25 @@ class LewisLauncher(object):
             message = "Expected PV to have value {}.".format(format_value(expected_value))
 
         return self.assert_that_emulator_value_value_causes_func_to_return_true(
-            emulator_property, lambda val: val == expected_value, timeout=timeout, message=message)
+            emulator_property, lambda val: val == expected_value, timeout=timeout, msg=message)
 
     def assert_that_emulator_value_value_causes_func_to_return_true(
-            self, emulator_property, func, timeout=None, message=None):
+            self, emulator_property, func, timeout=None, msg=None):
         """
         Check that a emulator property satisfies a given function within some timeout.
 
         Args:
-            emulator_property: emulator property to check
+            emulator_property (string): emulator property to check
             func: a function that takes one argument, the emulator property value, and returns True if the value is
                 valid.
             timeout: time to wait for the PV to satisfy the function
-            message: custom message to print on failure
+            msg: custom message to print on failure
         Raises:
             AssertionError: If the function does not evaluate to true within the given timeout
         """
 
-        def wrapper(message):
-            value = getattr(self._device, emulator_property)
+        def wrapper(msg):
+            value = self.backdoor_get_from_device(emulator_property)
             try:
                 return_value = func(value)
             except Exception as e:
@@ -335,14 +335,14 @@ class LewisLauncher(object):
             if return_value:
                 return None
             else:
-                return "{}{}{}".format(message, os.linesep, "Final emulator property value was {}"
+                return "{}{}{}".format(msg, os.linesep, "Final emulator property value was {}"
                                        .format(format_value(value)))
 
-        if message is None:
-            message = "Expected function '{}' to evaluate to True when reading emulator property '{}'." \
+        if msg is None:
+            msg = "Expected function '{}' to evaluate to True when reading emulator property '{}'." \
                 .format(func.__name__, emulator_property)
 
-        err = self._wait_for_emulator_lambda(partial(wrapper, message), timeout)
+        err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
 
         if err is not None:
             raise AssertionError(err)

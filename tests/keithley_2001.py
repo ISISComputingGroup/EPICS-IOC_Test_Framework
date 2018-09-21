@@ -22,20 +22,27 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM] # TestModes.RECSIM]
 
 CHANNEL_LIST = [1, 2, 3, 4, 6, 7, 8, 9]
 
 
 def setUp(self):
     self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
-    self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+    self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
     self.ca.assert_that_pv_exists("IDN")
-    # Given:
-    self.ca.process_pv("startup")
 
 
 setup_tests = add_method(setUp)
+
+
+@setup_tests
+class BasicCommands(unittest.TestCase):
+
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_IDN_is_correct(self):
+        expected_idn = "MODEL 2001,4301578,B17  /A02  "
+        self.ca.assert_that_pv_is("IDN", expected_idn)
+
 
 
 @setup_tests
@@ -57,16 +64,15 @@ class ScanStartUpTests(unittest.TestCase):
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def GIVEN_a_fresh_IOC_THEN_the_read_back_elements_are_reading_and_unit(self):
         # Then:
-        expected_read_back_elements = {"READ", "UNIT"}
-        read_back_elements = set(ast.literal_eval(self._lewis.backdoor_get_from_device("read_back_elements")))
-        self._lewis.assert_that_emulator_value_is(read_back_elements, expected_read_back_elements)
+        expected_read_back_elements = "READ, UNIT"
+        self.ca.assert_that_pv_is("ELEMENTS", expected_read_back_elements)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_the_device_is_set_to_scan(self):
+    def GIVEN_a_fresh_IOC_THEN_the_the_device_is_scanning(self):
         # Then:
-        expected_scan_status = "SCANNING"
-        scan_status = float(self._lewis.backdoor_get_from_device("scan_status"))
-        self._lewis.assert_that_emulator_value_is(scan_status, expected_scan_status)
+        expected_scan_status = True
+        scan_status = bool(self._lewis.backdoor_get_from_device("scan_status"))
+        self._lewis.assert_that_emulator_value_is("scan_status", expected_scan_status)
 
 
 @setup_tests
