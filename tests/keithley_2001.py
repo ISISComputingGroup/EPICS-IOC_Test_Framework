@@ -22,7 +22,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM] # TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 
 CHANNEL_LIST = [1, 2, 3, 4, 6, 7, 8, 9]
 
@@ -37,43 +37,35 @@ setup_tests = add_method(setUp)
 
 
 @setup_tests
-class BasicCommands(unittest.TestCase):
+class TestedCommands(unittest.TestCase):
 
     def test_that_GIVEN_a_fresh_IOC_THEN_the_IDN_is_correct(self):
         expected_idn = "MODEL 2001,4301578,B17  /A02  "
         self.ca.assert_that_pv_is("IDN", expected_idn)
 
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_device_is_reset(self):
+        self._lewis.assert_that_emulator_value_is("number_of_times_reset", "1")
+
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_read_back_elements_are_reading_and_unit(self):
+        # Then:
+        expected_read_back_elements = "READ, UNIT"
+        self.ca.assert_that_pv_is("ELEMENTS", expected_read_back_elements)
+
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
+        # Then:
+        self._lewis.assert_that_emulator_value_is("number_of_times_buffer_has_been_cleared", "1")
 
 
 @setup_tests
 class ScanStartUpTests(unittest.TestCase):
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_initialization_mode_is_set_to_continuous(self):
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_initialization_mode_is_set_to_continuous(self):
         # Then:
         initialization_mode = list(self._lewis.backdoor_get_from_device("initialization_mode"))
         self._lewis.assert_that_emulator_value_is(initialization_mode, "continuous")
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_scan_rate_is_set_to_half_a_second(self):
-        # Then:
-        expected_scan_rate = 0.5
-        scan_rate = float(self._lewis.backdoor_get_from_device("scan_rate"))
-        self._lewis.assert_that_emulator_value_is(scan_rate, expected_scan_rate)
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_read_back_elements_are_reading_and_unit(self):
-        # Then:
-        expected_read_back_elements = "READ, UNIT"
-        self.ca.assert_that_pv_is("ELEMENTS", expected_read_back_elements)
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_the_device_is_scanning(self):
-        # Then:
-        expected_scan_status = True
-        scan_status = bool(self._lewis.backdoor_get_from_device("scan_status"))
-        self._lewis.assert_that_emulator_value_is("scan_status", expected_scan_status)
-
 
 @setup_tests
 class BufferStartUpTests(unittest.TestCase):
