@@ -148,7 +148,6 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
 
         test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
         result = runner.run(test_suite).wasSuccessful()
-        print result
 
     return result
 
