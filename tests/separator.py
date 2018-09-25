@@ -391,3 +391,13 @@ class SepLogicTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("STABILITY", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
 
+    def test_GIVEN_stability_threshold_WHEN_threshold_exceeded_THEN_unstable_PV_turned_on(self):
+        self.ca.assert_that_pv_is("STABILITY", "UNSTABLE")
+
+    def test_GIVEN_limit_on_total_seconds_out_of_stability_WHEN_threshold_exceeded_THEN_stability_PV_goes_into_alarm(self):
+        self.ca.assert_that_pv_is_number("THRESHOLD", 0.5)
+
+        self.ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY+2.0*CURR_LIMIT]*SAMPLE_LEN, wait=True, sleep_after_set=0.0)
+        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", [2.0*VOLT_UPPERLIM]*SAMPLE_LEN, wait=True, sleep_after_set=0.0)
+
+        self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.alarms.MAJOR)
