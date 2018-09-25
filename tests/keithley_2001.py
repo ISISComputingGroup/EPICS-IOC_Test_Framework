@@ -74,7 +74,12 @@ class TestedCommands(unittest.TestCase):
         self.ca.process_pv("BUFF:MODE")
         self.ca.assert_that_pv_is("BUFF:MODE", expected_buffer_control_mode)
 
-
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_size_is_250(self):
+        # Then:
+        expected_buffer_size = 250
+        self.ca.process_pv("BUFF:SIZE")
+        self.ca.assert_that_pv_is("BUFF:SIZE", expected_buffer_size)
 
 
 @setup_tests
@@ -86,14 +91,8 @@ class ScanStartUpTests(unittest.TestCase):
         initialization_mode = list(self._lewis.backdoor_get_from_device("initialization_mode"))
         self._lewis.assert_that_emulator_value_is(initialization_mode, "continuous")
 
-@setup_tests
-class BufferStartUpTests(unittest.TestCase):
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_size_is_1000(self):
-        # Then:
-        expected_buffer_size = 1000
-        self.ca.assert_that_pv_is("BUFF:SIZE", expected_buffer_size)
+# @setup_tests
+# class BufferStartUpTests(unittest.TestCase):
 
 
 @setup_tests
