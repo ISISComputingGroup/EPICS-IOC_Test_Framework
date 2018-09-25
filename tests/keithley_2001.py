@@ -23,7 +23,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 
 CHANNEL_LIST = [1, 2, 3, 4, 6, 7, 8, 9]
 
@@ -100,36 +100,36 @@ class BufferStartUpTests(unittest.TestCase):
         self.ca.process_pv("BUFF:EGROUP")
         self.ca.assert_that_pv_is("BUFF:EGROUP", expected_buffer_element_group)
 
+
 @setup_tests
 class ChannelSetupTests(unittest.TestCase):
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_with_no_channels_set_to_active_THEN_no_channels_are_set_to_scan(self):
+    def test_that_GIVEN_a_fresh_IOC_with_no_channels_set_to_active_THEN_the_IOC_is_in_IDLE_scan_mode(self):
         # Then:
-        expected_channels = "(@)"
-        self.ca.assert_that_pv_is("SCAN:CHAN:STATUS", expected_channels)
+        expected_mode = "IDLE"
+        self.ca.assert_that_pv_is("SCAN:MODE", expected_mode)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(self):
+    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_is_in_SINGLE_scan_mode(self):
         # Given:
         self.ca.set_pv_value("CHAN:01:ACTIVE", 1)
 
         # Then:
-        expected_channels = "1"
-        self.ca.assert_that_pv_is("SCAN:CHAN:STATUS", expected_channels)
+        expected_mode = "SINGLE"
+        self.ca.assert_that_pv_is("SCAN:MODE", expected_mode)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_with_first_four_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(
-            self):
+    def test_that_GIVEN_a_fresh_IOC_with_first_four_channels_set_to_active_THEN_the_IOC_is_in_MULTI_scan_mode(self):
         # Given:
-        expected_channels = [1, 2, 3, 4]
+        expected_channels = [1, 2, 3]
 
         for i in expected_channels:
             self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(i), 1)
 
         # Then:
-        expected_channels = "1,2,3,4"
-        self.ca.assert_that_pv_is("SCAN:CHAN:STATUS", expected_channels)
+        expected_mode = "MULTI"
+        self.ca.assert_that_pv_is("SCAN:MODE", expected_mode)
 
 
 @setup_tests
