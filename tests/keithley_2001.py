@@ -23,7 +23,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 CHANNEL_LIST = [1, 2, 3, 4, 6, 7, 8, 9]
 
@@ -38,7 +38,7 @@ setup_tests = add_method(setUp)
 
 
 @setup_tests
-class TestedCommands(unittest.TestCase):
+class BasicCommands(unittest.TestCase):
 
     def test_that_GIVEN_a_fresh_IOC_THEN_the_IDN_is_correct(self):
         expected_idn = "MODEL 2001,4301578,B17  /A02  "
@@ -52,6 +52,20 @@ class TestedCommands(unittest.TestCase):
         # Then:
         expected_read_back_elements = "READ, UNIT"
         self.ca.assert_that_pv_is("ELEMENTS", expected_read_back_elements)
+
+
+@setup_tests
+class ScanStartUpTests(unittest.TestCase):
+
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_scanning_continuous_mode_is_ON(self):
+        # Then:
+        expected_initialization_mode = "ON"
+        self.ca.process_pv("SCAN:CONT_MODE")
+        self.ca.assert_that_pv_is("SCAN:CONT_MODE", expected_initialization_mode)
+
+
+@setup_tests
+class BufferStartUpTests(unittest.TestCase):
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
@@ -74,34 +88,17 @@ class TestedCommands(unittest.TestCase):
         self.ca.process_pv("BUFF:MODE")
         self.ca.assert_that_pv_is("BUFF:MODE", expected_buffer_control_mode)
 
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_size_is_250(self):
         # Then:
         expected_buffer_size = 250
         self.ca.process_pv("BUFF:SIZE")
         self.ca.assert_that_pv_is("BUFF:SIZE", expected_buffer_size)
 
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_element_group_is_full(self):
         # Then:
         expected_buffer_element_group = "FULL"
         self.ca.process_pv("BUFF:EGROUP")
         self.ca.assert_that_pv_is("BUFF:EGROUP", expected_buffer_element_group)
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def test_that_GIVEN_a_fresh_IOC_THEN_the_scanning_continuous_mode_is_ON(self):
-        # Then:
-        expected_initialization_mode = "ON"
-        self.ca.process_pv("SCAN:CONT_MODE")
-        self.ca.assert_that_pv_is("SCAN:CONT_MODE", expected_initialization_mode)
-
-
-# @setup_tests
-# class ScanStartUpTests(unittest.TestCase):
-
-# @setup_tests
-# class BufferStartUpTests(unittest.TestCase):
-
 
 @setup_tests
 class ChannelSetupTests(unittest.TestCase):
