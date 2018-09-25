@@ -38,7 +38,7 @@ setup_tests = add_method(setUp)
 
 
 @setup_tests
-class BasicCommands(unittest.TestCase):
+class BasicCommandsTests(unittest.TestCase):
 
     def test_that_GIVEN_a_fresh_IOC_THEN_the_IDN_is_correct(self):
         expected_idn = "MODEL 2001,4301578,B17  /A02  "
