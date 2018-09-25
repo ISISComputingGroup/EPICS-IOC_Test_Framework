@@ -28,10 +28,16 @@ TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 CHANNEL_LIST = [1, 2, 3, 4, 6, 7, 8, 9]
 
 
+def _reset_channels(ca):
+    for channel in CHANNEL_LIST:
+        ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 0)
+
+
 def setUp(self):
     self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
     self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
     self.ca.assert_that_pv_exists("IDN")
+    _reset_channels(self.ca)
 
 
 setup_tests = add_method(setUp)
@@ -108,7 +114,7 @@ class ChannelSetupTests(unittest.TestCase):
     def test_that_GIVEN_a_fresh_IOC_with_no_channels_set_to_active_THEN_the_IOC_is_in_IDLE_scan_mode(self):
         # Then:
         expected_mode = "IDLE"
-        self.ca.assert_that_pv_is("SCAN:MODE", expected_mode)
+        self.ca.assert_that_pv_is("READ:MODE", expected_mode)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_is_in_SINGLE_scan_mode(self):
@@ -117,7 +123,7 @@ class ChannelSetupTests(unittest.TestCase):
 
         # Then:
         expected_mode = "SINGLE"
-        self.ca.assert_that_pv_is("SCAN:MODE", expected_mode)
+        self.ca.assert_that_pv_is("READ:MODE", expected_mode)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_with_first_four_channels_set_to_active_THEN_the_IOC_is_in_MULTI_scan_mode(self):
@@ -129,7 +135,7 @@ class ChannelSetupTests(unittest.TestCase):
 
         # Then:
         expected_mode = "MULTI"
-        self.ca.assert_that_pv_is("SCAN:MODE", expected_mode)
+        self.ca.assert_that_pv_is("READ:MODE", expected_mode)
 
 
 @setup_tests
