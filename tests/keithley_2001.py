@@ -1,5 +1,6 @@
 import ast
 import itertools
+from hamcrest import assert_that, is_
 from parameterized import parameterized
 import unittest
 import time
@@ -55,7 +56,16 @@ class TestedCommands(unittest.TestCase):
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
         # Then:
-        self._lewis.assert_that_emulator_value_is("number_of_times_buffer_has_been_cleared", "1")
+        number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
+            "get_number_of_times_buffer_has_been_cleared")[0]
+        assert_that(number_of_times_buffer_has_been_cleared, is_("1"))
+
+    @skip_if_recsim("Uses mbbi & mbbo records which do not play well with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_reads_raw_values(self):
+        # Then:
+        expected_buffer_source = "SENS1"
+        self.ca.process_pv("BUFF:SOURCE")
+        self.ca.assert_that_pv_is("BUFF:SOURCE", expected_buffer_source)
 
 
 @setup_tests
@@ -69,18 +79,6 @@ class ScanStartUpTests(unittest.TestCase):
 
 @setup_tests
 class BufferStartUpTests(unittest.TestCase):
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
-        # Then:
-        buffer_cleared = self._lewis.backdoor_get_from_device("buffer_cleared")
-        self._lewis.assert_that_emulator_value_is(buffer_cleared, True)
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_buffer_reads_raw_values(self):
-        # Then:
-        expected_buffer_source = "SENS"
-        self.ca.assert_that_pv_is("BUFF:SOURCE", expected_buffer_source)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def GIVEN_a_fresh_IOC_THEN_the_buffer_control_mode_is_set_to_always(self):
