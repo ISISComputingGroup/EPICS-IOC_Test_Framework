@@ -88,15 +88,16 @@ class TestedCommands(unittest.TestCase):
         self.ca.process_pv("BUFF:EGROUP")
         self.ca.assert_that_pv_is("BUFF:EGROUP", expected_buffer_element_group)
 
-
-@setup_tests
-class ScanStartUpTests(unittest.TestCase):
-
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def test_that_GIVEN_a_fresh_IOC_THEN_the_initialization_mode_is_set_to_continuous(self):
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_scanning_continuous_mode_is_ON(self):
         # Then:
-        initialization_mode = list(self._lewis.backdoor_get_from_device("initialization_mode"))
-        self._lewis.assert_that_emulator_value_is(initialization_mode, "continuous")
+        expected_initialization_mode = "ON"
+        self.ca.process_pv("SCAN:CONT_MODE")
+        self.ca.assert_that_pv_is("SCAN:CONT_MODE", expected_initialization_mode)
+
+
+# @setup_tests
+# class ScanStartUpTests(unittest.TestCase):
 
 # @setup_tests
 # class BufferStartUpTests(unittest.TestCase):
@@ -115,7 +116,6 @@ class ChannelSetupTests(unittest.TestCase):
     def GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_only_the_active_channels_are_set_to_scan(self):
         # Given:
         self.ca.set_pv_value("CHAN:01:ACTIVE", 1)
-        self.ca.process_pv("startup")
 
         # Then:
         expected_channels = "1"
@@ -129,7 +129,6 @@ class ChannelSetupTests(unittest.TestCase):
 
         for i in expected_channels:
             self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(i), 1)
-        self.ca.process_pv("startup")
 
         # Then:
         expected_channels = "1,2,3,4"
