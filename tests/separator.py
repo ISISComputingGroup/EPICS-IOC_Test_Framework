@@ -1,8 +1,12 @@
+from __future__ import division
+from parameterized import parameterized
 import unittest
+
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
+from utils.testing import parameterized_list
 from parameterized import parameterized
 from time import clock, sleep
 
@@ -13,8 +17,10 @@ DAQ = "DAQ"
 MAX_DAQ_VOLT = 10.
 MAX_SEPARATOR_VOLT = 200.
 MAX_SEPARATOR_CURR = 2.5
-DAQ_VOLT_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_VOLT
-DAQ_CURR_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_CURR
+DAQ_VOLT_WRITE_SCALE_FACTOR = MAX_DAQ_VOLT /MAX_SEPARATOR_VOLT
+DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
+
+MARGIN_OF_ERROR = 1e-5
 
 # Voltage and current stability limits
 
@@ -136,6 +142,9 @@ class PowerStatusTests(unittest.TestCase):
 
 
 class VoltageTests(unittest.TestCase):
+    voltage_values = [0, 10.1111111, 10e1, 20e-2, 200]
+    voltage_out_of_bounds_values = [-50, 250]
+
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         self.ca.set_pv_value("VOLT:SP", 0)
@@ -148,13 +157,22 @@ class VoltageTests(unittest.TestCase):
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 20.)
         # THEN
-        self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_SCALE_FACTOR)
+        self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_WRITE_SCALE_FACTOR)
 
-    def test_WHEN_set_THEN_the_voltage_changes(self):
+    @parameterized.expand(parameterized_list(voltage_values))
+    def test_WHEN_set_THEN_the_voltage_changes(self, _, value):
         # WHEN
-        self.ca.set_pv_value("VOLT:SP", 50.)
+        self.ca.set_pv_value("VOLT:SP", value)
         # THEN
-        self.ca.assert_that_pv_is("VOLT", 50.)
+        self.ca.assert_that_pv_is_number("VOLT", value, MARGIN_OF_ERROR)
+
+    @parameterized.expand(parameterized_list(voltage_out_of_bounds_values))
+    def test_WHEN_voltage_out_of_range_THEN_alarm_raised(self, _, value):
+        # WHEN
+        self.ca.set_pv_value("{}:VOLT:SP:DATA".format(DAQ), value * DAQ_VOLT_WRITE_SCALE_FACTOR)
+        self.ca.assert_that_pv_is("VOLT", value)
+        # THEN
+        self.ca.assert_that_pv_alarm_is("VOLT", ChannelAccess.Alarms.MINOR)
 
     def test_GIVEN_voltage_in_range_WHEN_setpoint_goes_above_range_THEN_setpoint_max(self):
         # GIVEN
@@ -173,6 +191,25 @@ class VoltageTests(unittest.TestCase):
         self.ca.set_pv_value("VOLT:SP", -50)
         # THEN
         self.ca.assert_that_pv_is("VOLT", 0)
+
+
+class CurrentTests(unittest.TestCase):
+    current_values = [0, 1.33333, 5e1, 10e-3, 10]
+
+    def _simulate_current(self, current):
+        curr_array = [current] * 1000
+        self.ca.set_pv_value("{}:CURR:WV:SIM".format(DAQ), curr_array)
+
+    def setUp(self):
+        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        self._simulate_current(0)
+        self.ca.assert_that_pv_is("CURR", 0)
+
+    @parameterized.expand(parameterized_list(current_values))
+    def test_GIVEN_current_value_THEN_calibrated_current_readback_changes(self, _, value):
+        # GIVEN
+        self._simulate_current(value)
+        self.ca.assert_that_pv_is_number("CURR", value * DAQ_CURR_READ_SCALE_FACTOR, MARGIN_OF_ERROR)
 
 
 class SepLogicTests(unittest.TestCase):
