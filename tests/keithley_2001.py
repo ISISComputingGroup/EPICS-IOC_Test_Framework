@@ -67,6 +67,15 @@ class TestedCommands(unittest.TestCase):
         self.ca.process_pv("BUFF:SOURCE")
         self.ca.assert_that_pv_is("BUFF:SOURCE", expected_buffer_source)
 
+    @skip_if_recsim("Uses mbbi & mbbo records which do not play well with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_control_mode_is_set_to_always(self):
+        # Then:
+        expected_buffer_control_mode = "ALW"
+        self.ca.process_pv("BUFF:MODE")
+        self.ca.assert_that_pv_is("BUFF:MODE", expected_buffer_control_mode)
+
+
+
 
 @setup_tests
 class ScanStartUpTests(unittest.TestCase):
@@ -81,13 +90,7 @@ class ScanStartUpTests(unittest.TestCase):
 class BufferStartUpTests(unittest.TestCase):
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_buffer_control_mode_is_set_to_always(self):
-        # Then:
-        expected_buffer_control_mode = "ALWAYS"
-        self.ca.assert_that_pv_is("BUFF:CNTRL:STATUS", expected_buffer_control_mode)
-
-    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def GIVEN_a_fresh_IOC_THEN_the_buffer_size_is_1000(self):
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_size_is_1000(self):
         # Then:
         expected_buffer_size = 1000
         self.ca.assert_that_pv_is("BUFF:SIZE", expected_buffer_size)
