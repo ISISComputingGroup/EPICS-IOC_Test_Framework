@@ -81,6 +81,13 @@ class TestedCommands(unittest.TestCase):
         self.ca.process_pv("BUFF:SIZE")
         self.ca.assert_that_pv_is("BUFF:SIZE", expected_buffer_size)
 
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_element_group_is_full(self):
+        # Then:
+        expected_buffer_element_group = "FULL"
+        self.ca.process_pv("BUFF:EGROUP")
+        self.ca.assert_that_pv_is("BUFF:EGROUP", expected_buffer_element_group)
+
 
 @setup_tests
 class ScanStartUpTests(unittest.TestCase):
