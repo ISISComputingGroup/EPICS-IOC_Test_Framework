@@ -126,6 +126,15 @@ class ChannelSetupTests(unittest.TestCase):
         self.ca.assert_that_pv_is("READ:MODE", expected_mode)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_scans_on_that_channel(self):
+        # Given:
+        self.ca.set_pv_value("CHAN:01:ACTIVE", 1)
+
+        # Then:
+        expected_channel = "1"
+        self.ca.assert_that_pv_is("READ:CHANNELS", expected_channel)
+
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_with_first_four_channels_set_to_active_THEN_the_IOC_is_in_MULTI_scan_mode(self):
         # Given:
         expected_channels = [1, 2, 3]
