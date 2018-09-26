@@ -47,6 +47,7 @@ class PowerStatusTests(unittest.TestCase):
         # asserted in setUp
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 100)
+
         # THEN
         self.ca.assert_that_pv_is("POWER:STAT", "ON")
 
@@ -55,8 +56,10 @@ class PowerStatusTests(unittest.TestCase):
         self.ca.set_pv_value("VOLT:SP", 10)
         self.ca.assert_that_pv_is("VOLT", 10)
         self.ca.assert_that_pv_is("POWER:STAT", "ON")
+
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 0)
+
         # THEN
         self.ca.assert_that_pv_is("POWER:STAT", "OFF")
 
@@ -64,6 +67,8 @@ class PowerStatusTests(unittest.TestCase):
 class VoltageTests(unittest.TestCase):
     voltage_values = [0, 10.1111111, 10e1, 20e-2, 200]
     voltage_out_of_bounds_values = [-50, 250]
+    MAX_VOLTAGE = 200
+    MIN_VOLTAGE = 0
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
@@ -74,8 +79,10 @@ class VoltageTests(unittest.TestCase):
         # GIVEN
         self.ca.set_pv_value("{}:VOLT:SIM".format(DAQ), 0)
         self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 0)
+
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 20.)
+
         # THEN
         self.ca.assert_that_pv_is("{}:VOLT:SP:DATA".format(DAQ), 20. * DAQ_VOLT_WRITE_SCALE_FACTOR)
 
@@ -83,6 +90,7 @@ class VoltageTests(unittest.TestCase):
     def test_WHEN_set_THEN_the_voltage_changes(self, _, value):
         # WHEN
         self.ca.set_pv_value("VOLT:SP", value)
+
         # THEN
         self.ca.assert_that_pv_is_number("VOLT", value, MARGIN_OF_ERROR)
 
@@ -91,26 +99,33 @@ class VoltageTests(unittest.TestCase):
         # WHEN
         self.ca.set_pv_value("{}:VOLT:SP:DATA".format(DAQ), value * DAQ_VOLT_WRITE_SCALE_FACTOR)
         self.ca.assert_that_pv_is("VOLT", value)
+
         # THEN
         self.ca.assert_that_pv_alarm_is("VOLT", ChannelAccess.Alarms.MINOR)
 
-    def test_GIVEN_voltage_in_range_WHEN_setpoint_goes_above_range_THEN_setpoint_max(self):
+    def test_that_GIVEN_voltage_in_range_WHEN_setpoint_is_above_range_THEN_setpoint_is_set_to_max_value(self):
         # GIVEN
         self.ca.set_pv_value("VOLT:SP", 30)
         self.ca.assert_that_pv_is("VOLT", 30)
+
         # WHEN
         self.ca.set_pv_value("VOLT:SP", 215.)
-        # THEN
-        self.ca.assert_that_pv_is("VOLT", 200)
 
-    def test_GIVEN_voltage_in_range_WHEN_setpoint_goes_above_range_THEN_setpoint_min(self):
+        # THEN
+        self.ca.assert_that_pv_is("VOLT:SP", VoltageTests.MAX_VOLTAGE)
+        self.ca.assert_that_pv_is("VOLT", VoltageTests.MAX_VOLTAGE)
+
+    def test_that_GIVEN_voltage_in_range_WHEN_setpoint_is_below_range_THEN_setpoint_is_set_to_min_value(self):
         # GIVEN
         self.ca.set_pv_value("VOLT:SP", 30)
         self.ca.assert_that_pv_is("VOLT", 30)
+
         # WHEN
         self.ca.set_pv_value("VOLT:SP", -50)
+
         # THEN
-        self.ca.assert_that_pv_is("VOLT", 0)
+        self.ca.assert_that_pv_is("VOLT", VoltageTests.MIN_VOLTAGE)
+        self.ca.assert_that_pv_is("VOLT:SP", VoltageTests.MIN_VOLTAGE)
 
 
 class CurrentTests(unittest.TestCase):
