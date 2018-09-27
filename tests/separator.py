@@ -2,12 +2,10 @@ from __future__ import division
 from parameterized import parameterized
 import unittest
 
-
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
-
 
 DEVICE_PREFIX = "SEPRTR_01"
 
@@ -29,11 +27,7 @@ IOCS = [
     },
 ]
 
-
 TEST_MODES = [TestModes.RECSIM]
-
-# Note that it is difficult to test the Current readback in Recsim because it is only a readback value, and relates
-# closely to the voltage.
 
 
 class PowerStatusTests(unittest.TestCase):
