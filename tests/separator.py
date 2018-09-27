@@ -129,11 +129,13 @@ class VoltageTests(unittest.TestCase):
 
 
 class CurrentTests(unittest.TestCase):
+    # These current testing values are uncalibrated values from the DAQ lying between 0 and 10.
     current_values = [0, 1.33333, 5e1, 10e-3, 10]
+    current_values_which_give_alarms = [-2, 0, 10, 11]
 
     def _simulate_current(self, current):
         curr_array = [current] * 1000
-        self.ca.set_pv_value("{}:CURR:WV:SIM".format(DAQ), curr_array)
+        self.ca.set_pv_value("DAQ:CURR:WV:SIM", curr_array)
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
@@ -145,3 +147,11 @@ class CurrentTests(unittest.TestCase):
         # GIVEN
         self._simulate_current(value)
         self.ca.assert_that_pv_is_number("CURR", value * DAQ_CURR_READ_SCALE_FACTOR, MARGIN_OF_ERROR)
+
+    @parameterized.expand(parameterized_list(current_values_which_give_alarms))
+    def test_that_WHEN_current_is_out_of_range_THEN_alarm_raised(self, _, value):
+        # WHEN
+        self._simulate_current(value)
+
+        # THEN
+        self.ca.assert_that_pv_alarm_is("CURR", ChannelAccess.Alarms.MAJOR)
