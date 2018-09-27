@@ -1,16 +1,13 @@
 from __future__ import division
 from parameterized import parameterized
 import unittest
-
+from time import clock, sleep
+import threading
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
-from parameterized import parameterized
-from time import clock, sleep
-
-import threading
 
 DEVICE_PREFIX = "SEPRTR_01"
 DAQ = "DAQ"
@@ -23,7 +20,6 @@ DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
 MARGIN_OF_ERROR = 1e-5
 
 # Voltage and current stability limits
-
 VOLT_LOWERLIM = 4.0
 VOLT_UPPERLIM = 6.0
 
@@ -232,6 +228,8 @@ class SepLogicTests(unittest.TestCase):
         self.ca.set_pv_value("_VOLTCALIBCONST", 1.0)
         self.ca.set_pv_value("_CURRCALIBCONST", 1.0)
 
+        self.ca.set_pv_value("THRESHOLD", 0.5)
+
         self.STOP_DATA_THREAD.set()
 
     def evaluate_current_instability(self, current_values):
@@ -274,7 +272,7 @@ class SepLogicTests(unittest.TestCase):
             voltage_values: Array of input voltage values
 
         Returns:
-            no_out_of_range: Integer, the number of samples in the dataset which are out of range
+            out_of_range_count: Integer, the number of samples in the dataset which are out of range
 
         """
 
@@ -283,9 +281,9 @@ class SepLogicTests(unittest.TestCase):
 
         overall_instability = [curr | volt for curr, volt in zip(current_instability, voltage_instability)]
 
-        no_out_of_range = sum(overall_instability)
+        out_of_range_count = sum(overall_instability)
 
-        return no_out_of_range
+        return out_of_range_count
 
     @parameterized.expand([
         ("steady_current_steady_voltage", [CURR_STEADY]*SAMPLE_LEN, [VOLT_STEADY]*SAMPLE_LEN),
@@ -342,13 +340,13 @@ class SepLogicTests(unittest.TestCase):
             self.ca.set_pv_value("DAQ:CURR:WV:SIM", CURRENT_DATA, wait=True, sleep_after_set=0.0)
             self.ca.set_pv_value("DAQ:VOLT:WV:SIM", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
 
-        self.ca.assert_that_pv_is_number("STABILITY", expected_out_of_range_samples)
+        self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples)
 
         # WHEN
         self.ca.set_pv_value("RESETWINDOW", 1)
 
         # THEN
-        self.ca.assert_that_pv_is_number("STABILITY", 0)
+        self.ca.assert_that_pv_is_number("UNSTABLETIME", 0)
 
     def test_GIVEN_full_buffer_WHEN_more_data_added_to_buffer_THEN_oldest_values_overwritten(self):
         length_of_buffer = 600
@@ -364,14 +362,14 @@ class SepLogicTests(unittest.TestCase):
             self.ca.set_pv_value("_COUNTERTIMING.PROC", 1, wait=True, sleep_after_set=0.0)
 
         # GIVEN
-        self.ca.assert_that_pv_is_number("STABILITY", length_of_buffer)
+        self.ca.assert_that_pv_is_number("UNSTABLETIME", length_of_buffer)
 
         # WHEN
         self.ca.set_pv_value("_ADDCOUNTS", testvalue/SAMPLETIME, wait=True, sleep_after_set=0.0)
         self.ca.set_pv_value("_COUNTERTIMING.PROC", 1, wait=True, sleep_after_set=0.0)
 
         # THEN
-        self.ca.assert_that_pv_is_number("STABILITY", (length_of_buffer-1.)+testvalue)
+        self.ca.assert_that_pv_is_number("UNSTABLETIME", (length_of_buffer-1.)+testvalue)
 
     def test_GIVEN_input_data_over_several_seconds_WHEN_stability_PV_read_THEN_all_unstable_time_counted(self):
         # This number needs to be large enough to write over several seconds. Writing over multiple seconds is asserted.
@@ -388,16 +386,14 @@ class SepLogicTests(unittest.TestCase):
 
         processtime = clock() - time1
         self.assertGreater(processtime, 1.)
-        self.ca.assert_that_pv_is_number("STABILITY", expected_out_of_range_samples,
+        self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
 
-    def test_GIVEN_stability_threshold_WHEN_threshold_exceeded_THEN_unstable_PV_turned_on(self):
-        self.ca.assert_that_pv_is("STABILITY", "UNSTABLE")
-
-    def test_GIVEN_limit_on_total_seconds_out_of_stability_WHEN_threshold_exceeded_THEN_stability_PV_goes_into_alarm(self):
+    def test_GIVEN_stability_threshold_WHEN_threshold_exceeded_THEN_stability_PV_equals_zero_and_goes_into_alarm(self):
         self.ca.assert_that_pv_is_number("THRESHOLD", 0.5)
 
         self.ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY+2.0*CURR_LIMIT]*SAMPLE_LEN, wait=True, sleep_after_set=0.0)
         self.ca.set_pv_value("DAQ:VOLT:WV:SIM", [2.0*VOLT_UPPERLIM]*SAMPLE_LEN, wait=True, sleep_after_set=0.0)
 
-        self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.alarms.MAJOR)
+        self.ca.assert_that_pv_is_number("STABILITY", 0, tolerance=0.1)
+        self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.Alarms.MAJOR)
