@@ -47,6 +47,78 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM]
 
+#CA = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+
+
+def power_status_set_up(ca):
+    ca.set_pv_value("VOLT:SP", 0)
+    ca.assert_that_pv_is_number("VOLT:SP", 0, tolerance=1e-3)
+    #ca.assert_that_pv_is("POWER:STAT", "OFF")
+
+
+def voltage_set_up(ca):
+    ca.set_pv_value("VOLT:SP", 0)
+    ca.assert_that_pv_is_number("VOLT:SP", 0, tolerance=1e-3)
+    ca.set_pv_value("DAQ:VOLT:SIM", 0)
+    ca.assert_that_pv_is_number("DAQ:VOLT:SIM", 0, tolerance=1e-3)
+    ca.set_pv_value("DAQ:VOLT:SP:DATA", 0)
+    ca.assert_that_pv_is_number("DAQ:VOLT:SP:DATA", 0, tolerance=1e-3)
+
+    ca.assert_that_pv_is_number("VOLT", 0, tolerance=1e-3)
+
+
+def current_set_up(ca):
+    ca.set_pv_value("DAQ:CURR:WV:SIM", 0)
+    ca.assert_that_pv_is_number("CURR", 0, tolerance=1e-3)
+
+
+def stability_set_up(ca):
+    ca.set_pv_value("DAQ:VOLT:WV:SIM", [VOLT_STEADY] * SAMPLE_LEN)
+    ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY] * SAMPLE_LEN)
+
+    ca.set_pv_value("STABILITY", 0)
+    ca.assert_that_pv_is_number("STABILITY", 0, tolerance=1e-3)
+
+    ca.set_pv_value("WINDOWSIZE", 600)
+    ca.assert_that_pv_is_number("WINDOWSIZE", 600, tolerance=1e-3)
+
+    ca.set_pv_value("RESETWINDOW", 1)
+
+    ca.set_pv_value("_ADDCOUNTS", 0)
+    ca.assert_that_pv_is_number("_ADDCOUNTS", 0, tolerance=1e-3)
+
+    ca.set_pv_value("SAMPLETIME", SAMPLETIME)
+    ca.assert_that_pv_is_number("SAMPLETIME", SAMPLETIME)
+
+    ca.set_pv_value("_COUNTERTIMING.SCAN", "1 second")
+    ca.assert_that_pv_is("_COUNTERTIMING.SCAN", "1 second")
+
+    ca.set_pv_value("_VOLTCALIBCONST", 1.0)
+    ca.assert_that_pv_is_number("_VOLTCALIBCONST", 1.0, tolerance=1e-3)
+
+    ca.set_pv_value("_CURRCALIBCONST", 1.0)
+    ca.assert_that_pv_is_number("_CURRCALIBCONST", 1.0, tolerance=1e-3)
+
+    ca.set_pv_value("THRESHOLD", 0.5)
+    ca.assert_that_pv_is_number("THRESHOLD", 0.5, tolerance=1e-3)
+
+    #STOP_DATA_THREAD.set()
+
+
+def shared_setup(ca):
+    """
+    Performs initialisation before each test to ensure test independence.
+
+    Returns:
+    None
+    """
+    power_status_set_up(ca)
+    voltage_set_up(ca)
+    current_set_up(ca)
+    #stability_set_up(ca)
+
+    return None
+
 
 def stream_data(ca, n_repeat, curr, volt, stop_event):
     """
@@ -114,9 +186,11 @@ VOLTAGE_DATA = simulate_voltage_data()
 class PowerStatusTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self.ca.set_pv_value("VOLT:SP", 0)
-        self.ca.assert_that_pv_is("VOLT:SP", 0)
-        self.ca.assert_that_pv_is("POWER:STAT", "OFF")
+        shared_setup(self.ca)
+
+#        self.ca.set_pv_value("VOLT:SP", 0)
+#        self.ca.assert_that_pv_is("VOLT:SP", 0)
+#        self.ca.assert_that_pv_is("POWER:STAT", "OFF")
 
     def test_GIVEN_psu_off_WHEN_voltage_setpoint_changed_higher_than_threshold_THEN_psu_status_changes_on(self):
         # GIVEN
@@ -143,8 +217,10 @@ class VoltageTests(unittest.TestCase):
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        self.ca.set_pv_value("VOLT:SP", 0)
-        self.ca.assert_that_pv_is("VOLT:SP", 0)
+        shared_setup(self.ca)
+
+#        self.ca.set_pv_value("VOLT:SP", 0)
+#        self.ca.assert_that_pv_is("VOLT:SP", 0)
 
     def test_GIVEN_sim_val_0_and_data_0_WHEN_voltage_set_point_changed_THEN_data_changed(self):
         # GIVEN
@@ -192,14 +268,20 @@ class VoltageTests(unittest.TestCase):
 class CurrentTests(unittest.TestCase):
     current_values = [0, 1.33333, 5e1, 10e-3, 10]
 
-    def _simulate_current(self, current):
-        curr_array = [current] * 1000
-        self.ca.set_pv_value("{}:CURR:WV:SIM".format(DAQ), curr_array)
-
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+        shared_setup(self.ca)
         self._simulate_current(0)
-        self.ca.assert_that_pv_is("CURR", 0)
+
+    def _simulate_current(self, current):
+        curr_array = [current] * 1000
+        #self.ca.set_pv_value("{}:CURR:WV:SIM".format(DAQ), curr_array)
+        self.ca.set_pv_value("DAQ:CURR:_RAW", curr_array)
+
+#    def setUp(self):
+#        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+#        self._simulate_current(0)
+#        self.ca.assert_that_pv_is("CURR", 0)
 
     @parameterized.expand(parameterized_list(current_values))
     def test_GIVEN_current_value_THEN_calibrated_current_readback_changes(self, _, value):
@@ -213,24 +295,30 @@ class SepLogicTests(unittest.TestCase):
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-
-        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", [VOLT_STEADY] * SAMPLE_LEN)
-        self.ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY] * SAMPLE_LEN)
-
-        self.ca.set_pv_value("STABILITY", 0)
-        self.ca.set_pv_value("RESETWINDOW", 1)
-        self.ca.set_pv_value("_ADDCOUNTS", 0)
-
-        self.ca.set_pv_value("SAMPLETIME", SAMPLETIME)
-
-        self.ca.set_pv_value("_COUNTERTIMING.SCAN", "1 second")
-
-        self.ca.set_pv_value("_VOLTCALIBCONST", 1.0)
-        self.ca.set_pv_value("_CURRCALIBCONST", 1.0)
-
-        self.ca.set_pv_value("THRESHOLD", 0.5)
-
+        shared_setup(self.ca)
         self.STOP_DATA_THREAD.set()
+
+#    def setUp(self):
+#        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+#
+#        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", [VOLT_STEADY] * SAMPLE_LEN)
+#        self.ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY] * SAMPLE_LEN)
+#
+#        self.ca.set_pv_value("STABILITY", 0)
+#        self.ca.set_pv_value("WINDOWSIZE", 600)
+#        self.ca.set_pv_value("RESETWINDOW", 1)
+#        self.ca.set_pv_value("_ADDCOUNTS", 0)
+#
+#        self.ca.set_pv_value("SAMPLETIME", SAMPLETIME)
+#
+#        self.ca.set_pv_value("_COUNTERTIMING.SCAN", "1 second")
+#
+#        self.ca.set_pv_value("_VOLTCALIBCONST", 1.0)
+#        self.ca.set_pv_value("_CURRCALIBCONST", 1.0)
+#
+#        self.ca.set_pv_value("THRESHOLD", 0.5)
+#
+#        self.STOP_DATA_THREAD.set()
 
     def evaluate_current_instability(self, current_values):
         """
@@ -349,10 +437,12 @@ class SepLogicTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("UNSTABLETIME", 0)
 
     def test_GIVEN_full_buffer_WHEN_more_data_added_to_buffer_THEN_oldest_values_overwritten(self):
-        length_of_buffer = 600
+        length_of_buffer = 10
         testvalue = 50.0
 
         self.assertNotEqual(testvalue, 1.0)
+
+        self.ca.set_pv_value("WINDOWSIZE", length_of_buffer)
 
         self.ca.set_pv_value("_COUNTERTIMING.SCAN", "Passive")
 
