@@ -125,14 +125,16 @@ class ChannelSetupTests(unittest.TestCase):
         expected_mode = "SINGLE"
         self.ca.assert_that_pv_is("READ:MODE", expected_mode)
 
+    @parameterized.expand(parameterized_list(CHANNEL_LIST))
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_scans_on_that_channel(self):
+    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_scans_on_that_channel(
+        self, _, channel):
         # Given:
-        self.ca.set_pv_value("CHAN:01:ACTIVE", 1)
+        self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
 
         # Then:
-        expected_channel = "1"
-        self.ca.assert_that_pv_is("READ:CHANNELS", expected_channel)
+        expected_channel = "{}".format(channel)
+        self.ca.assert_that_pv_is("READ:SINGLE:SP", expected_channel)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_with_first_four_channels_set_to_active_THEN_the_IOC_is_in_MULTI_scan_mode(self):
@@ -145,6 +147,37 @@ class ChannelSetupTests(unittest.TestCase):
         # Then:
         expected_mode = "MULTI"
         self.ca.assert_that_pv_is("READ:MODE", expected_mode)
+
+
+@setup_tests
+class SingleChannelReadingTests(unittest.TestCase):
+
+    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_reads_the_correct_value(
+            self, _, channel):
+        # Given:
+        expected_value = 9.84412
+        channel_pv_root = "CHAN:0{}".format(channel)
+        self.ca.set_pv_value("{}:ACTIVE".format(channel_pv_root), 1)
+        self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
+
+        # Then:
+        self.ca.assert_that_pv_is("{}:READ".format(channel_pv_root), expected_value)
+
+    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
+    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_reads_the_correct_units(
+            self, _, channel):
+        # Given:
+        expected_value = 9.2
+        channel_pv_root = "CHAN:0{}".format(channel)
+        self.ca.set_pv_value("{}:ACTIVE".format(channel_pv_root), 1)
+        self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
+
+        # Then:
+        expected_unit = "VDC"
+        self.ca.assert_that_pv_is("{}:UNIT".format(channel_pv_root), expected_unit)
 
 
 @setup_tests
