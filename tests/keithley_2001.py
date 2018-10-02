@@ -1,6 +1,4 @@
-import ast
-import itertools
-from hamcrest import assert_that, is_
+from hamcrest import assert_that, is_, greater_than
 from parameterized import parameterized
 import unittest
 import time
@@ -214,6 +212,31 @@ class BufferSetupTests(unittest.TestCase):
         # Then:
         self.ca.process_pv("SCAN:MEAS:COUNT")
         self.ca.assert_that_pv_is("SCAN:MEAS:COUNT", len(channels))
+
+    def test_that_GIVEN_IOC_in_scan_mode_THEN_buffer_mode_is_set_to_stop_when_the_buffer_is_full(self):
+        channels = (1, 2)
+
+        # Given:
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+
+        # Then:
+        expected_value = "NEXT"
+        self.ca.process_pv("BUFF:MODE")
+        self.ca.assert_that_pv_is("BUFF:MODE", expected_value)
+
+    def test_that_GIVEN_IOC_in_scan_mode_THEN_buffer_is_cleared_before_reading(self):
+        channels = (1, 2)
+
+        # Given:
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+
+        # Then:
+        number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
+            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0]
+        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than("1")))
+
 
 
 @setup_tests
