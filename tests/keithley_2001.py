@@ -104,6 +104,12 @@ class InitTests(unittest.TestCase):
         self.ca.process_pv("STAT:SERVICE_REQEST")
         self.ca.assert_that_pv_is("STAT:SERVICE_REQEST", 1)
 
+    @skip_if_recsim("Cannot simulate records of different types")
+    def test_that_GIVEN_a_fresh_ioc_THEN_scan_layer_is_set_to_scan_once(self):
+        # Then:
+        self.ca.process_pv("SCAN:COUNT")
+        self.ca.assert_that_pv_is("SCAN:COUNT", 1)
+
 
 @setup_tests
 class ChannelSetupTests(unittest.TestCase):
