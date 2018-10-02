@@ -113,8 +113,8 @@ class InitTests(unittest.TestCase):
     @skip_if_recsim("Cannot simulate records of different types")
     def test_that_GIVEN_a_fresh_ioc_THEN_scan_trigger_is_set_to_immediate(self):
         # Then:
-        self.ca.process_pv("SCAN:TRIG")
-        self.ca.assert_that_pv_is("SCAN:TRIG", "IMM")
+        self.ca.process_pv("SCAN:TRIG:SOURCE")
+        self.ca.assert_that_pv_is("SCAN:TRIG:SOURCE", "IMM")
 
 
 @setup_tests
@@ -191,21 +191,29 @@ class SingleChannelReadingTests(unittest.TestCase):
 
 
 @setup_tests
-class BufferReadingTests(unittest.TestCase):
+class BufferSetupTests(unittest.TestCase):
 
-    def test_that_GIVEN_a_fresh_IOC_with_two_channels_set_to_active_THEN_the_IOC_reads_the_buffer(
-            self):
+    def test_that_GIVEN_two_active_channels_THEN_the_IOC_sets_the_buffer_size_to_2(self):
         channels = (1, 2)
 
         # Given:
-        expected_values = (9.2, 8.3)
-        for channel, expected_value in zip(channels, expected_values):
+        for channel in channels:
             self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
-            self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
 
-        expected_value = ""
         # Then:
-        self.ca.assert_that_pv_is("READ:BUFFER", expected_value)
+        self.ca.process_pv("BUFF:SIZE")
+        self.ca.assert_that_pv_is("BUFF:SIZE", len(channels))
+
+    def test_that_GIVEN_two_active_channels_THEN_the_measurement_scan_count_is_set_to_2(self):
+        channels = (1, 2)
+
+        # Given:
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+
+        # Then:
+        self.ca.process_pv("SCAN:MEAS:COUNT")
+        self.ca.assert_that_pv_is("SCAN:MEAS:COUNT", len(channels))
 
 
 @setup_tests
@@ -224,8 +232,6 @@ class MultiChannelReadingTests(unittest.TestCase):
         # Then:
         for channel, expected_value in zip(channels, expected_values):
             self.ca.assert_that_pv_is("CHAN:0{}:READ".format(channel), expected_value)
-
-
 
 
 @setup_tests
