@@ -1,4 +1,4 @@
-from hamcrest import assert_that, is_, greater_than
+from hamcrest import assert_that, is_, greater_than, equal_to
 from parameterized import parameterized
 import unittest
 import time
@@ -113,7 +113,6 @@ class InitTests(unittest.TestCase):
         # Then:
         self.ca.process_pv("SCAN:TRIG:SOURCE")
         self.ca.assert_that_pv_is("SCAN:TRIG:SOURCE", "IMM")
-
 
 
 @setup_tests
@@ -238,7 +237,7 @@ class ScanningSetupTests(unittest.TestCase):
             "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0]
         assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than("1")))
 
-    def test_that_GIVEN_IOC_with_three_active_channels_THEN_the_IOC_sets_the_device_to_scan_on_those_three_channels(self):
+    def test_that_GIVEN_IOC_with_three_active_channels_THEN_the_IOC_creates_the_correct_string_to_send_to_the_device(self):
         # Given:
         channels = (1, 2, 6)
         for channel in channels:
@@ -249,7 +248,7 @@ class ScanningSetupTests(unittest.TestCase):
         expected_channel_string = "1,2,6"
         self.ca.assert_that_pv_is("READ:CHAN:SP", expected_channel_string)
 
-    def test_that_GIVEN_IOC_with_ten_active_channels_THEN_the_IOC_sets_the_device_to_scan_on_all_channels(self):
+    def test_that_GIVEN_IOC_with_ten_active_channels_THEN_the_IOC_creates_the_correct_string_to_send_to_the_device(self):
         # Given:
         for channel in CHANNEL_LIST:
             self.ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
@@ -258,6 +257,19 @@ class ScanningSetupTests(unittest.TestCase):
         # Then:
         expected_channel_string = "1,2,3,4,5,6,7,8,9,10"
         self.ca.assert_that_pv_is("READ:CHAN:SP", expected_channel_string)
+
+    def test_that_GIVEN_IOC_with_three_active_channels_THEN_the_IOC_sets_the_device_to_scan_on_those_three_channels(self):
+        # Given:
+        channels = (1, 2, 6)
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+            self.ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+
+        # Then:
+        scanning_channels = self._lewis.backdoor_run_function_on_device(
+            "get_scan_channels_via_the_backdoor")[0].split(",")
+        expected_value = ["1", "2", "6"]
+        assert_that(scanning_channels, is_(equal_to(expected_value)))
 
 
 @setup_tests
