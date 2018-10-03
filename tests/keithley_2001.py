@@ -23,12 +23,12 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 
-CHANNEL_LIST = [1, 2, 3, 4, 6, 7, 8, 9]
+CHANNEL_LIST = range(1, 11)
 
 
 def _reset_channels(ca):
     for channel in CHANNEL_LIST:
-        ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 0)
+        ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 0)
 
 
 def setUp(self):
@@ -115,6 +115,7 @@ class InitTests(unittest.TestCase):
         self.ca.assert_that_pv_is("SCAN:TRIG:SOURCE", "IMM")
 
 
+
 @setup_tests
 class ChannelSetupTests(unittest.TestCase):
 
@@ -139,47 +140,47 @@ class ChannelSetupTests(unittest.TestCase):
         expected_channels = [1, 2, 3]
 
         for i in expected_channels:
-            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(i), 1)
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(i), 1)
 
         # Then:
         expected_mode = "MULTI"
         self.ca.assert_that_pv_is("READ:MODE", expected_mode)
 
-    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @parameterized.expand(parameterized_list(range(1, 11)))
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_scans_on_that_channel(
             self, _, channel):
         # Given:
-        self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+        self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
 
         # Then:
         expected_channel = "{}".format(channel)
-        self.ca.assert_that_pv_is("READ:SINGLE:SP", expected_channel)
+        self.ca.assert_that_pv_is("READ:CHAN:SP", expected_channel)
 
 
 @setup_tests
 class SingleChannelReadingTests(unittest.TestCase):
 
-    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @parameterized.expand(parameterized_list(range(1, 11)))
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_reads_the_correct_value(
             self, _, channel):
         # Given:
         expected_value = 9.84412
-        channel_pv_root = "CHAN:0{}".format(channel)
+        channel_pv_root = "CHAN:{:02d}".format(channel)
         self.ca.set_pv_value("{}:ACTIVE".format(channel_pv_root), 1)
         self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
 
         # Then:
         self.ca.assert_that_pv_is("{}:READ".format(channel_pv_root), expected_value)
 
-    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @parameterized.expand(parameterized_list(range(1, 11)))
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_reads_the_correct_units(
             self, _, channel):
         # Given:
         expected_value = 9.2
-        channel_pv_root = "CHAN:0{}".format(channel)
+        channel_pv_root = "CHAN:{:02d}".format(channel)
         self.ca.set_pv_value("{}:ACTIVE".format(channel_pv_root), 1)
         self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
 
@@ -189,14 +190,14 @@ class SingleChannelReadingTests(unittest.TestCase):
 
 
 @setup_tests
-class BufferSetupTests(unittest.TestCase):
+class ScanningSetupTests(unittest.TestCase):
 
     def test_that_GIVEN_two_active_channels_THEN_the_IOC_sets_the_buffer_size_to_2(self):
         channels = (1, 2)
 
         # Given:
         for channel in channels:
-            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
 
         # Then:
         self.ca.process_pv("BUFF:SIZE")
@@ -207,7 +208,7 @@ class BufferSetupTests(unittest.TestCase):
 
         # Given:
         for channel in channels:
-            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
 
         # Then:
         self.ca.process_pv("SCAN:MEAS:COUNT")
@@ -218,7 +219,7 @@ class BufferSetupTests(unittest.TestCase):
 
         # Given:
         for channel in channels:
-            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
 
         # Then:
         expected_value = "NEXT"
@@ -230,13 +231,33 @@ class BufferSetupTests(unittest.TestCase):
 
         # Given:
         for channel in channels:
-            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
 
         # Then:
         number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
             "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0]
         assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than("1")))
 
+    def test_that_GIVEN_IOC_with_three_active_channels_THEN_the_IOC_sets_the_device_to_scan_on_those_three_channels(self):
+        # Given:
+        channels = (1, 2, 6)
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+            self.ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+
+        # Then:
+        expected_channel_string = "1,2,6"
+        self.ca.assert_that_pv_is("READ:CHAN:SP", expected_channel_string)
+
+    def test_that_GIVEN_IOC_with_ten_active_channels_THEN_the_IOC_sets_the_device_to_scan_on_all_channels(self):
+        # Given:
+        for channel in CHANNEL_LIST:
+            self.ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+            self.ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+
+        # Then:
+        expected_channel_string = "1,2,3,4,5,6,7,8,9,10"
+        self.ca.assert_that_pv_is("READ:CHAN:SP", expected_channel_string)
 
 
 @setup_tests
@@ -249,12 +270,12 @@ class MultiChannelReadingTests(unittest.TestCase):
         # Given:
         expected_values = (9.2, 8.3)
         for channel, expected_value in zip(channels, expected_values):
-            self.ca.set_pv_value("CHAN:0{}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
             self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
 
         # Then:
         for channel, expected_value in zip(channels, expected_values):
-            self.ca.assert_that_pv_is("CHAN:0{}:READ".format(channel), expected_value)
+            self.ca.assert_that_pv_is("CHAN:{0:2d}:READ".format(channel), expected_value)
 
 
 @setup_tests
@@ -265,7 +286,7 @@ class MeasurementSetupTests(unittest.TestCase):
     def GIVEN_a_fresh_IOC_THEN_the_measurement_mode_for_each_channel_is_VOLT_DC(self):
         # Then:
         expected_measurement_mode = "VOLT:DC"
-        self.ca.assert_that_pv_is("CHAN:0{}:MEAS", expected_measurement_mode)
+        self.ca.assert_that_pv_is("CHAN:{:02d}:MEAS", expected_measurement_mode)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def GIVEN_a_fresh_IOC_THEN_the_precision_of_VOLT_DC_measurement_mode_is_5(self):
