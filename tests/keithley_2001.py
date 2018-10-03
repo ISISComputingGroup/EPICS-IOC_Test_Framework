@@ -275,6 +275,24 @@ class ScanningSetupTests(unittest.TestCase):
 @setup_tests
 class MultiChannelReadingTests(unittest.TestCase):
 
+    def test_that_GIVEN_a_fresh_IOC_with_two_channels_set_to_active_THEN_the_IOC_reads_the_values_from_the_buffer(
+            self):
+        channels = (1, 2)
+
+        # Given:
+        expected_values = (9.2, 8.3)
+
+        for channel, expected_value in zip(channels, expected_values):
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+            self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
+
+        # Then:
+        expected_units = ["VDC"] * 2
+        channel_readback_format = "{:.7E}{},{:02d}INTCHAN"
+        expected_array = [channel_readback_format.format(value, unit, channel) for
+                          value, unit, channel in zip(expected_values, expected_units, channels)]
+        self.ca.assert_that_pv_is("READ:BUFF", expected_array)
+
     def test_that_GIVEN_a_fresh_IOC_with_two_channels_set_to_active_THEN_the_IOC_reads_the_right_values_in_the_channels_read_pvs(
             self):
         channels = (1, 2)
