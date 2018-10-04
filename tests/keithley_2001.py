@@ -28,7 +28,8 @@ CHANNEL_LIST = range(1, 11)
 
 def _reset_channels(ca):
     for channel in CHANNEL_LIST:
-        ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 0)
+        ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), "INACTIVE")
+        ca.assert_that_pv_is("CHAN:{:02d}:ACTIVE".format(channel), "INACTIVE")
 
 
 def setUp(self):
@@ -246,7 +247,7 @@ class ScanningSetupTests(unittest.TestCase):
 
         # Then:
         expected_channel_string = "1,2,6"
-        self.ca.assert_that_pv_is("READ:CHAN:SP", expected_channel_string)
+        self.ca.assert_that_pv_is("SCAN:CHAN:SP", expected_channel_string)
 
     def test_that_GIVEN_IOC_with_ten_active_channels_THEN_the_IOC_creates_the_correct_string_to_send_to_the_device(self):
         # Given:
@@ -256,7 +257,7 @@ class ScanningSetupTests(unittest.TestCase):
 
         # Then:
         expected_channel_string = "1,2,3,4,5,6,7,8,9,10"
-        self.ca.assert_that_pv_is("READ:CHAN:SP", expected_channel_string)
+        self.ca.assert_that_pv_is("SCAN:CHAN:SP", expected_channel_string)
 
     def test_that_GIVEN_IOC_with_three_active_channels_THEN_the_IOC_sets_the_device_to_scan_on_those_three_channels(self):
         # Given:
@@ -266,46 +267,43 @@ class ScanningSetupTests(unittest.TestCase):
             self.ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
 
         # Then:
-        scanning_channels = self._lewis.backdoor_run_function_on_device(
-            "get_scan_channels_via_the_backdoor")[0].split(",")
-        expected_value = ["1", "2", "6"]
-        assert_that(scanning_channels, is_(equal_to(expected_value)))
+        expected_string = "1,2,6"
+        self.ca.process_pv("SCAN:CHAN")
+        self.ca.assert_that_pv_is("SCAN:CHAN", expected_string)
 
 
-@setup_tests
 class MultiChannelReadingTests(unittest.TestCase):
 
-    def test_that_GIVEN_a_fresh_IOC_with_two_channels_set_to_active_THEN_the_IOC_reads_the_values_from_the_buffer(
-            self):
-        channels = (1, 2)
+    def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2001", DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
+        self.ca.assert_that_pv_exists("IDN")
+        _reset_channels(self.ca)
 
+    @parameterized.expand(parameterized_list([
+            range(1, number_of_channels + 1) for number_of_channels in range(2, 11)
+    ]))
+    def test_that_GIVEN_a_fresh_IOC_with_many_channels_set_to_active_THEN_the_IOC_reads_the_values_from_the_buffer(
+            self, _, active_channels):
         # Given:
-        expected_values = (9.2, 8.3)
+        expected_values = [9.2] * len(active_channels)
 
-        for channel, expected_value in zip(channels, expected_values):
+        for channel, expected_value in zip(active_channels, expected_values):
             self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
             self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
+            self.ca.assert_that_pv_is("CHAN:{:02d}:ACTIVE".format(channel), "ACTIVE")
+
+        inactive_channels = set(range(1, 11)) - set(active_channels)
+        for channel in inactive_channels:
+            self.ca.assert_that_pv_is("CHAN:{:02d}:ACTIVE".format(channel), "INACTIVE")
 
         # Then:
-        expected_units = ["VDC"] * 2
-        channel_readback_format = "{:.7E}{},{:02d}INTCHAN"
-        expected_array = [channel_readback_format.format(value, unit, channel) for
-                          value, unit, channel in zip(expected_values, expected_units, channels)]
-        self.ca.assert_that_pv_is("READ:BUFF", expected_array)
+        channel_readback_format = "{:.7E}VDC"
+        expected_value = [channel_readback_format.format(value) for value in expected_values]
 
-    def test_that_GIVEN_a_fresh_IOC_with_two_channels_set_to_active_THEN_the_IOC_reads_the_right_values_in_the_channels_read_pvs(
-            self):
-        channels = (1, 2)
-
-        # Given:
-        expected_values = (9.2, 8.3)
-        for channel, expected_value in zip(channels, expected_values):
-            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
-            self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
-
-        # Then:
-        for channel, expected_value in zip(channels, expected_values):
-            self.ca.assert_that_pv_is("CHAN:{0:2d}:READ".format(channel), expected_value)
+        self.ca.assert_that_pv_is("SCAN:BUFF.NORD", len(active_channels))
+        for i in range(0, len(active_channels)):
+            self.ca.assert_that_pv_is("SCAN:BUFF.VAL[{}]".format(i), expected_value[i])
 
 
 @setup_tests
