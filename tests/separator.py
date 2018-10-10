@@ -20,17 +20,16 @@ DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
 MARGIN_OF_ERROR = 1e-5
 
 # Voltage and current stability limits
-VOLT_LOWERLIM = 0.1#4.0
-VOLT_UPPERLIM = MAX_SEPARATOR_VOLT#6.0
+VOLT_LOWERLIM = 0.1
+VOLT_UPPERLIM = MAX_SEPARATOR_VOLT
 
-VOLT_STEADY = (VOLT_LOWERLIM+VOLT_UPPERLIM)*0.5
 VOLT_STEADY = 0.5*MAX_SEPARATOR_VOLT
 
-CURR_STEADY = 0.5*MAX_SEPARATOR_CURR#.0
-CURR_LIMIT = MAX_SEPARATOR_CURR#0.5
+CURR_STEADY = 0.5*MAX_SEPARATOR_CURR
+CURR_LIMIT = MAX_SEPARATOR_CURR
 
-SAMPLE_LEN = 1000
-SAMPLETIME = 1E-3
+SAMPLE_LEN = 100
+SAMPLETIME = 1.0/float(SAMPLE_LEN)
 
 IOCS = [
     {
@@ -48,17 +47,16 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM]
 
-#CA = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-
 
 def power_status_set_up(ca):
+    """ Sets up the PVs for the power status tests """
     ca.set_pv_value("VOLT:SP", 0.0)
     ca.assert_that_pv_is_number("VOLT:SP", 0.0, tolerance=1e-3)
     ca.assert_that_pv_is("POWER:STAT", "OFF")
 
 
 def voltage_set_up(ca):
-
+    """ Sets up the PVs for the voltage tests """
     ca.set_pv_value("VOLT:SP", 0.0)
     ca.assert_that_pv_is_number("VOLT:SP", 0.0, tolerance=1e-3)
     ca.set_pv_value("DAQ:VOLT:SIM", 0.0)
@@ -70,14 +68,13 @@ def voltage_set_up(ca):
 
 
 def current_set_up(ca):
+    """ Sets up the PVs for the current tests """
     ca.set_pv_value("DAQ:CURR:WV:SIM", 0.0)
     ca.assert_that_pv_is_number("CURR", 0.0, tolerance=1e-3)
 
 
 def stability_set_up(ca):
-    #ca.set_pv_value("DAQ:VOLT:WV:SIM", [VOLT_STEADY] * SAMPLE_LEN)
-    #ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY] * SAMPLE_LEN)
-
+    """ Sets up the PVs for the separator stability tests """
     ca.set_pv_value("STABILITY", 0.0)
     ca.assert_that_pv_is_number("STABILITY", 0.0, tolerance=1e-3)
 
@@ -99,18 +96,12 @@ def stability_set_up(ca):
 
     ca.set_pv_value("_VOLTCALIBCONST", 1.0/DAQ_VOLT_WRITE_SCALE_FACTOR)
     ca.assert_that_pv_is_number("_VOLTCALIBCONST", 1.0/DAQ_VOLT_WRITE_SCALE_FACTOR, tolerance=1e-3)
-    #ca.assert_that_pv_is_number("_VOLTCALIBCONST", 1.0, tolerance=1e-3)
 
     ca.set_pv_value("_CURRCALIBCONST", DAQ_CURR_READ_SCALE_FACTOR)
     ca.assert_that_pv_is_number("_CURRCALIBCONST", DAQ_CURR_READ_SCALE_FACTOR, tolerance=1e-3)
 
-    #ca.set_pv_value("_CURRCALIBCONST", 1)
-    #ca.assert_that_pv_is_number("_CURRCALIBCONST", 1, tolerance=1e-3)
-
     ca.set_pv_value("THRESHOLD", 0.5)
     ca.assert_that_pv_is_number("THRESHOLD", 0.5, tolerance=1e-3)
-
-    #STOP_DATA_THREAD.set()
 
 
 def shared_setup(ca):
@@ -197,10 +188,6 @@ class PowerStatusTests(unittest.TestCase):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         shared_setup(self.ca)
 
-#        self.ca.set_pv_value("VOLT:SP", 0)
-#        self.ca.assert_that_pv_is("VOLT:SP", 0)
-#        self.ca.assert_that_pv_is("POWER:STAT", "OFF")
-
     def test_GIVEN_psu_off_WHEN_voltage_setpoint_changed_higher_than_threshold_THEN_psu_status_changes_on(self):
         # GIVEN
         # asserted in setUp
@@ -227,10 +214,6 @@ class VoltageTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         shared_setup(self.ca)
-
-#        self.ca.set_pv_value("VOLT:SP", 0)
-#        self.ca.assert_that_pv_is("VOLT:SP", 0)
-
     def test_GIVEN_sim_val_0_and_data_0_WHEN_voltage_set_point_changed_THEN_data_changed(self):
         # GIVEN
         self.ca.set_pv_value("{}:VOLT:SIM".format(DAQ), 0)
@@ -245,15 +228,6 @@ class VoltageTests(unittest.TestCase):
         # WHEN
         self.ca.set_pv_value("VOLT:SP", value)
 
-        #print("")
-        #print(value)
-        #print(self.ca.get_pv_value("DAQ:VOLT:SP"))
-        #print(self.ca.get_pv_value("VOLT"))
-        #print(self.ca.get_pv_value("VOLT:SIM"))
-
-        #self.ca.assert_that_pv_is_number("DAQ:VOLT:SIM", value)
-
-
         # THEN
         self.ca.assert_that_pv_is_number("VOLT", value, MARGIN_OF_ERROR)
 
@@ -262,7 +236,6 @@ class VoltageTests(unittest.TestCase):
         # WHEN
 
         self.ca.set_pv_value("VOLT:SP", value)
-        #self.ca.assert_that_pv_is_number("VOLT", value)
         # THEN
         self.ca.assert_that_pv_alarm_is("VOLT", ChannelAccess.Alarms.MAJOR)
 
@@ -297,11 +270,6 @@ class CurrentTests(unittest.TestCase):
         curr_array = [current] * 1000
         self.ca.set_pv_value("DAQ:CURR:WV:SIM", curr_array)
 
-#    def setUp(self):
-#        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-#        self._simulate_current(0)
-#        self.ca.assert_that_pv_is("CURR", 0)
-
     @parameterized.expand(parameterized_list(current_values))
     def test_GIVEN_current_value_THEN_calibrated_current_readback_changes(self, _, value):
         # GIVEN
@@ -318,28 +286,6 @@ class StabilityTests(unittest.TestCase):
         shared_setup(self.ca)
 
         self.STOP_DATA_THREAD.set()
-
-#    def setUp(self):
-#        self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-#
-#        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", [VOLT_STEADY] * SAMPLE_LEN)
-#        self.ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY] * SAMPLE_LEN)
-#
-#        self.ca.set_pv_value("STABILITY", 0)
-#        self.ca.set_pv_value("WINDOWSIZE", 600)
-#        self.ca.set_pv_value("RESETWINDOW", 1)
-#        self.ca.set_pv_value("_ADDCOUNTS", 0)
-#
-#        self.ca.set_pv_value("SAMPLETIME", SAMPLETIME)
-#
-#        self.ca.set_pv_value("_COUNTERTIMING.SCAN", "1 second")
-#
-#        self.ca.set_pv_value("_VOLTCALIBCONST", 1.0)
-#        self.ca.set_pv_value("_CURRCALIBCONST", 1.0)
-#
-#        self.ca.set_pv_value("THRESHOLD", 0.5)
-#
-#        self.STOP_DATA_THREAD.set()
 
     def evaluate_current_instability(self, current_values):
         """
@@ -410,6 +356,7 @@ class StabilityTests(unittest.TestCase):
             volt_data: list of floats containing the voltage data in engineering units
         """
         scaled_data = [x * DAQ_VOLT_WRITE_SCALE_FACTOR for x in volt_data]
+
         self.ca.set_pv_value("DAQ:VOLT:WV:SIM", scaled_data, wait=True, sleep_after_set=0.0)
 
 
@@ -423,8 +370,6 @@ class StabilityTests(unittest.TestCase):
         ("unsteady_current_and_voltage", simulate_current_data(), simulate_voltage_data())
     ])
     def test_GIVEN_current_and_voltage_data_WHEN_limits_are_tested_THEN_number_of_samples_out_of_range_returned(self, _, curr_data, volt_data):
-        #self.ca.set_pv_value("DAQ:CURR:WV:SIM", curr_data / DAQ_CURR_READ_SCALE_FACTOR, wait=True, sleep_after_set=0.0)
-        #self.ca.set_pv_value("DAQ:VOLT:WV:SIM", volt_data*DAQ_VOLT_WRITE_SCALE_FACTOR, wait=True, sleep_after_set=0.0)
         self.write_simulated_current(curr_data)
         self.write_simulated_voltage(volt_data)
 
@@ -472,8 +417,6 @@ class StabilityTests(unittest.TestCase):
         for i in range(number_of_writes):
             self.write_simulated_current(CURRENT_DATA)
             self.write_simulated_voltage(VOLTAGE_DATA)
-            #self.ca.set_pv_value("DAQ:CURR:WV:SIM", CURRENT_DATA, wait=True, sleep_after_set=0.0)
-            #self.ca.set_pv_value("DAQ:VOLT:WV:SIM", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
 
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples)
 
@@ -521,8 +464,6 @@ class StabilityTests(unittest.TestCase):
         for i in range(number_of_writes):
             self.write_simulated_current(CURRENT_DATA)
             self.write_simulated_voltage(VOLTAGE_DATA)
-            #self.ca.set_pv_value("DAQ:CURR:WV:SIM", CURRENT_DATA, wait=True, sleep_after_set=0.0)
-            #self.ca.set_pv_value("DAQ:VOLT:WV:SIM", VOLTAGE_DATA, wait=True, sleep_after_set=0.0)
 
         processtime = clock() - time1
         self.assertGreater(processtime, 1.)
@@ -534,8 +475,6 @@ class StabilityTests(unittest.TestCase):
 
         self.write_simulated_current([CURR_STEADY+2.0*CURR_LIMIT]*SAMPLE_LEN)
         self.write_simulated_voltage([2.0*VOLT_UPPERLIM]*SAMPLE_LEN)
-        #self.ca.set_pv_value("DAQ:CURR:WV:SIM", [CURR_STEADY+2.0*CURR_LIMIT]*SAMPLE_LEN, wait=True, sleep_after_set=0.0)
-        #self.ca.set_pv_value("DAQ:VOLT:WV:SIM", [2.0*VOLT_UPPERLIM]*SAMPLE_LEN, wait=True, sleep_after_set=0.0)
 
         self.ca.assert_that_pv_is_number("STABILITY", 0, tolerance=0.1)
         self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.Alarms.MAJOR)
