@@ -51,7 +51,7 @@ class InitTests(unittest.TestCase):
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_device_is_reset(self):
-        self._lewis.assert_that_emulator_value_is("number_of_times_reset", "1")
+        self._lewis.assert_that_emulator_value_is_greater_than("number_of_times_reset", 1)
 
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_status_registers_are_reset_and_cleared(self):
@@ -74,9 +74,10 @@ class InitTests(unittest.TestCase):
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_is_cleared_before_starting(self):
         # Then:
-        number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
-            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0]
-        assert_that(number_of_times_buffer_has_been_cleared, is_("1"))
+        number_of_times_buffer_has_been_cleared = int(self._lewis.backdoor_run_function_on_device(
+            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0])
+
+        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than(1)))
 
     @skip_if_recsim("Uses mbbi & mbbo records which do not play well with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_reads_raw_values(self):
