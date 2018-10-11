@@ -289,6 +289,24 @@ class LewisLauncher(object):
         """
         return "".join(self.backdoor_command(["device", str(variable_name)]))
 
+    def assert_that_emulator_value_is_greater_than(self, emulator_property, min_value, timeout=None):
+            """
+            Assert that an emulator property has a value greater than the expected value.
+
+            Args:
+                 emulator_property (string): Name of the emulator property.
+                 min_value (float): Minimum value (inclusive).
+                 timeout: if it hasn't changed within this time raise assertion error
+            Raises:
+                 AssertionError: if value does not become requested value
+                 UnableToConnectToPVException: if pv does not exist within timeout
+            """
+
+            message = "Expected emulator property {} to have a value greater than {}".format(
+                emulator_property, min_value)
+            return self.assert_that_emulator_value_value_causes_func_to_return_true(
+                emulator_property, lambda value: min_value <= float(value), timeout, message)
+
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout.
