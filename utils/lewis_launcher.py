@@ -302,7 +302,7 @@ class LewisLauncher(object):
                  UnableToConnectToPVException: if pv does not exist within timeout
             """
 
-            message = "Expected emulator property {} to have a value greater than {}".format(
+            message = "Expected emulator property {} to have a value greater than or equal to {}".format(
                 emulator_property, min_value)
             return self.assert_that_emulator_value_value_causes_func_to_return_true(
                 emulator_property, lambda value: min_value <= float(value), timeout, message)

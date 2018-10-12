@@ -1,7 +1,6 @@
-from hamcrest import assert_that, is_, greater_than, equal_to
+from hamcrest import assert_that, is_, greater_than, greater_than_or_equal_to
 from parameterized import parameterized
 import unittest
-import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -62,7 +61,7 @@ class InitTests(unittest.TestCase):
 
     def test_that_GIVEN_a_fresh_IOC_THEN_the_read_back_elements_are_reading_and_unit(self):
         # Then:
-        expected_read_back_elements = "READ, UNIT"
+        expected_read_back_elements = "READ, CHAN, UNIT"
         self.ca.assert_that_pv_is("ELEMENTS", expected_read_back_elements)
 
     def test_that_GIVEN_a_fresh_IOC_THEN_the_scanning_continuous_mode_is_ON(self):
@@ -77,7 +76,7 @@ class InitTests(unittest.TestCase):
         number_of_times_buffer_has_been_cleared = int(self._lewis.backdoor_run_function_on_device(
             "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0])
 
-        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than(1)))
+        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than_or_equal_to(1)))
 
     @skip_if_recsim("Uses mbbi & mbbo records which do not play well with RECSIM")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_reads_raw_values(self):
@@ -149,7 +148,7 @@ class ChannelSetupTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(range(1, 11)))
     @skip_if_recsim("Cannot use Lewis backdoor used with RECSIM")
-    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_scans_on_that_channel(
+    def test_that_GIVEN_a_fresh_IOC_with_one_channels_set_to_active_THEN_the_IOC_reads_from_that_channel(
             self, _, channel):
         # Given:
         self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
