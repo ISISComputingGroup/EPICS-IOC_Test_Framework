@@ -294,3 +294,23 @@ class MultiChannelReadingTests(unittest.TestCase):
         self.ca.assert_that_pv_is("SCAN:BUFF.NORD", len(active_channels))
         for i in range(0, len(active_channels)):
             self.ca.assert_that_pv_is("SCAN:BUFF.VAL[{}]".format(i), expected_value[i])
+
+
+@setup_tests
+class BufferParsingTests(unittest.TestCase):
+
+    def test_that_GIVEN_an_IOC_scanning_on_channel_2_and_5_THEN_the_readings_are_read_into_channels_2_and_5(
+            self):
+        # Given:
+        active_channels = (2, 5)
+        expected_values = [9.2] * len(active_channels)
+        for expected_value, channel in zip(expected_values, active_channels):
+            self.ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+            self.ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+            self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, expected_value])
+
+        # Then:
+        for expected_value, channel in zip(expected_values, active_channels):
+            self.ca.assert_that_pv_is("CHAN:{0:02d}:READ".format(channel), expected_value)
+
+
