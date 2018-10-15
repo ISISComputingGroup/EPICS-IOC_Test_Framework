@@ -223,6 +223,29 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: val == expected_value, timeout=timeout, message=msg)
 
+    def assert_that_pv_after_processing_is(self, pv, expected_value, timeout=None, msg=None):
+        """
+        Assert that the pv has the expected value after the pv is processed
+        or that it becomes the expected value within the timeout.
+
+        Args:
+            pv: pv name
+            expected_value: expected value
+            timeout: if it hasn't changed within this time raise assertion error
+            msg: Extra message to print
+        Raises:
+            AssertionError: if value does not become requested value
+            UnableToConnectToPVException: if pv does not exist within timeout
+        """
+
+        if msg is None:
+            msg = "Expected PV to have value {}.".format(format_value(expected_value))
+
+        self.process_pv(pv)
+
+        return self.assert_that_pv_value_causes_func_to_return_true(
+            pv, lambda val: val == expected_value, timeout=timeout, message=msg)
+
     def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
         """
         Assert that the pv does not have a particular value and optionally it does not become that value within the
