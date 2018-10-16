@@ -3,7 +3,7 @@ from parameterized import parameterized
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, add_method, parameterized_list, skip_if_recsim
 
@@ -20,9 +20,10 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM]#, TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
-CHANNEL_LIST = range(1, 11)
+MAX_NUMBER_OF_CHANNELS = 10
+CHANNEL_LIST = range(1, MAX_NUMBER_OF_CHANNELS + 1)
 
 
 def setUp(self):
@@ -51,7 +52,7 @@ def _reset_units(ca):
 
 def _reset_readings(ca):
     ca.set_pv_value("READINGS", ["0"] * 20)
-    ca.assert_that_pv_is("READINGS", "".join(["0"] * 20))
+    ca.assert_that_pv_after_processing_is("READINGS", "".join(["0"] * 20))
 
 
 def _setup_channel_to_test(ca, lewis, channel, value=None):
@@ -59,6 +60,11 @@ def _setup_channel_to_test(ca, lewis, channel, value=None):
     ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
     if value is not None:
         lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value])
+
+
+def _set_active_channel(ca, channel):
+    ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+    ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
 
 
 @setup_tests
@@ -103,29 +109,31 @@ class InitTests(unittest.TestCase):
 @setup_tests
 class SingleShotTests(unittest.TestCase):
 
-    def _setup_channel_to_test(self, channel, value):
-        self.ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
-        self.ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
-        self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value])
+    def _simulate_readings(self, channel, value):
+        if IOCRegister.uses_rec_sim:
+            simulated_reading = ["{:.7E}VDC".format(value), "{0:02d}INTCHAN".format(channel)]
+            self.ca.set_pv_value("READINGS", simulated_reading)
+        else:
+            self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value])
 
-    # @parameterized.expand(parameterized_list(range(1, 11)))
+    @parameterized.expand(parameterized_list(CHANNEL_LIST))
     def test_that_GIVEN_one_channels_set_to_active_THEN_the_voltage_value_for_that_channel_are_read(
-            self):#, _, channel):
-        channel = 2
+            self, _, channel):
         # Given:
         expected_value = 9.84412
-        self._setup_channel_to_test(channel, expected_value)
+        _set_active_channel(self.ca, channel)
+        self._simulate_readings(channel, expected_value)
 
         # Then:
         self.ca.assert_that_pv_is("CHAN:{0:02d}:READ".format(channel), expected_value)
 
-    # @parameterized.expand(parameterized_list(range(1, 11)))
+    @parameterized.expand(parameterized_list(CHANNEL_LIST))
     def test_that_GIVEN_one_channel_set_to_active_THEN_the_measurement_units_for_that_channel_are_read(
-            self):#, _, channel):
-        channel = 2
+            self, _, channel):
         # Given:
         expected_value = 9.2
-        self._setup_channel_to_test(channel, expected_value)
+        _set_active_channel(self.ca, channel)
+        self._simulate_readings(channel, expected_value)
 
         # Then:
         expected_unit = "VDC"
@@ -135,45 +143,43 @@ class SingleShotTests(unittest.TestCase):
 @setup_tests
 class ScanningTests(unittest.TestCase):
 
-    def _setup_channel_to_test(self, channel, value):
-        self.ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
-        self.ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
-        self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value])
+    def _simulate_readings(self, values, channels):
+        if IOCRegister.uses_rec_sim:
+            simulated_readings = []
+            for value, channel in zip(values, channels):
+                simulated_readings.extend(["{:.7E}VDC".format(value), "{0:02d}INTCHAN".format(channel)])
+            self.ca.set_pv_value("READINGS", simulated_readings)
+        else:
+            for value, channel in zip(values, channels):
+                self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value])
 
-    def test_that_GIVEN_two_active_channels_THEN_the_IOC_is_setup_to_scan_on_those_channels(self):
+    @parameterized.expand(parameterized_list(
+        [range(1, number_of__active_channels + 1) for number_of__active_channels in
+         range(2, MAX_NUMBER_OF_CHANNELS + 1)]
+    ))
+    def test_that_GIVEN_two_or_more_active_channels_THEN_the_readings_values_are_read_into_CHAN_READ_PV(
+            self, _, channels):
         # Given:
-        channels = (1, 2)
-        for channel in channels:
-            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+        expected_values = [9.2] * len(channels)
+        map(_set_active_channel, [self.ca] * len(channels), channels)
+        self._simulate_readings(expected_values, channels)
 
         # Then:
-        self.ca.assert_that_pv_after_processing_is("BUFF:SIZE", len(channels))
-        self.ca.assert_that_pv_after_processing_is("SCAN:MEAS:COUNT", len(channels))
-        self.ca.assert_that_pv_is("BUFF:MODE", "NEXT")
-        number_of_times_buffer_has_been_cleared = int(self._lewis.backdoor_run_function_on_device(
-            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0])
-        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than(1)))
-
-
-    def test_that_GIVEN_only_channels_2_and_5_active_THEN_the_readings_are_read_into_channels_2_and_5(
-            self):
-        # Given:
-        active_channels = (2, 5)
-        expected_values = [9.2] * len(active_channels)
-        map(self._setup_channel_to_test, active_channels, expected_values)
-
-        # Then:
-        for expected_value, channel in zip(expected_values, active_channels):
+        for expected_value, channel in zip(expected_values, channels):
             self.ca.assert_that_pv_is("CHAN:{0:02d}:READ".format(channel), expected_value)
 
-    def test_that_GIVEN_only_channels_2_and_5_active_THEN_the_units_are_read_into_channels_2_and_5_units(
-            self):
+    @parameterized.expand(parameterized_list(
+        [range(1, number_of__active_channels + 1) for number_of__active_channels in
+         range(2, MAX_NUMBER_OF_CHANNELS + 1)]
+    ))
+    def test_that_GIVEN_two_or_more_active_channels_THEN_the_readings_units_are_read_into_CHAN_UNIT_PV(
+            self, _, channels):
         # Given:
-        active_channels = (2, 5)
-        expected_values = [9.2] * len(active_channels)
-        map(self._setup_channel_to_test, active_channels, expected_values)
+        expected_values = [9.2] * len(channels)
+        map(_set_active_channel, [self.ca] * len(channels), channels)
+        self._simulate_readings(expected_values, channels)
 
         # Then:
         expected_unit = "VDC"
-        for expected_value, channel in zip(expected_values, active_channels):
+        for expected_value, channel in zip(expected_values, channels):
             self.ca.assert_that_pv_is("CHAN:{0:02d}:UNIT".format(channel), expected_unit)
