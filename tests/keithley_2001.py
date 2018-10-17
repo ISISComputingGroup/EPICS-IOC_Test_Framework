@@ -95,13 +95,10 @@ class InitTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor doesn't work in RECSIM.")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_device_buffer_and_status_register_have_been_reset(self):
-        number_of_times_buffer_has_been_cleared = int(self._lewis.backdoor_run_function_on_device(
-            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0])
         number_of_times_status_register_has_been_reset_and_cleared = int(
             self._lewis.backdoor_run_function_on_device(
                 "get_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor")[0])
 
-        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than_or_equal_to(1)))
         assert_that(number_of_times_status_register_has_been_reset_and_cleared, is_(greater_than_or_equal_to(1)))
         self._lewis.assert_that_emulator_value_is_greater_than("number_of_times_device_has_been_reset", 1)
 
