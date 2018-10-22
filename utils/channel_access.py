@@ -238,13 +238,9 @@ class ChannelAccess(object):
             UnableToConnectToPVException: if pv does not exist within timeout
         """
 
-        if msg is None:
-            msg = "Expected PV to have value {}.".format(format_value(expected_value))
-
         self.process_pv(pv)
+        return self.assert_that_pv_is(pv, expected_value, timeout=None, msg=None)
 
-        return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: val == expected_value, timeout=timeout, message=msg)
 
     def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
         """
