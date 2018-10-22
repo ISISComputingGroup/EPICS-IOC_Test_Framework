@@ -59,7 +59,10 @@ def _reset_readings(ca):
 
 
 def _clear_errors(ca):
-    ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
+    if IOCRegister.uses_rec_sim:
+        ca.set_pv_value("SIM:ERROR:RAW", [str(0), "No Error"])
+    else:
+        ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
 
 
 def _setup_channel_to_test(ca, lewis, channel, value=None):
@@ -192,76 +195,78 @@ class ScanningTests(unittest.TestCase):
 @setup_tests
 class ErrorTests(unittest.TestCase):
 
+    def _simulate_error(self, error_code, error_message):
+        if IOCRegister.uses_rec_sim:
+            self.ca.set_pv_value("SIM:ERROR:RAW", [str(error_code), error_message])
+        else:
+            self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",
+                                                        [error_code, error_message])
+
     def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_no_error_THEN_the_IOC_reads_that_there_are_no_errors(
             self):
         expected_error_code = 0
-        expected_error_message = "No errors"
+        expected_error_message = "No Error"
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_error_code, expected_error_message))
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-    @skip_if_recsim("Can't use lewis backdoor in RECSIM")
     def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_an_error_THEN_the_IOC_reads_that_there_is_an_error(
             self):
         # Given:
         expected_error_code = -113
         expected_error_message = "Undefined header"
-        self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",
-                                                    [expected_error_code, expected_error_message])
+        self._simulate_error(expected_error_code, expected_error_message)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_error_code, expected_error_message))
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-    @skip_if_recsim("Can't use lewis backdoor in RECSIM")
+    @skip_if_recsim("Can't replicate resetting the error using waveforms in RECSIM")
     def test_that_GIVEN_a_device_not_scnaning_on_any_channels_with_an_error_WHEN_the_message_is_cleared_THEN_the_IOC_has_no_errors(
             self):
         # Given:
         expected_error_code = -113
         expected_error_message = "Undefined header"
-        self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",
-                                                    [expected_error_code, expected_error_message])
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_error_code, expected_error_message))
+        self._simulate_error(expected_error_code, expected_error_message)
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
         # When:
         self.ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
 
         # Then:
         expected_cleared_error_code = 0
-        expected_cleared_error_message = "No errors"
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_cleared_error_code, expected_cleared_error_message))
+        expected_cleared_error_message = "No Error"
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join(
+            [str(expected_cleared_error_code), expected_cleared_error_message]))
 
-    @skip_if_recsim("Can't use lewis backdoor in RECSIM")
     def test_that_GIVEN_a_device_scanning_on_one_channels_with_an_error_THEN_the_IOC_reads_that_there_is_an_error(
             self):
         # Given:
         _set_active_channel(self.ca, 3)
         expected_error_code = -113
         expected_error_message = "Undefined header"
-        self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",
-                                                    [expected_error_code, expected_error_message])
+        self._simulate_error(expected_error_code, expected_error_message)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_error_code, expected_error_message))
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-    @skip_if_recsim("Can't use lewis backdoor in RECSIM")
+    @skip_if_recsim("Can't replicate resetting the error using waveforms in RECSIM")
     def test_that_GIVEN_a_device_scnaning_on_one_channel_with_an_error_WHEN_the_message_is_cleared_THEN_the_IOC_has_no_errors(
             self):
         # Given:
         _set_active_channel(self.ca, 3)
         expected_error_code = -113
         expected_error_message = "Undefined header"
-        self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",
-                                                    [expected_error_code, expected_error_message])
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_error_code, expected_error_message))
+        self._simulate_error(expected_error_code, expected_error_message)
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
         # When:
         self.ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
 
         # Then:
         expected_cleared_error_code = 0
-        expected_cleared_error_message = "No errors"
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_cleared_error_code, expected_cleared_error_message))
+        expected_cleared_error_message = "No Error"
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([
+            str(expected_cleared_error_code), expected_cleared_error_message]))
 
-    @skip_if_recsim("Can't use lewis backdoor in RECSIM")
     def test_that_GIVEN_a_device_scanning_on_two_channels_with_an_error_THEN_the_IOC_reads_that_there_is_an_error(
             self):
         # Given:
@@ -269,13 +274,12 @@ class ErrorTests(unittest.TestCase):
         _set_active_channel(self.ca, 5)
         expected_error_code = -113
         expected_error_message = "Undefined header"
-        self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",
-                                                    [expected_error_code, expected_error_message])
+        self._simulate_error(expected_error_code, expected_error_message)
 
         # Then:
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_error_code, expected_error_message))
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-    @skip_if_recsim("Can't use lewis backdoor in RECSIM")
+    @skip_if_recsim("Can't replicate resetting the error using waveforms in RECSIM")
     def test_that_GIVEN_a_device_scnaning_on_two_channels_with_an_error_WHEN_the_message_is_cleared_THEN_the_IOC_has_no_errors(
             self):
         # Given:
@@ -283,14 +287,34 @@ class ErrorTests(unittest.TestCase):
         _set_active_channel(self.ca, 3)
         expected_error_code = -113
         expected_error_message = "Undefined header"
-        self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",
-                                                    [expected_error_code, expected_error_message])
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_error_code, expected_error_message))
+        self._simulate_error(expected_error_code, expected_error_message)
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
         # When:
         self.ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
 
         # Then:
         expected_cleared_error_code = 0
-        expected_cleared_error_message = "No errors"
-        self.ca.assert_that_pv_is("ERROR", "{},{}".format(expected_cleared_error_code, expected_cleared_error_message))
+        expected_cleared_error_message = "No Error"
+        self.ca.assert_that_pv_is("ERROR:RAW", "".join(
+            [str(expected_cleared_error_code), expected_cleared_error_message]))
+
+    def test_that_GIVEN_a_device_not_scanning_on_any_channels_on_setup_THEN_the_error_code_and_message_are_sepeatated(
+            self):
+        expected_error_code = 0
+        expected_error_message = "No Error"
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR:MSG", expected_error_message)
+        self.ca.assert_that_pv_is("ERROR:CODE", expected_error_code)
+
+    def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_an_error_THEN_the_error_code_and_message_are_sepeatated(
+            self):
+        # Given:
+        expected_error_code = -113
+        expected_error_message = "Undefined header"
+        self._simulate_error(expected_error_code, expected_error_message)
+
+        # Then:
+        self.ca.assert_that_pv_is("ERROR:MSG", expected_error_message)
+        self.ca.assert_that_pv_is("ERROR:CODE", expected_error_code)
