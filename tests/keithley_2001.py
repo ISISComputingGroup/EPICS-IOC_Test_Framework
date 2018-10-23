@@ -148,6 +148,47 @@ class SingleShotTests(unittest.TestCase):
 
 
 @setup_tests
+class ScanningSetupTests(unittest.TestCase):
+
+    def test_that_GIVEN_two_active_channels_THEN_the_IOC_is_setup_to_scan_on_those_channels(self):
+        # Given:
+        channels = (1, 2)
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+
+        # Then:
+        self.ca.assert_that_pv_after_processing_is("BUFF:SIZE", len(channels))
+        self.ca.assert_that_pv_after_processing_is("SCAN:MEAS:COUNT", len(channels))
+        self.ca.assert_that_pv_after_processing_is("BUFF:MODE", "NEXT")
+
+    @skip_if_recsim("Can't use lewis with RECSIM")
+    def test_that_GIVEN_two_active_channels_THEN_the_buffer_is_cleared(self):
+        # Given:
+        channels = (1, 2)
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+
+        # Then:
+        number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
+            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0]
+        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than("1")))
+
+    @parameterized.expand(parameterized_list([
+        range(1, number_of_channels + 1) for number_of_channels in range(2, 11)
+    ]))
+    def test_that_GIVEN_IOC_with_active_channels_THEN_the_IOC_creates_the_correct_string_to_send_to_the_device(
+            self, _, active_channels):
+        # Given:
+        for channel in active_channels:
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+            self.ca.assert_that_pv_is("CHAN:{:02d}:ACTIVE".format(channel), "ACTIVE")
+
+        # Then:
+        expected_channel_string = ",".join([str(i) for i in active_channels])
+        self.ca.assert_that_pv_is("SCAN:CHAN:SP", expected_channel_string)
+
+
+@setup_tests
 class ScanningTests(unittest.TestCase):
 
     def _simulate_readings(self, values, channels):
@@ -299,7 +340,7 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR:RAW", "".join(
             [str(expected_cleared_error_code), expected_cleared_error_message]))
 
-    def test_that_GIVEN_a_device_not_scanning_on_any_channels_on_setup_THEN_the_error_code_and_message_are_sepeatated(
+    def test_that_GIVEN_a_device_not_scanning_on_any_channels_on_setup_THEN_the_error_code_and_error_message_are_separatated(
             self):
         expected_error_code = 0
         expected_error_message = "No Error"
@@ -308,7 +349,7 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR:MSG", expected_error_message)
         self.ca.assert_that_pv_is("ERROR:CODE", expected_error_code)
 
-    def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_an_error_THEN_the_error_code_and_message_are_sepeatated(
+    def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_an_error_THEN_the_error_code_and_error_message_are_separatated(
             self):
         # Given:
         expected_error_code = -113
