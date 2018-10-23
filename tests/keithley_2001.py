@@ -60,9 +60,9 @@ def _reset_readings(ca):
 
 def _clear_errors(ca):
     if IOCRegister.uses_rec_sim:
-        ca.set_pv_value("SIM:ERROR:RAW", [str(0), "No Error"])
+        ca.set_pv_value("SIM:ERROR:RAW", [str(0), "No error"])
     else:
-        ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
+        ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
 
 
 def _setup_channel_to_test(ca, lewis, channel, value=None):
@@ -264,7 +264,7 @@ class ErrorTests(unittest.TestCase):
     def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_no_error_THEN_the_IOC_reads_that_there_are_no_errors(
             self):
         expected_error_code = 0
-        expected_error_message = "No Error"
+        expected_error_message = "No error"
         # Then:
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
@@ -288,11 +288,11 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
         # When:
-        self.ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
+        self.ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
 
         # Then:
         expected_cleared_error_code = 0
-        expected_cleared_error_message = "No Error"
+        expected_cleared_error_message = "No error"
         self.ca.assert_that_pv_is("ERROR:RAW", "".join(
             [str(expected_cleared_error_code), expected_cleared_error_message]))
 
@@ -318,11 +318,11 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
         # When:
-        self.ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
+        self.ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
 
         # Then:
         expected_cleared_error_code = 0
-        expected_cleared_error_message = "No Error"
+        expected_cleared_error_message = "No error"
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([
             str(expected_cleared_error_code), expected_cleared_error_message]))
 
@@ -350,18 +350,18 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
         # When:
-        self.ca.set_pv_value("ERROR:CLEAR:_TRIG", 1)
+        self.ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
 
         # Then:
         expected_cleared_error_code = 0
-        expected_cleared_error_message = "No Error"
+        expected_cleared_error_message = "No error"
         self.ca.assert_that_pv_is("ERROR:RAW", "".join(
             [str(expected_cleared_error_code), expected_cleared_error_message]))
 
     def test_that_GIVEN_a_device_not_scanning_on_any_channels_on_setup_THEN_the_error_code_and_error_message_are_separatated(
             self):
         expected_error_code = 0
-        expected_error_message = "No Error"
+        expected_error_message = "No error"
 
         # Then:
         self.ca.assert_that_pv_is("ERROR:MSG", expected_error_message)
