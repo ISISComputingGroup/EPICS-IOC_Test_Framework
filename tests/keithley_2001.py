@@ -150,7 +150,7 @@ class SingleShotTests(unittest.TestCase):
 @setup_tests
 class ScanningSetupTests(unittest.TestCase):
 
-    def test_that_GIVEN_two_active_channels_THEN_the_IOC_is_setup_to_scan_on_those_channels(self):
+    def test_that_GIVEN_two_active_channels_WHEN_scanning_on_two_channels_THEN_the_buffer_size_is_set_to_two(self):
         # Given:
         channels = (1, 2)
         for channel in channels:
@@ -158,7 +158,25 @@ class ScanningSetupTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_after_processing_is("BUFF:SIZE", len(channels))
+
+    def test_that_GIVEN_two_active_channels_WHEN_scanning_on_two_channels_THEN_the_measurement_count_is_set_to_two(
+            self):
+        # Given:
+        channels = (1, 2)
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+
+        # Then:
         self.ca.assert_that_pv_after_processing_is("SCAN:MEAS:COUNT", len(channels))
+        self.ca.assert_that_pv_after_processing_is("BUFF:MODE", "NEXT")
+
+    def test_that_GIVEN_two_active_channels_WHEN_scanning_on_two_channels_THEN_the_buffer_mode_is_set_to_NEXT(self):
+        # Given:
+        channels = (1, 2)
+        for channel in channels:
+            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+
+        # Then:
         self.ca.assert_that_pv_after_processing_is("BUFF:MODE", "NEXT")
 
     @skip_if_recsim("Can't use lewis with RECSIM")
