@@ -1,5 +1,3 @@
-import time
-
 from hamcrest import assert_that, is_, greater_than, greater_than_or_equal_to
 from parameterized import parameterized
 import unittest
