@@ -17,7 +17,6 @@ MIN_SEPARATOR_VOLT = 0
 DAQ_VOLT_WRITE_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_VOLT
 
 MAX_SEPARATOR_CURR = 2.5
-DAQ_VOLT_WRITE_SCALE_FACTOR = MAX_DAQ_VOLT / MAX_SEPARATOR_VOLT
 DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
 
 MARGIN_OF_ERROR = 1e-5
@@ -217,6 +216,7 @@ class VoltageTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
         shared_setup(self.ca)
+
     def test_that_GIVEN_sim_val_0_and_data_0_WHEN_voltage_set_point_changed_THEN_data_changed(self):
         # GIVEN
         self.ca.set_pv_value("DAQ:VOLT:SIM", 0)
@@ -468,7 +468,7 @@ class StabilityTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("UNSTABLETIME", length_of_buffer)
 
         # WHEN
-        self.ca.set_pv_value("_ADDCOUNTS", testvalue/SAMPLETIME, wait=True, sleep_after_set=0.0)
+        self.ca.set_pv_value("_ADDCOUNTS", testvalue / SAMPLETIME, wait=True, sleep_after_set=0.0)
         self.ca.set_pv_value("_COUNTERTIMING.PROC", 1, wait=True, sleep_after_set=0.0)
 
         # THEN
@@ -492,11 +492,36 @@ class StabilityTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
 
-    def test_GIVEN_stability_threshold_WHEN_threshold_exceeded_THEN_stability_PV_equals_zero_and_goes_into_alarm(self):
-        self.ca.assert_that_pv_is_number("THRESHOLD", 0.5)
+    def test_GIVEN_power_supply_switched_on_WHEN_power_supply_out_of_stability_threshold_THEN_stability_PV_equals_zero_and_goes_into_alarm(self):
+        # GIVEN
+        self.ca.set_pv_value("VOLT:SP", 10)
+        self.ca.assert_that_pv_is("POWER:STAT", "ON")
 
-        self.write_simulated_current([CURR_STEADY+2.0*CURR_LIMIT]*SAMPLE_LEN)
-        self.write_simulated_voltage([2.0*VOLT_UPPERLIM]*SAMPLE_LEN)
+        # WHEN
+        stability_threshold = self.ca.get_pv_value("THRESHOLD")
+
+        testvalue = stability_threshold * 100
+
+        self.ca.set_pv_value("_ADDCOUNTS", testvalue / SAMPLETIME, wait=True, sleep_after_set=0.0)
 
         self.ca.assert_that_pv_is_number("STABILITY", 0, tolerance=0.1)
+
+        # THEN
         self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.Alarms.MAJOR)
+
+    def test_GIVEN_power_supply_switched_off_WHEN_power_supply_out_of_stability_threshold_THEN_no_alarms_raised(self):
+        # GIVEN
+        self.ca.set_pv_value("VOLT:SP", 0)
+        self.ca.assert_that_pv_is("POWER:STAT", "OFF")
+
+        # WHEN
+        stability_threshold = self.ca.get_pv_value("THRESHOLD")
+
+        testvalue = stability_threshold * 100
+
+        self.ca.set_pv_value("_ADDCOUNTS", testvalue / SAMPLETIME, wait=True, sleep_after_set=0.0)
+
+        self.ca.assert_that_pv_is_number("STABILITY", 0, tolerance=0.1)
+
+        # THEN
+        self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.Alarms.NONE)
