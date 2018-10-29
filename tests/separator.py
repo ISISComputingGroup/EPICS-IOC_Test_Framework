@@ -145,7 +145,7 @@ def stream_data(ca, n_repeat, curr, volt, stop_event):
 
 def simulate_current_data():
     """
-    Generates a random set of data around the current stability limit
+    Generates a set of data around the current stability limit
 
     Returns:
         current_data: Array of floats
@@ -161,7 +161,7 @@ def simulate_current_data():
 
 def simulate_voltage_data():
     """
-    Generates a random set of data around the voltage stability limit
+    Generates a set of data around the voltage stability limit
 
     Returns:
         voltage_data: Array of floats
@@ -401,8 +401,8 @@ class StabilityTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples, tolerance=0.05*expected_out_of_range_samples)
 
     @parameterized.expand([
-        ("random_current_steady_voltage", simulate_current_data(), [VOLT_STEADY] * SAMPLE_LEN),
-        ("steady_current_random_voltage", [CURR_STEADY] * SAMPLE_LEN, simulate_voltage_data())
+        ("unsteady_current", simulate_current_data(), [VOLT_STEADY] * SAMPLE_LEN),
+        ("unsteady_voltage", [CURR_STEADY] * SAMPLE_LEN, simulate_voltage_data())
 
     ])
     def test_GIVEN_multiple_samples_in_one_second_WHEN_buffer_read_THEN_buffer_reads_all_out_of_range_samples(self, _, curr_data, volt_data):
