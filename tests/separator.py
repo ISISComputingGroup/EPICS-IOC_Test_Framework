@@ -309,7 +309,8 @@ class StabilityTests(unittest.TestCase):
 
         self.STOP_DATA_THREAD.set()
 
-    def evaluate_current_instability(self, current_values):
+    @staticmethod
+    def evaluate_current_instability(current_values):
         """
         Evaluates the input current values against the stability criterion.
 
@@ -325,7 +326,8 @@ class StabilityTests(unittest.TestCase):
 
         return current_instability
 
-    def evaluate_voltage_instability(self, voltage_values):
+    @staticmethod
+    def evaluate_voltage_instability(voltage_values):
         """
         Evaluates the input voltages against the stability criterion.
 
@@ -337,7 +339,7 @@ class StabilityTests(unittest.TestCase):
 
         """
 
-        voltage_instability = [(VOLT_LOWERLIM >= volt_measured) | (volt_measured >= VOLT_UPPERLIM) for volt_measured in voltage_values]
+        voltage_instability = [(VOLT_LOWERLIM >= volt_measured) or (volt_measured >= VOLT_UPPERLIM) for volt_measured in voltage_values]
 
         return voltage_instability
 
@@ -356,7 +358,7 @@ class StabilityTests(unittest.TestCase):
         current_instability = self.evaluate_current_instability(current_values)
         voltage_instability = self.evaluate_voltage_instability(voltage_values)
 
-        overall_instability = [curr | volt for curr, volt in zip(current_instability, voltage_instability)]
+        overall_instability = [curr or volt for curr, volt in zip(current_instability, voltage_instability)]
 
         out_of_range_count = sum(overall_instability)
 
@@ -380,7 +382,6 @@ class StabilityTests(unittest.TestCase):
         scaled_data = [x * DAQ_VOLT_WRITE_SCALE_FACTOR for x in volt_data]
 
         self.ca.set_pv_value("DAQ:VOLT:WV:SIM", scaled_data, wait=True, sleep_after_set=0.0)
-
 
     @parameterized.expand([
         ("steady_current_steady_voltage", [CURR_STEADY]*SAMPLE_LEN, [VOLT_STEADY]*SAMPLE_LEN),
@@ -459,12 +460,13 @@ class StabilityTests(unittest.TestCase):
 
         self.ca.set_pv_value("_COUNTERTIMING.SCAN", "Passive")
 
+        # GIVEN
+
         for i in range(length_of_buffer):
             self.ca.set_pv_value("_ADDCOUNTS", 1.0/SAMPLETIME, wait=True, sleep_after_set=0.0)
 
             self.ca.set_pv_value("_COUNTERTIMING.PROC", 1, wait=True, sleep_after_set=0.0)
 
-        # GIVEN
         self.ca.assert_that_pv_is_number("UNSTABLETIME", length_of_buffer)
 
         # WHEN
@@ -483,12 +485,15 @@ class StabilityTests(unittest.TestCase):
         expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA,
                                                                       VOLTAGE_DATA) * number_of_writes * SAMPLETIME
 
+        # GIVEN
         for i in range(number_of_writes):
             self.write_simulated_current(CURRENT_DATA)
             self.write_simulated_voltage(VOLTAGE_DATA)
 
         processtime = clock() - time1
         self.assertGreater(processtime, 1.)
+
+        # THEN
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
 
