@@ -33,6 +33,8 @@ CURR_LIMIT = MAX_SEPARATOR_CURR
 SAMPLE_LEN = 100
 SAMPLETIME = 1.0/float(SAMPLE_LEN)
 
+BUFFER_LEN = 600
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
@@ -40,7 +42,14 @@ IOCS = [
         "macros": {"VUPPERLIM": VOLT_UPPERLIM,
                    "VLOWERLIM": VOLT_LOWERLIM,
                    "ISTEADY": CURR_STEADY,
-                   "ILIMIT": CURR_LIMIT
+                   "ILIMIT": CURR_LIMIT,
+                   "NELM": SAMPLE_LEN,
+                   "FREQ": SAMPLE_LEN,
+                   "WINDOWSIZE": BUFFER_LEN,
+                   "MAXUNSTBL": 30,
+                   "POWER_MIN_VOLT": 2,
+                   "DAQ_AI_PORT_NAME": "L0",
+                   "DAQ_AO_PORT_NAME": "L0"
                    },
     },
 ]
@@ -78,8 +87,8 @@ def stability_set_up(ca):
     ca.set_pv_value("STABILITY", 0.0)
     ca.assert_that_pv_is_number("STABILITY", 0.0, tolerance=1e-3)
 
-    ca.set_pv_value("WINDOWSIZE", 600)
-    ca.assert_that_pv_is_number("WINDOWSIZE", 600, tolerance=1e-3)
+    ca.set_pv_value("WINDOWSIZE", BUFFER_LEN)
+    ca.assert_that_pv_is_number("WINDOWSIZE", BUFFER_LEN, tolerance=1e-3)
 
     ca.set_pv_value("_ADDCOUNTS", 0.0)
     ca.assert_that_pv_is_number("_ADDCOUNTS", 0.0, tolerance=1e-3)
@@ -305,9 +314,8 @@ class StabilityTests(unittest.TestCase):
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
-        shared_setup(self.ca)
-
         self.STOP_DATA_THREAD.set()
+        shared_setup(self.ca)
 
     @staticmethod
     def evaluate_current_instability(current_values):
