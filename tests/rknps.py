@@ -10,12 +10,20 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_devsim, skip_if_rec
 
 # Prefix for addressing PVs on this device
 PREFIX = "RKNPS_01"
+
 ADR1 = "001"
 ID1 = "RQ1"
 ADR2 = "002"
 ID2 = "RB1"
+
+ADR3 = "003"
+ID3 = "RB3"
+ADR4 = "004"
+ID4 = "RB4"
+
+
 CLEAR_STATUS = "."*24
-IDS = [ID1, ID2]
+IDS = [ID1, ID2, ID3, ID4]
 
 
 IOCS = [
@@ -28,6 +36,12 @@ IOCS = [
 
             "CHAIN1_ID2": ID2,
             "CHAIN1_ADR2": ADR2,
+
+            "CHAIN1_ID3": ID3,
+            "CHAIN1_ADR3": ADR3,
+
+            "CHAIN1_ID4": ID4,
+            "CHAIN1_ADR4": ADR4,
         },
         "emulator": "rknps",
     },
@@ -44,7 +58,7 @@ class RknpsTests(unittest.TestCase):
     # Runs before every test.
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
-        self.ca = ChannelAccess()
+        self.ca = ChannelAccess(default_timeout=30)
         self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID1), timeout=30)
 
     def _activate_interlocks(self):
@@ -172,3 +186,23 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{0}:{1}:CURR:SP".format(PREFIX, IDN), set_value)
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), return_value)
             self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), return_value)
+
+    def test_GIVEN_rb3_status_changes_THEN_rb3_banner_pv_updates_correctly(self):
+        for idn in IDS:
+            if idn == "RB3":
+                for powered_on in (True, False):
+                    self.ca.set_pv_value("{}:{}:POWER:SP".format(PREFIX, idn), powered_on)
+                    self.ca.assert_that_pv_is("{}:RB3:BANNER".format(PREFIX), "on; beam to ports 1,2" if powered_on else "off; ports 1,2 safe")
+                break
+        else:
+            self.fail("Didn't find RB3 for test.")
+
+    def test_GIVEN_rb4_status_changes_THEN_rb4_banner_pv_updates_correctly(self):
+        for idn in IDS:
+            if idn == "RB4":
+                for powered_on in (True, False):
+                    self.ca.set_pv_value("{}:{}:POWER:SP".format(PREFIX, idn), powered_on)
+                    self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX), "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
+                break
+        else:
+            self.fail("Didn't find RB4 for test.")
