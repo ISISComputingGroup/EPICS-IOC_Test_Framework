@@ -23,10 +23,11 @@ IOCS = [
         "name": PREFIX,
         "directory": get_default_ioc_dir("RKNPS"),
         "macros": {
-            "CHAIN1_ADR1": ADR1,
-            "CHAIN1_ADR2": ADR2,
             "CHAIN1_ID1": ID1,
+            "CHAIN1_ADR1": ADR1,
+
             "CHAIN1_ID2": ID2,
+            "CHAIN1_ADR2": ADR2,
         },
         "emulator": "rknps",
     },
@@ -54,7 +55,7 @@ class RknpsTests(unittest.TestCase):
             for IDN in IDS:
                 self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), ".........!..............")
         else:
-            self._lewis.backdoor_set_on_device("set_both_interlocks", "active")
+            self._lewis.backdoor_set_on_device("set_all_interlocks", True)
 
     def _disable_interlocks(self):
         """
@@ -64,7 +65,7 @@ class RknpsTests(unittest.TestCase):
             for IDN in IDS:
                 self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), CLEAR_STATUS)
         else:
-            self._lewis.backdoor_set_on_device("set_both_interlocks", "inactive")
+            self._lewis.backdoor_set_on_device("set_all_interlocks", False)
 
     def test_WHEN_intelocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
@@ -123,7 +124,7 @@ class RknpsTests(unittest.TestCase):
     @skip_if_recsim("In rec sim this test fails as it requires a lewis backdoor command")
     def test_GIVEN_emulator_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
         expected_value = 22
-        self._lewis.backdoor_set_on_device("set_both_volt_values", expected_value)
+        self._lewis.backdoor_set_on_device("set_all_volt_values", expected_value)
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:{1}:VOLT".format(PREFIX, IDN), expected_value)
 

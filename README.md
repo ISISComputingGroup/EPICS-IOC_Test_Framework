@@ -64,7 +64,9 @@ You can run multiple tests from multiple classes in different modules.
 If all tests are failing then it is likely that the PV prefix is incorrect.
 If a large percentage of tests are failing then it may that the macros in the IOC are not being set properly for the testing framework.
 
-In most cases it requires inspecting what the IOC is doing, to do that one needs to edit the ioc_launcher.py file to remove the redirection of stdout, stdin and stderr. This will mean that the IOC will dump all its output to the console, so it will then be possible to scroll through it to check the prefix and macros are set correctly.
+It is important to explicitly set each of the macro values for an IOC in its IOC test module. This is to prevent macros set in a configuration from interfering with the values used in the test, even if they are the default values.
+
+To inspect the IOC settings in further detail, one needs to edit the ioc_launcher.py file to remove the redirection of stdout, stdin and stderr. This will mean that the IOC will dump all its output to the console, so it will then be possible to scroll through it to check the prefix and macros are set correctly.
 
 Note: in this mode the IOC will not automatically terminate after the tests have finished, this means it is possible to run diagnostic commands in the IOC, such as `dbl` etc.
 
@@ -187,6 +189,8 @@ A number of custom assert statements are available in the test framework:
   * Checks that a PV is a particular value after the relevant setpoint is changed.
 
 If you find yourself needing other assert functions, please add them!
+
+Note: If using PyCharm, you can add code completeion/suggestions for function names by opening the folder `IoCTestFramework`, rightclick on `master` in the project explorer on the left, and selecting `Mark Directory as... > Sources Root`. 
 
 ### Skipping tests in RECSIM
 
