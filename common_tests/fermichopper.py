@@ -23,6 +23,7 @@ class ErrorStrings(object):
     ATTEMPT_TO_TURN_OFF_BEARINGS_AT_SPEED = "refusing to switch off magnetic bearings as chopper speed is over 10Hz"
     ELECTRONICS_TEMP_TOO_HIGH = "Software detected electronics overheat"
     MOTOR_TEMP_TOO_HIGH = "Software detected motor overheat"
+    CONTROLLER_OVERSPEED = "Controller reports speed limit exceeded"
 
 
 @six.add_metaclass(ABCMeta)
@@ -213,7 +214,7 @@ class FermichopperBase(object):
         self._lewis.backdoor_set_on_device("magneticbearing", True)
         self.ca.assert_that_pv_is("STATUS.B3", "1")
 
-        with assert_log_messages(self._ioc, in_time=2, must_contain="Controller_reports_speed_limit_exceeded"):
+        with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.CONTROLLER_OVERSPEED):
             self._lewis.backdoor_set_on_device("speed", too_fast)
             self.ca.assert_that_pv_is("STATUS.BA", "1")
 

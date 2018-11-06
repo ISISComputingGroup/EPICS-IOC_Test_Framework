@@ -66,14 +66,16 @@ class MerlinFermiChopperTests(FermichopperBase, unittest.TestCase):
     @skip_if_recsim("Uses lewis backdoor")
     def test_WHEN_electronics_temperature_is_too_high_THEN_over_temperature_is_true(self):
         self.ca.assert_that_pv_is("TEMP:RANGECHECK", 0)
-        self._lewis.backdoor_set_on_device("electronics_temp", 46)
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
+        with assert_log_messages(self._ioc, in_time=5, must_contain=ErrorStrings.ELECTRONICS_TEMP_TOO_HIGH):
+            self._lewis.backdoor_set_on_device("electronics_temp", 46)
+            self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_WHEN_motor_temperature_is_too_high_THEN_over_temperature_is_true(self):
         self.ca.assert_that_pv_is("TEMP:RANGECHECK", 0)
-        self._lewis.backdoor_set_on_device("motor_temp", 46)
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
+        with assert_log_messages(self._ioc, in_time=5, must_contain=ErrorStrings.MOTOR_TEMP_TOO_HIGH):
+            self._lewis.backdoor_set_on_device("motor_temp", 46)
+            self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_drive_voltage_is_set_via_backdoor_THEN_pv_updates(self):
