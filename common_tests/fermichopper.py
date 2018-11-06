@@ -370,12 +370,20 @@ class FermichopperBase(object):
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
         for number, position in itertools.product([1, 2], ["upper", "lower"]):
-            self._lewis.backdoor_run_function_on_device("reset")
 
-            # Assert that the last command is zero as expected
-            self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
-            # Check that the last command is not being set to something else by the IOC
-            self.ca.assert_that_pv_value_is_unchanged("LASTCOMMAND", wait=10)
+            err = None
+            for i in range(10):  # Try up to 10 times.
+                try:
+                    self._lewis.backdoor_run_function_on_device("reset")
+                    # Assert that the last command is zero as expected
+                    self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
+                    # Check that the last command is not being set to something else by the IOC
+                    self.ca.assert_that_pv_value_is_unchanged("LASTCOMMAND", wait=10)
+                    break
+                except AssertionError as e:
+                    err = e
+            else:  # no-break
+                raise err
 
             with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.SOFTWARE_AUTOZERO_OUT_OF_RANGE):
                 # Set autozero voltage too high and set device moving
