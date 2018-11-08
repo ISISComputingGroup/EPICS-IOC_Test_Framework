@@ -34,7 +34,7 @@ class WbvalveTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_run_function_on_device('reset')
 
-    @parameterized.expand(['wb1', 'wb2'])
+    @parameterized.expand(['Julabo 1', 'Julabo 2'])
     def test_GIVEN_an_ioc_WHEN_set_valve_to_wb1on_THEN_status_is_wb1on(self, expected_value):
         self.ca.assert_setting_setpoint_sets_readback(expected_value, 'POS')
 
