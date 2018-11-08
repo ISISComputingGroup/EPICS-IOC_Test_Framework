@@ -188,21 +188,19 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), return_value)
 
     def test_GIVEN_rb3_status_changes_THEN_rb3_banner_pv_updates_correctly(self):
-        for idn in IDS:
-            if idn == "RB3":
-                for powered_on in (True, False):
-                    self.ca.set_pv_value("{}:{}:POWER:SP".format(PREFIX, idn), powered_on)
-                    self.ca.assert_that_pv_is("{}:RB3:BANNER".format(PREFIX), "on; beam to ports 1,2" if powered_on else "off; ports 1,2 safe")
-                break
-        else:
+        if "RB3" not in IDS:
             self.fail("Didn't find RB3 for test.")
 
+        for powered_on in (True, False):
+            self.ca.set_pv_value("{}:RB3:POWER:SP".format(PREFIX), powered_on)
+            self.ca.assert_that_pv_is("{}:RB3:BANNER".format(PREFIX),
+                                      "on; beam to ports 1,2" if powered_on else "off; ports 1,2 safe")
+
     def test_GIVEN_rb4_status_changes_THEN_rb4_banner_pv_updates_correctly(self):
-        for idn in IDS:
-            if idn == "RB4":
-                for powered_on in (True, False):
-                    self.ca.set_pv_value("{}:{}:POWER:SP".format(PREFIX, idn), powered_on)
-                    self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX), "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
-                break
-        else:
+        if "RB4" not in IDS:
             self.fail("Didn't find RB4 for test.")
+
+        for powered_on in (True, False):
+            self.ca.set_pv_value("{}:RB4:POWER:SP".format(PREFIX), powered_on)
+            self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
+                                      "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
