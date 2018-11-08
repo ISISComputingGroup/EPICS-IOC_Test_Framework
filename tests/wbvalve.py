@@ -38,6 +38,7 @@ class WbvalveTests(unittest.TestCase):
     def test_GIVEN_an_ioc_WHEN_set_valve_to_wb1on_THEN_status_is_wb1on(self, expected_value):
         self.ca.assert_setting_setpoint_sets_readback(expected_value, 'POS')
 
+    @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is('POS', ChannelAccess.Alarms.INVALID)
