@@ -1,0 +1,8 @@
+# Convert sample position names to motor coordinates
+Blank_01     10.000000
+Aperture_01  15.000000
+Blank_02     20.000000
+Aperture_02  25.000000
+Blank_03     30.000000
+Aperture_03  35.000000
+Blank_04     40.000000
