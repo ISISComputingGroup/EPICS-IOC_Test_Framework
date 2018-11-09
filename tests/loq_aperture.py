@@ -37,6 +37,10 @@ MOTOR = "MOT:MTR0101"
 #TWEAK_X = "ARM:X:TWEAK"
 #TWEAK_Y = "ARM:Y:TWEAK"
 
+## Axis position index PV and SP
+POSITION_INDEX = "LKUP:APERTURE:IPOSN"
+POSITION_SP = "LKUP:APERTURE:IPOSN:SP"
+
 ## PV reading closest beamstop position
 CLOSESTSHUTTER = "APERTURE:CLOSESTSHUTTER"
 
@@ -53,8 +57,8 @@ IOCS = [
             "GALILADDR": GALIL_ADDR,
             "IFLOQAPERTURE": " ",
             "MTRCTRL": "1",
-            "GALILCONFIGDIR": test_path,
-            "ICPCONFIGROOT": test_path,
+            "GALILCONFIGDIR": test_path.replace("\\", "/"),
+            "ICPCONFIGROOT": test_path.replace("\\", "/"),
         },
     },
 ]
@@ -87,16 +91,15 @@ class LoqApertureTests(unittest.TestCase):
     ])
     def test_GIVEN_motor_on_an_aperture_position_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, _, start_pos, closest_stop):
         # GIVEN
-        self.ca.set_pv_value(MOTOR, start_pos)
-        self.ca.assert_that_pv_is_number(MOTOR, start_pos, TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR, start_pos, tolerance=TOLERANCE)
+        self.ca.set_pv_value(POSITION_SP, start_pos)
+        self.ca.assert_that_pv_is_number(POSITION_INDEX, start_pos, tolerance=TOLERANCE)
 
         # WHEN
         self.ca.process_pv(CLOSEAPERTURE)
 
         # THEN
         self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
-        self.ca.assert_that_pv_is_number(MOTOR, closest_stop, timeout=5)
+        self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
 
 #    @parameterized.expand([
 #        ("start_B1", 0, 0),
