@@ -47,6 +47,15 @@ CLOSESTSHUTTER = "APERTURE:CLOSESTSHUTTER"
 ## PV which sends the motor to closest beamstop motion set point
 CLOSEAPERTURE = "APERTURE:CLOSEAPERTURE"
 
+## Test motion set points located in test_support/loq_aperture
+MOTION_SETPOINTS = {"Blank_01":     0.000000,
+                    "Aperture_01":  10.000000,
+                    "Blank_02":     20.000000,
+                    "Aperture_02":  30.000000,
+                    "Blank_03":     40.000000,
+                    "Aperture_03":  50.000000,
+                    "Blank_04":     60.000000}
+
 test_path = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir, "test_support", "loq_aperture"))
 
 IOCS = [
@@ -81,18 +90,19 @@ class LoqApertureTests(unittest.TestCase):
 
     # BX refers to a blanking plate; AX refers to an aperture hole. Closest positions defined in ticket 3623
     @parameterized.expand([
-        ("start_B1", 0, 0),
-        ("start_A1", 1, 2),
-        ("start_B2", 2, 2),
-        ("start_A2", 3, 4),
-        ("start_B3", 4, 4),
-        ("start_A3", 5, 4),
-        ("start_B4", 6, 6),
+        ("Blank_01", 0, 0),
+        ("Aperture_01", 1, 2),
+        ("Blank_02", 2, 2),
+        ("Aperture_02", 3, 4),
+        ("Blank_03", 4, 4),
+        ("Aperture_03", 5, 4),
+        ("Blank_04", 6, 6),
     ])
-    def test_GIVEN_motor_on_an_aperture_position_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, _, start_pos, closest_stop):
+    def test_GIVEN_motor_on_an_aperture_position_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, start_position, start_index, closest_stop):
         # GIVEN
-        self.ca.set_pv_value(POSITION_SP, start_pos)
-        self.ca.assert_that_pv_is_number(POSITION_INDEX, start_pos, tolerance=TOLERANCE)
+        self.ca.set_pv_value(POSITION_SP, start_index)
+        self.ca.assert_that_pv_is_number(POSITION_INDEX, start_index, tolerance=TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINTS[start_position], tolerance=TOLERANCE)
 
         # WHEN
         self.ca.process_pv(CLOSEAPERTURE)
