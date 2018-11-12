@@ -3,6 +3,8 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 
+import os
+
 # IP address of device
 from utils.test_modes import TestModes
 
@@ -18,6 +20,7 @@ VELOCITY = "VEL:SP"
 DISTANCE = "DIST:SP"
 DISCRIMINANT = "VEL:SP:DISC:CHECK"
 
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "oscillatingCollimator"))
 
 IOCS = [
     {
@@ -26,7 +29,8 @@ IOCS = [
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "01",
-            "IFOSCCOL": " ",
+            "GALILCONFIGDIR": test_path.replace("\\", "/"),
+            "ICPCONFIGROOT": test_path.replace("\\", "/"),
         },
     },
 ]
