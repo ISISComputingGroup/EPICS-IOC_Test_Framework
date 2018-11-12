@@ -30,7 +30,6 @@ IOCS = [
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "01",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
-            "ICPCONFIGROOT": test_path.replace("\\", "/"),
         },
     },
 ]

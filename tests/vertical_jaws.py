@@ -1,4 +1,5 @@
 import unittest
+import os
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -23,12 +24,15 @@ all_motors = [MOTOR_N, MOTOR_S,
 
 TEST_POSITIONS = [-5, 0, 10, 10e-1]
 
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings"))
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("GALIL"),
         "macros": {
             "MTRCTRL": "01",
+            "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     },
 ]
