@@ -26,6 +26,8 @@ BUFFER_CONTROL_MODE = 1
 
 on_off_status = {False: "OFF", True: "ON"}
 
+DRIFT_TOLERANCE = 1
+
 
 class Status(object):
     ON = "ON"
@@ -171,22 +173,22 @@ class Keithley2700Tests(unittest.TestCase):
 
 class DriftTests(unittest.TestCase):
 
-    drift_data = ['1200,1,101', '1206,1.05,101', '1210,1.1,101', '1208,1.15,101',
-                  '1210,1.2,101', '1216,1.25,101', '1213,1.3,101', '1215,1.35,101',
-                  '1218,1.4,101', '1221,1.45,101']
+    drift_data = ['1386.05,4000,101', '1387.25,4360,101', '1388.51,4720,101', '1389.79,5080,101',
+                  '1391.07,5440,101', '1392.35,5800,101', '1393.71,6160,101', '1395.01,6520,101',
+                  '1396.38,6880,101', '1397.70,7240,101']
 
     # Tuple format (reading, temperature, expected_drift)
     full_list_of_readings = [
-        ('1200,1,101', 93.8092, 0.),
-        ('1206,1.05,101', 91.4808, -55.8816),
-        ('1210,1.1,101', 90.0499, -89.1056),
-        ('1208,1.15,101', 90.7652, -70.1563),
-        ('1210,1.2,101', 90.0499, -85.9203),
-        ('1216,1.25,101', 87.9038, -135.7083),
-        ('1213,1.3,101', 88.9768, -107.2422),
-        ('1215,1.35,101', 88.2614, -122.2669),
-        ('1218,1.4,101', 87.1884, -145.5736),
-        ('1221,1.45,101', 86.1153, -168.4165),
+        ('1386.05,4000,101', 47.424, 0.),
+        ('1387.25,4360,101', 47.243, -0.000666667),
+        ('1388.51,4720,101', 47.053, -0.00135333),
+        ('1389.79,5080,101', 46.860, -0.00202627),
+        ('1391.07,5440,101', 46.667, -0.00268574),
+        ('1392.35,5800,101', 46.474, -0.00333203),
+        ('1393.71,6160,101', 46.269, -0.00399872),
+        ('1395.01,6520,101', 46.072, -0.00461874),
+        ('1396.38,6880,101', 45.866, -0.0052597),
+        ('1397.70,7240,101', 45.667, -0.00585451),
     ]
 
     def setUp(self):
@@ -194,6 +196,7 @@ class DriftTests(unittest.TestCase):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
         self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
 
     def _lewis_sync_helper(self, attribute, set_value, wait_time=0.5):
         while self._lewis.backdoor_get_from_device(str(attribute)) != str(set_value):
@@ -223,8 +226,7 @@ class DriftTests(unittest.TestCase):
         self._lewis_sync_helper("control_mode", BUFFER_CONTROL_MODE)
 
         # clear buffer
-        self._lewis.backdoor_run_function_on_device("clear_buffer")
-        self._lewis_sync_helper("buffer", [])
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
 
         # put canned data in buffer
         self._lewis.backdoor_run_function_on_device("insert_mock_data", [readings])
@@ -234,8 +236,7 @@ class DriftTests(unittest.TestCase):
             yield
         finally:
             # clear buffer
-            self._lewis.backdoor_run_function_on_device("clear_buffer")
-            self._lewis_sync_helper("buffer", [])
+            self.ca.set_pv_value("BUFF:CLEAR:SP", "")
             # return to normal control mode
             self._lewis.backdoor_set_on_device("control_mode", NORMAL_MODE)
             self._lewis_sync_helper("control_mode", NORMAL_MODE)
@@ -243,35 +244,34 @@ class DriftTests(unittest.TestCase):
     def test_GIVEN_empty_buffer_WHEN_values_added_sequentially_THEN_drift_correct(self, readings=drift_data,
                                                                                   expected=full_list_of_readings):
         # GIVEN
-        self._lewis.backdoor_run_function_on_device("clear_buffer")
-        self._lewis_sync_helper("buffer", [])
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
 
         # WHEN
         for i in range(0, len(expected)):
             with self._insert_canned_readings_sequentially([readings[i]]):
                 # THEN
-                self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected[i][2], tolerance=3)
-                print "{:8.3f} - {:8.3f}".format(float(self.ca.get_pv_value("CHNL:101:DRIFT")), expected[i][2])
+                self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected[i][2], tolerance=DRIFT_TOLERANCE)
+                print "{:8.3f} - {:8.3f}".format(float(self.ca.get_pv_value("CHNL:101:TEMP")), expected[i][1])
 
         # Finally, clear buffer
-        self._lewis.backdoor_run_function_on_device("clear_buffer")
-        self._lewis_sync_helper("buffer", [])
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         # return to normal control mode
         self._lewis.backdoor_set_on_device("control_mode", NORMAL_MODE)
         self._lewis_sync_helper("control_mode", NORMAL_MODE)
 
-    def test_GIVEN_empty_buffer_WHEN_read_and_time_set_in_blocks_THEN_drift_is_correct(self, readings=drift_data,
-                                                                                       expected=full_list_of_readings):
+    def test_GIVEN_empty_buffer_WHEN_values_added_in_blocks_THEN_drift_correct(self, readings=drift_data,
+                                                                               expected=full_list_of_readings):
         for i in range(0, len(expected)):
             with self._insert_canned_readings_in_chunks(readings[:i+1]):
-                self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected[i][1], tolerance=1)
-                print "{:8.3f} - {:8.3f}".format(float(self.ca.get_pv_value("CHNL:101:DRIFT")), expected[i][2])
-                self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected[i][2], tolerance=1)
+                self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected[i][1], tolerance=10)
+                print "{:8.3f} - {:8.3f}".format(float(self.ca.get_pv_value("CHNL:101:TEMP")), expected[i][1])
+                self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected[i][2], tolerance=200)
 
     def test_GIVEN_empty_buffer_WHEN_reading_inserted_into_buffer_THEN_pvs_contain_correct_values(self):
         reading = ['1200,1,101']
 
         with self._insert_canned_readings_in_chunks(reading):
+            time.sleep(2)
             self.ca.assert_that_pv_is_number("CHNL:101:READ", 1200)
             self.ca.assert_that_pv_is_number("CHNL:101:TIME", 1)
             self.ca.assert_that_pv_is_number("CHNL:101:TEMP", 93.7509, tolerance=1)
