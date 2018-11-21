@@ -131,6 +131,17 @@ IOCS = [
 ]
 ```
 
+#### Changing the IOC number
+
+If you want a to run the IOC tests against a different number IOC, e.g. "IOCNAME_02", 
+you need to change the following:
+
+1. Set `DEVICE_PREFIX` to `IOCNAME_02`.
+1. Change the "name" property of the IOC dictionary to `IOCNAME_02`.
+1. Pass the keyword argument `iocnum=2` to `get_default_ioc_dir()`.
+
+The test framework now start the `IOCNAME_02` IOC to run the tests against.
+
 ### The `TEST_MODES` attribute
 
 This is a list of test modes to run this test suite in. A list of available test modes can be found in `utils\test_modes.py`. Currently these are RECSIM and DEVSIM.
