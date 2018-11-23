@@ -304,7 +304,7 @@ class LewisLauncher(object):
 
             message = "Expected emulator property {} to have a value greater than or equal to {}".format(
                 emulator_property, min_value)
-            return self.assert_that_emulator_value_value_causes_func_to_return_true(
+            return self.assert_that_emulator_value_causes_func_to_return_true(
                 emulator_property, lambda value: min_value <= float(value), timeout, message)
 
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None):
@@ -324,10 +324,10 @@ class LewisLauncher(object):
         if message is None:
             message = "Expected PV to have value {}.".format(format_value(expected_value))
 
-        return self.assert_that_emulator_value_value_causes_func_to_return_true(
+        return self.assert_that_emulator_value_causes_func_to_return_true(
             emulator_property, lambda val: val == expected_value, timeout=timeout, msg=message)
 
-    def assert_that_emulator_value_value_causes_func_to_return_true(
+    def assert_that_emulator_value_causes_func_to_return_true(
             self, emulator_property, func, timeout=None, msg=None):
         """
         Check that a emulator property satisfies a given function within some timeout.
