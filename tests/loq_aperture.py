@@ -36,7 +36,8 @@ MOTION_SETPOINT = OrderedDict([("Aperture_large",  02.900000),
                                ("Stop_02",         40.400000),
                                ("Aperture_small",  52.900000)])
 
-test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "loqAperture"))
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motorExtensions", "master", "settings", "loqAperture"))
 
 IOCS = [
     {

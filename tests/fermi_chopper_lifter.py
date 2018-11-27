@@ -9,7 +9,8 @@ from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
 
-test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "emma_chopper_lifter"))
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motorExtensions", "master", "settings", "emma_chopper_lifter"))
 
 IOCS = [
     {

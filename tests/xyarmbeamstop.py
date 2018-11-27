@@ -55,7 +55,8 @@ STORE_SP = "ARM:STORE:SP"
 TWEAK_X = "ARM:X:TWEAK"
 TWEAK_Y = "ARM:Y:TWEAK"
 
-test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "xyBeamstop"))
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motorExtensions", "master", "settings", "xyBeamstop"))
 
 IOCS = [
     {

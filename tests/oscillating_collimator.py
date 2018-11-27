@@ -20,7 +20,8 @@ VELOCITY = "VEL:SP"
 DISTANCE = "DIST:SP"
 DISCRIMINANT = "VEL:SP:DISC:CHECK"
 
-test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "oscillatingCollimator"))
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motorExtensions", "master", "settings", "oscillatingCollimator"))
 
 IOCS = [
     {
