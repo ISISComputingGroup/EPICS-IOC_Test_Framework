@@ -116,7 +116,7 @@ class SingleShotTests(unittest.TestCase):
 
     def _simulate_readings(self, channel, value, unit):
         if IOCRegister.uses_rec_sim:
-            simulated_reading = ["{:.7E}VDC".format(value), "{0:02d}INTCHAN".format(channel)]
+            simulated_reading = ["{:.7E}{}".format(value, unit), "{0:02d}INTCHAN".format(channel)]
             self.ca.set_pv_value("READINGS", simulated_reading)
         else:
             self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value, unit])
