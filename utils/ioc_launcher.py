@@ -1,3 +1,7 @@
+"""
+Launcher for an IOC
+"""
+import signal
 import subprocess
 import os
 from time import sleep
@@ -59,9 +63,8 @@ class IocLauncher(object):
     Launches an IOC for testing.
     """
 
-    RECORD_THAT_ALWAYS_EXISTS = "DISABLE"
-
-    def __init__(self, device, directory, macros, use_rec_sim, var_dir, port):
+    def __init__(self, device, directory, macros, use_rec_sim, var_dir, port, ioc_run_commandline, started_text,
+                 pv_for_existence, environment_vars):
         """
         Constructor that also launches the IOC.
 
@@ -71,7 +74,10 @@ class IocLauncher(object):
         :param use_rec_sim: Use record simulation not device simulation in the ioc
         :param var_dir: location of directory to write log file and macros directories
         :param port: The port to use
+        :param ioc_run_commandline: run command line array to start IOC, None use runIOC.bat st.cmd
+        :param started_text: Text to search for indicating that the ioc has started and is ready to test
         """
+        self._ioc_started_text = started_text
         self._directory = directory
         self.use_rec_sim = use_rec_sim
         self._process = None
@@ -84,11 +90,14 @@ class IocLauncher(object):
         self.port = port
         # macros to use for the ioc
         self.macros = macros
+        self._ioc_run_commandline = ioc_run_commandline
+        self._pv_for_existence = pv_for_existence
+        self._environment_vars = environment_vars
 
     def _log_filename(self):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
 
-    def _set_environment_vars(self):
+    def _set_environment_vars(self, extra_environment_vars):
         settings = os.environ.copy()
         if self.use_rec_sim:
             # Using record simulation
@@ -101,6 +110,9 @@ class IocLauncher(object):
 
         # Set the port
         settings['EMULATOR_PORT'] = str(self.port)
+
+        for env_name, setting in extra_environment_vars.items():
+            settings[env_name] = setting
         return settings
 
     def __enter__(self):
@@ -111,25 +123,34 @@ class IocLauncher(object):
         self.close()
 
     def open(self):
-        run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
-        st_cmd_path = os.path.join(self._directory, 'st.cmd')
+        """
+        Runs the ioc.
+        """
+        if self._ioc_run_commandline is None:
+            run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
+            st_cmd_path = os.path.join(self._directory, 'st.cmd')
 
-        if not os.path.isfile(run_ioc_path):
-            print("Run IOC path not found: '{0}'".format(run_ioc_path))
-        if not os.path.isfile(st_cmd_path):
-            print("St.cmd path not found: '{0}'".format(st_cmd_path))
+            if not os.path.isfile(run_ioc_path):
+                print("Run IOC path not found: '{0}'".format(run_ioc_path))
+            if not os.path.isfile(st_cmd_path):
+                print("St.cmd path not found: '{0}'".format(st_cmd_path))
+            ioc_run_commandline = [run_ioc_path, st_cmd_path]
+        else:
+            run_ioc_path = self._ioc_run_commandline[0]
+            if not os.path.isfile(run_ioc_path):
+                print("Command first argument path not found: '{0}'".format(run_ioc_path))
+            ioc_run_commandline = self._ioc_run_commandline
 
         ca = self._get_channel_access()
         try:
             print("Check that IOC is not running")
-            ca.assert_that_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
+            ca.assert_that_pv_does_not_exist(self._pv_for_existence)
         except AssertionError as ex:
             raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
 
-        ioc_run_commandline = [run_ioc_path, st_cmd_path]
         print("Starting IOC ({})".format(self._device))
 
-        settings = self._set_environment_vars()
+        settings = self._set_environment_vars(self._environment_vars)
 
         # create macros
         full_dir = os.path.join(self._var_dir, "tmp")
@@ -150,7 +171,7 @@ class IocLauncher(object):
                                          cwd=self._directory, stdin=subprocess.PIPE,
                                          stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT, env=settings)
 
-        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START)
+        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
 
@@ -161,20 +182,24 @@ class IocLauncher(object):
         print("Terminating IOC ({})".format(self._device))
 
         if self._process is not None:
-            self._process.communicate("exit\n")
+            #  use write not communicate so that we don't wait for exit before continuing
+            self._process.stdin.write("exit\n")
 
-            max_wait_for_ioc_to_die = 60
+            max_wait_for_ioc_to_die = 1 # 60
             wait_per_loop = 0.1
 
-            for _ in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
+            for loop_count in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
                 try:
-                    self._get_channel_access().assert_that_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
+                    self._get_channel_access().assert_that_pv_does_not_exist(self._pv_for_existence)
                     break
                 except AssertionError:
                     sleep(wait_per_loop)
+                    if loop_count % 100 == 0:
+                        print("   waited {}".format(loop_count*wait_per_loop))
             else:
                 print("IOC process did not die after {} seconds. Continuing anyway but next set of tests may fail."
                       .format(max_wait_for_ioc_to_die))
+                self._process.kill()
 
         if self.log_file_manager is not None:
             self.log_file_manager.close()

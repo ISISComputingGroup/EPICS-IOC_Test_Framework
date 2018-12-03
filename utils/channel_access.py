@@ -169,7 +169,7 @@ class ChannelAccess(object):
         # last try
         return wait_for_lambda()
 
-    def assert_that_pv_value_causes_func_to_return_true(self, pv, func, timeout=None, message=None):
+    def assert_that_pv_value_causes_func_to_return_true(self, pv, func, timeout=None, message=None, value_from=None):
         """
         Check that a PV satisfies a given function within some timeout.
 
@@ -178,11 +178,15 @@ class ChannelAccess(object):
             func: a function that takes one argument, the PV value, and returns True if the value is valid.
             timeout: time to wait for the PV to satisfy the function
             message: custom message to print on failure
+            value_from: place to get value from; None from pv get; otherwise attribute value will be used
         Raises:
             AssertionError: If the function does not evaluate to true within the given timeout
         """
-        def wrapper(message):
-            value = self.get_pv_value(pv)
+        def _wrapper(message):
+            if value_from is None:
+                value = self.get_pv_value(pv)
+            else:
+                value = value_from.value
             try:
                 return_value = func(value)
             except Exception as e:
@@ -197,12 +201,12 @@ class ChannelAccess(object):
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
                 .format(func.__name__, self._create_pv_with_prefix(pv))
 
-        err = self._wait_for_pv_lambda(partial(wrapper, message), timeout)
+        err = self._wait_for_pv_lambda(partial(_wrapper, message), timeout)
 
         if err is not None:
             raise AssertionError(err)
 
-    def assert_that_pv_is(self, pv, expected_value, timeout=None, msg=None):
+    def assert_that_pv_is(self, pv, expected_value, timeout=None, msg=None, value_from=None):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout.
 
@@ -211,16 +215,18 @@ class ChannelAccess(object):
             expected_value: expected value
             timeout: if it hasn't changed within this time raise assertion error
             msg: Extra message to print
+            value_from: place to get value from; None from pv get; otherwise attribute value will be used
         Raises:
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
         """
 
         if msg is None:
-            msg = "Expected PV to have value {}.".format(self._format_value(expected_value))
+            msg = "Expected PV, '{}' to have value {}.".format(self._create_pv_with_prefix(pv),
+                                                               self._format_value(expected_value))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: val == expected_value, timeout=timeout, message=msg)
+            pv, lambda val: val == expected_value, timeout=timeout, message=msg, value_from=value_from)
 
     def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
         """
@@ -445,3 +451,25 @@ class ChannelAccess(object):
 
     assert_that_pv_value_is_unchanged = \
         partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.eq)
+
+    def assert_that_pv_monitor_is(self, pv, expected_value):
+        channel_access = self
+
+        class _MonitorAssertion():
+            def __init__(self):
+                self._full_pv_name = channel_access._create_pv_with_prefix(pv)
+                self._value = None
+                CaChannelWrapper.add_monitor(channel_access._create_pv_with_prefix(pv), self._set_val)
+
+            def _set_val(self, value, alarm_severity, alarm_status):
+                self._value = value
+
+            @property
+            def value(self):
+                """
+                Returns: value monitor set
+                """
+                CaChannelWrapper.poll()
+                return self._value
+
+        self.assert_that_pv_is(pv, expected_value, value_from=_MonitorAssertion())

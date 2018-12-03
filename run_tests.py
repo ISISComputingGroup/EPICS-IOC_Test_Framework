@@ -44,13 +44,21 @@ def make_device_launchers_from_module(test_module, recsim):
         free_port = str(get_free_ports(1)[0])
         macros = ioc.get("macros", {})
         macros['EMULATOR_PORT'] = free_port
+        command_line = ioc.get("ioc_run_commandline", None)
+        started_text = ioc.get("started_text", "epics>")
+        pv_for_existence = ioc.get("pv_for_existence", "DISABLE")
+        environment_vars = ioc.get("environment_vars", {})
 
         ioc_launcher = IocLauncher(device=ioc["name"],
                                    directory=ioc["directory"],
                                    macros=macros,
                                    use_rec_sim=recsim,
                                    var_dir=var_dir,
-                                   port=free_port)
+                                   port=free_port,
+                                   ioc_run_commandline=command_line,
+                                   started_text=started_text,
+                                   pv_for_existence=pv_for_existence,
+                                   environment_vars=environment_vars)
 
         if "emulator" in ioc and not recsim:
 
