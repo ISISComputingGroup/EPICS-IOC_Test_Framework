@@ -9,12 +9,12 @@ from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.lewis_launcher import LewisLauncher, LewisNone
-from utils.ioc_launcher import IocLauncher, EPICS_TOP
+from utils.ioc_launcher import IocLauncher, ProcServLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 
 
-def make_device_launchers_from_module(test_module, recsim):
+def make_device_launchers_from_module(test_module, mode):
     """
     Returns a list of device launchers for the given test module
     :param test_module: module containing IOC tests
@@ -30,6 +30,8 @@ def make_device_launchers_from_module(test_module, recsim):
     if len(iocs) < 1:
         raise ValueError("Need at least one IOC to launch")
 
+    recsim = mode == TestModes.RECSIM
+
     for ioc in iocs:
         if "name" not in ioc:
             raise ValueError("IOC entry must have a 'name' attribute which should give the IOC name")
@@ -41,16 +43,14 @@ def make_device_launchers_from_module(test_module, recsim):
     device_launchers = []
     for ioc in iocs:
 
-        free_port = str(get_free_ports(1)[0])
+        free_port = get_free_ports(2)
         macros = ioc.get("macros", {})
-        macros['EMULATOR_PORT'] = free_port
+        macros['EMULATOR_PORT'] = free_port[0]
+        macros['LOG_PORT'] = free_port[1]
 
-        ioc_launcher = IocLauncher(device=ioc["name"],
-                                   directory=ioc["directory"],
-                                   macros=macros,
-                                   use_rec_sim=recsim,
-                                   var_dir=var_dir,
-                                   port=free_port)
+        launcher = ioc.get("LAUNCHER", IocLauncher)
+
+        ioc_launcher = launcher(ioc, mode, var_dir)
 
         if "emulator" in ioc and not recsim:
 
@@ -83,7 +83,7 @@ def make_device_launchers_from_module(test_module, recsim):
     return device_launchers
 
 
-def load_and_run_tests(test_names):
+def load_and_run_tests(test_names, launcher=IocLauncher):
     """
     Loads and runs the dotted unit tests to be run.
 
@@ -105,13 +105,10 @@ def load_and_run_tests(test_names):
     test_results = []
 
     for mode in modes:
-        if mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
-            raise ValueError("Invalid test mode provided")
-
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
-            device_launchers = make_device_launchers_from_module(module.file, recsim=(mode == TestModes.RECSIM))
+            device_launchers = make_device_launchers_from_module(module.file, mode)
             test_results.append(
                 run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers)))
 
@@ -187,6 +184,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
+    var_dir = var_dir.replace('/', '\\')
 
     if arguments.prefix is None:
         print("Cannot run without instrument prefix")
