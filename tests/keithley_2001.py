@@ -1,4 +1,4 @@
-from hamcrest import assert_that, is_, greater_than, greater_than_or_equal_to
+from hamcrest import assert_that, is_, greater_than, greater_than_or_equal_to, equal_to
 from parameterized import parameterized
 import unittest
 import time
@@ -108,7 +108,7 @@ class InitTests(unittest.TestCase):
         self.ca.assert_that_pv_after_processing_is("BUFF:SOURCE", "SENS1")
 
     @skip_if_recsim("Lewis backdoor doesn't work in RECSIM.")
-    def test_that_GIVEN_a_fresh_IOC_THEN_the_device_buffer_and_status_register_have_been_reset(self):
+    def test_that_GIVEN_a_fresh_IOC_THEN_the_status_register_has_been_reset(self):
         number_of_times_status_register_has_been_reset_and_cleared = int(
             self._lewis.backdoor_run_function_on_device(
                 "get_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor")[0])
@@ -300,24 +300,6 @@ class ErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-    @skip_if_recsim("Can't replicate resetting the error using waveforms in RECSIM")
-    def test_that_GIVEN_a_device_not_scnaning_on_any_channels_with_an_error_WHEN_the_message_is_cleared_THEN_the_IOC_has_no_errors(
-            self):
-        # Given:
-        expected_error_code = -113
-        expected_error_message = "Undefined header"
-        self._simulate_error(expected_error_code, expected_error_message)
-        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
-
-        # When:
-        self.ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
-
-        # Then:
-        expected_cleared_error_code = 0
-        expected_cleared_error_message = "No error"
-        self.ca.assert_that_pv_is("ERROR:RAW", "".join(
-            [str(expected_cleared_error_code), expected_cleared_error_message]))
-
     def test_that_GIVEN_a_device_scanning_on_one_channels_with_an_error_THEN_the_IOC_reads_that_there_is_an_error(
             self):
         # Given:
@@ -329,24 +311,6 @@ class ErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-    @skip_if_recsim("Can't replicate resetting the error using waveforms in RECSIM")
-    def test_that_GIVEN_a_device_scnaning_on_one_channel_with_an_error_WHEN_the_message_is_cleared_THEN_the_IOC_has_no_errors(
-            self):
-        # Given:
-        _set_active_channel(self.ca, 3)
-        expected_error_code = -113
-        expected_error_message = "Undefined header"
-        self._simulate_error(expected_error_code, expected_error_message)
-        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
-
-        # When:
-        self.ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
-
-        # Then:
-        expected_cleared_error_code = 0
-        expected_cleared_error_message = "No error"
-        self.ca.assert_that_pv_is("ERROR:RAW", "".join([
-            str(expected_cleared_error_code), expected_cleared_error_message]))
 
     def test_that_GIVEN_a_device_scanning_on_two_channels_with_an_error_THEN_the_IOC_reads_that_there_is_an_error(
             self):
@@ -360,25 +324,6 @@ class ErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-    @skip_if_recsim("Can't replicate resetting the error using waveforms in RECSIM")
-    def test_that_GIVEN_a_device_scnaning_on_two_channels_with_an_error_WHEN_the_message_is_cleared_THEN_the_IOC_has_no_errors(
-            self):
-        # Given:
-        _set_active_channel(self.ca, 6)
-        _set_active_channel(self.ca, 3)
-        expected_error_code = -113
-        expected_error_message = "Undefined header"
-        self._simulate_error(expected_error_code, expected_error_message)
-        self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
-
-        # When:
-        self.ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
-
-        # Then:
-        expected_cleared_error_code = 0
-        expected_cleared_error_message = "No error"
-        self.ca.assert_that_pv_is("ERROR:RAW", "".join(
-            [str(expected_cleared_error_code), expected_cleared_error_message]))
 
     def test_that_GIVEN_a_device_not_scanning_on_any_channels_on_setup_THEN_the_error_code_and_error_message_are_separatated(
             self):
@@ -399,6 +344,17 @@ class ErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR:MSG", expected_error_message)
         self.ca.assert_that_pv_is("ERROR:CODE", expected_error_code)
+
+
+    def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_an_error_THEN_the_error_code_PV_goes_into_alarm(
+            self):
+        # Given:
+        expected_error_code = -113
+        expected_error_message = "Undefined header"
+        self._simulate_error(expected_error_code, expected_error_message)
+
+        # Then:
+        self.ca.assert_that_pv_alarm_is("ERROR:CODE", self.ca.Alarms.MAJOR)
 
 
 @setup_tests
@@ -451,3 +407,19 @@ class DisconnectedTests(unittest.TestCase):
         # When/Then:
         self.ca.assert_that_pv_alarm_is("CHAN:01:READ", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("CHAN:01:UNIT", self.ca.Alarms.INVALID)
+
+
+@setup_tests
+class IOCResetTests(unittest.TestCase):
+
+    @skip_if_recsim("Can't replicate resetting the device in RECSIM")
+    def test_that_GIVEN_a_device_WHEN_reset_THEN_the_IOC_has_been_reinitalized(
+            self):
+
+        # When:
+        self.ca.set_pv_value("RESET:FLAG", 1)
+
+        # Then:
+        result = int(self._lewis.backdoor_run_function_on_device(
+            "get_how_many_times_ioc_has_been_reset_via_the_backdoor")[0])
+        assert_that(result, is_(equal_to(2)))

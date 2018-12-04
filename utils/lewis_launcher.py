@@ -294,7 +294,7 @@ class LewisLauncher(object):
             Assert that an emulator property has a value greater than the expected value.
 
             Args:
-                 emulator_property (string): Name of the emulator property.
+                 emulator_property (string): Name of the numerical emulator property.
                  min_value (float): Minimum value (inclusive).
                  timeout: if it hasn't changed within this time raise assertion error
             Raises:
