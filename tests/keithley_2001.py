@@ -32,7 +32,7 @@ def setUp(self):
     self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
     self.ca.assert_that_pv_exists("IDN")
     _connect_device(self._lewis)
-    _clear_errors(self.ca)
+    _clear_errors(self.ca, self._lewis)
     _reset_channels(self.ca)
     _reset_units(self.ca)
     _reset_readings(self.ca)
@@ -58,11 +58,11 @@ def _reset_readings(ca):
     ca.assert_that_pv_after_processing_is("READINGS", "".join(["0"] * 20))
 
 
-def _clear_errors(ca):
+def _clear_errors(ca, lewis):
     if IOCRegister.uses_rec_sim:
         ca.set_pv_value("SIM:ERROR:RAW", [str(0), "No error"])
     else:
-        ca.set_pv_value("ERROR:CLEAR:FLAG", 1)
+        lewis.backdoor_run_function_on_device("clear_error")
 
 
 def _setup_channel_to_test(ca, lewis, channel, value=None):
@@ -384,8 +384,10 @@ class DisconnectedTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("ERROR:RAW", self.ca.Alarms.INVALID)
 
         # When/Then:
-        map(self.ca.assert_that_pv_alarm_is, ["CHAN:0{}:UNIT".format(i) for i in range(1, 3 + 1)], [self.ca.Alarms.INVALID] * 3)
-        map(self.ca.assert_that_pv_alarm_is, ["CHAN:0{}:READ".format(i) for i in range(1, 3 + 1)], [self.ca.Alarms.INVALID] * 3)
+        map(self.ca.assert_that_pv_alarm_is, ["CHAN:0{}:UNIT".format(i) for i in range(1, 3 + 1)],
+            [self.ca.Alarms.INVALID] * 3)
+        map(self.ca.assert_that_pv_alarm_is, ["CHAN:0{}:READ".format(i) for i in range(1, 3 + 1)],
+            [self.ca.Alarms.INVALID] * 3)
 
     @skip_if_recsim("Can't simulate a disconnected device using RECSIM")
     def test_that_GIVEN_a_device_set_to_scan_on_one_channels_WHEN_disconnected_THEN_channel_read_pv_is_in_alarm(
