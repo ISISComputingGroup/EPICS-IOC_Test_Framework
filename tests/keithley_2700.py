@@ -26,7 +26,10 @@ BUFFER_CONTROL_MODE = 1
 
 on_off_status = {False: "OFF", True: "ON"}
 
-DRIFT_TOLERANCE = 1
+DRIFT_TOLERANCE = 0.1
+TEMP_TOLERANCE = 0.1
+TIME_TOLERANCE = 0
+READ_TOLERANCE = 0.5
 
 
 class Status(object):
@@ -34,7 +37,7 @@ class Status(object):
     OFF = "OFF"
 
 
-class Keithley2700Tests(unittest.TestCase):
+class SetUpTests(unittest.TestCase):
     """
     Tests for the Keithley2700.
     """
@@ -62,7 +65,7 @@ class Keithley2700Tests(unittest.TestCase):
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_buffer_size_set_THEN_buffer_size_matches_the_set_state_AND_alarm_is_major(self):
         expected_alarm = "MAJOR"
-        sample_data = [0, 70000]
+        sample_data = [-1, 0, 55001, 70000]
         for sample_data in sample_data:
             self.ca.assert_setting_setpoint_sets_readback(sample_data, "BUFF:SIZE", expected_alarm=expected_alarm)
 
@@ -86,14 +89,6 @@ class Keithley2700Tests(unittest.TestCase):
         sample_data = {0: "NEXT", 1: "ALW", 2: "NEV"}
         for enum_value, string_value in sample_data.items():
             self.ca.assert_setting_setpoint_sets_readback(enum_value, "BUFF:CONTROLMODE", expected_value=string_value)
-
-    def test_WHEN_buffer_range_set_THEN_buffer_within_range_is_returned(self):
-        self._lewis.backdoor_set_on_device("buffer_range_readings", 10)
-        self.ca.set_pv_value("CH:START", 2)
-        self.ca.set_pv_value("COUNT", 4)
-        self.ca.process_pv("BUFF:READ")
-        expected_string = self.ca.get_pv_value("BUFF:READ")
-        self.assertNotEquals(expected_string, "[]")
 
     def test_WHEN_sample_count_set_THEN_sample_count_matches_the_set_state_AND_within_alarm_is_major(self):
         expected_alarm = "MAJOR"
@@ -171,14 +166,138 @@ class Keithley2700Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(elements, "DATAELEMENTS")
 
 
+class BufferTests(unittest.TestCase):
+    def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca.assert_that_pv_exists("IDN")
+        self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
+        self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
+
+    def _generate_readings(self, num_readings_gen, time_between):
+        min_r = 1000
+        max_r = 2000
+        start_time = 1
+        channels = [c for c in range(101, 110 + 1)] + [c for c in range(201, 210 + 1)]
+        readings = []
+
+        for i in range(num_readings_gen):
+            resistance = min_r + i
+            while resistance > max_r:
+                resistance = resistance - min_r
+            time_stamp = start_time + (i*time_between)
+            channel = channels[i % 20]
+            readings.append(str(resistance) + "," + str(time_stamp) + "," + str(channel))
+
+        return readings
+
+    @contextmanager
+    def _insert_reading(self, reading):
+        self._lewis.backdoor_run_function_on_device("insert_mock_data", [reading])
+        time.sleep(0.5)  # for synchronicity help
+        try:
+            yield
+        finally:
+            pass
+
+    def test_GIVEN_buffer_full_WHEN_buffer_clears_THEN_buffer_still_used(self):
+        buffer_test_size = 5
+        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
+        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
+        reads = self._generate_readings(10, 5)
+
+        self.ca.assert_that_pv_is("BUFF:CONTROLMODE", "ALW")  # indicative that buffer is being written to
+        # GIVEN
+        with self._insert_reading(reads[:5]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 0)  # indicative that buffer is now full
+
+        # WHEN
+        with self._insert_reading([reads[6]]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 1)  # Reading was inserted to buffer
+            # THEN
+            self.ca.assert_that_pv_is("BUFF:CONTROLMODE", "ALW")
+
+    def test_GIVEN_full_buffer_THEN_next_buff_location_reports_0(self):
+        buffer_test_size = 10
+        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
+        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
+        reads = self._generate_readings(10, 5)
+        # GIVEN
+        with self._insert_reading(reads[:10]):
+            pass
+
+        # THEN
+        self.ca.assert_that_pv_is("BUFF:NEXT", 0)
+
+    def test_GIVEN_buffer_full_THEN_buffer_clears(self):
+        buffer_test_size = 50  # buffer 0 indexed, so there are 50 buffer locations, 0-49
+        # GIVEN
+        # Use smaller buffer to speed up test
+        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
+        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
+        reads = self._generate_readings(60, 5)  # 10 greater than buffer capacity
+
+        with self._insert_reading(reads[:49]):
+            pass  # Now 0-48 are occupied (49 readings), only index 49 is empty
+        self.ca.assert_that_pv_is("BUFF:NEXT", 49)
+
+        with self._insert_reading([reads[50]]):
+            pass
+        self.ca.assert_that_pv_is("BUFF:NEXT", 0)
+
+        with self._insert_reading([reads[51]]):
+            pass
+        self.ca.assert_that_pv_is("BUFF:NEXT", 1)
+
+
+class ChannelTests(unittest.TestCase):
+    def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca.assert_that_pv_exists("IDN")
+        self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
+        self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
+
+    @contextmanager
+    def _insert_reading(self, reading):
+        self._lewis.backdoor_run_function_on_device("insert_mock_data", [reading])
+        time.sleep(0.5)  # for synchronicity help
+        try:
+            yield
+        finally:
+            pass
+
+    def test_GIVEN_empty_buffer_WHEN_reading_inserted_THEN_channel_PVs_get_correct_values(self):
+        reading_on_channel_101 = "1386.05,4000,101"
+        reading_on_channel_103 = "1386.05,4000,103"
+        expected_values = {
+            'read':  1386.05,
+            'time':  4000,
+            'temp':  47.424,
+            'drift': 0,
+        }
+        # GIVEN
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
+        # WHEN
+        with self._insert_reading([reading_on_channel_101]):
+            # THEN
+            self.ca.assert_that_pv_is_number("CHNL:101:READ", expected_values['read'], tolerance=READ_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:101:TIME", expected_values['time'], tolerance=TIME_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected_values['temp'], tolerance=TEMP_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected_values['drift'], tolerance=DRIFT_TOLERANCE)
+        with self._insert_reading([reading_on_channel_103]):
+            # THEN
+            self.ca.assert_that_pv_is_number("CHNL:103:READ", expected_values['read'], tolerance=READ_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:103:TIME", expected_values['time'], tolerance=TIME_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:103:TEMP", expected_values['temp'], tolerance=TEMP_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:103:DRIFT", expected_values['drift'], tolerance=DRIFT_TOLERANCE)
+
+
 class DriftTests(unittest.TestCase):
-
-    drift_data = ['1386.05,4000,101', '1387.25,4360,101', '1388.51,4720,101', '1389.79,5080,101',
-                  '1391.07,5440,101', '1392.35,5800,101', '1393.71,6160,101', '1395.01,6520,101',
-                  '1396.38,6880,101', '1397.70,7240,101']
-
     # Tuple format (reading, temperature, expected_drift)
-    full_list_of_readings = [
+    drift_test_data = [
         ('1386.05,4000,101', 47.424, 0.),
         ('1387.25,4360,101', 47.243, -0.000666667),
         ('1388.51,4720,101', 47.053, -0.00135333),
@@ -202,56 +321,27 @@ class DriftTests(unittest.TestCase):
         while self._lewis.backdoor_get_from_device(str(attribute)) != str(set_value):
             time.sleep(wait_time)
 
-    def _check_mock_buffer(self, inserted_data, wait_time=0.5):
-        while str(self._lewis.backdoor_run_function_on_device("check_buffer_data")[0])\
-                .replace("u", "") != str(inserted_data[0]):
-            time.sleep(wait_time)
-
     # Don't clear the buffer and add new readings one by one
     @contextmanager
-    def _insert_canned_readings_sequentially(self, reading):
+    def _insert_reading(self, reading):
         self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
         self._lewis.backdoor_run_function_on_device("insert_mock_data", [reading])
-        time.sleep(2)  # for synchronicity help
+        time.sleep(0.5)  # for synchronicity help
         try:
             yield
         finally:
             pass
 
-    # Insert readings in chunks
-    @contextmanager
-    def _insert_canned_readings_in_chunks(self, readings):
-        # set control mode
-        self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
-        self._lewis_sync_helper("control_mode", BUFFER_CONTROL_MODE)
-
-        # clear buffer
-        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
-
-        # put canned data in buffer
-        self._lewis.backdoor_run_function_on_device("insert_mock_data", [readings])
-        self._check_mock_buffer([readings])
-
-        try:
-            yield
-        finally:
-            # clear buffer
-            self.ca.set_pv_value("BUFF:CLEAR:SP", "")
-            # return to normal control mode
-            self._lewis.backdoor_set_on_device("control_mode", NORMAL_MODE)
-            self._lewis_sync_helper("control_mode", NORMAL_MODE)
-
-    def test_GIVEN_empty_buffer_WHEN_values_added_sequentially_THEN_drift_correct(self, readings=drift_data,
-                                                                                  expected=full_list_of_readings):
+    def test_GIVEN_empty_buffer_WHEN_values_added_THEN_temp_AND_drift_correct(self, test_data=drift_test_data):
+        readings = [r[0] for r in test_data]  # extract reading strings from test data to insert to buffer
         # GIVEN
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
-
         # WHEN
-        for i in range(0, len(expected)):
-            with self._insert_canned_readings_sequentially([readings[i]]):
+        for i in range(0, len(test_data)):
+            with self._insert_reading([readings[i]]):
                 # THEN
-                self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected[i][2], tolerance=DRIFT_TOLERANCE)
-                print "{:8.3f} - {:8.3f}".format(float(self.ca.get_pv_value("CHNL:101:TEMP")), expected[i][1])
+                self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", test_data[i][2], tolerance=DRIFT_TOLERANCE)
+                self.ca.assert_that_pv_is_number("CHNL:101:TEMP", test_data[i][1], tolerance=TEMP_TOLERANCE) # TODO 0.1K
 
         # Finally, clear buffer
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
@@ -259,32 +349,3 @@ class DriftTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("control_mode", NORMAL_MODE)
         self._lewis_sync_helper("control_mode", NORMAL_MODE)
 
-    def test_GIVEN_empty_buffer_WHEN_values_added_in_blocks_THEN_drift_correct(self, readings=drift_data,
-                                                                               expected=full_list_of_readings):
-        for i in range(0, len(expected)):
-            with self._insert_canned_readings_in_chunks(readings[:i+1]):
-                self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected[i][1], tolerance=10)
-                print "{:8.3f} - {:8.3f}".format(float(self.ca.get_pv_value("CHNL:101:TEMP")), expected[i][1])
-                self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected[i][2], tolerance=200)
-
-    def test_GIVEN_empty_buffer_WHEN_reading_inserted_into_buffer_THEN_pvs_contain_correct_values(self):
-        reading = ['1200,1,101']
-
-        with self._insert_canned_readings_in_chunks(reading):
-            time.sleep(2)
-            self.ca.assert_that_pv_is_number("CHNL:101:READ", 1200)
-            self.ca.assert_that_pv_is_number("CHNL:101:TIME", 1)
-            self.ca.assert_that_pv_is_number("CHNL:101:TEMP", 93.7509, tolerance=1)
-
-    def test_for_drift_correctness(self):
-        readings = ['1200,1,101', '1206,1.05,101']
-
-        with self._insert_canned_readings_in_chunks(readings):
-            time.sleep(2)
-            # self.ca.assert_that_pv_is_number("CHNL:101:READ", 1206)
-            # self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", -55.8839, tolerance=1)
-            print self.ca.get_pv_value("CHNL:101:DRIFT")
-
-    #test that :PREV values are updated correctly
-
-    #dumb drift test
