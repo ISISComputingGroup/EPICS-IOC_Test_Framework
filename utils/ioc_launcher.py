@@ -1,7 +1,6 @@
 """
 Launcher for an IOC
 """
-import signal
 import subprocess
 import os
 from time import sleep
@@ -185,7 +184,7 @@ class IocLauncher(object):
             #  use write not communicate so that we don't wait for exit before continuing
             self._process.stdin.write("exit\n")
 
-            max_wait_for_ioc_to_die = 1 # 60
+            max_wait_for_ioc_to_die = 60
             wait_per_loop = 0.1
 
             for loop_count in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
