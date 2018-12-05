@@ -1,7 +1,6 @@
-from hamcrest import assert_that, is_, greater_than, greater_than_or_equal_to, equal_to
+from hamcrest import assert_that, is_, greater_than, equal_to
 from parameterized import parameterized
 import unittest
-import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
@@ -16,7 +15,9 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KHLY2001"),
-        "macros": {},
+        "macros": {
+            "SCAN_DELAY": 0.1
+        },
         "emulator": "keithley_2001",
     },
 ]
@@ -32,6 +33,7 @@ def setUp(self):
     self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
     self.ca.assert_that_pv_exists("IDN")
     _connect_device(self._lewis)
+    _reset_ioc(self.ca)
     _clear_errors(self.ca, self._lewis)
     _reset_channels(self.ca)
     _reset_units(self.ca)
@@ -39,6 +41,10 @@ def setUp(self):
 
 
 setup_tests = add_method(setUp)
+
+
+def _reset_ioc(ca):
+    ca.set_pv_value("RESET:FLAG", 1)
 
 
 def _reset_channels(ca):
@@ -84,9 +90,12 @@ def _connect_device(lewis):
 @setup_tests
 class InitTests(unittest.TestCase):
 
-    def test_that_GIVEN_a_fresh_IOC_THEN_it_is_set_up(self):
+    def test_that_GIVEN_a_reset_IOC_THEN_it_is_set_up(self):
+        # Given:
+        self.ca.set_pv_value("RESET:FLAG", 1)
+
         # Then:
-        self.__assert_that_the_devices_status_register_is_setup()
+        self._assert_that_the_devices_status_register_is_setup()
         self._assert_that_reading_elements_are_set_to_reading_channel_and_unit()
         self._assert_that_device_trigger_mode_is_setup()
 
@@ -99,22 +108,33 @@ class InitTests(unittest.TestCase):
         self.ca.assert_that_pv_after_processing_is("SCAN:COUNT", 1)
         self.ca.assert_that_pv_after_processing_is("SCAN:TRIG:SOURCE", "IMM")
 
-    def __assert_that_the_devices_status_register_is_setup(self):
+    def _assert_that_the_devices_status_register_is_setup(self):
         self.ca.assert_that_pv_after_processing_is("STAT:MEAS", 512)
         self.ca.assert_that_pv_after_processing_is("STAT:SERVICE_REQEST", 1)
 
     @skip_if_recsim("Mbbi's don't work with RECSIM.")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_buffer_source_is_set(self):
+        # Given:
+        self.ca.set_pv_value("RESET:FLAG", 1)
+
+        # Then:
         self.ca.assert_that_pv_after_processing_is("BUFF:SOURCE", "SENS1")
 
     @skip_if_recsim("Lewis backdoor doesn't work in RECSIM.")
     def test_that_GIVEN_a_fresh_IOC_THEN_the_status_register_has_been_reset(self):
+        # Given:
+        self._lewis.backdoor_run_function_on_device(
+            "set_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor", [0])
+
+        # When:
+        self.ca.set_pv_value("RESET:FLAG", 1)
+
+        # Then:
         number_of_times_status_register_has_been_reset_and_cleared = int(
             self._lewis.backdoor_run_function_on_device(
                 "get_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor")[0])
 
-        assert_that(number_of_times_status_register_has_been_reset_and_cleared, is_(greater_than_or_equal_to(1)))
-        self._lewis.assert_that_emulator_value_is_greater_than("number_of_times_device_has_been_reset", 1)
+        assert_that(number_of_times_status_register_has_been_reset_and_cleared, is_(equal_to(1)))
 
 
 @setup_tests
@@ -127,7 +147,7 @@ class SingleShotTests(unittest.TestCase):
         else:
             self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value, unit])
 
-    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @parameterized.expand(parameterized_list([1, 5, 10]))
     def test_that_GIVEN_one_channels_set_to_active_THEN_the_voltage_value_for_that_channel_are_read(
             self, _, channel):
         # Given:
@@ -138,7 +158,7 @@ class SingleShotTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("CHAN:{0:02d}:READ".format(channel), expected_value)
 
-    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @parameterized.expand(parameterized_list([1, 5, 10]))
     def test_that_GIVEN_one_channel_set_to_active_THEN_the_measurement_units_for_that_channel_are_read(
             self, _, channel):
         # Given:
@@ -150,7 +170,7 @@ class SingleShotTests(unittest.TestCase):
         expected_unit = "VDC"
         self.ca.assert_that_pv_is("CHAN:{0:02d}:UNIT".format(channel), expected_unit)
 
-    @parameterized.expand(parameterized_list(CHANNEL_LIST))
+    @parameterized.expand(parameterized_list([1, 5, 10]))
     def test_that_GIVEN_one_channel_set_to_active_THEN_the_measurement_units_for_that_channel_are_read(
             self, _, channel):
         # Given:
@@ -198,8 +218,8 @@ class ScanningSetupTests(unittest.TestCase):
         assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than("1")))
 
     @parameterized.expand(parameterized_list([
-        range(1, number_of_channels + 1) for number_of_channels in range(2, 11)
-    ]))
+        [1, 2], [1, 2, 3, 4], [6, 7, 8, 9], [1, 5, 10]
+        ]))
     def test_that_GIVEN_IOC_with_active_channels_THEN_the_IOC_creates_the_correct_string_to_send_to_the_device(
             self, _, active_channels):
         # Given:
@@ -225,10 +245,9 @@ class ScanningTests(unittest.TestCase):
             for value, channel in zip(values, channels):
                 self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value, unit])
 
-    @parameterized.expand(parameterized_list(
-        [range(1, number_of__active_channels + 1) for number_of__active_channels in
-         range(2, MAX_NUMBER_OF_CHANNELS + 1)]
-    ))
+    @parameterized.expand(parameterized_list([
+        [1, 2], [1, 2, 3, 4], [1, 5, 10]
+    ]))
     def test_that_GIVEN_two_or_more_active_channels_THEN_the_readings_values_are_read_into_CHAN_READ_PV(
             self, _, channels):
         # Given:
@@ -240,10 +259,9 @@ class ScanningTests(unittest.TestCase):
         for expected_value, channel in zip(expected_values, channels):
             self.ca.assert_that_pv_is("CHAN:{0:02d}:READ".format(channel), expected_value)
 
-    @parameterized.expand(parameterized_list(
-        [range(1, number_of__active_channels + 1) for number_of__active_channels in
-         range(2,  MAX_NUMBER_OF_CHANNELS + 1)]
-    ))
+    @parameterized.expand(parameterized_list([
+        [1, 2], [1, 2, 3, 4], [1, 5, 10]
+    ]))
     def test_that_GIVEN_two_or_more_active_channels_THEN_VDC_is_parsed_into_the_unit_records(
             self, _, channels):
         # Given:
@@ -256,10 +274,9 @@ class ScanningTests(unittest.TestCase):
         for expected_value, channel in zip(expected_values, channels):
             self.ca.assert_that_pv_is("CHAN:{0:02d}:UNIT".format(channel), expected_unit)
 
-    @parameterized.expand(parameterized_list(
-        [range(1, number_of__active_channels + 1) for number_of__active_channels in
-         range(2,  2 + 1)]
-    ))
+    @parameterized.expand(parameterized_list([
+        [1, 2], [1, 2, 3, 4], [1, 5, 10]
+    ]))
     def test_that_GIVEN_two_or_more_active_channels_THEN_mVDC_is_parsed_into_the_unit_records(
             self, _, channels):
         # Given:
@@ -311,7 +328,6 @@ class ErrorTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
 
-
     def test_that_GIVEN_a_device_scanning_on_two_channels_with_an_error_THEN_the_IOC_reads_that_there_is_an_error(
             self):
         # Given:
@@ -323,16 +339,6 @@ class ErrorTests(unittest.TestCase):
 
         # Then:
         self.ca.assert_that_pv_is("ERROR:RAW", "".join([str(expected_error_code), expected_error_message]))
-
-
-    def test_that_GIVEN_a_device_not_scanning_on_any_channels_on_setup_THEN_the_error_code_and_error_message_are_separatated(
-            self):
-        expected_error_code = 0
-        expected_error_message = "No error"
-
-        # Then:
-        self.ca.assert_that_pv_is("ERROR:MSG", expected_error_message)
-        self.ca.assert_that_pv_is("ERROR:CODE", expected_error_code)
 
     def test_that_GIVEN_a_device_not_scanning_on_any_channels_with_an_error_THEN_the_error_code_and_error_message_are_separatated(
             self):
@@ -375,7 +381,7 @@ class DisconnectedTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("CHAN:01:READ", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("CHAN:01:UNIT", self.ca.Alarms.INVALID)
 
-    # @skip_if_recsim("Can't simulate a disconnected device using RECSIM")
+    @skip_if_recsim("Can't simulate a disconnected device using RECSIM")
     def test_that_GIVEN_a_disconnected_device_set_to_scan_on_three_channels_WHEN_it_tries_to_scan_THEN_all_channel_read_pvs_are_in_alarm(
             self):
         # Given:
@@ -399,11 +405,9 @@ class DisconnectedTests(unittest.TestCase):
 
         self._lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value, "VDC"])
         self.ca.assert_that_pv_is("CHAN:0{}:READ".format(channel), value)
-        time.sleep(2)
 
         # When:
         self._disconnect_device()
-        time.sleep(2)
         self.ca.assert_that_pv_alarm_is("ERROR:RAW", self.ca.Alarms.INVALID)
 
         # When/Then:
@@ -417,6 +421,9 @@ class IOCResetTests(unittest.TestCase):
     @skip_if_recsim("Can't replicate resetting the device in RECSIM")
     def test_that_GIVEN_a_device_WHEN_reset_THEN_the_IOC_has_been_reinitalized(
             self):
+        # Given:
+        previous_number_of_times_the_device_has_been_reset = int(self._lewis.backdoor_run_function_on_device(
+            "get_how_many_times_ioc_has_been_reset_via_the_backdoor")[0])
 
         # When:
         self.ca.set_pv_value("RESET:FLAG", 1)
@@ -424,4 +431,4 @@ class IOCResetTests(unittest.TestCase):
         # Then:
         result = int(self._lewis.backdoor_run_function_on_device(
             "get_how_many_times_ioc_has_been_reset_via_the_backdoor")[0])
-        assert_that(result, is_(equal_to(2)))
+        assert_that(result, is_(equal_to(previous_number_of_times_the_device_has_been_reset + 1)))
