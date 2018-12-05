@@ -40,8 +40,6 @@ class Dh2000Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("shutter_is_open", shutter_is_open)
         self._lewis.backdoor_set_on_device("interlock_is_triggered", interlock_is_triggered)
 
-        self.ca.process_pv("SHUTTER:STATUS")
-
         self.ca.assert_that_pv_is("INTERLOCK", "TRIGGERED" if interlock_is_triggered else "OKAY")
         self.ca.assert_that_pv_is("SHUTTER:STATUS", "OPEN" if shutter_is_open else "CLOSED")
 
@@ -51,11 +49,9 @@ class Dh2000Tests(unittest.TestCase):
     def test_GIVEN_shutter_open_WHEN_shutter_close_requested_THEN_shutter_closes(self):
         self._lewis.backdoor_set_on_device("shutter_is_open", True)
 
-        self.ca.process_pv("SHUTTER:STATUS")
         self.ca.assert_that_pv_is("SHUTTER:STATUS", "OPEN")
 
         self.ca.process_pv("SHUTTER:CLOSE")
-        self.ca.process_pv("SHUTTER:STATUS")
 
         self.ca.assert_that_pv_is("SHUTTER:STATUS", "CLOSED")
 #
