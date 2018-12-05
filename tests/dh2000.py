@@ -34,9 +34,8 @@ class Dh2000Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("shutter_is_open", False)
         self._lewis.backdoor_set_on_device("interlock_is_triggered", False)
 
-        self.ca.assert_that_pv_is("SHUTTER:STATUS", "OPEN")
+        self.ca.assert_that_pv_is("SHUTTER:STATUS", "CLOSED")
         self.ca.assert_that_pv_is("INTERLOCK", "OKAY")
-
 
     @parameterized.expand([
         ("shutter_open_interlock_off", True, False),
