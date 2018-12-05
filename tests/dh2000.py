@@ -48,8 +48,16 @@ class Dh2000Tests(unittest.TestCase):
 #    def test_GIVEN_shutter_open_WHEN_interlock_triggered_THEN_shutter_closes(self):
 #        self.fail("Test not written yet")
 #
-#    def test_WHEN_shutter_close_requested_THEN_shutter_closes(self):
-#        self.fail("Test not written yet")
+    def test_GIVEN_shutter_open_WHEN_shutter_close_requested_THEN_shutter_closes(self):
+        self._lewis.backdoor_set_on_device("shutter_is_open", True)
+
+        self.ca.process_pv("SHUTTER:STATUS")
+        self.ca.assert_that_pv_is("SHUTTER:STATUS", "OPEN")
+
+        self.ca.process_pv("SHUTTER:CLOSE")
+        self.ca.process_pv("SHUTTER:STATUS")
+
+        self.ca.assert_that_pv_is("SHUTTER:STATUS", "CLOSED")
 #
 #    def test_GIVEN_interlock_state_WHEN_shutter_open_requested_THEN_shutter_opens_if_interlock_not_triggered(self):
 #        self.fail("Test not written yet")
