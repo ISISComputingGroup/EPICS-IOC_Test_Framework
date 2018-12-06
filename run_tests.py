@@ -1,6 +1,11 @@
+"""
+Run the tests.
+"""
+
 import argparse
 import os
 import sys
+import traceback
 import unittest
 import xmlrunner
 
@@ -9,19 +14,22 @@ from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.lewis_launcher import LewisLauncher, LewisNone
-from utils.ioc_launcher import IocLauncher, ProcServLauncher, EPICS_TOP
+from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 
 
 def make_device_launchers_from_module(test_module, mode):
     """
-    Returns a list of device launchers for the given test module
-    :param test_module: module containing IOC tests
-    :param recsim: True to run in recsim. False to run in devsim.
-    :return: list of device launchers (context managers which launch ioc + emulator pairs)
-    """
+    Returns a list of device launchers for the given test module.
+    Args:
+        test_module: module containing IOC tests
+        mode (TestModes): The mode to run in.
 
+    Returns:
+        list of device launchers (context managers which launch ioc + emulator pairs)
+
+    """
     try:
         iocs = test_module.IOCS
     except AttributeError:
@@ -30,45 +38,45 @@ def make_device_launchers_from_module(test_module, mode):
     if len(iocs) < 1:
         raise ValueError("Need at least one IOC to launch")
 
-    recsim = mode == TestModes.RECSIM
-
     for ioc in iocs:
         if "name" not in ioc:
             raise ValueError("IOC entry must have a 'name' attribute which should give the IOC name")
         if "directory" not in ioc:
             raise ValueError("IOC entry must have a 'directory' attribute which should give the path to the IOC")
 
-    print("Testing module {} in {} mode.".format(test_module.__name__, "recsim" if recsim else "devsim"))
+    print("Testing module {} in {} mode.".format(test_module.__name__, TestModes.name(mode)))
 
     device_launchers = []
     for ioc in iocs:
 
         free_port = get_free_ports(2)
         macros = ioc.get("macros", {})
-        macros['EMULATOR_PORT'] = free_port[0]
+        emmulator_port = free_port[0]
+        macros['EMULATOR_PORT'] = emmulator_port
         macros['LOG_PORT'] = free_port[1]
 
         launcher = ioc.get("LAUNCHER", IocLauncher)
 
         ioc_launcher = launcher(ioc, mode, var_dir)
 
-        if "emulator" in ioc and not recsim:
+        if "emulator" in ioc and mode != TestModes.RECSIM:
 
             emulator_device = ioc["emulator"]
             emulator_id = ioc.get("emulator_id", emulator_device)
             emulator_protocol = ioc.get("emulator_protocol", "stream")
             emulator_device_package = ioc.get("emulator_package", "lewis_emulators")
-            emulator_path = ioc.get("emulator_path", os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
+            emulator_full_path = ioc.get("emulator_path",
+                                         os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
 
             lewis_launcher = LewisLauncher(
                 device=emulator_device,
                 python_path=os.path.abspath(arguments.python_path),
                 lewis_path=os.path.abspath(arguments.emulator_path),
                 lewis_protocol=emulator_protocol,
-                lewis_additional_path=emulator_path,
+                lewis_additional_path=emulator_full_path,
                 lewis_package=emulator_device_package,
                 var_dir=var_dir,
-                port=free_port,
+                port=emmulator_port,
                 emulator_id=emulator_id
             )
 
@@ -83,7 +91,7 @@ def make_device_launchers_from_module(test_module, mode):
     return device_launchers
 
 
-def load_and_run_tests(test_names, launcher=IocLauncher):
+def load_and_run_tests(test_names):
     """
     Loads and runs the dotted unit tests to be run.
 
@@ -199,7 +207,9 @@ if __name__ == '__main__':
     try:
         success = load_and_run_tests(tests)
     except Exception as e:
-        print("---\n---\n---\nAn Error occured loading the tests: {}\n---\n---\n---\n".format(e))
+        print("---\n---\n---\nAn Error occured loading the tests: ")
+        traceback.print_exc()
+        print("---\n---\n---\n")
         success = False
 
     sys.exit(0 if success else 1)

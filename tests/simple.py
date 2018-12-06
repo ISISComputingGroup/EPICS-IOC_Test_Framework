@@ -1,5 +1,6 @@
 import unittest
 import os
+from unittest import skip
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
@@ -34,5 +35,7 @@ class SimpleTests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
+    @skip("This test is not ready yet")
     def test_that_always_passes(self):
         pass
+
