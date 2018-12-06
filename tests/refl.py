@@ -3,10 +3,8 @@ import unittest
 from math import tan, radians
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
-from utils.testing import parameterized_list
-from parameterized import parameterized
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
@@ -17,25 +15,23 @@ IOCS = [
     {
         "name": GALIL_PREFIX,
         "directory": get_default_ioc_dir("GALIL"),
+        "pv_for_existence": "AXIS1",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
         },
     },
     {
+        "LAUNCHER": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
         "directory": REFL_PATH,
-        "ioc_run_commandline": [r"c:\instrument\apps\python\python.exe",
-                                os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
         "started_text": "Reflectometry IOC starter",
         "pv_for_existence": "BL:STAT",
         "macros": {
         },
         "environment_vars": {
             "ICPCONFIGROOT": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
-            "PYTHONUNBUFFERED": "TRUE",
-            "EPICS_CAS_INTF_ADDR_LIST": "127.0.0.1",
-            "EPICS_CAS_BEACON_ADDR_LIST": "127.255.255.255"
         }
     },
 

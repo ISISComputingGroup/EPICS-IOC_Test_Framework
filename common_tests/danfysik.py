@@ -28,6 +28,8 @@ class DanfysikBase(object):
         self._lewis.backdoor_run_function_on_device("reset")
         self._lewis.backdoor_set_on_device("comms_initialized", True)
 
+
+class DanfysikCommon(DanfysikBase):
     def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
         for pol in POLARITIES:
             self.ca.assert_setting_setpoint_sets_readback(pol, "POL")
