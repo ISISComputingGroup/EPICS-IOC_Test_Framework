@@ -99,3 +99,9 @@ class Dh2000Tests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is("SHUTTER:STATUS", "CLOSED")
+
+    def test_GIVEN_interlock_triggered_THEN_interlock_PV_has_major_alarm(self):
+        # GIVEN
+        self._lewis.backdoor_set_on_device("interlock_is_triggered", True)
+
+        self.ca.assert_that_pv_alarm_is("INTERLOCK", self.ca.Alarms.MAJOR)
