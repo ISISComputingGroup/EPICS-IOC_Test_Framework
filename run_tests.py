@@ -50,7 +50,11 @@ def make_device_launchers_from_module(test_module, mode):
     for ioc in iocs:
 
         free_port = get_free_ports(2)
-        macros = ioc.get("macros", {})
+        try:
+            macros = ioc["macros"]
+        except KeyError:
+            macros = {}
+            ioc["macros"] = macros
         emmulator_port = free_port[0]
         macros['EMULATOR_PORT'] = emmulator_port
         macros['LOG_PORT'] = free_port[1]

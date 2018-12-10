@@ -112,7 +112,7 @@ class ProcServLauncher(BaseLauncher):
     Launches an IOC from procServ.exe
     """
 
-    ICPTOOLS = "C:\\Instrument\\Apps\\EPICS\\tools\\master"
+    ICPTOOLS = os.path.join(APPS_BASE, "EPICS", "tools", "master")
 
     def __init__(self, ioc, test_mode, var_dir):
         """
@@ -266,7 +266,7 @@ class IocLauncher(BaseLauncher):
         """
         self._device = ioc['name']
         self._directory = ioc['directory']
-        self.macros = ioc['macros']
+        self.macros = ioc.get("macros", {})
         self._var_dir = var_dir
         self.port = self.macros['EMULATOR_PORT']
 
