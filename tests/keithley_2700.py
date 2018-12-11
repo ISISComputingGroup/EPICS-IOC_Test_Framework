@@ -201,6 +201,18 @@ class BufferTests(unittest.TestCase):
         finally:
             pass
 
+    def test_GIVEN_readings_in_buffer_WHEN_readings_accessed_THEN_correct_number_of_reads_returned(self):
+        buffer_test_size = 30
+        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
+        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
+        reads = self._generate_readings(100, 5)
+        # GIVEN
+        with self._insert_reading(reads[:30]):
+            pass
+            # WHEN
+            # call TRAC:DATA:SEL? x,y here
+            # assert that y readings are returned
+
     def test_GIVEN_buffer_full_WHEN_buffer_clears_THEN_buffer_still_used(self):
         buffer_test_size = 5
         self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
@@ -229,6 +241,32 @@ class BufferTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is("BUFF:NEXT", 0)
+
+    def test_GIVEN_empty_small_buffer_WHEN_new_reads_added_THEN_expected_behaviour_observed(self):
+        buffer_test_size = 3
+        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
+        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
+        reads = self._generate_readings(5, 5)
+
+        self.ca.assert_that_pv_is("BUFF:NEXT", 0)
+        self.ca.assert_that_pv_is("INDEX:START", 0)
+
+        # inserting first reading
+        with self._insert_reading([reads[0]]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 1)
+            self.ca.assert_that_pv_is("INDEX:START", 1)
+
+        with self._insert_reading([reads[1]]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 2)
+            self.ca.assert_that_pv_is("INDEX:START", 2)
+
+        with self._insert_reading([reads[2]]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 0)
+            self.ca.assert_that_pv_is("INDEX:START", 2)
+
+        with self._insert_reading([reads[3]]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 1)
+            self.ca.assert_that_pv_is("INDEX:START", 1)
 
     def test_GIVEN_buffer_full_THEN_buffer_clears(self):
         buffer_test_size = 50  # buffer 0 indexed, so there are 50 buffer locations, 0-49
@@ -275,7 +313,8 @@ class ChannelTests(unittest.TestCase):
         expected_values = {
             'read':  1386.05,
             'time':  4000,
-            'temp':  47.424,
+            'temp101':  47.424,  # 2 temp values because temp is interpolated from calibration files which are different
+            'temp103': 46.927,  # for each channel
             'drift': 0,
         }
         # GIVEN
@@ -285,19 +324,20 @@ class ChannelTests(unittest.TestCase):
             # THEN
             self.ca.assert_that_pv_is_number("CHNL:101:READ", expected_values['read'], tolerance=READ_TOLERANCE)
             self.ca.assert_that_pv_is_number("CHNL:101:TIME", expected_values['time'], tolerance=TIME_TOLERANCE)
-            self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected_values['temp'], tolerance=TEMP_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected_values['temp101'], tolerance=TEMP_TOLERANCE)
             self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected_values['drift'], tolerance=DRIFT_TOLERANCE)
+
         with self._insert_reading([reading_on_channel_103]):
             # THEN
             self.ca.assert_that_pv_is_number("CHNL:103:READ", expected_values['read'], tolerance=READ_TOLERANCE)
             self.ca.assert_that_pv_is_number("CHNL:103:TIME", expected_values['time'], tolerance=TIME_TOLERANCE)
-            self.ca.assert_that_pv_is_number("CHNL:103:TEMP", expected_values['temp'], tolerance=TEMP_TOLERANCE)
+            self.ca.assert_that_pv_is_number("CHNL:103:TEMP", expected_values['temp103'], tolerance=TEMP_TOLERANCE)
             self.ca.assert_that_pv_is_number("CHNL:103:DRIFT", expected_values['drift'], tolerance=DRIFT_TOLERANCE)
 
 
 class DriftTests(unittest.TestCase):
     # Tuple format (reading, temperature, expected_drift)
-    drift_test_data = [
+    drift_test_data = (
         ('1386.05,4000,101', 47.424, 0.),
         ('1387.25,4360,101', 47.243, -0.000666667),
         ('1388.51,4720,101', 47.053, -0.00135333),
@@ -308,7 +348,7 @@ class DriftTests(unittest.TestCase):
         ('1395.01,6520,101', 46.072, -0.00461874),
         ('1396.38,6880,101', 45.866, -0.0052597),
         ('1397.70,7240,101', 45.667, -0.00585451),
-    ]
+    )
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
@@ -341,7 +381,7 @@ class DriftTests(unittest.TestCase):
             with self._insert_reading([readings[i]]):
                 # THEN
                 self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", test_data[i][2], tolerance=DRIFT_TOLERANCE)
-                self.ca.assert_that_pv_is_number("CHNL:101:TEMP", test_data[i][1], tolerance=TEMP_TOLERANCE) # TODO 0.1K
+                self.ca.assert_that_pv_is_number("CHNL:101:TEMP", test_data[i][1], tolerance=TEMP_TOLERANCE)
 
         # Finally, clear buffer
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
