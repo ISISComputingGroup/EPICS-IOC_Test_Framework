@@ -10,14 +10,14 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
 DEVICE_PREFIX = "CYBAMAN_01"
-
+EMULATOR_DEVICE = "cybaman"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("CYBAMAN"),
         "macros": {},
-        "emulator": "cybaman",
+        "emulator": EMULATOR_DEVICE,
     },
 ]
 
@@ -34,8 +34,7 @@ class CybamanTests(unittest.TestCase):
     test_positions = [-200, -1.23, 0, 180.0]
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("cybaman", DEVICE_PREFIX)
-
+        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("INITIALIZE", timeout=30)
 
@@ -198,3 +197,8 @@ class CybamanTests(unittest.TestCase):
         # Verify that A has not changed from it's home position
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
         self.ca.assert_that_pv_value_is_unchanged("A", 5)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('RESET', ChannelAccess.Alarms.INVALID)

@@ -237,3 +237,8 @@ class EurothermTests(unittest.TestCase):
         with self._use_calibration_file("C.txt"):
             self._assert_units("C")
             self.ca.assert_that_pv_is("RATE.EGU", "C/min")
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('LOWLIM', ChannelAccess.Alarms.INVALID)

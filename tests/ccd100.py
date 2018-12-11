@@ -30,7 +30,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 class CCD100Tests(unittest.TestCase):
@@ -40,7 +40,7 @@ class CCD100Tests(unittest.TestCase):
 
     NUM_OF_PVS = 3
 
-    def set_up(self, device=DEVICE_A_PREFIX):
+    def setUp(self, device=DEVICE_A_PREFIX):
         self._lewis, self._ioc = get_running_lewis_and_ioc(device, device)
         self.assertIsNotNone(self._lewis)
         self.assertIsNotNone(self._ioc)
@@ -92,3 +92,8 @@ class CCD100Tests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("out_error", new_error)
 
         self.assertTrue(new_error in log.messages[-1])
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('READING', ChannelAccess.Alarms.INVALID)

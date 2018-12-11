@@ -11,8 +11,8 @@ from utils.log_file import log_filename, LogFileManager
 from utils.test_modes import TestModes
 from datetime import date
 
-
-EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))
+APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
+EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 60
 
 
