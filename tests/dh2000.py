@@ -33,7 +33,7 @@ class Dh2000Tests(unittest.TestCase):
 
         self._lewis.backdoor_set_on_device("shutter_is_open", False)
         self._lewis.backdoor_set_on_device("interlock_is_triggered", False)
-        self._lewis.backdoor_set_on_device("is_disconnected", False)
+        self._lewis.backdoor_set_on_device("is_connected", True)
 
         self.ca.assert_that_pv_is("SHUTTER:STATUS", "CLOSED")
         self.ca.assert_that_pv_is("INTERLOCK", "OKAY")
@@ -108,7 +108,7 @@ class Dh2000Tests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("INTERLOCK", self.ca.Alarms.MAJOR)
 
     def test_GIVEN_disconnected_device_THEN_interlock_and_shutter_status_show_INVALID(self):
-        self._lewis.backdoor_set_on_device("is_disconnected", True)
+        self._lewis.backdoor_set_on_device("is_connected", False)
 
         self.ca.assert_that_pv_alarm_is("SHUTTER:STATUS", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("INTERLOCK", self.ca.Alarms.INVALID)
