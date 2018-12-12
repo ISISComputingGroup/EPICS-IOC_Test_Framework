@@ -73,7 +73,7 @@ class Dh2000Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("SHUTTER:RBV", "Open")
 
         # WHEN
-        self.ca.process_pv("SHUTTER:CLOSE")
+        self.ca.set_pv_value("SHUTTER:SP", "Close")
 
         # THEN
         self.ca.assert_that_pv_is("SHUTTER:RBV", "Closed")
@@ -84,7 +84,7 @@ class Dh2000Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("SHUTTER:RBV", "Closed")
 
         # WHEN
-        self.ca.process_pv("SHUTTER:OPEN")
+        self.ca.set_pv_value("SHUTTER:SP", "Open")
 
         # THEN
         self.ca.assert_that_pv_is("SHUTTER:RBV", "Open")
@@ -96,7 +96,7 @@ class Dh2000Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("SHUTTER:RBV", "Closed")
 
         # WHEN
-        self.ca.process_pv("SHUTTER:OPEN")
+        self.ca.set_pv_value("SHUTTER:SP", "Open")
 
         # THEN
         self.ca.assert_that_pv_is("SHUTTER:RBV", "Closed")
