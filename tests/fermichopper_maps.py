@@ -1,3 +1,4 @@
+import unittest
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
 from common_tests.fermichopper import FermichopperBase
@@ -23,7 +24,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-class MapsFermiChopperTests(FermichopperBase):
+class MapsFermiChopperTests(FermichopperBase, unittest.TestCase):
     """
     All tests inherited from FermiChopperBase
     """

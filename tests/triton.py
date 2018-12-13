@@ -115,7 +115,7 @@ class TritonTests(unittest.TestCase):
 
         # Allow truncation for long status, but it should still display as many characters as possible
         self._lewis.backdoor_set_on_device("status", long_status)
-        self.ca.assert_pv_value_causes_func_to_return_true(
+        self.ca.assert_that_pv_value_causes_func_to_return_true(
             "STATUS", lambda val: long_status.startswith(val) and len(val) >= minimum_characters_in_pv)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -175,8 +175,8 @@ class TritonTests(unittest.TestCase):
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_read_mc_id_is_issued_via_arbitrary_command_THEN_response_is_in_format_device_uses(self):
         self.ca.set_pv_value("ARBITRARY:SP", "READ:SYS:DR:CHAN:MC")
-        self.ca.assert_pv_value_causes_func_to_return_true("ARBITRARY",
-                                                           lambda val: val.startswith("STAT:SYS:DR:CHAN:MC:"))
+        self.ca.assert_that_pv_value_causes_func_to_return_true("ARBITRARY",
+                                                                lambda val: val.startswith("STAT:SYS:DR:CHAN:MC:"))
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_channel_temperature_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):

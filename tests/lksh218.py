@@ -6,13 +6,13 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
-DEVICE_PREFIX = "LKSH218_01"
+DEVICE_PREFIX = "LKSH218_04"
 
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("LKSH218"),
+        "directory": get_default_ioc_dir("LKSH218", iocnum=4),
         "macros": {},
         "emulator": "Lksh218",
     },
@@ -83,19 +83,19 @@ class Lksh218Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("connected", False)
 
         for i in range(1, 9):
-            self.ca.assert_pv_alarm_is("TEMP{}".format(i), ChannelAccess.ALARM_INVALID)
-            self.ca.assert_pv_alarm_is("SENSOR{}".format(i), ChannelAccess.ALARM_INVALID)
+            self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), ChannelAccess.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_SENSORALL(self):
         self._lewis.backdoor_set_on_device("connected", False)
 
         self.ca.process_pv("SENSORALL")
-        self.ca.assert_pv_alarm_is("SENSORALL", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is("SENSORALL", ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMPALL(self):
         self._lewis.backdoor_set_on_device("connected", False)
 
         self.ca.process_pv("TEMPALL")
-        self.ca.assert_pv_alarm_is("TEMPALL", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is("TEMPALL", ChannelAccess.Alarms.INVALID)

@@ -26,7 +26,7 @@ TEST_MODES = [TestModes.DEVSIM]
 class Ag33220aTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("DISABLE", timeout=30)
+        self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.reset_values()
 
     def reset_values(self):

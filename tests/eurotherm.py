@@ -1,10 +1,12 @@
 import unittest
+from contextlib import contextmanager
 
 import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
@@ -46,13 +48,38 @@ class EurothermTests(unittest.TestCase):
     def _setup_lewis_and_channel_access(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", DEVICE)
         self.ca = ChannelAccess(device_prefix=PREFIX)
-        self.ca.wait_for(RBV_PV, timeout=30)
-        self.ca.wait_for("CAL:SEL", timeout=10)
+        self.ca.assert_that_pv_exists(RBV_PV, timeout=30)
+        self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
+    def _set_calibration_file(self, filename):
+        """
+        Sets a calibration file. Retries if it didn't set properly first time.
+        """
+        max_retries = 10
+
+        for _ in range(max_retries):
+            self.ca.set_pv_value("CAL:SEL", filename)
+            self.ca.assert_that_pv_alarm_is("CAL:SEL", self.ca.Alarms.NONE)
+            time.sleep(1)
+            if self.ca.get_pv_value("CAL:RBV") == filename:
+                break
+        else:
+            self.fail("Couldn't set calibration file to '{}' after {} tries".format(filename, max_retries))
+
+    def _reset_calibration_file(self):
+        self._set_calibration_file("None.txt")
+
+    @contextmanager
+    def _use_calibration_file(self, filename):
+        self._set_calibration_file(filename)
+        try:
+            yield
+        finally:
+            self._reset_calibration_file()
+
     def _reset_device_state(self):
-        self.ca.set_pv_value("CAL:SEL", "None.txt")
-        self.ca.assert_that_pv_is("CAL:RBV", "None.txt")
+        self._reset_calibration_file()
 
         intial_temp = 0.0
 
@@ -65,7 +92,7 @@ class EurothermTests(unittest.TestCase):
         self._set_setpoint_and_current_temperature(intial_temp)
         self.ca.assert_that_pv_is("TEMP", intial_temp)
         # Ensure the temperature isn't being changed by a ramp any more
-        self.ca.assert_pv_value_is_unchanged("TEMP", 5)
+        self.ca.assert_that_pv_value_is_unchanged("TEMP", 5)
 
     def _set_setpoint_and_current_temperature(self, temperature):
         if IOCRegister.uses_rec_sim:
@@ -75,7 +102,9 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_is("SIM:TEMP:SP:RBV", temperature)
         else:
             self._lewis.backdoor_set_on_device("current_temperature", temperature)
+            self.ca.assert_that_pv_is_number("TEMP", temperature, 0.1)
             self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
+            self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, 0.1)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
@@ -96,16 +125,17 @@ class EurothermTests(unittest.TestCase):
         setpoint_temperature = 25.0
 
         self._set_setpoint_and_current_temperature(start_temperature)
-        self.ca.set_pv_value("TEMP:SP", start_temperature)
 
         self.ca.set_pv_value("RATE:SP", ramp_rate)
+        self.ca.assert_that_pv_is_number("RATE", ramp_rate, 0.1)
         self.ca.set_pv_value("RAMPON:SP", ramp_on)
         self.ca.set_pv_value("TEMP:SP", setpoint_temperature)
 
         start = time.time()
-        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, timeout=60)
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, tolerance=0.1, timeout=60)
         end = time.time()
-        self.assertAlmostEquals(end-start, 20, delta=1)
+        self.assertAlmostEquals(end-start, 60. * (setpoint_temperature-start_temperature)/ramp_rate,
+                                delta=0.1*(end-start))  # Tolerance of 10%. Tolerance of 1s is too tight given scan rate
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
@@ -156,11 +186,10 @@ class EurothermTests(unittest.TestCase):
         rbv_change_timeout = 10
         tolerance = 0.01
         self.ca.set_pv_value("RAMPON:SP", 0)
-        self.ca.set_pv_value("CAL:SEL", "None.txt")
-        self.ca.assert_that_pv_is("CAL:RBV", "None.txt")
+        self._reset_calibration_file()
         self.ca.set_pv_value("TEMP:SP", temperature)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
-        self.ca.set_pv_value("CAL:SEL", "C006.txt")
+        self._set_calibration_file("C006.txt")
         self.ca.assert_that_pv_is_not_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
         # Act
@@ -168,3 +197,43 @@ class EurothermTests(unittest.TestCase):
 
         # Assert
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
+
+    def _assert_units(self, units):
+        # High timeouts because setting units does not cause processing - wait for normal scan loop to come around.
+        self.ca.assert_that_pv_is("TEMP.EGU", units, timeout=30)
+        self.ca.assert_that_pv_is("TEMP:SP.EGU", units, timeout=30)
+        self.ca.assert_that_pv_is("TEMP:SP:RBV.EGU", units, timeout=30)
+
+    def _assert_using_mock_table_location(self):
+        for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
+            self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
+            self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Apps/EPICS/support")
+
+    @skip_if_recsim("Recsim does not use mocked set of tables")
+    def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
+        self._assert_using_mock_table_location()
+        with self._use_calibration_file("K.txt"):
+            self._assert_units("K")
+
+    @skip_if_recsim("Recsim does not use mocked set of tables")
+    def test_WHEN_calibration_file_is_in_units_of_C_THEN_egu_of_temperature_pvs_is_C(self):
+        self._assert_using_mock_table_location()
+        with self._use_calibration_file("C.txt"):
+            self._assert_units("C")
+
+    @skip_if_recsim("Recsim does not use mocked set of tables")
+    def test_WHEN_calibration_file_has_no_units_THEN_egu_of_temperature_pvs_is_K(self):
+        self._assert_using_mock_table_location()
+        with self._use_calibration_file("None.txt"):
+            self._assert_units("K")
+
+    @skip_if_recsim("Recsim does not use mocked set of tables")
+    def test_WHEN_config_file_and_temperature_unit_changed_THEN_then_ramp_rate_unit_changes(self):
+        self._assert_using_mock_table_location()
+        with self._use_calibration_file("None.txt"):
+            self._assert_units("K")
+            self.ca.assert_that_pv_is("RATE.EGU", "K/min")
+
+        with self._use_calibration_file("C.txt"):
+            self._assert_units("C")
+            self.ca.assert_that_pv_is("RATE.EGU", "C/min")
