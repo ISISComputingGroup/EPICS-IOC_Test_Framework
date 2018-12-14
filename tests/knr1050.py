@@ -35,7 +35,7 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("GET_REMOTE_MODE.PROC", 1)
         # Set the flow and concentrations to a default state that enable pump switch on
         self.ca.set_pv_value("PUMP:STOP:SP", "Stop")
-        self.ca.set_pv_value("DEV_STATE", "SYS_ST_IDLE")
+        self.ca.set_pv_value("DEV_STATE", "SYS_ST_OFF")
         self.ca.set_pv_value("FLOW:SP", 0.01)
         self.ca.set_pv_value("PRESS:LOW:SP", 0)
         self.ca.set_pv_value("PRESS:HIGH:SP", 100)
@@ -57,10 +57,10 @@ class Knr1050Tests(unittest.TestCase):
     def test_GIVEN_an_ioc_WHEN_start_pump_sent_THEN_pump_starts(self):
         self.ca.set_pv_value("PUMP:START:SP", "Start")
 
-        self.ca.assert_that_pv_is("DEV_STATE", "SYS_ST_RUN")
+        self.ca.assert_that_pv_is("DEV_STATE", "SYS_ST_IDLE")
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_an_ioc_WHEN_stop_pump_sent_via_ioc_THEN_device_state_idle(self):
+    def test_GIVEN_an_ioc_WHEN_stop_pump_sent_via_ioc_THEN_device_state_off(self):
         expected_dev_state = "SYS_ST_OFF"
         self.ca.set_pv_value("PUMP:STOP:SP", "Stop")
 
