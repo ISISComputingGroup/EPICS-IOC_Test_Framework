@@ -20,7 +20,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, ]
+TEST_MODES = [TestModes.DEVSIM ]
 
 
 class Dh2000Tests(unittest.TestCase):
