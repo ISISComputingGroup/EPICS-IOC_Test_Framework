@@ -4,7 +4,6 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.testing import skip_if_recsim
 
 
 DEVICE_PREFIX = "TTIPLP_01"
@@ -30,7 +29,6 @@ class TtiplpTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ttiplp", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=5)
-        self.ca.wait_for("DISABLE")
         self._lewis.backdoor_run_function_on_device("reset")
         
     def set_init_state(self, volt_sp=0., curr_sp=0., ov_volt_sp=0., ov_curr_sp=0., output="Off"):
