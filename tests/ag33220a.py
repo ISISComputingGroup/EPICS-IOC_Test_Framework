@@ -31,6 +31,7 @@ class Ag33220aTests(unittest.TestCase):
         self.reset_values()
 
     def reset_values(self):
+        self._lewis.backdoor_set_on_device('connected', True)
         self.ca.set_pv_value("AMPLITUDE:SP", 0.1)
         self.ca.set_pv_value("FREQUENCY:SP", 1000)
         self.ca.set_pv_value("OFFSET:SP", 0)

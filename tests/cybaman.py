@@ -38,6 +38,8 @@ class CybamanTests(unittest.TestCase):
         self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("INITIALIZE", timeout=30)
 
+        self._lewis.backdoor_set_on_device('connected', True)
+
         # Check that all the relevant PVs are up.
         for axis in self.AXES:
             self.ca.assert_that_pv_exists(axis)
