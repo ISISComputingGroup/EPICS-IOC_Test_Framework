@@ -37,6 +37,7 @@ class Amint2lTests(unittest.TestCase):
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self._lewis.backdoor_set_on_device('connected', True)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _set_pressure(self, expected_pressure):
@@ -86,3 +87,8 @@ class Amint2lTests(unittest.TestCase):
         # emulator using the backdoor makes the record go udf not timeout which is what the actual device does.
 
         self.ca.assert_that_pv_alarm_is("PRESSURE", self.ca.Alarms.INVALID)
+
+    @skip_if_recsim("Can not test disconnection in recsim")
+    def test_GIVEN_device_not_connected_WHEN_get_pressure_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.INVALID)
