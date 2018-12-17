@@ -30,7 +30,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class CCD100Tests(unittest.TestCase):
@@ -40,7 +40,7 @@ class CCD100Tests(unittest.TestCase):
 
     NUM_OF_PVS = 3
 
-    def setUp(self, device=DEVICE_A_PREFIX):
+    def set_up(self, device=DEVICE_A_PREFIX):
         self._lewis, self._ioc = get_running_lewis_and_ioc(device, device)
         self.assertIsNotNone(self._lewis)
         self.assertIsNotNone(self._ioc)
@@ -68,20 +68,20 @@ class CCD100Tests(unittest.TestCase):
         self.set_up()
         self._test_setpoint_and_readback()
 
-    @skip_if_recsim("In rec sim this test fails")
+    @skip_if_recsim("Cannot check log messages in rec sim")
     def test_GIVEN_not_in_error_WHEN_put_in_error_THEN_three_log_messages_per_pv_logged_in_five_secs(self):
         self.set_up()
         with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
             self._set_error_state(True)
 
-    @skip_if_recsim("In rec sim this test fails")
+    @skip_if_recsim("Cannot check log messages in rec sim")
     def test_GIVEN_in_error_WHEN_error_cleared_THEN_one_log_message_per_pv_logged(self):
         self.set_up()
         self._set_error_state(True)
         with assert_log_messages(self._ioc, self.NUM_OF_PVS*1):
             self._set_error_state(False)
 
-    @skip_if_recsim("In rec sim this test fails")
+    @skip_if_recsim("Cannot check log messages in rec sim")
     def test_GIVEN_in_error_WHEN_error_string_changed_THEN_three_log_message_per_pv_logged_in_five_secs(self):
         self.set_up()
         self._lewis.backdoor_set_on_device("out_error", "OLD_ERROR")
@@ -95,5 +95,6 @@ class CCD100Tests(unittest.TestCase):
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
+        self.set_up()
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is('READING', ChannelAccess.Alarms.INVALID)
