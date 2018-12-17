@@ -192,6 +192,10 @@ class BufferTests(unittest.TestCase):
 
         return readings
 
+    def _set_buffer_size(self, buff_size):
+        self.ca.set_pv_value("BUFF:SIZE:SP", buff_size)
+        self.ca.assert_that_pv_is("BUFF:SIZE", buff_size)
+
     @contextmanager
     def _insert_reading(self, reading):
         self._lewis.backdoor_run_function_on_device("insert_mock_data", [reading])
@@ -201,22 +205,18 @@ class BufferTests(unittest.TestCase):
         finally:
             pass
 
-    def test_GIVEN_readings_in_buffer_WHEN_readings_accessed_THEN_correct_number_of_reads_returned(self):
-        buffer_test_size = 30
-        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
-        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
-        reads = self._generate_readings(100, 5)
-        # GIVEN
-        with self._insert_reading(reads[:30]):
-            pass
-            # WHEN
-            # call TRAC:DATA:SEL? x,y here
-            # assert that y readings are returned
+    def test_GIVEN_empty_buffer_WHEN_readings_added_to_fill_THEN_buffer_clears_and_index_PVs_correct(self):
+        buffer_size = 10
+        self._set_buffer_size(buffer_size)
+        reads = self._generate_readings(25, 1)
+
+        for i in range(len(reads)):
+            with self._insert_reading([reads[i]]):
+                self.ca.assert_that_pv_is("BUFF:NEXT", (i+1) % buffer_size)
+                self.ca.assert_that_pv_is("INDEX:START", (i+1) % buffer_size)
 
     def test_GIVEN_buffer_full_WHEN_buffer_clears_THEN_buffer_still_used(self):
-        buffer_test_size = 5
-        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
-        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
+        self._set_buffer_size(5)
         reads = self._generate_readings(10, 5)
 
         self.ca.assert_that_pv_is("BUFF:CONTROLMODE", "ALW")  # indicative that buffer is being written to
@@ -230,63 +230,68 @@ class BufferTests(unittest.TestCase):
             # THEN
             self.ca.assert_that_pv_is("BUFF:CONTROLMODE", "ALW")
 
-    def test_GIVEN_full_buffer_THEN_next_buff_location_reports_0(self):
-        buffer_test_size = 10
-        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
-        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
-        reads = self._generate_readings(10, 5)
-        # GIVEN
-        with self._insert_reading(reads[:10]):
-            pass
-
-        # THEN
-        self.ca.assert_that_pv_is("BUFF:NEXT", 0)
-
-    def test_GIVEN_empty_small_buffer_WHEN_new_reads_added_THEN_expected_behaviour_observed(self):
-        buffer_test_size = 3
-        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
-        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
-        reads = self._generate_readings(5, 5)
+    def test_GIVEN_empty_buffer_WHEN_new_reads_added_until_buffer_full_THEN_buffer_and_index_pvs_behave_correctly(self):
+        buffer_size = 5
+        self._set_buffer_size(buffer_size)
+        reads = self._generate_readings(6, 5)
 
         self.ca.assert_that_pv_is("BUFF:NEXT", 0)
         self.ca.assert_that_pv_is("INDEX:START", 0)
 
-        # inserting first reading
-        with self._insert_reading([reads[0]]):
-            self.ca.assert_that_pv_is("BUFF:NEXT", 1)
-            self.ca.assert_that_pv_is("INDEX:START", 1)
-
-        with self._insert_reading([reads[1]]):
-            self.ca.assert_that_pv_is("BUFF:NEXT", 2)
-            self.ca.assert_that_pv_is("INDEX:START", 2)
-
-        with self._insert_reading([reads[2]]):
+        for i in range(buffer_size - 1):  # -1 so that buffer has 1 free space
+            with self._insert_reading([reads[i]]):
+                self.ca.assert_that_pv_is("BUFF:NEXT", i+1)
+                self.ca.assert_that_pv_is("INDEX:START", i+1)
+        # insert final reading
+        with self._insert_reading([reads[5]]):
             self.ca.assert_that_pv_is("BUFF:NEXT", 0)
-            self.ca.assert_that_pv_is("INDEX:START", 2)
+            self.ca.assert_that_pv_is("INDEX:START", 0)
 
-        with self._insert_reading([reads[3]]):
+    def test_GIVEN_buffer_full_WHEN_new_reading_added_THEN_new_reading_added_at_index_0(self):
+        self._set_buffer_size(10)
+        reads = self._generate_readings(15, 5)  # 10 greater than buffer capacity
+
+        with self._insert_reading(reads[:10]):
+            # All buffer locations occupied
+            self.ca.assert_that_pv_is("BUFF:NEXT", 0)
+
+        with self._insert_reading([reads[11]]):
             self.ca.assert_that_pv_is("BUFF:NEXT", 1)
-            self.ca.assert_that_pv_is("INDEX:START", 1)
 
-    def test_GIVEN_buffer_full_THEN_buffer_clears(self):
-        buffer_test_size = 50  # buffer 0 indexed, so there are 50 buffer locations, 0-49
-        # GIVEN
-        # Use smaller buffer to speed up test
-        self.ca.set_pv_value("BUFF:SIZE:SP", buffer_test_size)
-        self.ca.assert_that_pv_is("BUFF:SIZE", buffer_test_size)
-        reads = self._generate_readings(60, 5)  # 10 greater than buffer capacity
+    def test_GIVEN_buffer_almost_full_WHEN_multiple_remaining_locations_written_to_THEN_correct_readings_returned(self):
+        self._set_buffer_size(10)
+        reads = self._generate_readings(15, 5)
+        expected_reads = reads[7:10]
 
-        with self._insert_reading(reads[:49]):
-            pass  # Now 0-48 are occupied (49 readings), only index 49 is empty
-        self.ca.assert_that_pv_is("BUFF:NEXT", 49)
+        with self._insert_reading(reads[:7]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 7)
 
-        with self._insert_reading([reads[50]]):
-            pass
-        self.ca.assert_that_pv_is("BUFF:NEXT", 0)
+        with self._insert_reading(reads[7:10]):  # This fills the buffer
+            self.ca.assert_that_pv_is("BUFF:NEXT", 0)
 
-        with self._insert_reading([reads[51]]):
-            pass
-        self.ca.assert_that_pv_is("BUFF:NEXT", 1)
+        retrieved_readings = self.ca.get_pv_value("BUFF:READ")[:9]
+        retrieved_readings = map(int, retrieved_readings)  # map from float to int
+        retrieved_readings = map(str, retrieved_readings)  # map from int to str
+        # compare inserted reads with retrieved reads
+        self.assertEqual(",".join(expected_reads), ",".join(retrieved_readings))
+
+    def test_GIVEN_buffer_almost_full_WHEN_buffer_fills_and_overflows_THEN_correct_readings_returned(self):
+        self._set_buffer_size(10)
+        reads = self._generate_readings(15, 5)
+        expected_read = reads[10]
+
+        with self._insert_reading(reads[:7]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 7)
+
+        # This overfills the buffer and causes a clear, and then writes the final read into buffer location 0
+        with self._insert_reading(reads[7:11]):
+            self.ca.assert_that_pv_is("BUFF:NEXT", 1)
+
+        retrieved_readings = self.ca.get_pv_value("BUFF:READ")[:3]
+        retrieved_readings = map(int, retrieved_readings)  # map from float to int
+        retrieved_readings = map(str, retrieved_readings)  # map from int to str
+
+        self.assertEqual(expected_read, ",".join(retrieved_readings))
 
 
 class ChannelTests(unittest.TestCase):
