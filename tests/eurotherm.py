@@ -1,5 +1,6 @@
 import unittest
 from contextlib import contextmanager
+from parameterized import parameterized
 
 import time
 from utils.channel_access import ChannelAccess
@@ -35,7 +36,7 @@ IOCS = [
 SENSOR_DISCONNECTED_VALUE = 1529
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 
 
 class EurothermTests(unittest.TestCase):
@@ -245,3 +246,114 @@ class EurothermTests(unittest.TestCase):
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is('LOWLIM', ChannelAccess.Alarms.INVALID)
+
+
+class TempRangeCheckingPvTests(unittest.TestCase):
+
+    def setUp(self):
+        self._setup_lewis_and_channel_access()
+        self._reset_device_state()
+
+    def _setup_lewis_and_channel_access(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, DEVICE)
+        self.ca = ChannelAccess(device_prefix=PREFIX)
+        self.ca.assert_that_pv_exists(RBV_PV, timeout=30)
+        self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
+        self._lewis.backdoor_set_on_device("address", ADDRESS)
+
+    def _set_calibration_file(self, filename):
+        """
+        Sets a calibration file. Retries if it didn't set properly first time.
+        """
+        max_retries = 10
+
+        for _ in range(max_retries):
+            self.ca.set_pv_value("CAL:SEL", filename)
+            self.ca.assert_that_pv_alarm_is("CAL:SEL", self.ca.Alarms.NONE)
+            time.sleep(1)
+            if self.ca.get_pv_value("CAL:RBV") == filename:
+                break
+        else:
+            self.fail("Couldn't set calibration file to '{}' after {} tries".format(filename, max_retries))
+
+    def _reset_calibration_file(self):
+        self._set_calibration_file("None.txt")
+
+    @contextmanager
+    def _use_calibration_file(self, filename):
+        self._set_calibration_file(filename)
+        try:
+            yield
+        finally:
+            self._reset_calibration_file()
+
+    def _reset_device_state(self):
+        self._lewis.backdoor_set_on_device('connected', True)
+        self._reset_calibration_file()
+
+        intial_temp = 0.0
+
+        self._set_setpoint_and_current_temperature(intial_temp)
+
+        self._lewis.backdoor_set_on_device("ramping_on", False)
+        self._lewis.backdoor_set_on_device("ramp_rate", 1.0)
+        self.ca.set_pv_value("RAMPON:SP", 0)
+
+        self._set_setpoint_and_current_temperature(intial_temp)
+        self.ca.assert_that_pv_is("TEMP", intial_temp)
+        # Ensure the temperature isn't being changed by a ramp any more
+        self.ca.assert_that_pv_value_is_unchanged("TEMP", 5)
+
+    def _set_setpoint_and_current_temperature(self, temperature):
+        if IOCRegister.uses_rec_sim:
+            self.ca.set_pv_value("SIM:TEMP:SP", temperature)
+            self.ca.assert_that_pv_is("SIM:TEMP", temperature)
+            self.ca.assert_that_pv_is("SIM:TEMP:SP", temperature)
+            self.ca.assert_that_pv_is("SIM:TEMP:SP:RBV", temperature)
+        else:
+            self._lewis.backdoor_set_on_device("current_temperature", temperature)
+            self.ca.assert_that_pv_is_number("TEMP", temperature, 0.1)
+            self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
+            self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, 0.1)
+
+    def _assert_using_mock_table_location(self):
+        for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
+            self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
+            self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Apps/EPICS/support")
+
+
+    @parameterized.expand([
+        ("under_range_calc_pv_is_under_range", -5.0, 1.0),
+        ("under_range_calc_pv_is_within_range", 200, 0.0),
+        ("under_range_calc_pv_is_within_range", 0.0, 0.0)
+    ])
+    @skip_if_recsim("Recsim does not use mocked set of tables")
+    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN_(
+            self, _, temperature, expected_value_of_range_calc_pv):
+        # Arrange
+        CALIBRATION_MIN_TEMPERATURE = 0.0
+        self._assert_using_mock_table_location()
+        with self._use_calibration_file("None.txt"):
+            self.ca.assert_that_pv_exists("CAL:RANGE")
+
+            # Act:
+            self._set_setpoint_and_current_temperature(CALIBRATION_MIN_TEMPERATURE + temperature)
+
+            # Assert
+            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", CALIBRATION_MIN_TEMPERATURE)
+            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.A", temperature)
+            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER", expected_value_of_range_calc_pv)
+
+    @skip_if_recsim("Recsim does not use mocked set of tables")
+    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_over_range_THEN_over_range_calc_pv_is_1(self):
+        # Arrange
+        CALIBRATION_MAX_TEMPERATURE = 10000.0
+        self._assert_using_mock_table_location()
+        with self._use_calibration_file("None.txt"):
+            self.ca.assert_that_pv_exists("CAL:RANGE")
+
+            # Act:
+            self._set_setpoint_and_current_temperature(CALIBRATION_MAX_TEMPERATURE + 5)
+
+            # Assert
+            self.ca.assert_that_pv_is("TEMP:RANGE:OVER", 1.0)
