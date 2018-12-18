@@ -143,6 +143,7 @@ class ProcServLauncher(BaseLauncher):
         self._ca = None
         self.macros = None
         self.telnet = None
+        self.autorestart = True
 
         atexit.register(self.close)
 
@@ -213,7 +214,7 @@ class ProcServLauncher(BaseLauncher):
         self.ioc_run_command = ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS), ' --logstamp',
                                 ' --logfile="{}"'.format(self.to_cygwin_address(self._log_filename())),
                                 ' --timefmt="%Y-%m-%d %H:%M:%S"',
-                                ' --restrict', ' --ignore="^D^C"', ' --noautorestart', ' --wait',
+                                ' --restrict', ' --ignore="^D^C"', ' --autorestart', ' --wait',
                                 ' --name={}'.format(self._device.upper()),
                                 ' --pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
                                 ' --logport={:d}'.format(self.logport), ' --chdir="{}"'.format(cygwin_dir),
@@ -253,7 +254,7 @@ class ProcServLauncher(BaseLauncher):
         init_output = self.telnet.read_very_eager()
 
         if "Welcome to procServ" not in init_output:
-            raise AssertionError("Cannot connect to procServ over telnet")
+            raise OSError("Cannot connect to procServ over telnet")
 
     def start_ioc(self):
         """
@@ -270,6 +271,24 @@ class ProcServLauncher(BaseLauncher):
         """
         quit_command = "\x11"
         self.telnet.write(quit_command + "\n")
+
+    def toggle_autorestart(self):
+        """
+        Toggles whether the IOC is auto-restarts or not.
+
+        """
+        self.telnet.read_very_eager()
+
+        autorestart_command = "-"
+        self.telnet.write(autorestart_command + "\n")
+        response = self.telnet.read_very_eager()
+
+        if "OFF" in response:
+            self.autorestart = False
+        elif "ON" in response:
+            self.autorestart = True
+        else:
+            raise OSError("No response from procserv")
 
     def close(self):
         """
