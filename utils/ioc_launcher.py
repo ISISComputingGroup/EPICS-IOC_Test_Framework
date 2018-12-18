@@ -3,6 +3,7 @@ Code that launches an IOC/application under test
 """
 import subprocess
 import os
+import psutil
 from time import sleep
 from abc import ABCMeta
 
@@ -10,6 +11,8 @@ from utils.channel_access import ChannelAccess
 from utils.log_file import log_filename, LogFileManager
 from utils.test_modes import TestModes
 from datetime import date
+import telnetlib
+import atexit
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
@@ -134,10 +137,14 @@ class ProcServLauncher(BaseLauncher):
         self.port = int(ioc['macros']['EMULATOR_PORT'])
         self.logport = int(ioc['macros']['LOG_PORT'])
 
+        self.ioc_run_command = None
         self._process = None
         self.log_file_manager = None
         self._ca = None
         self.macros = None
+        self.telnet = None
+
+        atexit.register(self.close)
 
     def _get_channel_access(self):
         """
@@ -191,7 +198,6 @@ class ProcServLauncher(BaseLauncher):
         Returns:
 
         """
-
         st_cmd_path = os.path.join(self._directory, "st.cmd")
 
         if not os.path.isfile(st_cmd_path):
@@ -202,45 +208,85 @@ class ProcServLauncher(BaseLauncher):
         check_if_ioc_already_running(ca, self._device)
 
         comspec = os.getenv("ComSpec")
-        logfilepath = "C:\\Instrument\\var\\logs\\ioc\\{}-%Y%m%d.log".format(self._device)
 
         cygwin_dir = self.to_cygwin_address(self._directory)
-        ioc_run_command = ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS),
-                           ' --logstamp',
-                           ' --logfile="{}"'.format(self.to_cygwin_address(logfilepath)),
-                           ' --timefmt="%Y-%m-%d %H:%M:%S"',
-                           ' --restrict', ' --ignore="^D^C"', ' --noautorestart', ' --wait',
-                           ' --name={}'.format(self._device.upper()),
-                           ' --pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
-                           ' --logport={:d}'.format(self.logport), ' --chdir="{}"'.format(cygwin_dir),
-                           ' {:d}'.format(self.port), ' {}'.format(comspec), ' /c', ' runIOC.bat', ' st.cmd']
+        self.ioc_run_command = ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS), ' --logstamp',
+                                ' --logfile="{}"'.format(self.to_cygwin_address(self._log_filename())),
+                                ' --timefmt="%Y-%m-%d %H:%M:%S"',
+                                ' --restrict', ' --ignore="^D^C"', ' --noautorestart', ' --wait',
+                                ' --name={}'.format(self._device.upper()),
+                                ' --pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
+                                ' --logport={:d}'.format(self.logport), ' --chdir="{}"'.format(cygwin_dir),
+                                ' {:d}'.format(self.port), ' {}'.format(comspec), ' /c', ' runIOC.bat', ' st.cmd']
 
         print("Starting IOC ({})".format(self._device))
 
         settings = self._set_environment_vars()
 
         self.log_file_manager = LogFileManager(self._log_filename())
-        self.log_file_manager.log_file.write("Started IOC with '{0}'\n".format(" ".join(ioc_run_command)))
+        self.log_file_manager.log_file.write("Started IOC with '{0}'\n".format(" ".join(self.ioc_run_command)))
 
         # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
         # This does mean that the IOC will need to be closed manually after the tests.
         # Make sure to revert before checking code in
 
-        self._process = subprocess.Popen(''.join(ioc_run_command), creationflags=subprocess.CREATE_NEW_CONSOLE,
+        self._process = subprocess.Popen(''.join(self.ioc_run_command), creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          cwd=self._directory, stdout=self.log_file_manager.log_file,
                                          stderr=subprocess.STDOUT, env=settings)
 
-        #TODO make launcher pass this test
-        #self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START)
+        self.connect_to_procserv()
+        self.start_ioc()
+
+        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START)
 
         IOCRegister.add_ioc(self._device, self)
 
+    def connect_to_procserv(self):
+        """
+        Opens the telnet connection to the procserv daemon.
+
+        """
+        self.telnet = telnetlib.Telnet("localhost", self.port, timeout=10)
+
+        # Wait for procServ to become responsive
+        sleep(5)
+        init_output = self.telnet.read_very_eager()
+
+        if "Welcome to procServ" not in init_output:
+            raise AssertionError("Cannot connect to procServ over telnet")
+
+    def start_ioc(self):
+        """
+        Sends the start/restart IOC command to procserv. (^X)
+
+        """
+        start_command = "\x18"
+        self.telnet.write(start_command + "\n")
+
+    def quit_ioc(self):
+        """
+        Sends the quit IOC command to procserv. (^Q)
+
+        """
+        quit_command = "\x11"
+        self.telnet.write(quit_command + "\n")
+
     def close(self):
         """
-        Closes the IOC
+        Shuts telnet connection and kills IOC. Identifies the spawned procServ processes and kills them
+
         """
-        if self._process is not None:
-            self._process.kill()
+
+        if self.telnet is not None:
+            self.telnet.close()
+
+        cmdline_arguments = [args.strip().replace('"', '') for args in self.ioc_run_command]
+
+        for process in psutil.process_iter(attrs=['pid', 'name']):
+            if process.info['name'] == 'procServ.exe':
+                if all([args in process.cmdline() for args in cmdline_arguments]):
+                    # Command line arguments match, kill procServ instance
+                    os.kill(process.pid, -1)
 
 
 class IocLauncher(BaseLauncher):
