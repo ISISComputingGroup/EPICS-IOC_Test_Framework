@@ -249,6 +249,8 @@ class EurothermTests(unittest.TestCase):
 
 
 class TempRangeCheckingPvTests(unittest.TestCase):
+    CALIBRATION_MAX_TEMPERATURE = 10000.0
+    CALIBRATION_MIN_TEMPERATURE = 0.0
 
     def setUp(self):
         self._setup_lewis_and_channel_access()
@@ -321,39 +323,47 @@ class TempRangeCheckingPvTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
             self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Apps/EPICS/support")
 
-
     @parameterized.expand([
-        ("under_range_calc_pv_is_under_range", -5.0, 1.0),
-        ("under_range_calc_pv_is_within_range", 200, 0.0),
-        ("under_range_calc_pv_is_within_range", 0.0, 0.0)
+        ("under_range_calc_pv_is_under_range",  CALIBRATION_MIN_TEMPERATURE - 5.0, 1.0),
+        ("under_range_calc_pv_is_within_range", CALIBRATION_MIN_TEMPERATURE + 200, 0.0),
+        ("under_range_calc_pv_is_within_range", CALIBRATION_MIN_TEMPERATURE, 0.0)
     ])
     @skip_if_recsim("Recsim does not use mocked set of tables")
-    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN_(
-            self, _, temperature, expected_value_of_range_calc_pv):
+    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
+            self, _, temperature, expected_value_of_under_range_calc_pv):
         # Arrange
-        CALIBRATION_MIN_TEMPERATURE = 0.0
+
         self._assert_using_mock_table_location()
         with self._use_calibration_file("None.txt"):
             self.ca.assert_that_pv_exists("CAL:RANGE")
+            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", TempRangeCheckingPvTests.CALIBRATION_MIN_TEMPERATURE)
 
             # Act:
-            self._set_setpoint_and_current_temperature(CALIBRATION_MIN_TEMPERATURE + temperature)
+            self._set_setpoint_and_current_temperature(temperature)
 
             # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", CALIBRATION_MIN_TEMPERATURE)
+
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.A", temperature)
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER", expected_value_of_range_calc_pv)
+            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER", expected_value_of_under_range_calc_pv)
 
+    @parameterized.expand([
+        ("over_range_calc_pv_is_over_range", CALIBRATION_MAX_TEMPERATURE + 5.0, 1.0),
+        ("over_range_calc_pv_is_within_range", CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
+        ("over_range_calc_pv_is_within_range", CALIBRATION_MAX_TEMPERATURE, 0.0)
+    ])
     @skip_if_recsim("Recsim does not use mocked set of tables")
-    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_over_range_THEN_over_range_calc_pv_is_1(self):
+    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
+            self, _, temperature, expected_value_of_over_range_calc_pv):
         # Arrange
-        CALIBRATION_MAX_TEMPERATURE = 10000.0
+
         self._assert_using_mock_table_location()
         with self._use_calibration_file("None.txt"):
             self.ca.assert_that_pv_exists("CAL:RANGE")
+            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", TempRangeCheckingPvTests.CALIBRATION_MAX_TEMPERATURE)
 
             # Act:
-            self._set_setpoint_and_current_temperature(CALIBRATION_MAX_TEMPERATURE + 5)
+            self._set_setpoint_and_current_temperature(temperature)
 
             # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER", 1.0)
+            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.A", temperature)
+            self.ca.assert_that_pv_is("TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
