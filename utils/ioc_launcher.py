@@ -13,7 +13,13 @@ from datetime import date
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
+PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "Python", "python.exe"))
+
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
+
+EPICS_CASE_ENVIRONMENT_VARS = {
+    "EPICS_CAS_INTF_ADDR_LIST": "127.0.0.1",
+    "EPICS_CAS_BEACON_ADDR_LIST": "127.255.255.255"}
 
 
 def get_default_ioc_dir(iocname, iocnum=1):
@@ -247,9 +253,6 @@ class IocLauncher(BaseLauncher):
     """
     Launches an IOC for testing.
     """
-
-    RECORD_THAT_ALWAYS_EXISTS = "DISABLE"
-
     def __init__(self, ioc, test_mode, var_dir):
         """
         Constructor that also launches the IOC.
@@ -269,6 +272,9 @@ class IocLauncher(BaseLauncher):
         self.macros = ioc.get("macros", {})
         self._var_dir = var_dir
         self.port = self.macros['EMULATOR_PORT']
+        self._ioc_started_text = ioc.get("started_text", "epics>")
+        self._pv_for_existence = ioc.get("pv_for_existence", "DISABLE")
+        self._extra_environment_vars = ioc.get("environment_vars", {})
 
         if test_mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
             raise ValueError("Invalid test mode provided")
@@ -296,6 +302,9 @@ class IocLauncher(BaseLauncher):
 
         # Set the port
         settings['EMULATOR_PORT'] = str(self.port)
+
+        for env_name, setting in self._extra_environment_vars.items():
+            settings[env_name] = setting
         return settings
 
     def __enter__(self):
@@ -305,10 +314,7 @@ class IocLauncher(BaseLauncher):
     def __exit__(self, *args, **kwargs):
         self.close()
 
-    def open(self):
-        """
-        Starts an IOC.
-        """
+    def _command_line(self):
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
 
@@ -317,14 +323,21 @@ class IocLauncher(BaseLauncher):
         if not os.path.isfile(st_cmd_path):
             print("St.cmd path not found: '{0}'".format(st_cmd_path))
 
+        return [run_ioc_path, st_cmd_path]
+
+    def open(self):
+        """
+        Runs the ioc.
+        """
+        ioc_run_commandline = self._command_line()
+
         ca = self._get_channel_access()
         try:
             print("Check that IOC is not running")
-            ca.assert_that_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
+            ca.assert_that_pv_does_not_exist(self._pv_for_existence)
         except AssertionError as ex:
             raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
 
-        ioc_run_commandline = [run_ioc_path, st_cmd_path]
         print("Starting IOC ({})".format(self._device))
 
         settings = self._set_environment_vars()
@@ -348,7 +361,7 @@ class IocLauncher(BaseLauncher):
                                          cwd=self._directory, stdin=subprocess.PIPE,
                                          stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT, env=settings)
 
-        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START)
+        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
 
@@ -359,21 +372,28 @@ class IocLauncher(BaseLauncher):
         print("Terminating IOC ({})".format(self._device))
 
         if self._process is not None:
-            self._process.communicate("exit\n")
+            #  use write not communicate so that we don't wait for exit before continuing
+            self._process.stdin.write("exit\n")
 
             max_wait_for_ioc_to_die = 60
             wait_per_loop = 0.1
 
-            for _ in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
+            for loop_count in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
                 try:
-                    self._get_channel_access().assert_that_pv_does_not_exist(self.RECORD_THAT_ALWAYS_EXISTS)
+                    self._get_channel_access().assert_that_pv_does_not_exist(self._pv_for_existence)
                     break
                 except AssertionError:
                     sleep(wait_per_loop)
+                    if loop_count % 100 == 99:
+                        print("   waited {}".format(loop_count*wait_per_loop))
             else:
                 print("IOC process did not die after {} seconds. Continuing anyway but next set of tests may fail."
                       .format(max_wait_for_ioc_to_die))
+                self._process.kill()
 
+        self._print_log_file_location()
+
+    def _print_log_file_location(self):
         if self.log_file_manager is not None:
             self.log_file_manager.close()
             print("IOC log written to {0}".format(self._log_filename()))
@@ -399,3 +419,40 @@ class IocLauncher(BaseLauncher):
             self._ca = ChannelAccess(device_prefix=self._device)
 
         return self._ca
+
+
+class PythonIOCLauncher(IocLauncher):
+    """
+    Launch a python ioc like REFL server.
+    """
+
+    def __init__(self, ioc, test_mode, var_dir):
+        super(PythonIOCLauncher, self).__init__(ioc, test_mode, var_dir)
+        self._python_script_commandline = ioc.get("python_script_commandline", None)
+
+    def _command_line(self):
+        run_ioc_path = self._python_script_commandline[0]
+        if not os.path.isfile(run_ioc_path):
+            print("Command first argument path not found: '{0}'".format(run_ioc_path))
+        command_line = [PYTHON]
+        command_line.extend(self._python_script_commandline)
+        return command_line
+
+    def _set_environment_vars(self):
+        settings = super(PythonIOCLauncher, self)._set_environment_vars()
+        settings["PYTHONUNBUFFERED"] = "TRUE"
+        settings.update(EPICS_CASE_ENVIRONMENT_VARS)
+
+        return settings
+
+    def close(self):
+        """
+        Closes the IOC.
+        """
+        print("Terminating python IOC ({})".format(self._device))
+
+        if self._process is not None:
+            # just kill a process if this is the only way to stop it
+            self._process.kill()
+
+        self._print_log_file_location()

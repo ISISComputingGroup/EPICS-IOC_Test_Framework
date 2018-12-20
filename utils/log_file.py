@@ -49,12 +49,13 @@ class LogFileManager(object):
         self.reading_from = self.log_file.tell()
         return new_messages
 
-    def wait_for_console(self, timeout):
+    def wait_for_console(self, timeout, ioc_started_text):
         """
         Waits until the ioc has started.
 
         Args:
             timeout (int): How long to wait before we assume the ioc has not started. (seconds)
+            ioc_started_text (str): Text to look for in ioc log to indicate that the ioc has started
         """
         for i in range(timeout):
             new_messages = self.read_log()
@@ -63,13 +64,13 @@ class LogFileManager(object):
             message_with_newline = [new_message.rstrip("\r\n") for new_message in new_messages]
             print("    {}s: '{}'".format(i, "'\n       '".join(message_with_newline)))
 
-            if any("epics>" in line for line in new_messages):
+            if any(ioc_started_text in line for line in new_messages):
                 break
 
             sleep(1)
         else:
-            raise AssertionError("IOC appears not to have started after {} seconds."
-                                 .format(timeout))
+            raise AssertionError("IOC appears not to have started after {} seconds. Looking for '{}'"
+                                 .format(timeout, ioc_started_text))
 
     def close(self):
         """
