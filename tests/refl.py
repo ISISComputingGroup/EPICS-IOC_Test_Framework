@@ -26,7 +26,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": REFL_PATH,
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
-        "started_text": "Reflectometry IOC starter",
+        "started_text": "Reflectometry IOC started",
         "pv_for_existence": "BL:STAT",
         "macros": {
         },
@@ -46,10 +46,10 @@ SPACING = 2
 
 
 class ReflTests(unittest.TestCase):
+    """
+    Tests for reflectometry server
+    """
 
-    """
-    Tests for vertical jaws
-    """
     def setUp(self):
         self._ioc = IOCRegister.get_running("refl")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
@@ -85,7 +85,7 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca.assert_that_pv_monitor_is("PARAM:S1", expected_value)
 
-    def test_GIVEN_theta_with_detector_and_slits3_WHEN_set_theta_THEN_values_are_all_correct_rbvs_updated_via_monitorsand_gets(self):
+    def test_GIVEN_theta_with_detector_and_slits3_WHEN_set_theta_THEN_values_are_all_correct_rbvs_updated_via_monitors_and_are_available_via_gets(self):
         theta_angle = 2
         self.ca.set_pv_value("PARAM:THETA:SP", theta_angle)
 

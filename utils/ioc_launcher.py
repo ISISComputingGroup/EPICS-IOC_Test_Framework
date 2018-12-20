@@ -13,7 +13,7 @@ from datetime import date
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
-PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "python.exe"))
+PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "Python", "python.exe"))
 
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 60
 

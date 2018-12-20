@@ -496,23 +496,21 @@ class ChannelAccess(object):
             pv: the pv name
             expected_value: the expected value
 
-        Returns:
+        Raises:
             AssertionError: if the value of the pv did not satisfy the comparator
         """
-        channel_access = self
-
         self.assert_that_pv_is(pv, expected_value, value_from=_MonitorAssertion(self, pv))
 
     def assert_that_pv_monitor_is_number(self, pv, expected_value, tolerance=0.0):
         """
-        Assert that a pv has a given value set by a monitor event
+        Assert that a pv value is set by a monitor event and is within a tolerance
         Args:
             pv: the pv name
             expected_value: the expected value
             tolerance: tolerance
 
-        Returns:
-            AssertionError: if the value of the pv did not satisfy the comparator
+        Raises:
+             AssertionError: if the value of the pv did not satisfy the comparator
         """
         channel_access = self
 
