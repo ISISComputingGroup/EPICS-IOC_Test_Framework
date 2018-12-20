@@ -15,7 +15,7 @@ APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
 PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "Python", "python.exe"))
 
-MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 60
+MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
 
 EPICS_CASE_ENVIRONMENT_VARS = {
     "EPICS_CAS_INTF_ADDR_LIST": "127.0.0.1",
@@ -118,7 +118,7 @@ class ProcServLauncher(BaseLauncher):
     Launches an IOC from procServ.exe
     """
 
-    ICPTOOLS = "C:\\Instrument\\Apps\\EPICS\\tools\\master"
+    ICPTOOLS = os.path.join(EPICS_TOP, "tools", "master")
 
     def __init__(self, ioc, test_mode, var_dir):
         """
@@ -269,7 +269,7 @@ class IocLauncher(BaseLauncher):
         """
         self._device = ioc['name']
         self._directory = ioc['directory']
-        self.macros = ioc['macros']
+        self.macros = ioc.get("macros", {})
         self._var_dir = var_dir
         self.port = self.macros['EMULATOR_PORT']
         self._ioc_started_text = ioc.get("started_text", "epics>")
