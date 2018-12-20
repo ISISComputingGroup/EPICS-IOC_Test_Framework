@@ -13,7 +13,7 @@ from datetime import date
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
-MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 60
+MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
 
 
 def get_default_ioc_dir(iocname, iocnum=1):

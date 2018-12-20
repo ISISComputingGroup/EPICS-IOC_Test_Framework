@@ -29,10 +29,13 @@ def log_filename(what, device, uses_rec_sim, var_dir):
 
 
 class LogFileManager(object):
-    reading_from = 0
+    """
+    Class to manage the access of log files
+    """
 
     def __init__(self, filename):
         self.log_file = open(filename, "w+")
+        self.reading_from = 0
 
     def read_log(self):
         """
@@ -56,6 +59,10 @@ class LogFileManager(object):
         for i in range(timeout):
             new_messages = self.read_log()
 
+            # for diagnostics
+            message_with_newline = [new_message.rstrip("\r\n") for new_message in new_messages]
+            print("    {}s: '{}'".format(i, "'\n       '".join(message_with_newline)))
+
             if any("epics>" in line for line in new_messages):
                 break
 
@@ -65,4 +72,7 @@ class LogFileManager(object):
                                  .format(timeout))
 
     def close(self):
+        """
+        Returns: close the log file
+        """
         self.log_file.close()
