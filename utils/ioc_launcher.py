@@ -361,6 +361,8 @@ class IocLauncher(BaseLauncher):
                                          cwd=self._directory, stdin=subprocess.PIPE,
                                          stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT, env=settings)
 
+        # Write a return so that an epics terminal will appear after boot
+        self._process.stdin.write("\n")
         self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
