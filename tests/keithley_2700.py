@@ -1,10 +1,13 @@
 import time
 import unittest
 from contextlib import contextmanager
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+
+from itertools import chain
 
 
 DEVICE_PREFIX = "KHLY2700_01"
@@ -20,9 +23,6 @@ IOCS = [
 
 # TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 TEST_MODES = [TestModes.DEVSIM]
-
-NORMAL_MODE = 0
-BUFFER_CONTROL_MODE = 1
 
 on_off_status = {False: "OFF", True: "ON"}
 
@@ -171,7 +171,6 @@ class BufferTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
-        self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
 
@@ -205,31 +204,20 @@ class BufferTests(unittest.TestCase):
         finally:
             pass
 
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_readings_added_to_fill_THEN_buffer_clears_and_index_PVs_correct(self):
         buffer_size = 10
         self._set_buffer_size(buffer_size)
         reads = self._generate_readings(25, 1)
 
         for i in range(len(reads)):
+            # WHEN
             with self._insert_reading([reads[i]]):
+                # THEN
                 self.ca.assert_that_pv_is("BUFF:NEXT", (i+1) % buffer_size)
                 self.ca.assert_that_pv_is("INDEX:START", (i+1) % buffer_size)
 
-    def test_GIVEN_buffer_full_WHEN_buffer_clears_THEN_buffer_still_used(self):
-        self._set_buffer_size(5)
-        reads = self._generate_readings(10, 5)
-
-        self.ca.assert_that_pv_is("BUFF:CONTROLMODE", "ALW")  # indicative that buffer is being written to
-        # GIVEN
-        with self._insert_reading(reads[:5]):
-            self.ca.assert_that_pv_is("BUFF:NEXT", 0)  # indicative that buffer is now full
-
-        # WHEN
-        with self._insert_reading([reads[6]]):
-            self.ca.assert_that_pv_is("BUFF:NEXT", 1)  # Reading was inserted to buffer
-            # THEN
-            self.ca.assert_that_pv_is("BUFF:CONTROLMODE", "ALW")
-
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_new_reads_added_until_buffer_full_THEN_buffer_and_index_pvs_behave_correctly(self):
         buffer_size = 5
         self._set_buffer_size(buffer_size)
@@ -247,17 +235,23 @@ class BufferTests(unittest.TestCase):
             self.ca.assert_that_pv_is("BUFF:NEXT", 0)
             self.ca.assert_that_pv_is("INDEX:START", 0)
 
-    def test_GIVEN_buffer_full_WHEN_new_reading_added_THEN_new_reading_added_at_index_0(self):
-        self._set_buffer_size(10)
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
+    def test_GIVEN_buffer_full_WHEN_new_reading_added_THEN_new_reading_added_at_index_0_AND_buffer_still_used(self):
+        buffer_size = 10
+        self._set_buffer_size(buffer_size)
         reads = self._generate_readings(15, 5)  # 10 greater than buffer capacity
 
-        with self._insert_reading(reads[:10]):
-            # All buffer locations occupied
+        with self._insert_reading(reads[:buffer_size]):
+            # GIVEN
             self.ca.assert_that_pv_is("BUFF:NEXT", 0)
-
+        # WHEN
         with self._insert_reading([reads[11]]):
+            # THEN
             self.ca.assert_that_pv_is("BUFF:NEXT", 1)
+        # AND
+        self.ca.assert_that_pv_is("BUFF:CONTROLMODE", "ALW")
 
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_buffer_almost_full_WHEN_multiple_remaining_locations_written_to_THEN_correct_readings_returned(self):
         self._set_buffer_size(10)
         reads = self._generate_readings(15, 5)
@@ -275,6 +269,7 @@ class BufferTests(unittest.TestCase):
         # compare inserted reads with retrieved reads
         self.assertEqual(",".join(expected_reads), ",".join(retrieved_readings))
 
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_buffer_almost_full_WHEN_buffer_fills_and_overflows_THEN_correct_readings_returned(self):
         self._set_buffer_size(10)
         reads = self._generate_readings(15, 5)
@@ -299,9 +294,17 @@ class ChannelTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
-        self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
+
+    def reset_drift_channels(self):
+        channel_nums = [c for c in range(101, 110 + 1)] + [c for c in range(201, 210 + 1)]
+        channels = ["CHNL:" + str(c) for c in channel_nums]
+
+        channel_drifts = [c + ":DRIFT" for c in channels]
+
+        for pv in channel_drifts:
+            self.ca.set_pv_value(pv, 0)
 
     @contextmanager
     def _insert_reading(self, reading):
@@ -312,14 +315,14 @@ class ChannelTests(unittest.TestCase):
         finally:
             pass
 
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_reading_inserted_THEN_channel_PVs_get_correct_values(self):
+        self.reset_drift_channels()
         reading_on_channel_101 = "1386.05,4000,101"
-        reading_on_channel_103 = "1386.05,4000,103"
         expected_values = {
             'read':  1386.05,
             'time':  4000,
-            'temp101':  47.424,  # 2 temp values because temp is interpolated from calibration files which are different
-            'temp103': 46.927,  # for each channel
+            'temp101':  47.424,
             'drift': 0,
         }
         # GIVEN
@@ -331,13 +334,6 @@ class ChannelTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("CHNL:101:TIME", expected_values['time'], tolerance=TIME_TOLERANCE)
             self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected_values['temp101'], tolerance=TEMP_TOLERANCE)
             self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected_values['drift'], tolerance=DRIFT_TOLERANCE)
-
-        with self._insert_reading([reading_on_channel_103]):
-            # THEN
-            self.ca.assert_that_pv_is_number("CHNL:103:READ", expected_values['read'], tolerance=READ_TOLERANCE)
-            self.ca.assert_that_pv_is_number("CHNL:103:TIME", expected_values['time'], tolerance=TIME_TOLERANCE)
-            self.ca.assert_that_pv_is_number("CHNL:103:TEMP", expected_values['temp103'], tolerance=TEMP_TOLERANCE)
-            self.ca.assert_that_pv_is_number("CHNL:103:DRIFT", expected_values['drift'], tolerance=DRIFT_TOLERANCE)
 
 
 class DriftTests(unittest.TestCase):
@@ -359,17 +355,23 @@ class DriftTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
-        self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
 
-    def _lewis_sync_helper(self, attribute, set_value, wait_time=0.5):
+    def reset_drift_channels(self):
+        channel_nums = [c for c in range(101, 110 + 1)] + [c for c in range(201, 210 + 1)]
+        channels = ["CHNL:" + str(c) for c in channel_nums]
+
+        channel_drifts = [c + ":DRIFT" for c in channels]
+
+        for pv in channel_drifts:
+            self.ca.set_pv_value(pv, 0)
+
+    def _lewis_sync_helper(self, attribute, set_value, wait_time=0.2):
         while self._lewis.backdoor_get_from_device(str(attribute)) != str(set_value):
             time.sleep(wait_time)
 
-    # Don't clear the buffer and add new readings one by one
     @contextmanager
     def _insert_reading(self, reading):
-        self._lewis.backdoor_set_on_device("control_mode", BUFFER_CONTROL_MODE)
         self._lewis.backdoor_run_function_on_device("insert_mock_data", [reading])
         time.sleep(0.5)  # for synchronicity help
         try:
@@ -377,20 +379,15 @@ class DriftTests(unittest.TestCase):
         finally:
             pass
 
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_values_added_THEN_temp_AND_drift_correct(self, test_data=drift_test_data):
+        self.reset_drift_channels()
         readings = [r[0] for r in test_data]  # extract reading strings from test data to insert to buffer
-        # GIVEN
-        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
+        self.ca.set_pv_value("BUFF:SIZE:SP", 1000)
+        # GIVEN in setup
         # WHEN
         for i in range(0, len(test_data)):
             with self._insert_reading([readings[i]]):
                 # THEN
                 self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", test_data[i][2], tolerance=DRIFT_TOLERANCE)
                 self.ca.assert_that_pv_is_number("CHNL:101:TEMP", test_data[i][1], tolerance=TEMP_TOLERANCE)
-
-        # Finally, clear buffer
-        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
-        # return to normal control mode
-        self._lewis.backdoor_set_on_device("control_mode", NORMAL_MODE)
-        self._lewis_sync_helper("control_mode", NORMAL_MODE)
-
