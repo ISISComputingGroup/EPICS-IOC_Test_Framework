@@ -44,6 +44,8 @@ TEST_MODES = [TestModes.DEVSIM]
 # Spacing in the config file for the components
 SPACING = 2
 
+# This is the position if s3 is out of the beam relative to straight through beam
+OUT_POSITION = -5
 
 class ReflTests(unittest.TestCase):
     """
@@ -60,6 +62,7 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:THETA:SP", 0)
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
+        self.ca.set_pv_value("PARAM:S3_ENABLED:SP", "IN")
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
 
@@ -121,3 +124,10 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_s1_value, 0.01)
         self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_s1_value, 0.01)
 
+    def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
+        expected_value = "OUT"
+
+        self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_MOVE", expected_value)
+        self.ca.set_pv_value("BL:MOVE", 1)
+        self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value)
+        self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION)
