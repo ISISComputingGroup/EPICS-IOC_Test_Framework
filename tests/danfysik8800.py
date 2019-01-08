@@ -1,5 +1,4 @@
 import unittest
-from time import sleep
 
 from utils.channel_access import ChannelAccess
 
@@ -8,6 +7,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME
 from utils.testing import skip_if_recsim
+
 
 IOCS = [
     {
@@ -65,19 +65,3 @@ class Danfysik8800Tests(DanfysikCommon, unittest.TestCase):
             self.ca.assert_that_pv_is(ilk_pv, "Interlock")
             self._lewis.backdoor_command(["device", "disable_interlock", ilk_name])
             self.ca.assert_that_pv_is(ilk_pv, "OK")
-
-    @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
-        sleep(5)
-        self._lewis.backdoor_set_on_device('comms_initialized', False)
-        self._lewis.backdoor_set_on_device('device_available', False)
-        sleep(10)
-        self.ca.assert_that_pv_alarm_is('VOLT', ChannelAccess.Alarms.INVALID)
-
-    @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
-        sleep(5)
-        self._lewis.backdoor_set_on_device('comms_initialized', False)
-        self._lewis.backdoor_set_on_device('device_available', False)
-        sleep(10)
-        self.ca.assert_that_pv_alarm_is('CURR', ChannelAccess.Alarms.INVALID)

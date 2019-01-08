@@ -415,6 +415,20 @@ class ChannelAccess(object):
         if self.ca.pv_exists(pv_name, timeout):
             raise AssertionError("PV {pv} exists".format(pv=self._create_pv_with_prefix(pv)))
 
+    def assert_that_pv_alarm_is_not(self, pv, alarm, timeout=None):
+        """
+        Assert that a pv is not in alarm state given or timeout.
+
+        Args:
+             pv: pv name
+             alarm: alarm state (see constants ALARM_X)
+             timeout: length of time to wait for change
+        Raises:
+             AssertionError: if alarm is requested value
+             UnableToConnectToPVException: if pv does not exist within timeout
+        """
+        return self.assert_that_pv_is_not("{}.SEVR".format(pv), alarm, timeout=timeout)
+
     def assert_that_pv_alarm_is(self, pv, alarm, timeout=None):
         """
         Assert that a pv is in alarm state given or timeout.
