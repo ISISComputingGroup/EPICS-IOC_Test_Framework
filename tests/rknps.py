@@ -1,6 +1,6 @@
 import unittest
+from time import sleep
 
-import time
 from unittest import skip
 
 from utils.channel_access import ChannelAccess
@@ -60,6 +60,7 @@ class RknpsTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
         self.ca = ChannelAccess(default_timeout=30)
         self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID1), timeout=30)
+        self._lewis.backdoor_set_on_device("connected", True)
 
     def _activate_interlocks(self):
         """
@@ -204,3 +205,19 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{}:RB4:POWER:SP".format(PREFIX), powered_on)
             self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
+
+    @skip_if_recsim("Cannot test connection in recsim")
+    def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+        sleep(5)
+
+        for IDN in IDS:
+            self.ca.assert_that_pv_alarm_is("{0}:{1}:VOLT".format(PREFIX, IDN), ChannelAccess.Alarms.INVALID)
+
+    @skip_if_recsim("Cannot test connection in recsim")
+    def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+        sleep(5)
+
+        for IDN in IDS:
+            self.ca.assert_that_pv_alarm_is("{0}:{1}:CURR".format(PREFIX, IDN), ChannelAccess.Alarms.INVALID)
