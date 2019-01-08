@@ -1,7 +1,5 @@
 import unittest
 
-from utils.channel_access import ChannelAccess
-
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
 
