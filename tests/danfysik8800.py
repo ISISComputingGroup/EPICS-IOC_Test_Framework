@@ -6,6 +6,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME
 from utils.testing import skip_if_recsim
 
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
