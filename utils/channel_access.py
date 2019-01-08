@@ -24,7 +24,7 @@ except ImportError:
             return partial(self.func, instance, *(self.args or ()), **(self.keywords or {}))
 
 
-class _MonitorAssertion:
+class MonitorAssertion:
     """
     Set the value of a pv when a monitor is triggered
     """
@@ -35,6 +35,7 @@ class _MonitorAssertion:
             channel_access: channel_access to set up monitor
             pv: name of pv to monitor
         """
+        self.pv = pv
         self._full_pv_name = channel_access._create_pv_with_prefix(pv)
         self._value = None
         CaChannelWrapper.add_monitor(channel_access._create_pv_with_prefix(pv), self._set_val)
@@ -489,17 +490,19 @@ class ChannelAccess(object):
     assert_that_pv_value_is_unchanged = \
         partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.eq)
 
-    def assert_that_pv_monitor_is(self, pv, expected_value):
+    def assert_that_pv_monitor_is(self, pv, expected_value, value_from=None):
         """
         Assert that a pv has a given value set by a monitor event
         Args:
             pv: the pv name
             expected_value: the expected value
-
+            value_from: where to get the value from; default to a monitor created when the assert is called
         Raises:
             AssertionError: if the value of the pv did not satisfy the comparator
         """
-        self.assert_that_pv_is(pv, expected_value, value_from=_MonitorAssertion(self, pv))
+        if value_from is None:
+            value_from = MonitorAssertion(self, pv)
+        self.assert_that_pv_is(value_from.pv, expected_value, value_from=value_from)
 
     def assert_that_pv_monitor_is_number(self, pv, expected_value, tolerance=0.0):
         """
@@ -514,4 +517,4 @@ class ChannelAccess(object):
         """
         channel_access = self
 
-        self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, value_from=_MonitorAssertion(self, pv))
+        self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, value_from=MonitorAssertion(self, pv))

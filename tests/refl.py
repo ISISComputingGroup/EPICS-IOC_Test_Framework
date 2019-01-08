@@ -2,7 +2,7 @@ import os
 import unittest
 from math import tan, radians
 
-from utils.channel_access import ChannelAccess
+from utils.channel_access import ChannelAccess, MonitorAssertion
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
 
@@ -64,6 +64,7 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
         self.ca.set_pv_value("PARAM:S3_ENABLED:SP", "IN")
         self.ca.set_pv_value("BL:MOVE", 1)
+        self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
 
     def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
@@ -131,3 +132,13 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value)
         self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION)
+
+    def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode(self):
+        expected_value = "POLERISED"
+
+        mode_monitor = MonitorAssertion(self.ca, "BL:MODE")
+        mode_val_monitor = MonitorAssertion(self.ca, "BL:MODE.VAL")
+        self.ca.set_pv_value("BL:MODE:SP", expected_value)
+
+        self.ca.assert_that_pv_monitor_is("", expected_value, value_from=mode_monitor)
+        self.ca.assert_that_pv_monitor_is("", expected_value, value_from=mode_val_monitor )

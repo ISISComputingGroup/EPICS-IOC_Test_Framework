@@ -44,7 +44,8 @@ def get_beamline():
     # MODES
     nr_inits = {}
     nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
-    modes = [nr_mode]
+    polerised_mode = BeamlineMode("POLERISED", [param.name for param in params], nr_inits)
+    modes = [nr_mode, polerised_mode]
 
     beam_start = PositionAndAngle(0.0, 0.0, 0.0)
     bl = Beamline(comps, params, drivers, modes, beam_start)
