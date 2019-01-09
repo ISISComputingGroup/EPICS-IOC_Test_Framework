@@ -28,6 +28,23 @@ class DanfysikBase(object):
         self._lewis.backdoor_run_function_on_device("reset")
         self._lewis.backdoor_set_on_device("comms_initialized", True)
 
+
+class DanfysikCommon(DanfysikBase):
+    def _pv_alarms_when_disconnected(self, pv):
+        """Helper method to check PVs alarm when device is disconnected."""
+        self.ca.assert_that_pv_alarm_is_not(pv, ChannelAccess.Alarms.INVALID)
+        self._lewis.backdoor_set_on_device('comms_initialized', False)
+        self._lewis.backdoor_set_on_device('device_available', False)
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID, timeout=10)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
+        self._pv_alarms_when_disconnected("VOLT")
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
+        self._pv_alarms_when_disconnected("CURR")
+
     def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
         for pol in POLARITIES:
             self.ca.assert_setting_setpoint_sets_readback(pol, "POL")

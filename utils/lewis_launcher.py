@@ -10,7 +10,7 @@ from functools import partial
 
 from utils.free_ports import get_free_ports
 from utils.log_file import log_filename
-from utils.channel_access import format_value
+from utils.formatters import format_value
 
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
 

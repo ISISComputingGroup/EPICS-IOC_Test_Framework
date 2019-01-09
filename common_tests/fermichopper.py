@@ -2,11 +2,28 @@ from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from time import sleep
 
+import itertools
 import six
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, assert_log_messages
+
+
+class ErrorStrings(object):
+    """
+    Error messages that we expect to appear in the IOC log in various situations.
+    """
+    ATTEMPT_TO_TURN_ON_WITHOUT_BEARINGS = "refusing to switch on run mode without magnetic bearings"
+    SOFTWARE_AUTOZERO_OUT_OF_RANGE = "Software detected autozero voltages out of range"
+    CONTROLLER_AUTOZERO_OUT_OF_RANGE = "Controller reports autozero voltages out of range"
+    TURN_ON_AT_600HZ = "not sending 'switch drive on and run' command as chopper is already set at 600Hz"
+    SOFTWARE_OVERSPEED = "Software detected chopper overspeed"
+    CHOPPER_AT_SPEED_WITH_BEARINGS_OFF = "Software detected chopper at speed with bearing off"
+    ATTEMPT_TO_TURN_OFF_BEARINGS_AT_SPEED = "refusing to switch off magnetic bearings as chopper speed is over 10Hz"
+    ELECTRONICS_TEMP_TOO_HIGH = "Software detected electronics overheat"
+    MOTOR_TEMP_TOO_HIGH = "Software detected motor overheat"
+    CONTROLLER_OVERSPEED = "Controller reports speed limit exceeded"
 
 
 @six.add_metaclass(ABCMeta)
@@ -103,12 +120,10 @@ class FermichopperBase(object):
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_autozero_voltages_are_set_via_backdoor_THEN_pvs_update(self):
-        for number in ["1", "2"]:
-            for boundary in ["upper", "lower"]:
-                for value in self.test_autozero_values:
-                    self._lewis.backdoor_set_on_device("autozero_{n}_{b}".format(n=number, b=boundary), value)
-                    self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), value, tolerance=0.05)
-                    self.ca.assert_that_pv_alarm_is("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.Alarms.NONE)
+        for number, boundary, value in itertools.product([1, 2], ["upper", "lower"], self.test_autozero_values):
+            self._lewis.backdoor_set_on_device("autozero_{n}_{b}".format(n=number, b=boundary), value)
+            self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), value, tolerance=0.05)
+            self.ca.assert_that_pv_alarm_is("AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_drive_current_is_set_via_backdoor_THEN_pv_updates(self):
@@ -144,10 +159,11 @@ class FermichopperBase(object):
             self.ca.set_pv_value("SPEED:SP", speed)
             self.ca.assert_that_pv_is_number("SPEED:SP:RBV", speed)
 
-            # Run mode ON
-            self.ca.set_pv_value("COMMAND:SP", 3)
-            # Ensure the ON command has been ignored and last command is still "switch off bearings"
-            self.ca.assert_that_pv_is("LASTCOMMAND", "0005")
+            with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.ATTEMPT_TO_TURN_ON_WITHOUT_BEARINGS):
+                # Run mode ON
+                self.ca.set_pv_value("COMMAND:SP", 3)
+                # Ensure the ON command has been ignored and last command is still "switch off bearings"
+                self.ca.assert_that_pv_is("LASTCOMMAND", "0005")
 
             self.ca.assert_that_pv_is_number("SPEED", 0, tolerance=0.1)
 
@@ -166,8 +182,9 @@ class FermichopperBase(object):
         # Wait for chopper to get up to speed
         self.ca.assert_that_pv_is_number("SPEED", speed, tolerance=0.1)
 
-        # Attempt to switch OFF magnetic bearings
-        self.ca.set_pv_value("COMMAND:SP", 5)
+        with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.ATTEMPT_TO_TURN_OFF_BEARINGS_AT_SPEED):
+            # Attempt to switch OFF magnetic bearings
+            self.ca.set_pv_value("COMMAND:SP", 5)
 
         # Assert that bearings did not switch off
         sleep(5)
@@ -197,28 +214,27 @@ class FermichopperBase(object):
         self._lewis.backdoor_set_on_device("magneticbearing", True)
         self.ca.assert_that_pv_is("STATUS.B3", "1")
 
-        self._lewis.backdoor_set_on_device("speed", too_fast)
-        self.ca.assert_that_pv_is("STATUS.BA", "1")
+        with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.CONTROLLER_OVERSPEED):
+            self._lewis.backdoor_set_on_device("speed", too_fast)
+            self.ca.assert_that_pv_is("STATUS.BA", "1")
 
         self._lewis.backdoor_set_on_device("speed", 0)
         self.ca.assert_that_pv_is("STATUS.BA", "0")
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_range_check_fails(self):
-        for number in [1, 2]:
-            for position in ["upper", "lower"]:
-                self.ca.assert_that_pv_is("AUTOZERO:RANGECHECK", 0)
+        for number, position in itertools.product([1, 2], ["upper", "lower"]):
+            self.ca.assert_that_pv_is("AUTOZERO:RANGECHECK", 0)
 
+            with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.CONTROLLER_AUTOZERO_OUT_OF_RANGE):
                 # Set autozero voltage too high
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 3.2)
-
                 # Assert
                 self.ca.assert_that_pv_is("AUTOZERO:RANGECHECK", 1)
 
-                # Reset relevant autozero voltage back to zero
-                self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
-                self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{p}"
-                                                 .format(n=number, p=position.upper()), 0, tolerance=0.1)
+            # Reset relevant autozero voltage back to zero
+            self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+            self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
 
     @contextmanager
     def _lie_about(self, lie):
@@ -288,7 +304,8 @@ class FermichopperBase(object):
         self.ca.set_pv_value("SPEED:SP", 600)
         self.ca.assert_that_pv_is_number("SPEED", 600, tolerance=0.1)
 
-        self.ca.set_pv_value("COMMAND:SP", 3)  # Switch drive on and run
+        with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.TURN_ON_AT_600HZ):
+            self.ca.set_pv_value("COMMAND:SP", 3)  # Switch drive on and run
 
         # Assertion that device is not broken occurs in tearDown()
 
@@ -325,11 +342,12 @@ class FermichopperBase(object):
         self._lewis.backdoor_set_on_device("last_command", "0000")
         self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
 
-        # Speed = 610, this is higher than the maximum allowed speed (606)
-        self._lewis.backdoor_set_on_device("speed", 610)
+        with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.SOFTWARE_OVERSPEED):
+            # Speed = 610, this is higher than the maximum allowed speed (606)
+            self._lewis.backdoor_set_on_device("speed", 610)
 
-        # Assert that "switch drive off" was sent
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0002")
+            # Assert that "switch drive off" was sent
+            self.ca.assert_that_pv_is("LASTCOMMAND", "0002")
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_magnetic_bearing_is_off_WHEN_chopper_speed_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
@@ -341,24 +359,33 @@ class FermichopperBase(object):
         self._lewis.backdoor_set_on_device("last_command", "0000")
         self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
 
-        # Speed = 7 because that's higher than the threshold in the IOC (5)
-        # but lower than the threshold in the emulator (10)
-        self._lewis.backdoor_set_on_device("speed", 7)
+        with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.CHOPPER_AT_SPEED_WITH_BEARINGS_OFF):
+            # Speed = 7 because that's higher than the threshold in the IOC (5)
+            # but lower than the threshold in the emulator (10)
+            self._lewis.backdoor_set_on_device("speed", 7)
 
-        # Assert that "switch drive on and stop" was sent
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0001")
+            # Assert that "switch drive on and stop" was sent
+            self.ca.assert_that_pv_is("LASTCOMMAND", "0001")
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_autozero_voltages_are_out_of_range_WHEN_chopper_is_moving_THEN_switch_drive_on_and_stop_is_sent(self):
-        for number in [1, 2]:
-            for position in ["upper", "lower"]:
-                self._lewis.backdoor_run_function_on_device("reset")
+        for number, position in itertools.product([1, 2], ["upper", "lower"]):
 
-                # Assert that the last command is zero as expected
-                self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
-                # Check that the last command is not being set to something else by the IOC
-                self.ca.assert_that_pv_value_is_unchanged("LASTCOMMAND", wait=10)
+            err = None
+            for i in range(10):  # Try up to 10 times.
+                try:
+                    self._lewis.backdoor_run_function_on_device("reset")
+                    # Assert that the last command is zero as expected
+                    self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
+                    # Check that the last command is not being set to something else by the IOC
+                    self.ca.assert_that_pv_value_is_unchanged("LASTCOMMAND", wait=10)
+                    break
+                except AssertionError as e:
+                    err = e
+            else:  # no-break
+                raise err
 
+            with assert_log_messages(self._ioc, in_time=2, must_contain=ErrorStrings.SOFTWARE_AUTOZERO_OUT_OF_RANGE):
                 # Set autozero voltage too high and set device moving
                 self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 3.2)
                 self._lewis.backdoor_set_on_device("speed", 7)
@@ -366,6 +393,6 @@ class FermichopperBase(object):
                 # Assert that "switch drive on and stop" was sent
                 self.ca.assert_that_pv_is("LASTCOMMAND", "0001")
 
-                # Reset relevant autozero voltage back to zero
-                self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
-                self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
+            # Reset relevant autozero voltage back to zero
+            self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+            self.ca.assert_that_pv_is_number("AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1)
