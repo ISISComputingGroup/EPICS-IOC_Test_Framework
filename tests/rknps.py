@@ -216,7 +216,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{}:RB4:POWER:SP".format(PREFIX), powered_on)
             self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
-    #
+    
     @skip_if_recsim("Cannot test connection in recsim")
     def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("CURR")
