@@ -68,14 +68,10 @@ class RknpsTests(unittest.TestCase):
         Args:
             pv (Str): name of the pv to check
         """
-        for IDN in IDS:
-            self.ca.assert_that_pv_alarm_is_not("{0}:{1}:{2}".format(PREFIX, IDN, pv), ChannelAccess.Alarms.INVALID, 2)
-
         self._lewis.backdoor_set_on_device("connected", False)
-        sleep(5)
 
         for IDN in IDS:
-            self.ca.assert_that_pv_alarm_is("{0}:{1}:{2}".format(PREFIX, IDN, pv), ChannelAccess.Alarms.INVALID, 2)
+            self.ca.assert_that_pv_alarm_is("{0}:{1}:{2}".format(PREFIX, IDN, pv), ChannelAccess.Alarms.INVALID, 30)
 
     def _activate_interlocks(self):
         """
@@ -220,7 +216,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{}:RB4:POWER:SP".format(PREFIX), powered_on)
             self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
-
+    #
     @skip_if_recsim("Cannot test connection in recsim")
     def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("CURR")
