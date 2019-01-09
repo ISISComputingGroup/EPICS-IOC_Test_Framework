@@ -141,4 +141,4 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MODE:SP", expected_value)
 
         self.ca.assert_that_pv_monitor_is("", expected_value, value_from=mode_monitor)
-        self.ca.assert_that_pv_monitor_is("", expected_value, value_from=mode_val_monitor )
+        self.ca.assert_that_pv_monitor_is("", expected_value, value_from=mode_val_monitor)

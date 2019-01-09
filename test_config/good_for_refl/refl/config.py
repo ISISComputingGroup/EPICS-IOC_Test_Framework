@@ -30,7 +30,7 @@ def get_beamline():
     theta_ang = AngleParameter("Theta", theta, True)
     detector_position = TrackingPosition("det_pos", detector, True)
     detector_angle = AngleParameter("det_ang", detector, True)
-    s3_enabled = ComponentEnabled("s3_enabled", s3)
+    s3_enabled = InBeamParameter("s3_enabled", s3)
 
     params = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
 
