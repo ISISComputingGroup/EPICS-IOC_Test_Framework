@@ -20,6 +20,7 @@ IOCS = [
         "macros": {
             "IEOS": r"\\r\\n",
             "OEOS": r"\\r\\n",
+            "MODELNO": "1210"
         }
     },
 ]
