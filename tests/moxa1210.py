@@ -15,7 +15,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MOXA1210"),
-        "emulator": "moxa1210",
+        "emulator": "moxa12xx",
         "emulator_protocol": "modbus",
         "macros": {
             "IEOS": r"\\r\\n",
@@ -31,11 +31,11 @@ CHANNELS = range(16)
 
 class Moxa1210Tests(unittest.TestCase):
     """
-    Tests for the Moxa ioLogik e1210
+    Tests for the Moxa ioLogik e1210. (16x Discrete inputs)
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("moxa1210", DEVICE_PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("moxa12xx", DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
