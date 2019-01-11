@@ -68,6 +68,9 @@ class RknpsTests(unittest.TestCase):
         Args:
             pv (Str): name of the pv to check
         """
+        for IDN in IDS:
+            self.ca.assert_that_pv_alarm_is_not("{0}:{1}:{2}".format(PREFIX, IDN, pv), ChannelAccess.Alarms.INVALID, 30)
+
         self._lewis.backdoor_set_on_device("connected", False)
 
         for IDN in IDS:
@@ -93,12 +96,12 @@ class RknpsTests(unittest.TestCase):
         else:
             self._lewis.backdoor_set_on_device("set_all_interlocks", False)
 
-    def test_WHEN_intelocks_are_active_THEN_ilk_is_Interlocked(self):
+    def test_WHEN_interlocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "Interlock")
 
-    def test_WHEN_intelocks_are_inactive_THEN_ilk_is_not_Interlocked(self):
+    def test_WHEN_interlocks_are_inactive_THEN_ilk_is_not_Interlocked(self):
         self._disable_interlocks()
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "OK")
