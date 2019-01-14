@@ -1,5 +1,6 @@
 from __future__ import division
 import unittest
+from time import sleep
 
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
@@ -42,6 +43,16 @@ class Moxa1210Tests(unittest.TestCase):
 
         self._lewis.backdoor_run_function_on_device("set_di", (0, [False]*16))
 
+    def resetDICounters(self):
+        """
+        Reset the counters for each DI (channel)
+
+        We typically want to preserve our counter values for each channel even upon restart. For testing purposes
+        this function will reset the counter values to 0. 
+        """
+        for channel_counter_pv in CHANNELS:
+            self.ca.set_pv_value("CH{:02d}:DI:CNT".format(channel_counter_pv), 0)
+
     @parameterized.expand([
         ("CH{:02d}".format(channel), channel) for channel in CHANNELS
     ])
@@ -55,3 +66,12 @@ class Moxa1210Tests(unittest.TestCase):
                 continue
 
             self.ca.assert_that_pv_is("CH{:02d}:DI".format(test_channel), "Low")
+
+    @parameterized.expand([
+        ("CH{:02d}:DI:CNT".format(channel), channel) for channel in CHANNELS
+    ])
+    def test_WHEN_di_input_is_triggered_THEN_di_counter_increases(self, channel_pv, channel):
+        self.resetDICounters()
+        self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
+
+        self.ca.assert_that_pv_is(channel_pv, 1)
