@@ -9,12 +9,12 @@ from parameterized import parameterized
 
 
 # Device prefix
-DEVICE_PREFIX = "MOXA1210_01"
+DEVICE_PREFIX = "MOXA12XX_01"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("MOXA1210"),
+        "directory": get_default_ioc_dir("MOXA12XX"),
         "emulator": "moxa12xx",
         "emulator_protocol": "modbus",
         "macros": {
