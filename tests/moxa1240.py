@@ -28,6 +28,11 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM, ]
 CHANNELS = range(7)
 
+RANGE_STATUSES = {0: "NORMAL",
+                  1: "BURNOUT",
+                  2: "OVERRANGE",
+                  3: "UNDERRANGE"}
+
 TEST_VALUE = 50
 
 
@@ -53,3 +58,15 @@ class Moxa1240Tests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_ir", (channel, [TEST_VALUE, ]))
 
         self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(channel), TEST_VALUE, tolerance=0.1)
+
+    @parameterized.expand([
+        ("Normal", 0),
+        ("Burnout", 1),
+        ("Over range", 2),
+        ("Under range", 3),
+    ])
+    def test_WHEN_device_reads_out_of_range_THEN_out_of_range_readback_updates(self, _, status_index):
+        self._lewis.backdoor_run_function_on_device("set_ir", (60, [status_index]*8))
+
+        for channel in CHANNELS:
+            self.ca.assert_that_pv_is("CH{:01d}:AI:RANGESTAT".format(channel), RANGE_STATUSES[status_index])
