@@ -26,7 +26,7 @@ IOCS = [
 ]
 
 TEST_MODES = [TestModes.DEVSIM, ]
-CHANNELS = range(1)
+CHANNELS = range(7)
 
 TEST_VALUE = 50
 
@@ -52,6 +52,4 @@ class Moxa1240Tests(unittest.TestCase):
     def test_WHEN_an_AI_input_is_changed_THEN_that_channel_readback_updates(self, _, channel):
         self._lewis.backdoor_run_function_on_device("set_ir", (channel, [TEST_VALUE, ]))
 
-        # Verify that the new value has been written and read back
-        for test_channel in CHANNELS:
-            self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(test_channel), TEST_VALUE, tolerance=0.1)
+        self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(channel), TEST_VALUE, tolerance=0.1)
