@@ -9,12 +9,12 @@ from parameterized import parameterized
 
 
 # Device prefix
-DEVICE_PREFIX = "MOXA1210_01"
+DEVICE_PREFIX = "MOXA12XX_01"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("MOXA1210"),
+        "directory": get_default_ioc_dir("MOXA12XX"),
         "emulator": "moxa12xx",
         "emulator_protocol": "modbus",
         "macros": {
@@ -26,9 +26,9 @@ IOCS = [
 ]
 
 TEST_MODES = [TestModes.DEVSIM, ]
-CHANNELS = range(7)
+CHANNELS = range(1)
 
-TEST_VALUE = 1.23
+TEST_VALUE = 50
 
 
 class Moxa1240Tests(unittest.TestCase):
@@ -42,16 +42,16 @@ class Moxa1240Tests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
         # Sends a backdoor command to the device to set an analogue input (AI) value
-        self._lewis.backdoor_run_function_on_device("set_ai", (0, [0.0]*16))
+        self._lewis.backdoor_run_function_on_device("set_ir", (0, [1]*8))
         for test_channel in CHANNELS:
-            self.ca.assert_that_pv_is("CH{:02d}:DI".format(test_channel), 0.0)
+            self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(test_channel), 1, tolerance=0.1)
 
     @parameterized.expand([
-        ("CH{:02d}".format(channel), channel) for channel in CHANNELS
+        ("CH{:01d}".format(channel), channel) for channel in CHANNELS
     ])
     def test_WHEN_an_AI_input_is_changed_THEN_that_channel_readback_updates(self, _, channel):
-        self._lewis.backdoor_run_function_on_device("set_ai", (channel, TEST_VALUE))
+        self._lewis.backdoor_run_function_on_device("set_ir", (channel, [TEST_VALUE, ]))
 
         # Verify that the new value has been written and read back
         for test_channel in CHANNELS:
-            self.ca.assert_that_pv_is("CH{:02d}:AI".format(test_channel), TEST_VALUE)
+            self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(test_channel), TEST_VALUE, tolerance=0.1)
