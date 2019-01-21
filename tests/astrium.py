@@ -16,7 +16,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 
 class AstriumTests(unittest.TestCase):
@@ -50,10 +50,10 @@ class AstriumTests(unittest.TestCase):
     @skip_if_devsim("No backdoor to state in devsim")
     def test_WHEN_one_channel_state_not_ESTOP_THEN_calibration_disabled(self):
         self.ca.set_pv_value("CH1:STATE", "NOT_ESTOP")
-        self.ca.assert_that_pv_is("CALIBRATE.STAT", self.ca.Alarms.DISABLE)
+        self.ca.assert_that_pv_is("CALIB.STAT", self.ca.Alarms.DISABLE)
 
     @skip_if_devsim("No backdoor to state in devsim")
     def test_WHEN_both_channels_state_ESTOP_THEN_calibration_enabled(self):
         self.ca.set_pv_value("CH1:STATE", "ESTOP")
         self.ca.set_pv_value("CH2:STATE", "ESTOP")
-        self.ca.assert_that_pv_is("CALIBRATE.STAT", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("CALIB.STAT", self.ca.Alarms.NONE)
