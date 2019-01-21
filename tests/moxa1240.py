@@ -16,7 +16,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MOXA12XX"),
         "emulator": "moxa12xx",
-        "emulator_protocol": "modbus",
+        "emulator_protocol": "MOXA_1240",
         "macros": {
             "IEOS": r"\\r\\n",
             "OEOS": r"\\r\\n",
