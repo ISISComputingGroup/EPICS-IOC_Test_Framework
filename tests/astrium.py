@@ -29,8 +29,8 @@ class AstriumTests(unittest.TestCase):
 
     def test_WHEN_phase_set_to_10_p_5_THEN_phase_readback_is_10_p_5(self):
         expected_phase = 10.5
-        self.ca.set_pv_value("CH1:PHAS:SP", expected_phase)
-        self.ca.assert_that_pv_is("CH1:PHAS", expected_phase)
+        self.ca.set_pv_value("CH1:PHASE:SP", expected_phase)
+        self.ca.assert_that_pv_is("CH1:PHASE", expected_phase)
 
     def test_WHEN_frequency_set_to_100_THEN_freq_readback_is_100(self):
         expected_freq = 100
@@ -49,11 +49,14 @@ class AstriumTests(unittest.TestCase):
 
     @skip_if_devsim("No backdoor to state in devsim")
     def test_WHEN_one_channel_state_not_ESTOP_THEN_calibration_disabled(self):
-        self.ca.set_pv_value("CH1:STATE", "NOT_ESTOP")
-        self.ca.assert_that_pv_is("CALIB.STAT", self.ca.Alarms.DISABLE)
+        self.ca.process_pv("CALIB")
+        self.ca.set_pv_value("CH1:SIM:STATE", "NOT_ESTOP")
+        self.ca.set_pv_value("CH2:SIM:STATE", "E_STOP")
+        self.ca.assert_that_pv_is("CALIB.STAT", self.ca.Alarms.DISABLE, timeout=1)
 
     @skip_if_devsim("No backdoor to state in devsim")
     def test_WHEN_both_channels_state_ESTOP_THEN_calibration_enabled(self):
-        self.ca.set_pv_value("CH1:STATE", "ESTOP")
-        self.ca.set_pv_value("CH2:STATE", "ESTOP")
-        self.ca.assert_that_pv_is("CALIB.STAT", self.ca.Alarms.NONE)
+        self.ca.process_pv("CALIB")
+        self.ca.set_pv_value("CH1:SIM:STATE", "E_STOP")
+        self.ca.set_pv_value("CH2:SIM:STATE", "E_STOP")
+        self.ca.assert_that_pv_is_not("CALIB.STAT", self.ca.Alarms.DISABLE, timeout=1)
