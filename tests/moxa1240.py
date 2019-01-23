@@ -11,6 +11,11 @@ from parameterized import parameterized
 # Device prefix
 DEVICE_PREFIX = "MOXA12XX_01"
 
+LOW_ALARM_LIMIT = 2.0
+HIGH_ALARM_LIMIT = 8.0
+
+AI_REGISTER_OFFSET = 0
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
@@ -20,7 +25,31 @@ IOCS = [
         "macros": {
             "IEOS": r"\\r\\n",
             "OEOS": r"\\r\\n",
-            "MODELNO": "1240"
+            "MODELNO": "1240",
+            "CHAN0NAME": "CHANNEL0",
+            "CHAN1NAME": "CHANNEL1",
+            "CHAN2NAME": "CHANNEL2",
+            "CHAN3NAME": "CHANNEL3",
+            "CHAN4NAME": "CHANNEL4",
+            "CHAN5NAME": "CHANNEL5",
+            "CHAN6NAME": "CHANNEL6",
+            "CHAN7NAME": "CHANNEL7",
+            "CHAN0LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN1LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN2LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN3LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN4LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN5LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN6LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN7LOWLIMIT": LOW_ALARM_LIMIT,
+            "CHAN0HILIMIT": HIGH_ALARM_LIMIT,
+            "CHAN1HILIMIT": HIGH_ALARM_LIMIT,
+            "CHAN2HILIMIT": HIGH_ALARM_LIMIT,
+            "CHAN3HILIMIT": HIGH_ALARM_LIMIT,
+            "CHAN4HILIMIT": HIGH_ALARM_LIMIT,
+            "CHAN5HILIMIT": HIGH_ALARM_LIMIT,
+            "CHAN6HILIMIT": HIGH_ALARM_LIMIT,
+            "CHAN7HILIMIT": HIGH_ALARM_LIMIT,
         }
     },
 ]
@@ -33,7 +62,7 @@ RANGE_STATUSES = {0: "NORMAL",
                   2: "OVERRANGE",
                   3: "UNDERRANGE"}
 
-TEST_VALUE = 50
+TEST_VALUE = 5.0
 
 
 class Moxa1240Tests(unittest.TestCase):
@@ -55,18 +84,32 @@ class Moxa1240Tests(unittest.TestCase):
         ("CH{:01d}".format(channel), channel) for channel in CHANNELS
     ])
     def test_WHEN_an_AI_input_is_changed_THEN_that_channel_readback_updates(self, _, channel):
-        self._lewis.backdoor_run_function_on_device("set_ir", (channel, [TEST_VALUE, ]))
+        self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, TEST_VALUE))
 
-        self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(channel), TEST_VALUE, tolerance=0.1)
+        self.ca.assert_that_pv_is_number("CH{:01d}:AI:RBV".format(channel), TEST_VALUE, tolerance=0.1)
 
     @parameterized.expand([
-        ("Normal", 0),
-        ("Burnout", 1),
-        ("Over range", 2),
-        ("Under range", 3),
+        ("CH{:01d}".format(channel), channel) for channel in CHANNELS
     ])
-    def test_WHEN_device_reads_out_of_range_THEN_out_of_range_readback_updates(self, _, status_index):
-        self._lewis.backdoor_run_function_on_device("set_ir", (60, [status_index]*8))
+    def test_WHEN_device_voltage_is_below_low_limit_THEN_PV_shows_major_alarm(self, _, channel):
+        voltage_to_set = LOW_ALARM_LIMIT - 1.0
 
-        for channel in CHANNELS:
-            self.ca.assert_that_pv_is("CH{:01d}:AI:RANGESTAT".format(channel), RANGE_STATUSES[status_index])
+        self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, voltage_to_set))
+
+        self.ca.assert_that_pv_alarm_is("CH{:01d}:AI:RBV".format(channel), self.ca.Alarms.MAJOR)
+
+    @parameterized.expand([
+        ("CH{:01d}".format(channel), channel) for channel in CHANNELS
+    ])
+    def test_WHEN_device_voltage_is_above_high_limit_THEN_PV_shows_major_alarm(self, _, channel):
+        voltage_to_set = HIGH_ALARM_LIMIT + 1.0
+
+        self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, voltage_to_set))
+
+        self.ca.assert_that_pv_alarm_is("CH{:01d}:AI:RBV".format(channel), self.ca.Alarms.MAJOR)
+
+    @parameterized.expand([
+        ("CH{:01d}".format(channel), channel) for channel in CHANNELS
+    ])
+    def test_WHEN_a_channel_is_aliased_THEN_a_PV_with_that_alias_exists(self, _, channel):
+        self.ca.assert_that_pv_exists(IOCS[0]["macros"]["CHAN{:01d}NAME".format(channel)])
