@@ -1,8 +1,9 @@
 import os
 import unittest
+from contextlib import contextmanager
 from math import tan, radians
 
-from utils.channel_access import ChannelAccess, MonitorAssertion
+from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
 
@@ -93,7 +94,15 @@ class ReflTests(unittest.TestCase):
         theta_angle = 2
         self.ca.set_pv_value("PARAM:THETA:SP", theta_angle)
 
-        self.ca.set_pv_value("BL:MOVE", 1)
+        expected_s3_value = SPACING * tan(radians(theta_angle * 2.0))
+
+        with self._assert_pv_monitors("S1", 0.0), \
+             self._assert_pv_monitors("S3", 0.0), \
+             self._assert_pv_monitors("THETA", theta_angle), \
+             self._assert_pv_monitors("DET_POS", 0.0), \
+             self._assert_pv_monitors("DET_ANG", 0.0):
+
+            self.ca.set_pv_value("BL:MOVE", 1)
 
         # s1 not moved
         self._check_param_pvs("S1", 0.0)
@@ -101,7 +110,6 @@ class ReflTests(unittest.TestCase):
 
         # s3 moved in line
         self._check_param_pvs("S3", 0.0)
-        expected_s3_value = SPACING * tan(radians(theta_angle * 2.0))
         self.ca_galil.assert_that_pv_is_number("MTR0102", expected_s3_value, 0.01)
 
         # theta set
@@ -113,32 +121,34 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is_number("MTR0103", expected_det_value, 0.01)
 
         # detector angle faces beam
-        self._check_param_pvs("DET_POS", 0.0)
+        self._check_param_pvs("DET_ANG", 0.0)
         expected_det_angle = 2.0 * theta_angle
         self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_angle, 0.01)
 
-    def _check_param_pvs(self, param_name, expected_s1_value):
-        self.ca.assert_that_pv_monitor_is_number("PARAM:%s" % param_name, expected_s1_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_s1_value, 0.01)
-        self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP" % param_name, expected_s1_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_s1_value, 0.01)
-        self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_s1_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_s1_value, 0.01)
+    def _check_param_pvs(self, param_name, expected_value):
+        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
+
+    @contextmanager
+    def _assert_pv_monitors(self, param_name, expected_value):
+        with self.ca.assert_that_pv_monitor_is_number("PARAM:%s" % param_name, expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01):
+            yield
 
     def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
         expected_value = "OUT"
 
-        self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_MOVE", expected_value)
-        self.ca.set_pv_value("BL:MOVE", 1)
-        self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value)
+        with self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value):
+            self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_MOVE", expected_value)
+            self.ca.set_pv_value("BL:MOVE", 1)
+
         self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION)
 
     def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode(self):
-        expected_value = "POLERISED"
+        expected_value = "POLARISED"
 
-        mode_monitor = MonitorAssertion(self.ca, "BL:MODE")
-        mode_val_monitor = MonitorAssertion(self.ca, "BL:MODE.VAL")
-        self.ca.set_pv_value("BL:MODE:SP", expected_value)
-
-        self.ca.assert_that_pv_monitor_is("", expected_value, value_from=mode_monitor)
-        self.ca.assert_that_pv_monitor_is("", expected_value, value_from=mode_val_monitor)
+        with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_value), \
+             self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
+                self.ca.set_pv_value("BL:MODE:SP", expected_value)
