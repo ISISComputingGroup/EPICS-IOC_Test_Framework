@@ -203,4 +203,6 @@ class CybamanTests(unittest.TestCase):
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('RESET', ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is('A', ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is('B', ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is('C', ChannelAccess.Alarms.INVALID)
