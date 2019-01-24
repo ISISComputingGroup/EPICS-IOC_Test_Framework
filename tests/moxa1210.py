@@ -48,11 +48,11 @@ class Moxa1210Tests(unittest.TestCase):
     ])
     def test_WHEN_DI_input_is_switched_on_THEN_only_that_channel_readback_changes_to_state_just_set(self, _, channel):
         self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
-        self.ca.assert_that_pv_is("CH{:02d}:DI".format(channel), "High")
+        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
 
         # Test that all other channels are still off
         for test_channel in CHANNELS:
             if test_channel == channel:
                 continue
 
-            self.ca.assert_that_pv_is("CH{:02d}:DI".format(test_channel), "Low")
+            self.ca.assert_that_pv_is("CH{:d}:DI".format(test_channel), "Low")
