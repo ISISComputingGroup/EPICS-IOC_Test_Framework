@@ -28,7 +28,9 @@ except ImportError:
 
 class _MonitorAssertion:
     """
-    Set the value of a pv when a monitor is triggered
+    This is used to assert the value based on a pv monitor event. It will sign up to the monitor call backs and
+    set an internal value when that changes. It will need to poll ca channel for events before this can be triggered and
+    it does this when the value is requested.
     """
     def __init__(self, channel_access, pv):
         """
@@ -37,6 +39,7 @@ class _MonitorAssertion:
             channel_access: channel_access to set up monitor
             pv: name of pv to monitor
         """
+        self.pv = pv
         self._full_pv_name = channel_access._create_pv_with_prefix(pv)
         self._value = None
         CaChannelWrapper.add_monitor(channel_access._create_pv_with_prefix(pv), self._set_val)
@@ -195,7 +198,7 @@ class ChannelAccess(object):
         # last try
         return wait_for_lambda()
 
-    def assert_that_pv_value_causes_func_to_return_true(self, pv, func, timeout=None, message=None, value_from=None):
+    def assert_that_pv_value_causes_func_to_return_true(self, pv, func, timeout=None, message=None, pv_value_source=None):
         """
         Check that a PV satisfies a given function within some timeout.
 
@@ -204,15 +207,15 @@ class ChannelAccess(object):
             func: a function that takes one argument, the PV value, and returns True if the value is valid.
             timeout: time to wait for the PV to satisfy the function
             message: custom message to print on failure
-            value_from: place to get value from; None from pv get; otherwise attribute value will be used
+            pv_value_source: place to get value from; None from pv get; otherwise attribute value will be used
         Raises:
             AssertionError: If the function does not evaluate to true within the given timeout
         """
         def _wrapper(message):
-            if value_from is None:
+            if pv_value_source is None:
                 value = self.get_pv_value(pv)
             else:
-                value = value_from.value
+                value = pv_value_source.value
             try:
                 return_value = func(value)
             except Exception as e:
@@ -232,7 +235,7 @@ class ChannelAccess(object):
         if err is not None:
             raise AssertionError(err)
 
-    def assert_that_pv_is(self, pv, expected_value, timeout=None, msg=None, value_from=None):
+    def assert_that_pv_is(self, pv, expected_value, timeout=None, msg=None, pv_value_source=None):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout.
 
@@ -241,7 +244,7 @@ class ChannelAccess(object):
             expected_value: expected value
             timeout: if it hasn't changed within this time raise assertion error
             msg: Extra message to print
-            value_from: place to get value from; None from pv get; otherwise attribute value will be used
+            pv_value_source: place to get pv value from on get; None pv is read using caget; otherwise attribute value will be used
         Raises:
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
@@ -252,7 +255,7 @@ class ChannelAccess(object):
                                                                format_value(expected_value))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: val == expected_value, timeout=timeout, message=msg, value_from=value_from)
+            pv, lambda val: val == expected_value, timeout=timeout, message=msg, pv_value_source=pv_value_source)
 
     def assert_that_pv_after_processing_is(self, pv, expected_value, timeout=None, msg=None):
         """
@@ -309,7 +312,7 @@ class ChannelAccess(object):
             return False
         return abs(val - expected) <= tolerance
 
-    def assert_that_pv_is_number(self, pv, expected, tolerance=0.0, timeout=None, value_from=None):
+    def assert_that_pv_is_number(self, pv, expected, tolerance=0.0, timeout=None, pv_value_source=None):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout
         
@@ -318,7 +321,7 @@ class ChannelAccess(object):
             expected: expected value
             tolerance: the allowable deviation from the expected value
             timeout: if it hasn't changed within this time raise assertion error
-            value_from: where to get the value from, None for caget from pv
+            pv_value_source: where to get the value from, None for caget from pv
         Raises:
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
@@ -328,7 +331,7 @@ class ChannelAccess(object):
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: self._within_tolerance_condition(val, expected, tolerance), timeout, message=message,
-            value_from=value_from)
+            pv_value_source=pv_value_source)
 
     def assert_that_pv_is_not_number(self, pv, restricted, tolerance=0, timeout=None):
         """
@@ -512,18 +515,23 @@ class ChannelAccess(object):
     assert_that_pv_value_is_unchanged = \
         partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.eq)
 
+    @contextmanager
     def assert_that_pv_monitor_is(self, pv, expected_value):
         """
         Assert that a pv has a given value set by a monitor event
         Args:
             pv: the pv name
             expected_value: the expected value
-
         Raises:
             AssertionError: if the value of the pv did not satisfy the comparator
         """
-        self.assert_that_pv_is(pv, expected_value, value_from=_MonitorAssertion(self, pv))
+        pv_value_source = _MonitorAssertion(self, pv)
 
+        yield
+
+        self.assert_that_pv_is(pv_value_source.pv, expected_value, pv_value_source=pv_value_source)
+
+    @contextmanager
     def assert_that_pv_monitor_is_number(self, pv, expected_value, tolerance=0.0):
         """
         Assert that a pv value is set by a monitor event and is within a tolerance
@@ -535,6 +543,8 @@ class ChannelAccess(object):
         Raises:
              AssertionError: if the value of the pv did not satisfy the comparator
         """
-        channel_access = self
+        pv_value_source = _MonitorAssertion(self, pv)
 
-        self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, value_from=_MonitorAssertion(self, pv))
+        yield
+
+        self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, pv_value_source=pv_value_source)

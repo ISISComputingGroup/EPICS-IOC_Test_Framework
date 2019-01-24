@@ -9,6 +9,9 @@ from ReflectometryServer import *
 # This is the spacing between components
 SPACING = 2
 
+# This is the position if s3 is out of the beam relative to straight through beam
+OUT_POSITION = -5
+
 
 def get_beamline():
     """
@@ -27,19 +30,21 @@ def get_beamline():
     theta_ang = AngleParameter("Theta", theta, True)
     detector_position = TrackingPosition("det_pos", detector, True)
     detector_angle = AngleParameter("det_ang", detector, True)
+    s3_enabled = InBeamParameter("s3_enabled", s3)
 
-    params = [slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
+    params = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
 
     # DRIVES
     drivers = [DisplacementDriver(s1, MotorPVWrapper("MOT:MTR0101")),
-              DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102")),
-              DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0103")),
-              AngleDriver(detector, MotorPVWrapper("MOT:MTR0104"))]
+               DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102"), OUT_POSITION),
+               DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0103")),
+               AngleDriver(detector, MotorPVWrapper("MOT:MTR0104"))]
 
     # MODES
     nr_inits = {}
     nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
-    modes = [nr_mode]
+    polarised_mode = BeamlineMode("POLARISED", [param.name for param in params], nr_inits)
+    modes = [nr_mode, polarised_mode]
 
     beam_start = PositionAndAngle(0.0, 0.0, 0.0)
     bl = Beamline(comps, params, drivers, modes, beam_start)

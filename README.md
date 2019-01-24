@@ -198,6 +198,14 @@ A number of custom assert statements are available in the test framework:
   * Checks that a PV has a particular alarm state. 
 * `assert_setting_setpoint_sets_readback`
   * Checks that a PV is a particular value after the relevant setpoint is changed.
+* `assert_that_pv_monitor_is`
+  * Checks that a PV has issued a monitor for a pv and that the value is as set. This used in a with:
+      ```
+      with self.ca.assert_that_pv_monitor_is("MY:PV:NAME", expected_value):
+            self.ca.set_pv_value("MY:PV:NAME:SP", 1)
+      ```
+* `assert_that_pv_monitor_is_number`
+  * Checks that a PV has issued a monitor for a pv and that it is a number, within a specified tolerance. Used in a similar way to `assert_that_pv_monitor_is`
 
 If you find yourself needing other assert functions, please add them!
 
