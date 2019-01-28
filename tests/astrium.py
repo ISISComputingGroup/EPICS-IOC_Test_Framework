@@ -1,9 +1,10 @@
 import unittest
+from parameterized import parameterized
 
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import skip_if_recsim, skip_if_devsim
+from utils.testing import skip_if_recsim, skip_if_devsim, parameterized_list
 
 # Device prefix
 DEVICE_PREFIX = "ASTRIUM_01"
@@ -32,10 +33,24 @@ class AstriumTests(unittest.TestCase):
         self.ca.set_pv_value("CH1:PHASE:SP", expected_phase)
         self.ca.assert_that_pv_is("CH1:PHASE", expected_phase)
 
-    def test_WHEN_frequency_set_to_100_THEN_freq_readback_is_100(self):
-        expected_freq = 100
-        self.ca.set_pv_value("CH1:FREQ:SP", expected_freq)
-        self.ca.assert_that_pv_is("CH1:FREQ", expected_freq)
+    # Can only be set in values of 10
+    @parameterized.expand(
+        parameterized_list([
+            20,
+            140,
+            280,
+            0
+        ])
+    )
+    def test_that_WHEN_setting_the_frequency_setpoint_THEN_it_is_set(self, _, value):
+        self.ca.set_pv_value("CH1:FREQ:SP", value)
+        self.ca.assert_that_pv_is("CH1:FREQ", value)
+
+    def test_WHEN_frequency_set_to_180_THEN_actual_setpoint_not_updated(self):
+        sent_frequency = 180
+        self.ca.set_pv_value("CH1:FREQ:SP", sent_frequency)
+        self.ca.assert_that_pv_is_not("CH1:FREQ:SP_ACTUAL", sent_frequency)
+        self.ca.assert_that_pv_is_not("CH1:FREQ", sent_frequency)
 
     @skip_if_recsim("No state changes in recsim")
     def test_WHEN_brake_called_THEN_state_is_BRAKE(self):
