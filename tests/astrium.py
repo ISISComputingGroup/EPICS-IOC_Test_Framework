@@ -49,14 +49,18 @@ class AstriumTests(unittest.TestCase):
 
     @skip_if_devsim("No backdoor to state in devsim")
     def test_WHEN_one_channel_state_not_ESTOP_THEN_calibration_disabled(self):
-        self.ca.process_pv("CALIB")
         self.ca.set_pv_value("CH1:SIM:STATE", "NOT_ESTOP")
         self.ca.set_pv_value("CH2:SIM:STATE", "E_STOP")
+        # Need to process to update disabled status.
+        # We don't want the db to process when disabled changes as this will write to the device.
+        self.ca.process_pv("CALIB")
         self.ca.assert_that_pv_is("CALIB.STAT", self.ca.Alarms.DISABLE, timeout=1)
 
     @skip_if_devsim("No backdoor to state in devsim")
     def test_WHEN_both_channels_state_ESTOP_THEN_calibration_enabled(self):
-        self.ca.process_pv("CALIB")
         self.ca.set_pv_value("CH1:SIM:STATE", "E_STOP")
         self.ca.set_pv_value("CH2:SIM:STATE", "E_STOP")
+        # Need to process to update disabled status.
+        # We don't want the db to process when disabled changes as this will write to the device.
+        self.ca.process_pv("CALIB")
         self.ca.assert_that_pv_is_not("CALIB.STAT", self.ca.Alarms.DISABLE, timeout=1)
