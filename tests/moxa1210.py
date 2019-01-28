@@ -1,5 +1,6 @@
 from __future__ import division
 import unittest
+from random import randint
 from time import sleep
 
 from utils.test_modes import TestModes
@@ -43,15 +44,17 @@ class Moxa1210Tests(unittest.TestCase):
 
         self._lewis.backdoor_run_function_on_device("set_di", (0, [False]*16))
 
-    def resetDICounters(self):
+    def resetDICounter(self, channel):
         """
         Reset the counters for each DI (channel)
+
+        Args:
+            channel (int) : The DI (channel) counter to be reset
 
         We typically want to preserve our counter values for each channel even upon restart. For testing purposes
         this function will reset the counter values to 0. 
         """
-        for channel_counter_pv in CHANNELS:
-            self.ca.set_pv_value("CH{:02d}:DI:CNT".format(channel_counter_pv), 0)
+        self.ca.set_pv_value("CH{:02d}:DI:CNT".format(channel), 0)
 
     @parameterized.expand([
         ("CH{:02d}".format(channel), channel) for channel in CHANNELS
@@ -71,7 +74,22 @@ class Moxa1210Tests(unittest.TestCase):
         ("CH{:02d}:DI:CNT".format(channel), channel) for channel in CHANNELS
     ])
     def test_WHEN_di_input_is_triggered_THEN_di_counter_increases(self, channel_pv, channel):
-        self.resetDICounters()
+        self.resetDICounter(channel)
         self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
 
         self.ca.assert_that_pv_is(channel_pv, 1)
+
+    @parameterized.expand([
+        ("CH{:02d}:DI:CNT".format(channel), channel) for channel in CHANNELS
+    ])
+    def test_WHEN_di_input_is_triggered_a_number_of_times_THEN_di_counter_matches(self, channel_pv, channel):
+        self.resetDICounter(channel)
+        expected_count = 5
+
+        for i in range(expected_count):
+            # Toggle channel and ensure it's registered the trigger
+            self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
+            self._lewis.backdoor_run_function_on_device("set_di", (channel, (False,)))
+            self.ca.assert_that_pv_is(channel_pv, i+1, timeout=5)
+
+        self.ca.assert_that_pv_is(channel_pv, expected_count)
