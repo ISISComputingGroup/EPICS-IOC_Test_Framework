@@ -26,7 +26,10 @@ IOCS = [
 ]
 
 TEST_MODES = [TestModes.DEVSIM, ]
-CHANNELS = range(16)
+
+NUMBER_OF_CHANNELS = 16
+
+CHANNELS = range(NUMBER_OF_CHANNELS)
 
 
 class Moxa1210Tests(unittest.TestCase):

@@ -1,20 +1,34 @@
 from __future__ import division
 import unittest
 
+from common_tests.moxa12XX import Moxa12XXBase
+
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import get_running_lewis_and_ioc
 from parameterized import parameterized
+from itertools import product
 
 
 # Device prefix
 DEVICE_PREFIX = "MOXA12XX_01"
+CHANNEL_FORMAT = "CHANNEL{:01d}"
 
 LOW_ALARM_LIMIT = 2.0
 HIGH_ALARM_LIMIT = 8.0
 
-AI_REGISTER_OFFSET = 0
+NUMBER_OF_CHANNELS = 8
+
+macros = {
+    "IEOS": r"\\r\\n",
+    "OEOS": r"\\r\\n",
+    "MODELNO": "1240",
+}
+for channel in range(NUMBER_OF_CHANNELS):
+    macros["CHAN{:1d}NAME".format(channel)] = CHANNEL_FORMAT.format(channel)
+    macros["CHAN{:1d}LOWLIMIT".format(channel)] = LOW_ALARM_LIMIT
+    macros["CHAN{:1d}HILIMIT".format(channel)] = HIGH_ALARM_LIMIT
 
 IOCS = [
     {
@@ -22,52 +36,74 @@ IOCS = [
         "directory": get_default_ioc_dir("MOXA12XX"),
         "emulator": "moxa12xx",
         "emulator_protocol": "MOXA_1240",
-        "macros": {
-            "IEOS": r"\\r\\n",
-            "OEOS": r"\\r\\n",
-            "MODELNO": "1240",
-            "CHAN0NAME": "CHANNEL0",
-            "CHAN1NAME": "CHANNEL1",
-            "CHAN2NAME": "CHANNEL2",
-            "CHAN3NAME": "CHANNEL3",
-            "CHAN4NAME": "CHANNEL4",
-            "CHAN5NAME": "CHANNEL5",
-            "CHAN6NAME": "CHANNEL6",
-            "CHAN7NAME": "CHANNEL7",
-            "CHAN0LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN1LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN2LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN3LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN4LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN5LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN6LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN7LOWLIMIT": LOW_ALARM_LIMIT,
-            "CHAN0HILIMIT": HIGH_ALARM_LIMIT,
-            "CHAN1HILIMIT": HIGH_ALARM_LIMIT,
-            "CHAN2HILIMIT": HIGH_ALARM_LIMIT,
-            "CHAN3HILIMIT": HIGH_ALARM_LIMIT,
-            "CHAN4HILIMIT": HIGH_ALARM_LIMIT,
-            "CHAN5HILIMIT": HIGH_ALARM_LIMIT,
-            "CHAN6HILIMIT": HIGH_ALARM_LIMIT,
-            "CHAN7HILIMIT": HIGH_ALARM_LIMIT,
-        }
+        "macros": macros
     },
 ]
 
+AI_REGISTER_OFFSET = 0
+REGISTERS_PER_CHANNEL = 1
+
 TEST_MODES = [TestModes.DEVSIM, ]
-CHANNELS = range(7)
+NUMBER_OF_CHANNELS = 8
+CHANNELS = range(NUMBER_OF_CHANNELS)
 
 RANGE_STATUSES = {0: "NORMAL",
                   1: "BURNOUT",
                   2: "OVERRANGE",
                   3: "UNDERRANGE"}
 
-TEST_VALUE = 5.0
+MIN_VOLT_MEAS = 0.0
+MAX_VOLT_MEAS = 10.0
+
+TEST_VALUES = [MIN_VOLT_MEAS,
+               MAX_VOLT_MEAS,
+               0.5*(MIN_VOLT_MEAS + MAX_VOLT_MEAS)]
+
+FLUSH_VALUE = 0
+
+
+class Moxa1240TestsFromBase(Moxa12XXBase, unittest.TestCase):
+    """
+    Tests for the moxa 40 (8x DV voltage/Current measurements) imported from base class
+    """
+
+    def get_device_prefix(self):
+        return DEVICE_PREFIX
+
+    def get_PV_name(self):
+        return "AI:RBV"
+
+    def get_number_of_channels(self):
+        return NUMBER_OF_CHANNELS
+
+    def get_setter_function_name(self):
+        return "set_1240_voltage"
+
+    def get_starting_reg_addr(self):
+        return AI_REGISTER_OFFSET
+
+    def get_test_values(self):
+        return TEST_VALUES
+
+    def get_raw_ir_setter(self):
+        return "set_ir"
+
+    def get_raw_ir_pv(self):
+        return "get_ir"
+
+    def get_alarm_limits(self):
+        return [LOW_ALARM_LIMIT, HIGH_ALARM_LIMIT]
+
+    def get_registers_per_channel(self):
+        return REGISTERS_PER_CHANNEL
+
+    def get_channel_format(self):
+        return CHANNEL_FORMAT
 
 
 class Moxa1240Tests(unittest.TestCase):
     """
-    Tests for a moxa ioLogik e1240. (7x DC Voltage/Current measurements)
+    Tests for a moxa ioLogik e1240. (8x DC Voltage/Current measurements)
     """
 
     def setUp(self):
@@ -75,24 +111,27 @@ class Moxa1240Tests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-        # Sends a backdoor command to the device to set an analogue input (AI) value
-        self._lewis.backdoor_run_function_on_device("set_ir", (0, [1]*8))
+        # Write zero to each input register to clear the data in the emulator
+        flush_value = 0
+        self._lewis.backdoor_run_function_on_device("set_ir", (AI_REGISTER_OFFSET, [flush_value]*NUMBER_OF_CHANNELS))
         for test_channel in CHANNELS:
-            self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(test_channel), 1, tolerance=0.1)
+            self.ca.assert_that_pv_is_number("CH{:01d}:AI:RAW".format(test_channel), flush_value, tolerance=0.1)
 
     @parameterized.expand([
-        ("CH{:01d}".format(channel), channel) for channel in CHANNELS
+        ("CH{:01d}".format(channel), channel, test_value) for channel, test_value in product(CHANNELS, TEST_VALUES)
     ])
-    def test_WHEN_an_AI_input_is_changed_THEN_that_channel_readback_updates(self, _, channel):
-        self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, TEST_VALUE))
+    def test_WHEN_an_AI_input_is_changed_THEN_that_channel_readback_updates(self, _, channel, test_value):
+        self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, test_value))
 
-        self.ca.assert_that_pv_is_number("CH{:01d}:AI:RBV".format(channel), TEST_VALUE, tolerance=0.1)
+        self.ca.assert_that_pv_is_number("CH{:01d}:AI:RBV".format(channel), test_value, tolerance=0.1)
 
     @parameterized.expand([
         ("CH{:01d}".format(channel), channel) for channel in CHANNELS
     ])
     def test_WHEN_device_voltage_is_below_low_limit_THEN_PV_shows_major_alarm(self, _, channel):
         voltage_to_set = LOW_ALARM_LIMIT - 1.0
+
+        self.ca.assert_that_pv_alarm_is("CH{:01d}:AI:RBV".format(channel), self.ca.Alarms.NONE)
 
         self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, voltage_to_set))
 
@@ -102,7 +141,15 @@ class Moxa1240Tests(unittest.TestCase):
         ("CH{:01d}".format(channel), channel) for channel in CHANNELS
     ])
     def test_WHEN_device_voltage_is_above_high_limit_THEN_PV_shows_major_alarm(self, _, channel):
+        valid_voltage = 0.5*(HIGH_ALARM_LIMIT + LOW_ALARM_LIMIT)
+
+        self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, valid_voltage))
+
+        self.ca.assert_that_pv_alarm_is("CH{:01d}:AI:RBV".format(channel), self.ca.Alarms.NONE)
+
         voltage_to_set = HIGH_ALARM_LIMIT + 1.0
+
+        self.ca.assert_that_pv_alarm_is("CH{:01d}:AI:RBV".format(channel), self.ca.Alarms.NONE)
 
         self._lewis.backdoor_run_function_on_device("set_1240_voltage", (channel + AI_REGISTER_OFFSET, voltage_to_set))
 
