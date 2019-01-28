@@ -69,6 +69,7 @@ class ChannelAccess(object):
         MAJOR = "MAJOR"  # Alarm value if the record is in major alarm
         MINOR = "MINOR"  # Alarm value if the record is in minor alarm
         INVALID = "INVALID"  # Alarm value if the record has a calc alarm
+        DISABLE = "DISABLE"  # Alarm stat value if the record has been disabled
 
     def __init__(self, default_timeout=5, device_prefix=None):
         """
