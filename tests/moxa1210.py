@@ -9,32 +9,36 @@ from parameterized import parameterized
 
 
 # Device prefix
-DEVICE_PREFIX = "MOXA1210_01"
+DEVICE_PREFIX = "MOXA12XX_01"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("MOXA1210"),
-        "emulator": "moxa1210",
-        "emulator_protocol": "modbus",
+        "directory": get_default_ioc_dir("MOXA12XX"),
+        "emulator": "moxa12xx",
+        "emulator_protocol": "MOXA_1210",
         "macros": {
             "IEOS": r"\\r\\n",
             "OEOS": r"\\r\\n",
+            "MODELNO": "1210"
         }
     },
 ]
 
 TEST_MODES = [TestModes.DEVSIM, ]
-CHANNELS = range(16)
+
+NUMBER_OF_CHANNELS = 16
+
+CHANNELS = range(NUMBER_OF_CHANNELS)
 
 
 class Moxa1210Tests(unittest.TestCase):
     """
-    Tests for the Moxa ioLogik e1210
+    Tests for the Moxa ioLogik e1210. (16x Discrete inputs)
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("moxa1210", DEVICE_PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("moxa12xx", DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
@@ -47,11 +51,11 @@ class Moxa1210Tests(unittest.TestCase):
     ])
     def test_WHEN_DI_input_is_switched_on_THEN_only_that_channel_readback_changes_to_state_just_set(self, _, channel):
         self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
-        self.ca.assert_that_pv_is("CH{:02d}:DI".format(channel), "High")
+        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
 
         # Test that all other channels are still off
         for test_channel in CHANNELS:
             if test_channel == channel:
                 continue
 
-            self.ca.assert_that_pv_is("CH{:02d}:DI".format(test_channel), "Low")
+            self.ca.assert_that_pv_is("CH{:d}:DI".format(test_channel), "Low")
