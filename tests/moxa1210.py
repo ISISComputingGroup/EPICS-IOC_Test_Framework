@@ -26,12 +26,15 @@ IOCS = [
 ]
 
 TEST_MODES = [TestModes.DEVSIM, ]
-CHANNELS = range(16)
+
+NUMBER_OF_CHANNELS = 16
+
+CHANNELS = range(NUMBER_OF_CHANNELS)
 
 
 class Moxa1210Tests(unittest.TestCase):
     """
-    Tests for the Moxa ioLogik e1210
+    Tests for the Moxa ioLogik e1210. (16x Discrete inputs)
     """
 
     def setUp(self):
@@ -60,14 +63,15 @@ class Moxa1210Tests(unittest.TestCase):
     ])
     def test_WHEN_DI_input_is_switched_on_THEN_only_that_channel_readback_changes_to_state_just_set(self, _, channel):
         self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
-        self.ca.assert_that_pv_is("CH{:01d}:DI".format(channel), "High")
+
+        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
 
         # Test that all other channels are still off
         for test_channel in CHANNELS:
             if test_channel == channel:
                 continue
 
-            self.ca.assert_that_pv_is("CH{:01d}:DI".format(test_channel), "Low")
+            self.ca.assert_that_pv_is("CH{:1d}:DI".format(test_channel), "Low")
 
     @parameterized.expand([
         ("CH{:01d}:DI:CNT".format(channel), channel) for channel in CHANNELS
@@ -83,3 +87,4 @@ class Moxa1210Tests(unittest.TestCase):
             self.ca.assert_that_pv_is(channel_pv, i+1, timeout=5)
 
         self.ca.assert_that_pv_is(channel_pv, expected_count)
+
