@@ -83,18 +83,16 @@ def make_device_launchers_from_module(test_module, recsim):
     return device_launchers
 
 
-def load_and_run_tests(test_names, failfast):
+def load_and_run_tests(test_names):
     """
     Loads and runs the dotted unit tests to be run.
 
     Args:
         test_names: List of dotted unit tests to run.
-        failfast: Determines if tests abort after first failure.
 
     Returns:
         boolean: True if all tests pass and false otherwise.
     """
-
     modules_to_be_loaded = sorted({test.split(".")[0].strip() for test in test_names})
     modules_to_be_tested = [ModuleTests(module) for module in modules_to_be_loaded]
 
@@ -115,12 +113,12 @@ def load_and_run_tests(test_names, failfast):
         for module in modules_to_be_tested_in_current_mode:
             device_launchers = make_device_launchers_from_module(module.file, recsim=(mode == TestModes.RECSIM))
             test_results.append(
-                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers), failfast))
+                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers)))
 
     return all(test_result is True for test_result in test_results)
 
 
-def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
+def run_tests(prefix, tests_to_run, device_launchers):
     """
     Runs dotted unit tests.
 
@@ -128,7 +126,6 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
         prefix: The instrument prefix.
         tests_to_run: List of dotted unit tests to be run.
         device_launchers: Context manager that launches the necessary iocs and associated emulators.
-        failfast_switch: Determines if test suit aborts after first failure.
 
     Returns:
         bool: True if all tests pass and false otherwise.
@@ -144,9 +141,10 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
 
     with modified_environment(**settings), device_launchers:
 
-        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
+        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout)
 
         test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
+
         result = runner.run(test_suite).wasSuccessful()
 
     return result
@@ -180,8 +178,6 @@ if __name__ == '__main__':
                         Module just runs the tests in a module. 
                         Module.class runs the the test class in Module.
                         Module.class.method runs a specific test.""")
-    parser.add_argument('-f', '--failfast', default=None,
-                        help="""Determines if the rest of tests are skipped after the first failure""")
 
     arguments = parser.parse_args()
 
@@ -201,10 +197,9 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     tests = arguments.tests if arguments.tests is not None else package_contents("tests")
-    failfast = arguments.failfast
 
     try:
-        success = load_and_run_tests(tests, failfast)
+        success = load_and_run_tests(tests)
     except Exception as e:
         print("---\n---\n---\nAn Error occured loading the tests: {}\n---\n---\n---\n".format(e))
         success = False
