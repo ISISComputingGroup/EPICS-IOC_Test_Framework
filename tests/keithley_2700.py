@@ -54,7 +54,7 @@ def _generate_readings(num_readings_gen, time_between):
         while resistance > max_r:
             resistance = resistance - min_r
         time_stamp = start_time + (i*time_between)
-        channel = CHANNEL_NUMBERS[i % CHANNEL_COUNT]
+        channel = CHANNEL_NUMBERS[i % CHANNEL_COUNT]  # assign each generated reading to channel (read mod no of chnls)
         readings.append("+" + str(resistance) + "," + str(channel) + ",+" + str(time_stamp))
 
     return readings
