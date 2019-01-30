@@ -114,7 +114,7 @@ class SetUpTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(enum_value, "INITMODE", expected_value=string_value)
 
     def test_WHEN_buffer_control_set_THEN_buffer_control_matches_the_set_state(self):
-        sample_data = {0: "NEXT", 1: "ALW", 2: "NEV"}
+        sample_data = {0: "NEV", 1: "NEXT", 2: "ALW"}
         for enum_value, string_value in sample_data.items():
             self.ca.assert_setting_setpoint_sets_readback(enum_value, "BUFF:CONTROLMODE", expected_value=string_value)
 
@@ -265,6 +265,8 @@ class BufferTests(unittest.TestCase):
         _insert_reading(self, reads[7:10])  # This fills the buffer
         self.ca.assert_that_pv_is("BUFF:NEXT", 0)
 
+        # retrieved_readings contains 3 readings each with (3 values, format READ,TST,CHAN).
+        # The buffer stores them as contiguous comma separated strings, hence the need to pull out 9 array positions.
         retrieved_readings = self.ca.get_pv_value("BUFF:READ")[:9]
         retrieved_readings = map(int, retrieved_readings)  # map from float to int
         retrieved_readings = map(str, retrieved_readings)  # map from int to str
@@ -317,6 +319,14 @@ class ChannelTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("CHNL:101:TIME", expected_values['time'], tolerance=TIME_TOLERANCE)
         self.ca.assert_that_pv_is_number("CHNL:101:TEMP", expected_values['temp101'], tolerance=TEMP_TOLERANCE)
         self.ca.assert_that_pv_is_number("CHNL:101:DRIFT", expected_values['drift'], tolerance=DRIFT_TOLERANCE)
+
+    @skip_if_recsim("Alarm invalid in recsim")
+    def test_GIVEN_temperature_out_of_bounds_THEN_alarm_is_major(self):
+        #GIVEN
+        reading = "+939,+10,101"
+        _insert_reading(self, [reading])
+        #THEN
+        self.ca.assert_that_pv_alarm_is("CHNL:101:TEMP:CHECK", self.ca.Alarms.MAJOR)
 
 
 class DriftTests(unittest.TestCase):
