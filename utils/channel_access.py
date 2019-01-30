@@ -54,7 +54,7 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += "{}:".format(device_prefix)
 
-    def set_pv_value(self, pv, value, wait=False):
+    def set_pv_value(self, pv, value, wait=False, sleep_after_set=1.0):
         """
         Sets the specified PV to the supplied value.
 
@@ -72,7 +72,7 @@ class ChannelAccess(object):
         # but it should not hold up all the other tests
         self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
         # Give lewis time to process
-        time.sleep(1.0)
+        time.sleep(sleep_after_set)
 
     def get_pv_value(self, pv):
         """
