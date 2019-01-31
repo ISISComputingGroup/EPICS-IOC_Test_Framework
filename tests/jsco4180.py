@@ -21,7 +21,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class Jsco4180Tests(unittest.TestCase):
@@ -125,25 +125,27 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("PRESSURE", expected_value, timeout=1)
 
     @parameterized.expand([
-        ("composition_{}".format(suffix), suffix) for suffix in ["A", "B", "C", "D"]
+        ("component_{}".format(suffix), suffix) for suffix in ["A", "B", "C", "D"]
     ])
     @skip_if_recsim("Reliant on setUP lewis backdoor call")
-    def test_GIVEN_an_ioc_WHEN_get_composition_THEN_correct_gradients_returned(self, composition, suffix):
+    def test_GIVEN_an_ioc_WHEN_get_component_THEN_correct_component_returned(self, component, suffix):
         expected_value = 10.0
-        self._lewis.backdoor_set_on_device(composition, expected_value)
+        self._lewis.backdoor_set_on_device(component, expected_value)
 
-        self.ca.assert_that_pv_is("COMP:{}".format(suffix), expected_value, timeout=1)
+        self.ca.assert_that_pv_is("COMP:{}".format(suffix), expected_value, timeout=4)
 
     @parameterized.expand([
         ("COMP:{}".format(suffix), suffix) for suffix in ["A", "B", "C"]
     ])
     @skip_if_recsim("Reliant on setUP lewis backdoor call")
-    def test_GIVEN_an_ioc_WHEN_set_composition_THEN_correct_composition_set(self, composition, suffix):
+    def test_GIVEN_an_ioc_WHEN_set_component_THEN_correct_component_set(self, component, suffix):
         expected_value = 100.0
         self.ca.set_pv_value("COMP:{}:SP".format(suffix), expected_value)
-        self.ca.set_pv_value("COMP:SP", "Set")
+        # Call the hidden function rather than the normal full sequence (START:SP) as we are testing this
+        # specific set composition record
+        self.ca.set_pv_value("_COMP:SP", "Set")
 
-        self.ca.assert_that_pv_is(composition, expected_value, timeout=1)
+        self.ca.assert_that_pv_is(component, expected_value, timeout=4)
 
     def test_GIVEN_ioc_initial_state_WHEN_get_error_THEN_error_returned(self):
         expected_value = "No error"
@@ -155,7 +157,7 @@ class Jsco4180Tests(unittest.TestCase):
         expected_value = "Hardware error"
         self._lewis.backdoor_set_on_device("error", 4)
 
-        self.ca.assert_that_pv_is("ERROR", expected_value, timeout=1)
+        self.ca.assert_that_pv_is("ERROR", expected_value, timeout=2)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_ioc_in_error_state_WHEN_reset_error_THEN_error_reset(self):
