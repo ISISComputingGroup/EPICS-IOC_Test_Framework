@@ -250,16 +250,24 @@ class ProcServLauncher(BaseLauncher):
 
         IOCRegister.add_ioc(self._device, self)
 
-    def connect_to_procserv(self):
+    def connect_to_procserv(self, timeout=10):
         """
         Opens the telnet connection to the procserv daemon.
 
-        """
-        self.telnet = telnetlib.Telnet("localhost", self.port, timeout=10)
+        Args:
+            timeout: Integer, number of seconds to wait for connection to open. Defaults to 10
 
-        # Wait for procServ to become responsive
-        sleep(5)
-        init_output = self.telnet.read_very_eager()
+        Returns:
+            None
+
+        Raises:
+            OSError if procServ connection could not be made
+
+        """
+        self.telnet = telnetlib.Telnet("localhost", self.port, timeout=timeout)
+
+        # Wait for procServ to become responsive by checking for prompt
+        init_output = self.telnet.read_until(b"epics>", timeout)
 
         if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
@@ -307,15 +315,30 @@ class ProcServLauncher(BaseLauncher):
         if self.telnet is not None:
             self.telnet.close()
 
+        for process in psutil.process_iter(attrs=['pid', 'name']):
+            if process.info['name'] == 'procServ.exe' and self.process_arguments_match_this_ioc(process.cmdline()):
+                # Command line arguments match, kill procServ instance
+                os.kill(process.pid, SIGTERM)
+
+    def process_arguments_match_this_ioc(self, process_arguments):
+        """
+        Compares the arguments this IOC was started with to the arguments of a process. Returns True if the arguments match
+
+        Args:
+            process_arguments: The command line arguments of the process to be considered
+
+        Returns:
+            arguments_match: Boolean: True if the process command line arguments match the IOC boot arguments, else False
+
+        """
+
         # PSUtil strips quote marks (") from the command line used to spawn a process,
         # so we must remove them to compare with our ioc_run_command
-        cmdline_arguments = [args.replace('"', '') for args in self.ioc_run_command]
+        ioc_start_arguments = [args.replace('"', '') for args in self.ioc_run_command]
 
-        for process in psutil.process_iter(attrs=['pid', 'name']):
-            if process.info['name'] == 'procServ.exe':
-                if all([args in process.cmdline() for args in cmdline_arguments]):
-                    # Command line arguments match, kill procServ instance
-                    os.kill(process.pid, SIGTERM)
+        arguments_match = all([args in process_arguments for args in ioc_start_arguments])
+
+        return arguments_match
 
 
 class IocLauncher(BaseLauncher):
