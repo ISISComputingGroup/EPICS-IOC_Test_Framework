@@ -5,6 +5,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
 from utils.ioc_launcher import IOCRegister
 from utils.testing import assert_log_messages
+from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "SIMPLE"
 
@@ -20,7 +21,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [None, ]
+TEST_MODES = [TestModes.RECSIM, ]
 
 
 class SimpleTests(unittest.TestCase):
