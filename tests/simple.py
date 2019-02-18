@@ -1,10 +1,10 @@
 import unittest
 import os
-from unittest import skip
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
 from utils.ioc_launcher import IOCRegister
+from utils.testing import assert_log_messages
 
 DEVICE_PREFIX = "SIMPLE"
 
@@ -46,7 +46,8 @@ class SimpleTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("DISABLE")
 
         # WHEN
-        self.ca.set_pv_value("CRASHVALUE", "1")
+        with assert_log_messages(self._ioc, in_time=30, must_contain="dbLoadRecords"):
+            self.ca.set_pv_value("CRASHVALUE", "1")
 
         # THEN
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
