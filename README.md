@@ -58,6 +58,11 @@ python run_tests.py -t sp2xx.RunCommandTests.test_that_GIVEN_an_initialized_pump
 The argument is the "dotted name" of the test containing the tests. The dotted name takes the form `module.class.test`.
 You can run multiple tests from multiple classes in different modules.
 
+### Running tests with failfast
+
+Running tests with `-f True` argument will casue tests to run normally _until_ the first test fails, upon which it will quit testing and provide the usua; output for a failed test.
+
+>`python run_tests.py -f True` will cause all IOC tests to run, up until the first one fails. 
 
 ## Troubleshooting 
 
