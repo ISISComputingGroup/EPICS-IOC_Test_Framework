@@ -27,6 +27,7 @@ IOCS = [
     {
         "name": "GALIL_01",
         "directory": get_default_ioc_dir("GALIL"),
+        "pv_for_existence": "AXIS1",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "01",

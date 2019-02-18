@@ -211,7 +211,7 @@ if __name__ == '__main__':
     try:
         success = load_and_run_tests(tests)
     except Exception as e:
-        print("---\n---\n---\nAn Error occured loading the tests: ")
+        print("---\n---\n---\nAn Error occurred loading the tests: ")
         traceback.print_exc()
         print("---\n---\n---\n")
         success = False

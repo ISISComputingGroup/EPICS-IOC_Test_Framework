@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc
 
 
 DEVICE_PREFIX = "IPS_01"
@@ -16,6 +16,9 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("IPS"),
         "emulator": EMULATOR_NAME,
+        "macros": {
+            "MANAGER_ASG": "DEFAULT"
+        }
     },
 ]
 
@@ -31,7 +34,7 @@ TOLERANCE = 0.0001
 HEATER_OFF_STATES = ["Off Mag at 0", "Off Mag at F"]
 
 # Time to wait for the heater to warm up/cool down
-# On a real system this is 30s but speed it up a bit for the sake of tests.
+# On a real system this is 60s but speed it up a bit for the sake of tests.
 HEATER_WAIT_TIME = 10
 
 
