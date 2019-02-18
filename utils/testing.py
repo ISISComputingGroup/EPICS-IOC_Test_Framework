@@ -5,7 +5,7 @@ from time import sleep
 import six
 
 from utils.ioc_launcher import IOCRegister, IocLauncher
-from utils.lewis_launcher import LewisRegister, LewisLauncher
+from utils.emulator_launcher import EmulatorRegister, LewisLauncher
 
 
 class _AssertLogContext(object):
@@ -56,7 +56,7 @@ def get_running_lewis_and_ioc(emulator_name, ioc_name):
     :return: lewis launcher and ioc launcher tuple
     :rtype: (LewisLauncher, IocLauncher)
     """
-    lewis = LewisRegister.get_running(emulator_name)
+    lewis = EmulatorRegister.get_running(emulator_name)
     ioc = IOCRegister.get_running(ioc_name)
 
     if ioc is None and (lewis is None and emulator_name is not None):

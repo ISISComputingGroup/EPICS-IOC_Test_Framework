@@ -13,7 +13,7 @@ from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
-from utils.lewis_launcher import LewisLauncher, LewisNone
+from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
@@ -86,7 +86,7 @@ def make_device_launchers_from_module(test_module, mode):
 
         elif "emulator" in ioc:
             emulator_id = ioc.get("emulator_id", ioc["emulator"])
-            lewis_launcher = LewisNone(emulator_id)
+            lewis_launcher = NullEmulatorLauncher(emulator_id, var_dir)
         else:
             lewis_launcher = None
 
