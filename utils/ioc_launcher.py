@@ -12,6 +12,7 @@ from utils.log_file import log_filename, LogFileManager
 from utils.test_modes import TestModes
 from datetime import date
 import telnetlib
+from signal import SIGTERM
 import atexit
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
@@ -142,6 +143,7 @@ class ProcServLauncher(BaseLauncher):
         self._var_dir = var_dir
         self.port = int(ioc['macros']['EMULATOR_PORT'])
         self.logport = int(ioc['macros']['LOG_PORT'])
+        self._ioc_started_text = ioc.get("started_text", "epics>")
 
         self.ioc_run_command = None
         self._process = None
@@ -217,14 +219,14 @@ class ProcServLauncher(BaseLauncher):
         comspec = os.getenv("ComSpec")
 
         cygwin_dir = self.to_cygwin_address(self._directory)
-        self.ioc_run_command = ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS), ' --logstamp',
-                                ' --logfile="{}"'.format(self.to_cygwin_address(self._log_filename())),
-                                ' --timefmt="%Y-%m-%d %H:%M:%S"',
-                                ' --restrict', ' --ignore="^D^C"', ' --autorestart', ' --wait',
-                                ' --name={}'.format(self._device.upper()),
-                                ' --pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
-                                ' --logport={:d}'.format(self.logport), ' --chdir="{}"'.format(cygwin_dir),
-                                ' {:d}'.format(self.port), ' {}'.format(comspec), ' /c', ' runIOC.bat', ' st.cmd']
+        self.ioc_run_command = ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS), '--logstamp',
+                                '--logfile="{}"'.format(self.to_cygwin_address(self._log_filename())),
+                                '--timefmt="%Y-%m-%d %H:%M:%S"',
+                                '--restrict', '--ignore="^D^C"', '--autorestart', '--wait',
+                                '--name={}'.format(self._device.upper()),
+                                '--pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
+                                '--logport={:d}'.format(self.logport), '--chdir="{}"'.format(cygwin_dir),
+                                '{:d}'.format(self.port), '{}'.format(comspec), '/c', 'runIOC.bat', 'st.cmd']
 
         print("Starting IOC ({})".format(self._device))
 
@@ -237,14 +239,14 @@ class ProcServLauncher(BaseLauncher):
         # This does mean that the IOC will need to be closed manually after the tests.
         # Make sure to revert before checking code in
 
-        self._process = subprocess.Popen(''.join(self.ioc_run_command), creationflags=subprocess.CREATE_NEW_CONSOLE,
+        self._process = subprocess.Popen(' '.join(self.ioc_run_command), creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          cwd=self._directory, stdout=self.log_file_manager.log_file,
                                          stderr=subprocess.STDOUT, env=settings)
 
         self.connect_to_procserv()
         self.start_ioc()
 
-        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START)
+        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
 
@@ -305,13 +307,15 @@ class ProcServLauncher(BaseLauncher):
         if self.telnet is not None:
             self.telnet.close()
 
-        cmdline_arguments = [args.strip().replace('"', '') for args in self.ioc_run_command]
+        # PSUtil strips quote marks (") from the command line used to spawn a process,
+        # so we must remove them to compare with our ioc_run_command
+        cmdline_arguments = [args.replace('"', '') for args in self.ioc_run_command]
 
         for process in psutil.process_iter(attrs=['pid', 'name']):
             if process.info['name'] == 'procServ.exe':
                 if all([args in process.cmdline() for args in cmdline_arguments]):
                     # Command line arguments match, kill procServ instance
-                    os.kill(process.pid, -1)
+                    os.kill(process.pid, SIGTERM)
 
 
 class IocLauncher(BaseLauncher):

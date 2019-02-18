@@ -30,7 +30,6 @@ class SimpleTests(unittest.TestCase):
 
     def setUp(self):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
-        self._lewis = None
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
