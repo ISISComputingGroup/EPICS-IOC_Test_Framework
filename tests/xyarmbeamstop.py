@@ -1,6 +1,7 @@
 import unittest
 import math
 from unittest import skip
+import os
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -54,21 +55,26 @@ STORE_SP = "ARM:STORE:SP"
 TWEAK_X = "ARM:X:TWEAK"
 TWEAK_Y = "ARM:Y:TWEAK"
 
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motorExtensions", "master", "settings", "xyBeamstop"))
 
 IOCS = [
     {
         "name": "GALIL_01",
         "directory": get_default_ioc_dir("GALIL"),
+        "pv_for_existence": "AXIS1",
         "macros": {
             "GALILADDR": GALIL_ADDR,
-            "IFXYBEAMSTOP": " ",
             "MTRCTRL": "1",
+            "IFXYBEAMSTOP": " ",
+            "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     },
 ]
 
 
 TEST_MODES = [TestModes.DEVSIM]
+
 
 @skip("This test is very unstable. It should work; it has been disabled so that we can see other failures on Jenkins")
 class XyarmbeamstopTests(unittest.TestCase):

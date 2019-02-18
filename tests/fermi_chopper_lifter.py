@@ -1,4 +1,5 @@
 import unittest
+import os
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -8,14 +9,17 @@ from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
 
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motorExtensions", "master", "settings", "emma_chopper_lifter"))
 
 IOCS = [
     {
         "name": "GALIL_01",
         "directory": get_default_ioc_dir("GALIL"),
+        "pv_for_existence": "AXIS1",
         "macros": {
             "GALILADDR01": GALIL_ADDR,
-            "IFCHOPLIFT": " ",
+            "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     },
 ]

@@ -87,7 +87,7 @@ class TdkLambdaGenesysTests(unittest.TestCase):
         try:
             for curr in [0.123, 0.456]:
                 self._lewis.backdoor_set_on_device("comms_initialized", False)
-                self._lewis.backdoor_set_on_device("current", curr)
+                self._write_current(curr)
                 # Should be able to re-initialize comms and read the new current
                 self.ca.assert_that_pv_is_number("1:CURR", curr, tolerance=0.01, timeout=30)
 

@@ -6,13 +6,13 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
-DEVICE_PREFIX = "LKSH218_01"
+DEVICE_PREFIX = "LKSH218_04"
 
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("LKSH218"),
+        "directory": get_default_ioc_dir("LKSH218", iocnum=4),
         "macros": {},
         "emulator": "Lksh218",
     },

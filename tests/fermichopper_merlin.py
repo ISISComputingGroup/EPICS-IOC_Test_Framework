@@ -1,9 +1,8 @@
 import unittest
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import skip_if_recsim
-from common_tests.fermichopper import FermichopperBase
-
+from utils.testing import skip_if_recsim, assert_log_messages
+from common_tests.fermichopper import FermichopperBase, ErrorStrings
 
 DEVICE_PREFIX = "FERMCHOP_01"
 
@@ -67,14 +66,16 @@ class MerlinFermiChopperTests(FermichopperBase, unittest.TestCase):
     @skip_if_recsim("Uses lewis backdoor")
     def test_WHEN_electronics_temperature_is_too_high_THEN_over_temperature_is_true(self):
         self.ca.assert_that_pv_is("TEMP:RANGECHECK", 0)
-        self._lewis.backdoor_set_on_device("electronics_temp", 46)
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
+        with assert_log_messages(self._ioc, in_time=5, must_contain=ErrorStrings.ELECTRONICS_TEMP_TOO_HIGH):
+            self._lewis.backdoor_set_on_device("electronics_temp", 46)
+            self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_WHEN_motor_temperature_is_too_high_THEN_over_temperature_is_true(self):
         self.ca.assert_that_pv_is("TEMP:RANGECHECK", 0)
-        self._lewis.backdoor_set_on_device("motor_temp", 46)
-        self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
+        with assert_log_messages(self._ioc, in_time=5, must_contain=ErrorStrings.MOTOR_TEMP_TOO_HIGH):
+            self._lewis.backdoor_set_on_device("motor_temp", 46)
+            self.ca.assert_that_pv_is("TEMP:RANGECHECK", 1)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_drive_voltage_is_set_via_backdoor_THEN_pv_updates(self):
@@ -90,11 +91,12 @@ class MerlinFermiChopperTests(FermichopperBase, unittest.TestCase):
         self._lewis.backdoor_set_on_device("last_command", "0000")
         self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
 
-        # Temperature = 46, this is higher than the allowed value (45)
-        self._lewis.backdoor_set_on_device("motor_temp", 46)
+        with assert_log_messages(self._ioc, in_time=5, must_contain=ErrorStrings.MOTOR_TEMP_TOO_HIGH):
+            # Temperature = 46, this is higher than the allowed value (45)
+            self._lewis.backdoor_set_on_device("motor_temp", 46)
 
-        # Assert that "switch drive off" was sent
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0002")
+            # Assert that "switch drive off" was sent
+            self.ca.assert_that_pv_is("LASTCOMMAND", "0002")
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_electronics_temperature_is_too_high_THEN_switch_drive_off_is_sent(self):
@@ -102,11 +104,12 @@ class MerlinFermiChopperTests(FermichopperBase, unittest.TestCase):
         self._lewis.backdoor_set_on_device("last_command", "0000")
         self.ca.assert_that_pv_is("LASTCOMMAND", "0000")
 
-        # Temperature = 46, this is higher than the allowed value (45)
-        self._lewis.backdoor_set_on_device("electronics_temp", 46)
+        with assert_log_messages(self._ioc, in_time=5, must_contain=ErrorStrings.ELECTRONICS_TEMP_TOO_HIGH):
+            # Temperature = 46, this is higher than the allowed value (45)
+            self._lewis.backdoor_set_on_device("electronics_temp", 46)
 
-        # Assert that "switch drive off" was sent
-        self.ca.assert_that_pv_is("LASTCOMMAND", "0002")
+            # Assert that "switch drive off" was sent
+            self.ca.assert_that_pv_is("LASTCOMMAND", "0002")
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_WHEN_voltage_and_current_are_varied_THEN_power_pv_is_the_product_of_current_and_voltage(self):

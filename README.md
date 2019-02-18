@@ -69,7 +69,9 @@ Running tests with `-f True` argument will casue tests to run normally _until_ t
 If all tests are failing then it is likely that the PV prefix is incorrect.
 If a large percentage of tests are failing then it may that the macros in the IOC are not being set properly for the testing framework.
 
-In most cases it requires inspecting what the IOC is doing, to do that one needs to edit the ioc_launcher.py file to remove the redirection of stdout, stdin and stderr. This will mean that the IOC will dump all its output to the console, so it will then be possible to scroll through it to check the prefix and macros are set correctly.
+It is important to explicitly set each of the macro values for an IOC in its IOC test module. This is to prevent macros set in a configuration from interfering with the values used in the test, even if they are the default values.
+
+To inspect the IOC settings in further detail, one needs to edit the ioc_launcher.py file to remove the redirection of stdout, stdin and stderr. This will mean that the IOC will dump all its output to the console, so it will then be possible to scroll through it to check the prefix and macros are set correctly.
 
 Note: in this mode the IOC will not automatically terminate after the tests have finished, this means it is possible to run diagnostic commands in the IOC, such as `dbl` etc.
 
@@ -134,6 +136,17 @@ IOCS = [
 ]
 ```
 
+#### Changing the IOC number
+
+If you want a to run the IOC tests against a different number IOC, e.g. "IOCNAME_02", 
+you need to change the following:
+
+1. Set `DEVICE_PREFIX` to `IOCNAME_02`.
+1. Change the "name" property of the IOC dictionary to `IOCNAME_02`.
+1. Pass the keyword argument `iocnum=2` to `get_default_ioc_dir()`.
+
+The test framework now start the `IOCNAME_02` IOC to run the tests against.
+
 ### The `TEST_MODES` attribute
 
 This is a list of test modes to run this test suite in. A list of available test modes can be found in `utils\test_modes.py`. Currently these are RECSIM and DEVSIM.
@@ -190,8 +203,18 @@ A number of custom assert statements are available in the test framework:
   * Checks that a PV has a particular alarm state. 
 * `assert_setting_setpoint_sets_readback`
   * Checks that a PV is a particular value after the relevant setpoint is changed.
+* `assert_that_pv_monitor_is`
+  * Checks that a PV has issued a monitor for a pv and that the value is as set. This used in a with:
+      ```
+      with self.ca.assert_that_pv_monitor_is("MY:PV:NAME", expected_value):
+            self.ca.set_pv_value("MY:PV:NAME:SP", 1)
+      ```
+* `assert_that_pv_monitor_is_number`
+  * Checks that a PV has issued a monitor for a pv and that it is a number, within a specified tolerance. Used in a similar way to `assert_that_pv_monitor_is`
 
 If you find yourself needing other assert functions, please add them!
+
+Note: If using PyCharm, you can add code completeion/suggestions for function names by opening the folder `IoCTestFramework`, rightclick on `master` in the project explorer on the left, and selecting `Mark Directory as... > Sources Root`. 
 
 ### Skipping tests in RECSIM
 
