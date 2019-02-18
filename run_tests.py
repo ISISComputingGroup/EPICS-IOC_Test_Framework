@@ -8,6 +8,9 @@ import sys
 import traceback
 import unittest
 import xmlrunner
+import contextlib
+
+import multiprocessing as mp
 
 from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
@@ -17,6 +20,8 @@ from utils.lewis_launcher import LewisLauncher, LewisNone
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
+
+THREADS = mp.cpu_count() - 1 # useable cores = cpu_cores - 1
 
 
 def make_device_launchers_from_module(test_module, mode):
@@ -95,7 +100,7 @@ def make_device_launchers_from_module(test_module, mode):
     return device_launchers
 
 
-def load_and_run_tests(test_names):
+def load_and_run_tests(test_names, multithread):
     """
     Loads and runs the dotted unit tests to be run.
 
@@ -121,8 +126,14 @@ def load_and_run_tests(test_names):
 
         for module in modules_to_be_tested_in_current_mode:
             device_launchers = make_device_launchers_from_module(module.file, mode)
-            test_results.append(
-                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers)))
+            if not multithread:
+                test_results.append(
+                    run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers)))
+            else:
+                with contextlib.closing(mp.Pool(THREADS)) as pool:
+                    test_results.append(
+                        pool.map(run_tests, [arguments.prefix, module.tests, device_collection_launcher(device_launchers)])
+                    ) # This is the wrong place to multithread. Move it 
 
     return all(test_result is True for test_result in test_results)
 
@@ -187,6 +198,9 @@ if __name__ == '__main__':
                         Module just runs the tests in a module. 
                         Module.class runs the the test class in Module.
                         Module.class.method runs a specific test.""")
+    parser.add_argument('-mt', '--multithread', default=False, 
+                        help="""Allows multiple IOCs to be spun up and tested at the same time. 
+                        Use '-mp True' to activate parallel testing""")
 
     arguments = parser.parse_args()
 
@@ -209,7 +223,7 @@ if __name__ == '__main__':
     tests = arguments.tests if arguments.tests is not None else package_contents("tests")
 
     try:
-        success = load_and_run_tests(tests)
+        success = load_and_run_tests(tests, arguments.multithread)
     except Exception as e:
         print("---\n---\n---\nAn Error occured loading the tests: ")
         traceback.print_exc()

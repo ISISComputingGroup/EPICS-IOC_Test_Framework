@@ -112,7 +112,7 @@ class ProcServLauncher(BaseLauncher):
     Launches an IOC from procServ.exe
     """
 
-    ICPTOOLS = os.path.join(APPS_BASE, "EPICS", "tools", "master")
+    ICPTOOLS = os.path.join("APPS_BASE", "EPICS", "tools", "master")
 
     def __init__(self, ioc, test_mode, var_dir):
         """
