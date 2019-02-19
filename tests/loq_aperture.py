@@ -20,7 +20,7 @@ TOLERANCE = 2e-1
 MOTOR = "MOT:MTR0101"
 
 # Axis position index PV and SP
-POSITION_INDEX = "LKUP:APERTURE:IPOSN"
+POSITION_INDEX = "LKUP:APERTURE:NIPOSN"
 POSITION_SP = "LKUP:APERTURE:IPOSN:SP"
 
 # PV reading closest beamstop position
@@ -104,13 +104,17 @@ class LoqApertureTests(unittest.TestCase):
         # GIVEN
         # Move 25 per cent forwards and backwards off centre of setpoint
         for fraction_moved_off_setpoint in [0.25, -0.25]:
-            initial_position = MOTION_SETPOINT.values()[start_index] + fraction_moved_off_setpoint * SETPOINT_GAP
+            initial_position = MOTION_SETPOINT.values()[start_index] + (fraction_moved_off_setpoint * SETPOINT_GAP)
             self.ca.set_pv_value(MOTOR, initial_position)
+            self.ca.assert_that_pv_is_number(MOTOR, initial_position, tolerance=TOLERANCE)
 
-        # WHEN
-        self.ca.process_pv(CLOSEAPERTURE)
+            # This assertion ensures that this calc record has updated with the closest beam stop position
+            self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
 
-        # THEN
-        self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
-        self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
-        self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINT.values()[closest_stop], tolerance=TOLERANCE)
+            # WHEN
+            self.ca.process_pv(CLOSEAPERTURE)
+
+            # THEN
+            self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
+            self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
+            self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINT.values()[closest_stop], tolerance=TOLERANCE)
