@@ -3,7 +3,7 @@ from time import sleep
 import threading
 
 # Directory for log files
-LOG_FILES_DIRECTORY = os.path.join("logs","IOCTestFramework")
+LOG_FILES_DIRECTORY = os.path.join("logs", "IOCTestFramework")
 
 
 def log_filename(what, device, uses_rec_sim, var_dir):

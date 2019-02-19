@@ -12,6 +12,7 @@ from functools import partial
 import six
 
 from utils.free_ports import get_free_ports
+from utils.ioc_launcher import EPICS_TOP
 from utils.log_file import log_filename
 from utils.formatters import format_value
 
@@ -59,9 +60,18 @@ class EmulatorRegister(object):
 @six.add_metaclass(abc.ABCMeta)
 class EmulatorLauncher(object):
 
-    def __init__(self, device, var_dir):
+    def __init__(self, device, var_dir, port, options):
+        """
+        Args:
+            device: The name of the device to emulate
+            var_dir: The directory in which to store logs
+            port: The TCP port to listen on for connections
+            options: Dictionary of any additional options required by specific launchers
+        """
         self._device = device
         self._var_dir = var_dir
+        self._port = port
+        self._options = options
 
     def __enter__(self):
         self._open()
@@ -279,43 +289,29 @@ class LewisLauncher(EmulatorLauncher):
     _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
     _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH, "scripts")
 
-    def __init__(self, device,
-                 python_path=os.path.join(_DEFAULT_PY_PATH),
-                 lewis_path=os.path.join(_DEFAULT_LEWIS_PATH),
-                 var_dir=os.getenv("ICPVARDIR", os.curdir),
-                 lewis_protocol="stream",
-                 lewis_additional_path=None,
-                 lewis_package=None,
-                 port=None,
-                 emulator_id=None,
-                 default_timeout=5):
+    def __init__(self, device, var_dir, port, options):
         """
         Constructor that also launches Lewis.
 
-        :param device: device to start
-        :param python_path: path to python.exe
-        :param lewis_path: path to lewis
-        :param var_dir: location of directory to write log file and macros directories
-        :param lewis_protocol: protocol to use
-        :param lewis_additional_path: additional path to add to lewis usually the location of the device emulators
-        :param lewis_package: package to use by lewis
-        :param port: the port to use
-        :param emulator_id: the unique id of the emulator
+        Args:
+            device: device to start
+            var_dir: location of directory to write log file and macros directories
+            port: the port to use
         """
+        super(LewisLauncher, self).__init__(device, var_dir, port, options)
 
-        super(LewisLauncher, self).__init__(device, var_dir)
+        self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
+        self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
+        self._lewis_protocol = options.get("lewis_protocol", "stream")
+        self._lewis_additional_path = options.get("lewis_additional_path",
+                                                  os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
+        self._lewis_package = options.get("lewis_package", "lewis_emulators")
+        self._emulator_id = options.get("emulator_id", self._device)
+        self._default_timeout = options.get("default_timeout", 5)
 
-        self._lewis_path = lewis_path
-        self._python_path = python_path
-        self._lewis_protocol = lewis_protocol
         self._process = None
-        self._lewis_additional_path = lewis_additional_path
-        self._lewis_package = lewis_package
-        self.port = port
         self._logFile = None
         self._connected = None
-        self._emulator_id = emulator_id if emulator_id is not None else self._device
-        self._default_timeout = default_timeout
 
     def _close(self):
         """
@@ -340,7 +336,7 @@ class LewisLauncher(EmulatorLauncher):
         lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
-                                  .format(protocol=self._lewis_protocol, port=self.port)])
+                                  .format(protocol=self._lewis_protocol, port=self._port)])
         if self._lewis_additional_path is not None:
             lewis_command_line.extend(["-a", self._lewis_additional_path])
         if self._lewis_package is not None:
@@ -469,22 +465,37 @@ class LewisLauncher(EmulatorLauncher):
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
 
-    def __init__(self, device, var_dir, command_line):
-        super(CommandLineEmulatorLauncher, self).__init__(device, var_dir)
-        self.command_line = command_line
+    def __init__(self, device, var_dir, port, options):
+        super(CommandLineEmulatorLauncher, self).__init__(device, var_dir, port, options)
+        try:
+            self.command_line = options["emulator_command_line"]
+        except KeyError:
+            raise KeyError("To use a command line emulator launcher, the 'emulator_command_line' option must be "
+                           "provided as part of the options dictionary")
+        self._process = None
+        self._log_file = None
 
     def _open(self):
-        self._process = subprocess.Popen(self.command_line,
+        self._log_file = open(log_filename("cmdemulator", self._device, True, self._var_dir), "w")
+        self._process = subprocess.Popen(self.command_line.format(port=self._port),
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                         stdout=self._logFile,
+                                         stdout=self._log_file,
                                          stderr=subprocess.STDOUT)
 
-    def _close(self): pass
+    def _close(self):
+        if self._process is not None:
+            self._process.terminate()
+        if self._log_file is not None:
+            self._log_file.close()
 
-    def backdoor_get_from_device(self, variable, *args, **kwargs): return None
+    def backdoor_get_from_device(self, variable, *args, **kwargs):
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
-    def backdoor_set_on_device(self, variable, value, *args, **kwargs): pass
+    def backdoor_set_on_device(self, variable, value, *args, **kwargs):
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
-    def backdoor_emulator_disconnect_device(self, *args, **kwargs): pass
+    def backdoor_emulator_disconnect_device(self, *args, **kwargs):
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
-    def backdoor_emulator_connect_device(self, *args, **kwargs): pass
+    def backdoor_emulator_connect_device(self, *args, **kwargs):
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")

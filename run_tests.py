@@ -59,38 +59,19 @@ def make_device_launchers_from_module(test_module, mode):
         macros['EMULATOR_PORT'] = emmulator_port
         macros['LOG_PORT'] = free_port[1]
 
-        launcher = ioc.get("LAUNCHER", IocLauncher)
-
-        ioc_launcher = launcher(ioc, mode, var_dir)
+        ioc_launcher_class = ioc.get("ioc_launcher_class", IocLauncher)
+        ioc_launcher = ioc_launcher_class(ioc, mode, var_dir)
 
         if "emulator" in ioc and mode != TestModes.RECSIM:
-
-            emulator_device = ioc["emulator"]
-            emulator_id = ioc.get("emulator_id", emulator_device)
-            emulator_protocol = ioc.get("emulator_protocol", "stream")
-            emulator_device_package = ioc.get("emulator_package", "lewis_emulators")
-            emulator_full_path = ioc.get("emulator_path",
-                                         os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
-
-            lewis_launcher = LewisLauncher(
-                device=emulator_device,
-                python_path=os.path.abspath(arguments.python_path),
-                lewis_path=os.path.abspath(arguments.emulator_path),
-                lewis_protocol=emulator_protocol,
-                lewis_additional_path=emulator_full_path,
-                lewis_package=emulator_device_package,
-                var_dir=var_dir,
-                port=emmulator_port,
-                emulator_id=emulator_id
-            )
-
+            emulator_launcher_class = ioc.get("emulator_launcher_class", LewisLauncher)
+            emulator_launcher = emulator_launcher_class(ioc.get("emulator_id", ioc["emulator"]), var_dir,
+                                                        emmulator_port, ioc)
         elif "emulator" in ioc:
-            emulator_id = ioc.get("emulator_id", ioc["emulator"])
-            lewis_launcher = NullEmulatorLauncher(emulator_id, var_dir)
+            emulator_launcher = NullEmulatorLauncher(ioc.get("emulator_id", ioc["emulator"]), var_dir, None, {})
         else:
-            lewis_launcher = None
+            emulator_launcher = None
 
-        device_launchers.append(device_launcher(ioc_launcher, lewis_launcher))
+        device_launchers.append(device_launcher(ioc_launcher, emulator_launcher))
 
     return device_launchers
 

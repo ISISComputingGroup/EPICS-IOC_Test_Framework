@@ -12,7 +12,7 @@ EPICS_ROOT = os.getenv("EPICS_KIT_ROOT")
 
 IOCS = [
     {
-        "LAUNCHER": ProcServLauncher,
+        "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
         "directory": os.path.realpath(os.path.join(EPICS_ROOT, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple")),
         "macros": {},
@@ -38,4 +38,3 @@ class SimpleTests(unittest.TestCase):
     @skip("This test is not ready yet")
     def test_that_always_passes(self):
         pass
-
