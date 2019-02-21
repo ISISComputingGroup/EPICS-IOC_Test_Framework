@@ -60,9 +60,9 @@ You can run multiple tests from multiple classes in different modules.
 
 ### Running tests with failfast
 
-Running tests with `-f True` argument will casue tests to run normally _until_ the first test fails, upon which it will quit testing and provide the usua; output for a failed test.
+Running tests with `-f` argument will cause tests to run normally _until_ the first test fails, upon which it will quit testing and provide the usual output for a failed test.
 
->`python run_tests.py -f True` will cause all IOC tests to run, up until the first one fails. 
+>`python run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
 
 ## Troubleshooting 
 

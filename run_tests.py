@@ -189,7 +189,7 @@ if __name__ == '__main__':
                         Module just runs the tests in a module. 
                         Module.class runs the the test class in Module.
                         Module.class.method runs a specific test.""")
-    parser.add_argument('-f', '--failfast', default=None,
+    parser.add_argument('-f', '--failfast', action='store_true',
                         help="""Determines if the rest of tests are skipped after the first failure""")
 
     arguments = parser.parse_args()
