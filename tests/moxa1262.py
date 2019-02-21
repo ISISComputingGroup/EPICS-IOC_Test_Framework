@@ -15,6 +15,8 @@ HIGH_ALARM_LIMIT = 80.0
 
 NUMBER_OF_CHANNELS = 8
 
+SCALING_FACTOR = 1.0
+
 macros = {
     "IEOS": r"\\r\\n",
     "OEOS": r"\\r\\n",
@@ -86,3 +88,6 @@ class Moxa1262TestsFromBase(Moxa12XXBase, unittest.TestCase):
 
     def get_channel_format(self):
         return CHANNEL_FORMAT
+
+    def get_scaling_factor(self):
+        return SCALING_FACTOR
