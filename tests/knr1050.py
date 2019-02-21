@@ -1,4 +1,5 @@
 import unittest
+from time import sleep
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -55,6 +56,12 @@ class Knr1050Tests(unittest.TestCase):
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_an_ioc_WHEN_start_pump_sent_THEN_pump_starts(self):
         self.ca.set_pv_value("START:SP", 1)
+
+        self.ca.assert_that_pv_is("STATUS", "SYS_ST_IDLE")
+
+    @skip_if_recsim("Recsim simulation not implemented")
+    def test_GIVEN_an_ioc_WHEN_timed_pump_sent_THEN_pump_starts(self):
+        self.ca.set_pv_value("TIMED:SP", 1)
 
         self.ca.assert_that_pv_is("STATUS", "SYS_ST_IDLE")
 
@@ -208,3 +215,34 @@ class Knr1050Tests(unittest.TestCase):
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.INVALID)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_timed_run_started_THEN_remaining_time_decreases(self):
+        self.ca.set_pv_value("TIME:SP", 10)
+        self.ca.set_pv_value("TIMED:SP", 1)
+
+        self.ca.assert_that_pv_value_is_decreasing("TIME:REMAINING", wait=5)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_timed_run_started_THEN_pump_stopped_once_finished_run(self):
+        self.ca.set_pv_value("TIME:SP", 10)
+        self.ca.set_pv_value("TIMED:SP", 1)
+
+        self.ca.assert_that_pv_is("STATUS", 'SYS_ST_OFF', timeout=15)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_long_timed_run_started_THEN_if_remaining_time_checked_then_not_finished(self):
+        self.ca.set_pv_value("TIME:SP", 100)
+        self.ca.set_pv_value("TIMED:SP", 1)
+
+        self.ca.assert_that_pv_is("TIME:CHECK", 0)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_set_volume_run_started_THEN_remaining_volume_decreases(self):
+        self.ca.set_pv_value("FLOWRATE:SP", 0.02)
+        self.ca.set_pv_value("VOL:SP", 0.05)
+        self.ca.set_pv_value("TIMED:SP", 1)
+        self.ca.assert_that_pv_is_not("VOL:REMAINING", 0.0, timeout=5)
+
+        self.ca.assert_that_pv_value_is_decreasing("VOL:REMAINING", wait=5)
+
