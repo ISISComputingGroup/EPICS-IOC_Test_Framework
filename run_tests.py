@@ -196,7 +196,7 @@ if __name__ == '__main__':
 
     if arguments.list_devices:
         print("Available tests:")
-        print('\n'.join(package_contents("tests")))
+        print('\n'.join(sorted(package_contents("tests"))))
         sys.exit(0)
 
     var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
