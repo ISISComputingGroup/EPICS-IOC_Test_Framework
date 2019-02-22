@@ -53,6 +53,32 @@ class MezfliprTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:AMPLITUDE".format(flipper))
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
-    def test_GIVEN_amplitude_is_set_THEN_amplitude_can_be_read_back(self, flipper):
+    def test_GIVEN_compensation_is_set_THEN_compensation_can_be_read_back(self, flipper):
         for val in [0., 0.12, 5000.5]:
             self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:COMPENSATION".format(flipper))
+
+    @parameterized.expand(["ANALYSER", "POLARISER"])
+    def test_GIVEN_dt_is_set_THEN_dt_can_be_read_back(self, flipper):
+        for val in [0., 0.12, 5000.5]:
+            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:DT".format(flipper))
+
+    @parameterized.expand(["ANALYSER", "POLARISER"])
+    def test_GIVEN_constant_is_set_THEN_constant_can_be_read_back(self, flipper):
+        for val in [0., 0.12, 5000.5]:
+            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:CONSTANT".format(flipper))
+
+    @parameterized.expand(["ANALYSER", "POLARISER"])
+    def test_GIVEN_constant_is_set_THEN_constant_can_be_read_back(self, flipper):
+        for filename in [r"C:\a.txt", r"C:\b.txt"]:
+            self.ca.assert_setting_setpoint_sets_readback(filename, readback_pv="{}:FILENAME".format(flipper))
+
+    @parameterized.expand([
+        "Analyser Off Pol. Off",
+        "Analyser Off Pol. On",
+        "Analyser On Pol. Off",
+        "Analyser On Pol. On",
+    ])
+    def test_GIVEN_toggle_state_is_set_THEN_toggle_state_can_be_read_back(self, toggle_state):
+        self.ca.set_pv_value("TOGGLE:SP", toggle_state)
+        self.ca.assert_that_pv_is("TOGGLE", toggle_state)
+        self.ca.assert_that_pv_alarm_is("TOGGLE", self.ca.Alarms.NONE)
