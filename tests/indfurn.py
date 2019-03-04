@@ -41,6 +41,16 @@ TEST_PID_LIMITS = [0.0, 0.1, 99.9]
 TEST_PSU_VOLTAGES = [0.01, 123.45, 999.99]
 TEST_PSU_CURRENTS = TEST_PSU_VOLTAGES
 
+SAMPLE_HOLDER_MATERIALS = [
+    "Aluminium",
+    "Glassy Carbon",
+    "Graphite",
+    "Quartz",
+    "Single Crystal Sapphire",
+    "Steel",
+    "Vanadium",
+]
+
 
 class IndfurnTests(unittest.TestCase):
     """
@@ -66,6 +76,11 @@ class IndfurnTests(unittest.TestCase):
     def test_GIVEN_a_setpoint_WHEN_ask_for_the_current_temperature_THEN_get_the_value_just_set(self, _, temp, alarm):
         self.ca.assert_setting_setpoint_sets_readback(
             temp, set_point_pv="TEMP:SP", readback_pv="TEMP", expected_alarm=alarm)
+
+    @parameterized.expand(parameterized_list(TEST_TEMPERATURES))
+    def test_GIVEN_a_setpoint_WHEN_ask_for_the_sample_temperature_THEN_get_the_value_just_set(self, _, temp, alarm):
+        self.ca.assert_setting_setpoint_sets_readback(
+            temp, set_point_pv="TEMP:SP", readback_pv="SAMPLE:TEMP", expected_alarm=alarm)
 
     @parameterized.expand(parameterized_list(TEST_DIAGNOSTIC_TEMPERATURES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -148,10 +163,9 @@ class IndfurnTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback("On" if output else "Off", "PSU:POWER")
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_GIVEN_power_supply_fan_is_set_to_either_on_or_off_THEN_it_sets_successfully_in_emulator(self):
-        for fan_on in [False, True, False]:  # Check both transitions
-            self.ca.assert_setting_setpoint_sets_readback("On" if fan_on else "Off", "PSU:FAN",
-                                                          expected_alarm=self.ca.Alarms.NONE if fan_on else self.ca.Alarms.MAJOR)
+    def test_GIVEN_sample_area_led_is_set_to_either_on_or_off_THEN_it_sets_successfully_in_emulator(self):
+        for led_on in [False, True, False]:  # Check both transitions
+            self.ca.assert_setting_setpoint_sets_readback("On" if led_on else "Off", "LED")
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_power_supply_hf_is_set_to_either_on_or_off_THEN_it_sets_successfully_in_emulator(self):
@@ -193,3 +207,7 @@ class IndfurnTests(unittest.TestCase):
     def test_GIVEN_an_arbitrary_command_THEN_get_a_response(self):
         self.ca.set_pv_value("ARBITRARY:SP", "?ver")
         self.ca.assert_that_pv_is("ARBITRARY", "<EMULATED FURNACE\r\n<EMULATED FURNACE\r\n")
+
+    @parameterized.expand(parameterized_list(SAMPLE_HOLDER_MATERIALS))
+    def test_GIVEN_sample_holder_material_is_set_THEN_sample_holder_material_can_be_read_back(self, _, material):
+        self.ca.assert_setting_setpoint_sets_readback(material, "SAMPLEHOLDER")
