@@ -19,7 +19,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 class KeylkgTests(unittest.TestCase):
@@ -30,27 +30,30 @@ class KeylkgTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_run_function_on_device("reset")
+        self.ca.set_pv_value("MODE:SP", "SET-UP")
+        self.ca.set_pv_value("MEASUREMODE:HEAD:A:SP", 0)
+        self.ca.set_pv_value("MEASUREMODE:HEAD:B:SP", 0)
 
     def test_GIVEN_running_ioc_WHEN_change_to_communication_mode_THEN_mode_changed(self):
-        expected_value = "COMMUNICATION"
+        expected_value = "SET-UP"
         self.ca.set_pv_value("MODE:SP", expected_value)
 
         self.ca.assert_that_pv_is("MODE", expected_value, timeout=2)
 
     def test_GIVEN_running_ioc_WHEN_change_to_normal_mode_THEN_mode_changed(self):
-        expected_value = "NORMAL"
+        expected_value = "MEASURE"
         self.ca.set_pv_value("MODE:SP", expected_value)
 
         self.ca.assert_that_pv_is("MODE", expected_value, timeout=2)
 
     def test_GIVE_running_ioc_WHEN_set_output1_offset_THEN_output1_offset_updated(self):
-        expected_value = 1.123
+        expected_value = 0.123
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
         self.ca.assert_that_pv_is("OFFSET:OUTPUT:1", expected_value, timeout=2)
 
     def test_GIVE_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self):
-        expected_value = 4.2323
+        expected_value = -0.2323
         self.ca.set_pv_value("OFFSET:OUTPUT:2:SP", expected_value)
 
         self.ca.assert_that_pv_is("OFFSET:OUTPUT:2", expected_value, timeout=2)
@@ -66,3 +69,28 @@ class KeylkgTests(unittest.TestCase):
         self.ca.set_pv_value("MEASUREMODE:HEAD:B:SP", expected_value)
 
         self.ca.assert_that_pv_is("MEASUREMODE:HEAD:B", expected_value, timeout=2)
+
+    @skip_if_recsim('No emulation of data capture in RECSIM')
+    def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output1_takes_data(self):
+        self.ca.set_pv_value("MODE:SP", "MEASURE")
+
+        self.ca.assert_that_pv_is_not("VALUE:OUTPUT:1", 0.0, timeout=2)
+
+    @skip_if_recsim('No emulation of data capture in RECSIM')
+    def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output2_takes_data(self):
+        self.ca.set_pv_value("MODE:SP", "MEASURE")
+
+        self.ca.assert_that_pv_is_not("VALUE:OUTPUT:2", 0.0, timeout=2)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+
+        self.ca.assert_that_pv_alarm_is('MODE:SP', ChannelAccess.Alarms.INVALID, timeout=2)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
+        expected_value = "ER,OF,00"
+        self._lewis.backdoor_set_on_device('input_correct', False)
+
+        self.ca.assert_that_pv_is_not("ERROR:STR", expected_value)
