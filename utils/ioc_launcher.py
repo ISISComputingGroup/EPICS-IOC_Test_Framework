@@ -6,6 +6,8 @@ import os
 from time import sleep
 from abc import ABCMeta
 
+import six
+
 from utils.channel_access import ChannelAccess
 from utils.log_file import log_filename, LogFileManager
 from utils.test_modes import TestModes
@@ -84,11 +86,11 @@ class IOCRegister(object):
         cls.RunningIOCs[name] = ioc
 
 
+@six.add_metaclass(ABCMeta)
 class BaseLauncher(object):
     """
     Launcher base, this is the base class for a launcher of application under test.
     """
-    __metaclass__ = ABCMeta
 
     def open(self):
         """
