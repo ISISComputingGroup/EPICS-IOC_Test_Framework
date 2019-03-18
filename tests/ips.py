@@ -78,9 +78,11 @@ class IpsTests(unittest.TestCase):
 
     def _assert_field_is(self, field, check_stable=False):
         self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE)
+        self.ca.assert_that_pv_is_number("FIELD:USER", field, tolerance=TOLERANCE)
         if check_stable:
             self.ca.assert_that_pv_value_is_unchanged("FIELD", wait=30)
             self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number("FIELD:USER", field, tolerance=TOLERANCE)
 
     def _assert_heater_is(self, heater_state):
         self.ca.assert_that_pv_is("HEATER:STATUS:SP", "On" if heater_state else "Off")
@@ -119,12 +121,20 @@ class IpsTests(unittest.TestCase):
 
             # Now that the heater is off, can ramp down the PSU to zero (SNL waits some time for heater to be off before
             # ramping PSU to zero)
-            self._assert_field_is(0)
+            self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=TOLERANCE)  # PSU field
+            self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE)  # Persistent field
+            self.ca.assert_that_pv_is_number("FIELD:USER", val, tolerance=TOLERANCE)  # User field should be tracking persistent field here
             self.ca.assert_that_pv_is("ACTIVITY", "To Zero")
 
             # ...And the magnet should now be in the right state!
             self.ca.assert_that_pv_is("STATEMACHINE", "At field")
             self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE)
+
+            # "User" field should take the value put in the setpoint, even when the actual field provided by the supply
+            # drops to zero
+            self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=TOLERANCE)  # PSU field
+            self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE)  # Persistent field
+            self.ca.assert_that_pv_is_number("FIELD:USER", val, tolerance=TOLERANCE)  # User field should be tracking persistent field here
 
     def test_GIVEN_non_persistent_mode_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_does_not_ramp_to_zero(self):
 
@@ -186,6 +196,7 @@ class IpsTests(unittest.TestCase):
 
                 # Field should be set to zero by emulator (mirroring what the field ought to do in the real device)
                 self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=TOLERANCE)
+                self.ca.assert_that_pv_is_number("FIELD:USER", 0, tolerance=TOLERANCE)
                 self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", 0, tolerance=TOLERANCE)
 
     def test_WHEN_inductance_set_via_backdoor_THEN_value_in_ioc_updates(self):
