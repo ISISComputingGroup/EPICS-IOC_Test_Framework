@@ -15,7 +15,6 @@ IOCS = [
         "directory": get_default_ioc_dir("AG33220A"),
         "macros": {},
         "emulator": emulator_name,
-        "emulator_protocol": "stream",
     },
 ]
 
