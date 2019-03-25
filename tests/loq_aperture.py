@@ -20,7 +20,7 @@ TOLERANCE = 2e-1
 MOTOR = "MOT:MTR0101"
 
 # Axis position index PV and SP
-POSITION_INDEX = "LKUP:APERTURE:IPOSN"
+POSITION_INDEX = "LKUP:APERTURE:NIPOSN"
 POSITION_SP = "LKUP:APERTURE:IPOSN:SP"
 
 # PV reading closest beamstop position
@@ -35,6 +35,8 @@ MOTION_SETPOINT = OrderedDict([("Aperture_large",  02.900000),
                                ("Aperture_medium", 27.900000),
                                ("Stop_02",         40.400000),
                                ("Aperture_small",  52.900000)])
+
+SETPOINT_GAP = MOTION_SETPOINT["Stop_01"] - MOTION_SETPOINT["Aperture_large"]
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "loqAperture"))
@@ -68,34 +70,6 @@ class LoqApertureTests(unittest.TestCase):
         self.ca.assert_that_pv_exists(CLOSESTSHUTTER)
         self.ca.assert_that_pv_exists(CLOSEAPERTURE)
 
-    def calc_position_between_two_setpoints(self, index):
-        """
-        Returns the motor position between set point index and index+1
-        Args:
-            index: integer, The index of the first set point to locate the motor between
-
-        Returns:
-            desired_position: float, The motor position which lies between set points index and index+1
-
-        """
-        desired_position = 0.5 * (MOTION_SETPOINT.values()[index] + MOTION_SETPOINT.values()[index + 1])
-
-        return desired_position
-
-    def move_motor_between_two_setpoints(self, index):
-        """
-        Moves the motor to half-way point between set point index and index+1
-        Args:
-            index: integer, The index of the first set point to locate the motor between
-
-        Returns:
-            None
-
-        """
-        desired_position = self.calc_position_between_two_setpoints(index)
-        self.ca.set_pv_value(MOTOR, desired_position)
-        self.ca.assert_that_pv_is_number(MOTOR, desired_position, tolerance=TOLERANCE)
-
     # Closest positions defined in ticket 3623
     @parameterized.expand([
         ("Aperture_large",  0, 1),
@@ -124,15 +98,23 @@ class LoqApertureTests(unittest.TestCase):
         ("Stop_01",         1, 1),
         ("Aperture_medium", 2, 3),
         ("Stop_02",         3, 3),
+        ("Aperture_small",  4, 3),
     ])
-    def test_GIVEN_motor_between_setpoint_positions_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, _, start_index, closest_stop):
+    def test_GIVEN_motor_off_setpoint_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, _, start_index, closest_stop):
         # GIVEN
-        self.move_motor_between_two_setpoints(start_index)
+        # Move 25 per cent forwards and backwards off centre of setpoint
+        for fraction_moved_off_setpoint in [0.25, -0.25]:
+            initial_position = MOTION_SETPOINT.values()[start_index] + (fraction_moved_off_setpoint * SETPOINT_GAP)
+            self.ca.set_pv_value(MOTOR, initial_position)
+            self.ca.assert_that_pv_is_number(MOTOR, initial_position, tolerance=TOLERANCE)
 
-        # WHEN
-        self.ca.process_pv(CLOSEAPERTURE)
+            # This assertion ensures that this calc record has updated with the closest beam stop position
+            self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
 
-        # THEN
-        self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
-        self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
-        self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINT.values()[closest_stop], tolerance=TOLERANCE)
+            # WHEN
+            self.ca.process_pv(CLOSEAPERTURE)
+
+            # THEN
+            self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
+            self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
+            self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINT.values()[closest_stop], tolerance=TOLERANCE)
