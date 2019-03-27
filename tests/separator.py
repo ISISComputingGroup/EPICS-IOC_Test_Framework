@@ -343,7 +343,7 @@ class VoltageTests(unittest.TestCase):
 class CurrentTests(unittest.TestCase):
     # These current testing values are uncalibrated values from the DAQ lying between 0 and 10.
     current_values = [0, 1.33333, 5e1, 10e-3, 10]
-    current_values_which_give_alarms = [-2, 0, 10, 11]
+    current_values_which_give_alarms = [10, 11]
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
