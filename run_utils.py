@@ -71,7 +71,7 @@ class ModuleTests(object):
         return self.__file
 
     def __get_file_reference(self):
-        module = load_module("tests.{}".format(self.__name))
+        module = load_module("system_tests.{}".format(self.__name))
         return module
 
     def __get_modes(self):
