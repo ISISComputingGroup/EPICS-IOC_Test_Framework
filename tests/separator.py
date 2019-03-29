@@ -412,13 +412,12 @@ class StabilityTests(unittest.TestCase):
 
         return voltage_instability
 
-    def get_out_of_range_samples(self, current_values, voltage_values, filter_stride_len=0):
+    def get_out_of_range_samples(self, current_values, voltage_values):
         """
         Calculates the number of points which lie out of stability limits for a current and voltage dataset.
         Args:
             current_values: Array of input current values
             voltage_values: Array of input voltage values
-            filter_stride_len: Integer, stride length used if filtering is applied to an input array
 
         Returns:
             out_of_range_count: Integer, the number of samples in the dataset which are out of range
@@ -429,9 +428,6 @@ class StabilityTests(unittest.TestCase):
         voltage_instability = self.evaluate_voltage_instability(voltage_values)
 
         overall_instability = [curr or volt for curr, volt in zip(current_instability, voltage_instability)]
-
-        # Filtering removes stride_len elements from end of array
-        overall_instability = overall_instability[:len(voltage_instability)-filter_stride_len]
 
         out_of_range_count = sum(overall_instability)
 
@@ -471,8 +467,7 @@ class StabilityTests(unittest.TestCase):
 
         averaged_volt_data = apply_average_filter(volt_data, stride=STRIDE_LENGTH)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data,
-                                                                      filter_stride_len=STRIDE_LENGTH)
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data)
 
         self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
@@ -541,8 +536,7 @@ class StabilityTests(unittest.TestCase):
 
         averaged_volt_data = apply_average_filter(DAQ_DATA, stride=STRIDE_LENGTH)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA, averaged_volt_data,
-                                                                      filter_stride_len=STRIDE_LENGTH)
+        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA, averaged_volt_data)
 
         expected_out_of_range_samples *= number_of_writes * SAMPLETIME
 
