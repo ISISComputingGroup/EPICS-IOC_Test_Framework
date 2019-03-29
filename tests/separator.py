@@ -431,7 +431,7 @@ class StabilityTests(unittest.TestCase):
         overall_instability = [curr or volt for curr, volt in zip(current_instability, voltage_instability)]
 
         # Filtering removes stride_len elements from end of array
-        overall_instability = overall_instability[:-filter_stride_len]
+        overall_instability = overall_instability[:len(voltage_instability)-filter_stride_len]
 
         out_of_range_count = sum(overall_instability)
 
@@ -469,7 +469,9 @@ class StabilityTests(unittest.TestCase):
         self.write_simulated_current(curr_data)
         self.write_simulated_voltage(volt_data)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, apply_average_filter(volt_data),
+        averaged_volt_data = apply_average_filter(volt_data, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data,
                                                                       filter_stride_len=STRIDE_LENGTH)
 
         self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples,
@@ -537,13 +539,17 @@ class StabilityTests(unittest.TestCase):
     def test_GIVEN_buffer_with_data_WHEN_resetwindow_PV_processed_THEN_buffer_is_cleared(self):
         number_of_writes = 50
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA,
-                                                                      VOLTAGE_DATA) * number_of_writes * SAMPLETIME
+        averaged_volt_data = apply_average_filter(DAQ_DATA, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA, averaged_volt_data,
+                                                                      filter_stride_len=STRIDE_LENGTH)
+
+        expected_out_of_range_samples *= number_of_writes * SAMPLETIME
 
         # GIVEN
         for i in range(number_of_writes):
             self.write_simulated_current(CURRENT_DATA)
-            self.write_simulated_voltage(VOLTAGE_DATA)
+            self.write_simulated_voltage(DAQ_DATA)
 
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples)
 
