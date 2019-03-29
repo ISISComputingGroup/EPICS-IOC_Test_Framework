@@ -22,12 +22,6 @@ DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
 
 MARGIN_OF_ERROR = 1e-5
 
-# Voltage and current stability limits
-VOLT_STEADY = 0.5*MAX_SEPARATOR_VOLT
-
-CURR_STEADY = 0.5*MAX_SEPARATOR_CURR
-CURR_LIMIT = MAX_SEPARATOR_CURR
-
 SAMPLE_LEN = 100
 SAMPLETIME = 1.0/float(SAMPLE_LEN)
 
@@ -52,6 +46,12 @@ DAQ_DATA = dot(DAQ_DATA, 1.0 / DAQ_VOLT_WRITE_SCALE_FACTOR)
 # Set tight voltage stability limits around the data acquired from the DAQ
 VOLT_UPPERLIM = 0.999*max(DAQ_DATA)
 VOLT_LOWERLIM = 1.001*min(DAQ_DATA)
+
+# Voltage and current stability limits
+VOLT_STEADY = 0.5*(VOLT_UPPERLIM + VOLT_LOWERLIM)
+
+CURR_STEADY = 0.5*MAX_SEPARATOR_CURR
+CURR_LIMIT = MAX_SEPARATOR_CURR
 
 STRIDE_LENGTH = 1
 
@@ -104,9 +104,6 @@ def current_set_up(ca):
 
 def stability_set_up(ca):
     """ Sets up the PVs for the separator stability tests """
-    ca.set_pv_value("STABILITY", 0.0)
-    ca.assert_that_pv_is_number("STABILITY", 0.0, tolerance=1e-3)
-
     ca.set_pv_value("WINDOWSIZE", BUFFER_LEN)
     ca.assert_that_pv_is_number("WINDOWSIZE", BUFFER_LEN, tolerance=1e-3)
 
@@ -114,8 +111,6 @@ def stability_set_up(ca):
     ca.assert_that_pv_is_number("_ADDCOUNTS", 0.0, tolerance=1e-3)
 
     ca.set_pv_value("RESETWINDOW", 1)
-
-    ca.assert_that_pv_is_number("UNSTABLETIME", 0.0)
 
     ca.set_pv_value("SAMPLETIME", SAMPLETIME)
     ca.assert_that_pv_is_number("SAMPLETIME", SAMPLETIME)
@@ -131,6 +126,10 @@ def stability_set_up(ca):
 
     ca.set_pv_value("THRESHOLD", 0.5)
     ca.assert_that_pv_is_number("THRESHOLD", 0.5, tolerance=1e-3)
+
+    ca.assert_that_pv_is_number("UNSTABLETIME", 0.0)
+
+    ca.assert_that_pv_is_number("STABILITY", 1.0, tolerance=1e-3)
 
 
 def shared_setup(ca):
@@ -413,12 +412,13 @@ class StabilityTests(unittest.TestCase):
 
         return voltage_instability
 
-    def get_out_of_range_samples(self, current_values, voltage_values):
+    def get_out_of_range_samples(self, current_values, voltage_values, filter_stride_len=0):
         """
         Calculates the number of points which lie out of stability limits for a current and voltage dataset.
         Args:
             current_values: Array of input current values
             voltage_values: Array of input voltage values
+            filter_stride_len: Integer, stride length used if filtering is applied to an input array
 
         Returns:
             out_of_range_count: Integer, the number of samples in the dataset which are out of range
@@ -429,6 +429,9 @@ class StabilityTests(unittest.TestCase):
         voltage_instability = self.evaluate_voltage_instability(voltage_values)
 
         overall_instability = [curr or volt for curr, volt in zip(current_instability, voltage_instability)]
+
+        # Filtering removes stride_len elements from end of array
+        overall_instability = overall_instability[:-filter_stride_len]
 
         out_of_range_count = sum(overall_instability)
 
@@ -466,7 +469,8 @@ class StabilityTests(unittest.TestCase):
         self.write_simulated_current(curr_data)
         self.write_simulated_voltage(volt_data)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data)
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, apply_average_filter(volt_data),
+                                                                      filter_stride_len=STRIDE_LENGTH)
 
         self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
@@ -526,7 +530,7 @@ class StabilityTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples * SAMPLETIME,
-                                         timeout=60.0, tolerance=10.0*SAMPLETIME)
+                                         timeout=60.0, tolerance=0.1*SAMPLETIME)
 
         self.STOP_DATA_THREAD.set()
 
