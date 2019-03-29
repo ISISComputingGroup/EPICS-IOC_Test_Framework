@@ -472,16 +472,6 @@ class StabilityTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples,
                                          tolerance=0.05*expected_out_of_range_samples)
 
-    def test_GIVEN_noisy_voltage_data_WHEN_moving_average_is_applied_THEN_only_true_data_spikes_show_as_unstable(self):
-        curr_data = [CURR_STEADY]*SAMPLE_LEN
-        self.write_simulated_current(curr_data)
-        self.write_simulated_voltage(DAQ_DATA)
-
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, apply_average_filter(DAQ_DATA))
-
-        self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples + STRIDE_LENGTH,
-                                         tolerance=0.05*expected_out_of_range_samples)
-
     def test_GIVEN_noisy_voltage_data_WHEN_moving_average_is_applied_THEN_averaged_data_has_fewer_out_of_range_points(self):
         curr_data = [CURR_STEADY]*SAMPLE_LEN
         self.write_simulated_current(curr_data)
@@ -509,7 +499,9 @@ class StabilityTests(unittest.TestCase):
         self.ca.set_pv_value("WINDOWSIZE", length_of_buffer)
         self.ca.set_pv_value("RESETWINDOW", 1)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data) * writes_per_second
+        averaged_volt_data = apply_average_filter(volt_data, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data) * writes_per_second
 
         self.STOP_DATA_THREAD.clear()
 
