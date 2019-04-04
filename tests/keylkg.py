@@ -1,5 +1,7 @@
 import unittest
 
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -46,17 +48,33 @@ class KeylkgTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MODE", expected_value, timeout=2)
 
-    def test_GIVE_running_ioc_WHEN_set_output1_offset_THEN_output1_offset_updated(self):
-        expected_value = 0.123
+    @parameterized.expand([('low limit', -99.9999), ('test_value_1', -2.3122), ('test_value_2', 12.3423), ('high limit', 99.9999)])
+    def test_GIVE_running_ioc_WHEN_set_output1_offset_THEN_output1_offset_updated(self, _, mock_offset):
+        expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
         self.ca.assert_that_pv_is("OFFSET:OUTPUT:1", expected_value, timeout=2)
 
-    def test_GIVE_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self):
-        expected_value = -0.2323
+    @parameterized.expand([('exceeds low limit', -100.0000), ('exceeds high limit', 100.000)])
+    def test_GIVE_running_ioc_WHEN_set_output1_offset_outside_of_limits_THEN_output1_offset_within_limits(self, _, mock_offset):
+        expected_value = mock_offset
+        self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
+
+        self.ca.assert_that_pv_is_an_integer_between("OFFSET:OUTPUT:1", -99.9999, 99.9999)
+
+    @parameterized.expand([('low limit', -99.9999), ('test_value_1', -2.3122), ('test_value_2', 12.3423), ('high limit', 99.9999)])
+    def test_GIVE_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self, _, mock_offset):
+        expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:2:SP", expected_value)
 
         self.ca.assert_that_pv_is("OFFSET:OUTPUT:2", expected_value, timeout=2)
+
+    @parameterized.expand([('exceeds low limit', -100.0000), ('exceeds high limit', 100.000)])
+    def test_GIVE_running_ioc_WHEN_set_output2_offset_outside_of_limits_THEN_output2_offset_within_limits(self, _, mock_offset):
+        expected_value = mock_offset
+        self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
+
+        self.ca.assert_that_pv_is_an_integer_between("OFFSET:OUTPUT:2", -99.9999, 99.9999)
 
     def test_GIVEN_running_ioc_WHEN_change_to_head1_measurement_mode_THEN_mode_changed(self):
         expected_value = "MULTI-REFLECTIVE"
