@@ -35,7 +35,7 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 def set_up_connections(device):
-    _lewis, _ioc = get_running_lewis_and_ioc(device, device)
+    _lewis, _ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, device)
 
     _lewis.backdoor_set_on_device('connected', True)
     _lewis.backdoor_set_on_device("is_giving_errors", False)
