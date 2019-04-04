@@ -156,6 +156,19 @@ class EmulatorLauncher(object):
             Nothing.
         """
 
+    @abc.abstractmethod
+    def backdoor_run_function_on_device(self, *args, **kwargs):
+        """
+        Runs a function on an emulator via the backdoor.
+
+        Args:
+            args: arbitrary arguments
+            kwargs: arbitrary keyword arguments
+
+        Returns:
+            Nothing.
+        """
+
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout.
@@ -279,6 +292,8 @@ class NullEmulatorLauncher(EmulatorLauncher):
     def backdoor_emulator_disconnect_device(self, *args, **kwargs): pass
 
     def backdoor_emulator_connect_device(self, *args, **kwargs): pass
+
+    def backdoor_run_function_on_device(self, *args, **kwargs): pass
 
 
 class LewisLauncher(EmulatorLauncher):
@@ -498,4 +513,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
     def backdoor_emulator_connect_device(self, *args, **kwargs):
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
+
+    def backdoor_run_function_on_device(self, *args, **kwargs):
         raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
