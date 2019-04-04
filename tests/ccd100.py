@@ -18,7 +18,7 @@ IOCS = [
         "name": DEVICE_A_PREFIX,
         "directory": get_default_ioc_dir("CCD100"),
         "emulator": EMULATOR_DEVICE,
-        "emulator_id": DEVICE_A_PREFIX
+        "emulator_id": DEVICE_A_PREFIX,
     },
 
     {
@@ -26,7 +26,7 @@ IOCS = [
         "directory": get_default_ioc_dir("CCD100", iocnum=2),
         "emulator": EMULATOR_DEVICE,
         "emulator_id": DEVICE_E_PREFIX,
-        "macros": {"ADDRESS": "e"}
+        "macros": {"ADDRESS": "e"},
     },
 ]
 
@@ -35,7 +35,7 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 def set_up_connections(device):
-    _lewis, _ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, device)
+    _lewis, _ioc = get_running_lewis_and_ioc(device, device)
 
     _lewis.backdoor_set_on_device('connected', True)
     _lewis.backdoor_set_on_device("is_giving_errors", False)

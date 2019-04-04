@@ -69,18 +69,19 @@ class EmulatorLauncher(object):
             options: Dictionary of any additional options required by specific launchers
         """
         self._device = device
+        self._emulator_id = options.get("emulator_id", self._device)
         self._var_dir = var_dir
         self._port = port
         self._options = options
 
     def __enter__(self):
         self._open()
-        EmulatorRegister.add_emulator(self._get_device(), self)
+        EmulatorRegister.add_emulator(self._emulator_id, self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._close()
-        EmulatorRegister.remove_emulator(self._get_device())
+        EmulatorRegister.remove_emulator(self._emulator_id)
 
     def _get_device(self):
         return self._device
@@ -321,7 +322,6 @@ class LewisLauncher(EmulatorLauncher):
         self._lewis_additional_path = options.get("lewis_additional_path",
                                                   os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
-        self._emulator_id = options.get("emulator_id", self._device)
         self._default_timeout = options.get("default_timeout", 5)
 
         self._process = None

@@ -64,10 +64,10 @@ def make_device_launchers_from_module(test_module, mode):
 
         if "emulator" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulator_launcher_class", LewisLauncher)
-            emulator_launcher = emulator_launcher_class(ioc.get("emulator_id", ioc["emulator"]), var_dir,
+            emulator_launcher = emulator_launcher_class(ioc["emulator"], var_dir,
                                                         emmulator_port, ioc)
         elif "emulator" in ioc:
-            emulator_launcher = NullEmulatorLauncher(ioc.get("emulator_id", ioc["emulator"]), var_dir, None, {})
+            emulator_launcher = NullEmulatorLauncher(ioc["emulator"], var_dir, None, ioc)
         else:
             emulator_launcher = None
 
