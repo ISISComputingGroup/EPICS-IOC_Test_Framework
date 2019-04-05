@@ -88,17 +88,21 @@ class KeylkgTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("MEASUREMODE:HEAD:B", expected_value, timeout=2)
 
-    @skip_if_recsim('No emulation of data capture in RECSIM')
+    @skip_if_recsim('Cannot use lewis backdoor in RECSIM')
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output1_takes_data(self):
+        expected_value = 0.1234
+        self._lewis.backdoor_set_on_device("output1_raw_value", expected_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
 
-        self.ca.assert_that_pv_is_not("VALUE:OUTPUT:1", 0.0, timeout=2)
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value, timeout=2)
 
     @skip_if_recsim('No emulation of data capture in RECSIM')
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output2_takes_data(self):
+        expected_value = 0.1234
+        self._lewis.backdoor_set_on_device("output2_raw_value", expected_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
 
-        self.ca.assert_that_pv_is_not("VALUE:OUTPUT:2", 0.0, timeout=2)
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value, timeout=2)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
@@ -112,3 +116,39 @@ class KeylkgTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device('input_correct', False)
 
         self.ca.assert_that_pv_is_not("ERROR:STR", expected_value)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_output1_THEN_output1_reset(self):
+        expected_value = 0.0000
+        test_value = 0.1234
+        self._lewis.backdoor_set_on_device("output1_raw_value", test_value)
+        self.ca.set_pv_value("MODE:SP", "MEASURE")
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", test_value, timeout=2)
+        self.ca.set_pv_value("RESET:OUTPUT:1:SP", "RESET")
+
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value, timeout=2)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_output2_THEN_output2_reset(self):
+        expected_value = 0.0000
+        test_value = 0.1234
+        self._lewis.backdoor_set_on_device("output2_raw_value", test_value)
+        self.ca.set_pv_value("MODE:SP", "MEASURE")
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:2", test_value, timeout=2)
+        self.ca.set_pv_value("RESET:OUTPUT:2:SP", "RESET")
+
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value, timeout=2)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_both_outputs_THEN_both_outputs_reset(self):
+        expected_value = 0.0000
+        test_value = 0.1234
+        self._lewis.backdoor_set_on_device("output1_raw_value", test_value)
+        self._lewis.backdoor_set_on_device("output2_raw_value", test_value)
+        self.ca.set_pv_value("MODE:SP", "MEASURE")
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", test_value, timeout=2)
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:2", test_value, timeout=2)
+        self.ca.set_pv_value("RESET:OUTPUT:BOTH:SP", "RESET")
+
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value, timeout=2)
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value, timeout=2)
