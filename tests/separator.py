@@ -22,12 +22,6 @@ DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
 
 MARGIN_OF_ERROR = 1e-5
 
-# Voltage and current stability limits
-VOLT_STEADY = 0.5*MAX_SEPARATOR_VOLT
-
-CURR_STEADY = 0.5*MAX_SEPARATOR_CURR
-CURR_LIMIT = MAX_SEPARATOR_CURR
-
 SAMPLE_LEN = 100
 SAMPLETIME = 1.0/float(SAMPLE_LEN)
 
@@ -52,6 +46,12 @@ DAQ_DATA = dot(DAQ_DATA, 1.0 / DAQ_VOLT_WRITE_SCALE_FACTOR)
 # Set tight voltage stability limits around the data acquired from the DAQ
 VOLT_UPPERLIM = 0.999*max(DAQ_DATA)
 VOLT_LOWERLIM = 1.001*min(DAQ_DATA)
+
+# Voltage and current stability limits
+VOLT_STEADY = 0.5*(VOLT_UPPERLIM + VOLT_LOWERLIM)
+
+CURR_STEADY = 0.5*MAX_SEPARATOR_CURR
+CURR_LIMIT = MAX_SEPARATOR_CURR
 
 STRIDE_LENGTH = 1
 
@@ -104,9 +104,6 @@ def current_set_up(ca):
 
 def stability_set_up(ca):
     """ Sets up the PVs for the separator stability tests """
-    ca.set_pv_value("STABILITY", 0.0)
-    ca.assert_that_pv_is_number("STABILITY", 0.0, tolerance=1e-3)
-
     ca.set_pv_value("WINDOWSIZE", BUFFER_LEN)
     ca.assert_that_pv_is_number("WINDOWSIZE", BUFFER_LEN, tolerance=1e-3)
 
@@ -114,8 +111,6 @@ def stability_set_up(ca):
     ca.assert_that_pv_is_number("_ADDCOUNTS", 0.0, tolerance=1e-3)
 
     ca.set_pv_value("RESETWINDOW", 1)
-
-    ca.assert_that_pv_is_number("UNSTABLETIME", 0.0)
 
     ca.set_pv_value("SAMPLETIME", SAMPLETIME)
     ca.assert_that_pv_is_number("SAMPLETIME", SAMPLETIME)
@@ -131,6 +126,10 @@ def stability_set_up(ca):
 
     ca.set_pv_value("THRESHOLD", 0.5)
     ca.assert_that_pv_is_number("THRESHOLD", 0.5, tolerance=1e-3)
+
+    ca.assert_that_pv_is_number("UNSTABLETIME", 0.0)
+
+    ca.assert_that_pv_is_number("STABILITY", 1.0, tolerance=1e-3)
 
 
 def shared_setup(ca):
@@ -460,25 +459,17 @@ class StabilityTests(unittest.TestCase):
 
         ("unsteady_current_steady_voltage", CURRENT_DATA, [VOLT_STEADY] * SAMPLE_LEN),
 
-        ("unsteady_current_and_voltage", simulate_current_data(), simulate_voltage_data())
+        ("unsteady_current_and_voltage", CURRENT_DATA, VOLTAGE_DATA)
     ])
     def test_GIVEN_current_and_voltage_data_WHEN_limits_are_tested_THEN_number_of_samples_out_of_range_returned(self, _, curr_data, volt_data):
         self.write_simulated_current(curr_data)
         self.write_simulated_voltage(volt_data)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data)
+        averaged_volt_data = apply_average_filter(volt_data, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data)
 
         self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples,
-                                         tolerance=0.05*expected_out_of_range_samples)
-
-    def test_GIVEN_noisy_voltage_data_WHEN_moving_average_is_applied_THEN_only_true_data_spikes_show_as_unstable(self):
-        curr_data = [CURR_STEADY]*SAMPLE_LEN
-        self.write_simulated_current(curr_data)
-        self.write_simulated_voltage(DAQ_DATA)
-
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, apply_average_filter(DAQ_DATA))
-
-        self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples + STRIDE_LENGTH,
                                          tolerance=0.05*expected_out_of_range_samples)
 
     def test_GIVEN_noisy_voltage_data_WHEN_moving_average_is_applied_THEN_averaged_data_has_fewer_out_of_range_points(self):
@@ -508,7 +499,9 @@ class StabilityTests(unittest.TestCase):
         self.ca.set_pv_value("WINDOWSIZE", length_of_buffer)
         self.ca.set_pv_value("RESETWINDOW", 1)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data) * writes_per_second
+        averaged_volt_data = apply_average_filter(volt_data, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data) * writes_per_second
 
         self.STOP_DATA_THREAD.clear()
 
@@ -526,20 +519,23 @@ class StabilityTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples * SAMPLETIME,
-                                         timeout=60.0, tolerance=10.0*SAMPLETIME)
+                                         timeout=60.0, tolerance=0.1*SAMPLETIME)
 
         self.STOP_DATA_THREAD.set()
 
     def test_GIVEN_buffer_with_data_WHEN_resetwindow_PV_processed_THEN_buffer_is_cleared(self):
         number_of_writes = 50
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA,
-                                                                      VOLTAGE_DATA) * number_of_writes * SAMPLETIME
+        averaged_volt_data = apply_average_filter(DAQ_DATA, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA, averaged_volt_data)
+
+        expected_out_of_range_samples *= number_of_writes * SAMPLETIME
 
         # GIVEN
         for i in range(number_of_writes):
             self.write_simulated_current(CURRENT_DATA)
-            self.write_simulated_voltage(VOLTAGE_DATA)
+            self.write_simulated_voltage(DAQ_DATA)
 
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples)
 
@@ -595,7 +591,7 @@ class StabilityTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples,
-                                         tolerance=0.05*expected_out_of_range_samples)
+                                         tolerance=0.025*expected_out_of_range_samples)
 
     def test_GIVEN_power_supply_switched_on_WHEN_power_supply_out_of_stability_threshold_THEN_stability_PV_equals_zero_and_goes_into_alarm(self):
         # GIVEN
