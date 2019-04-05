@@ -459,7 +459,7 @@ class StabilityTests(unittest.TestCase):
 
         ("unsteady_current_steady_voltage", CURRENT_DATA, [VOLT_STEADY] * SAMPLE_LEN),
 
-        ("unsteady_current_and_voltage", simulate_current_data(), simulate_voltage_data())
+        ("unsteady_current_and_voltage", CURRENT_DATA, VOLTAGE_DATA)
     ])
     def test_GIVEN_current_and_voltage_data_WHEN_limits_are_tested_THEN_number_of_samples_out_of_range_returned(self, _, curr_data, volt_data):
         self.write_simulated_current(curr_data)
@@ -591,7 +591,7 @@ class StabilityTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples,
-                                         tolerance=0.05*expected_out_of_range_samples)
+                                         tolerance=0.025*expected_out_of_range_samples)
 
     def test_GIVEN_power_supply_switched_on_WHEN_power_supply_out_of_stability_threshold_THEN_stability_PV_equals_zero_and_goes_into_alarm(self):
         # GIVEN
