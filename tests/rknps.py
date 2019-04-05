@@ -99,7 +99,7 @@ class RknpsTests(unittest.TestCase):
     def test_WHEN_interlocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
         for IDN in IDS:
-            self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "Interlock")
+            self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "Tripped")
 
     def test_WHEN_interlocks_are_inactive_THEN_ilk_is_not_Interlocked(self):
         self._disable_interlocks()
