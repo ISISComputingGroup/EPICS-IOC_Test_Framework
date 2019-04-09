@@ -391,9 +391,17 @@ class IocLauncher(BaseLauncher):
                     if loop_count % 100 == 99:
                         print("   waited {}".format(loop_count*wait_per_loop))
             else:
-                print("IOC process did not die after {} seconds. Continuing anyway but next set of tests may fail."
-                      .format(max_wait_for_ioc_to_die))
+                print("IOC process did not die after {} seconds after killing with `exit` in iocsh. "
+                      "Killing process and waiting another {} seconds"
+                      .format(max_wait_for_ioc_to_die, max_wait_for_ioc_to_die))
                 self._process.kill()
+                sleep(max_wait_for_ioc_to_die)
+                try:
+                    self._get_channel_access().assert_that_pv_does_not_exist(self._pv_for_existence)
+                    print("After killing process forcibly and waiting, IOC died correctly.")
+                except AssertionError:
+                    print("After killing process forcibly and waiting, IOC was still up. Will continue anyway, but "
+                          "the next set of tests to use this IOC are likely to fail")
 
         self._print_log_file_location()
 
