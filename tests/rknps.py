@@ -49,13 +49,12 @@ IOCS = [
     },
 ]
 
-#TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
-TEST_MODES = [TestModes.DEVSIM, ]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 INTERLOCKS = ("TRANS",
               "DCOC",
-              "DCOLOAD",
+              "DCOL",
               "REGMOD",
               "PREREG",
               "PHAS",
@@ -254,7 +253,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{}:RB4:POWER:SP".format(PREFIX), powered_on)
             self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
-    
+
     def test_GIVEN_an_interlock_WHEN_interlock_trips_THEN_readback_for_that_interlock_updates(self):
         pass
 
@@ -266,13 +265,14 @@ class RknpsTests(unittest.TestCase):
     def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("VOLT")
 
-    
     @parameterized.expand(INTERLOCKS)
     @skip_if_recsim("Test requires emulator to change interlock state")
     def test_GIVEN_interlock_status_WHEN_read_all_status_THEN_status_is_as_expected(self, interlock):
         for boolean_value, expected_value in TRIPPED_OK.items():
             for IDN, ADDR in zip(IDS, PSU_ADDRESSES):
-                self._lewis.backdoor_run_function_on_device("set_{}".format(interlock), (boolean_value, ADDR))
+                # GIVEN
+                self._lewis.backdoor_run_function_on_device("set_{0}".format(interlock), (boolean_value, ADDR))
 
-                self.ca.assert_that_pv_is("{}:{}:ILK:{}".format(PREFIX, IDN, interlock), expected_value)
-                self.ca.assert_that_pv_alarm_is("{}:{}:ILK:{}".format(PREFIX, IDN, interlock), self.ca.Alarms.NONE)
+                # THEN
+                self.ca.assert_that_pv_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), expected_value)
+                self.ca.assert_that_pv_alarm_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), self.ca.Alarms.NONE)
