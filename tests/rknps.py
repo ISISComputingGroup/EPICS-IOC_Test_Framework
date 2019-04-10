@@ -2,11 +2,12 @@ import unittest
 from time import sleep
 
 from unittest import skip
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
+from utils.testing import parameterized_list, get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
 
 # Prefix for addressing PVs on this device
 PREFIX = "RKNPS_01"
@@ -25,6 +26,7 @@ ID4 = "RB4"
 CLEAR_STATUS = "."*24
 IDS = [ID1, ID2, ID3, ID4]
 
+PSU_ADDRESSES = [ADR1, ADR2, ADR3, ADR4]
 
 IOCS = [
     {
@@ -47,7 +49,26 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+#TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, ]
+
+
+INTERLOCKS = ("TRANS",
+              "DCOC",
+              "DCOLOAD",
+              "REGMOD",
+              "PREREG",
+              "PHAS",
+              "MPSWATER",
+              "EARTHLEAK",
+              "THERMAL",
+              "MPSTEMP",
+              "DOOR",
+              "MAGWATER",
+              "MAGTEMP",
+              "MPSREADY")
+
+TRIPPED_OK = {True: "Tripped", False: "OK"}
 
 
 class RknpsTests(unittest.TestCase):
@@ -59,7 +80,7 @@ class RknpsTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
         self.ca = ChannelAccess(default_timeout=30)
-        self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID1), timeout=30)
+        self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID3), timeout=30)
         self._lewis.backdoor_set_on_device("connected", True)
 
     def _pv_alarms_when_disconnected(self, pv):
@@ -80,6 +101,20 @@ class RknpsTests(unittest.TestCase):
         """
         Activate both interlocks in the emulator.
         """
+        if IOCRegister.uses_rec_sim:
+            for IDN in IDS:
+                self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), ".........!..............")
+        else:
+            self._lewis.backdoor_set_on_device("set_all_interlocks", True)
+
+    def _activate_single_interlocks(self, interlock):
+        """
+        Activate one interlock in the emulator.
+
+        Args:
+            interlock: string, The name of the interlock to be set
+        """
+        
         if IOCRegister.uses_rec_sim:
             for IDN in IDS:
                 self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), ".........!..............")
@@ -220,6 +255,9 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
     
+    def test_GIVEN_an_interlock_WHEN_interlock_trips_THEN_readback_for_that_interlock_updates(self):
+        pass
+
     @skip_if_recsim("Cannot test connection in recsim")
     def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("CURR")
@@ -227,3 +265,14 @@ class RknpsTests(unittest.TestCase):
     @skip_if_recsim("Cannot test connection in recsim")
     def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("VOLT")
+
+    
+    @parameterized.expand(INTERLOCKS)
+    @skip_if_recsim("Test requires emulator to change interlock state")
+    def test_GIVEN_interlock_status_WHEN_read_all_status_THEN_status_is_as_expected(self, interlock):
+        for boolean_value, expected_value in TRIPPED_OK.items():
+            for IDN, ADDR in zip(IDS, PSU_ADDRESSES):
+                self._lewis.backdoor_run_function_on_device("set_{}".format(interlock), (boolean_value, ADDR))
+
+                self.ca.assert_that_pv_is("{}:{}:ILK:{}".format(PREFIX, IDN, interlock), expected_value)
+                self.ca.assert_that_pv_alarm_is("{}:{}:ILK:{}".format(PREFIX, IDN, interlock), self.ca.Alarms.NONE)
