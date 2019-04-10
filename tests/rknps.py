@@ -100,11 +100,7 @@ class RknpsTests(unittest.TestCase):
         """
         Activate both interlocks in the emulator.
         """
-        if IOCRegister.uses_rec_sim:
-            for IDN in IDS:
-                self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), ".........!..............")
-        else:
-            self._lewis.backdoor_set_on_device("set_all_interlocks", True)
+        self._lewis.backdoor_set_on_device("set_all_interlocks", True)
 
     def _activate_single_interlocks(self, interlock):
         """
@@ -130,11 +126,13 @@ class RknpsTests(unittest.TestCase):
         else:
             self._lewis.backdoor_set_on_device("set_all_interlocks", False)
 
+    @skip_if_recsim("Interlock statuses now depend on emulator")
     def test_WHEN_interlocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "Tripped")
 
+    @skip_if_recsim("Interlock statuses now depend on emulator")
     def test_WHEN_interlocks_are_inactive_THEN_ilk_is_not_Interlocked(self):
         self._disable_interlocks()
         for IDN in IDS:
@@ -236,6 +234,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), return_value)
             self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), return_value)
 
+    @skip_if_recsim("Power updates through protocol redirection")
     def test_GIVEN_rb3_status_changes_THEN_rb3_banner_pv_updates_correctly(self):
         if "RB3" not in IDS:
             self.fail("Didn't find RB3 for test.")
@@ -245,6 +244,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{}:RB3:BANNER".format(PREFIX),
                                       "on; beam to ports 1,2" if powered_on else "off; ports 1,2 safe")
 
+    @skip_if_recsim("Power updates through protocol redirection")
     def test_GIVEN_rb4_status_changes_THEN_rb4_banner_pv_updates_correctly(self):
         if "RB4" not in IDS:
             self.fail("Didn't find RB4 for test.")
@@ -253,9 +253,6 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{}:RB4:POWER:SP".format(PREFIX), powered_on)
             self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
-
-    def test_GIVEN_an_interlock_WHEN_interlock_trips_THEN_readback_for_that_interlock_updates(self):
-        pass
 
     @skip_if_recsim("Cannot test connection in recsim")
     def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
