@@ -23,7 +23,7 @@ IOCS = [
         },
     },
     {
-        "LAUNCHER": PythonIOCLauncher,
+        "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
         "directory": REFL_PATH,
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
@@ -152,3 +152,19 @@ class ReflTests(unittest.TestCase):
         with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_value), \
              self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
                 self.ca.set_pv_value("BL:MODE:SP", expected_value)
+
+    def test_GIVEN_new_parameter_setpoint_WHEN_triggering_move_THEN_SP_is_only_set_on_motor_when_difference_above_motor_resolution(self):
+        target_mres = 0.001
+        pos_above_res = 0.01
+        pos_below_res = pos_above_res + 0.0001
+        self.ca_galil.set_pv_value("MTR0101.MRES", target_mres)
+
+        with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
+             self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+
+            self.ca.set_pv_value("PARAM:S1:SP", pos_above_res)
+
+        with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
+             self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+
+            self.ca.set_pv_value("PARAM:S1:SP", pos_below_res)
