@@ -270,11 +270,3 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{}:DAQ:R02:DATA".format(PREFIX), pair[0])
             self.ca.set_pv_value("{}:DAQ:R03:DATA".format(PREFIX), pair[1])
             self.ca.assert_that_pv_alarm_is("{}:PORT3_4".format(PREFIX), ChannelAccess.Alarms.MAJOR)
-
-    @skip_if_devsim("DAQ does not exist in devsim")
-    def test_GIVEN_invalid_input_THEN_alarms_correct(self):
-        invalid_input = (2, 3)
-
-        self.ca.set_pv_value("{}:DAQ:R04:DATA".format(PREFIX), invalid_input[0])
-        self.ca.set_pv_value("{}:DAQ:R05:DATA".format(PREFIX), invalid_input[1])
-        self.ca.assert_that_pv_alarm_is("{}:RB2:MODE".format(PREFIX), ChannelAccess.Alarms.MAJOR)
