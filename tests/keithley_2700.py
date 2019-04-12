@@ -6,6 +6,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
+# NOTE all magic number test values are taken from historical data extracted from the Keithely via the VI
 
 DEVICE_PREFIX = "KHLY2700_01"
 
@@ -299,6 +300,14 @@ class ChannelTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("IDN")
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
+
+    def test_GIVEN_valid_read_THEN_value_converted_correctly(self):
+        reading = "+1392.35,+4000,101"
+        expected_temp = 46.4563
+
+        _insert_reading(self, [reading])
+        self.ca.assert_that_pv_is_number("CHNL:101:TEMP:RAW", expected_temp, TEMP_TOLERANCE)
+
 
     @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_reading_inserted_THEN_channel_PVs_get_correct_values(self):
