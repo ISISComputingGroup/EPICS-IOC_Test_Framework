@@ -301,6 +301,7 @@ class ChannelTests(unittest.TestCase):
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
 
+    @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_valid_read_THEN_value_converted_correctly(self):
         reading = "+1392.35,+4000,101"
         expected_temp = 46.4563
