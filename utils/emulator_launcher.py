@@ -318,7 +318,7 @@ class LewisLauncher(EmulatorLauncher):
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
         self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
-        self._lewis_protocol = options.get("emulator_protocol", "stream")
+        self._lewis_protocol = options.get("lewis_protocol", "stream")
         self._lewis_additional_path = options.get("lewis_additional_path",
                                                   os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
