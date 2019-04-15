@@ -1,5 +1,4 @@
 import unittest
-from time import sleep
 
 from unittest import skip
 from parameterized import parameterized
@@ -273,3 +272,13 @@ class RknpsTests(unittest.TestCase):
                 # THEN
                 self.ca.assert_that_pv_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), expected_value)
                 self.ca.assert_that_pv_alarm_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), self.ca.Alarms.NONE)
+
+    @parameterized.expand(INTERLOCKS)
+    @skip_if_recsim("Test requires emulator")
+    def test_GIVEN_individual_interlock_read_WHEN_device_not_connected_THEN_interlock_PV_in_alarm(self, interlock):
+        # WHEN
+        self._lewis.backdoor_set_on_device("connected", False)
+
+        # THEN
+        for IDN, ADDR in zip(IDS, PSU_ADDRESSES):
+            self.ca.assert_that_pv_alarm_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), self.ca.Alarms.INVALID)
