@@ -9,21 +9,27 @@ from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
+DET_INIT_OFFSET = 5.0
+DET_INIT_OFFSET_AUTOSAVE = 1.0
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
 IOCS = [
     {
         "name": GALIL_PREFIX,
+        "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "AXIS1",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
         },
+        "inits": {
+            "MTR0105.VAL": DET_INIT_OFFSET
+        }
     },
     {
-        "LAUNCHER": PythonIOCLauncher,
+        "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
         "directory": REFL_PATH,
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
@@ -48,6 +54,7 @@ SPACING = 2
 # This is the position if s3 is out of the beam relative to straight through beam
 OUT_POSITION = -5
 
+
 class ReflTests(unittest.TestCase):
     """
     Tests for reflectometry server
@@ -64,8 +71,8 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
         self.ca.set_pv_value("PARAM:S3_ENABLED:SP", "IN")
-        self.ca.set_pv_value("BL:MOVE", 1)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
+        self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
 
     def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
@@ -152,3 +159,13 @@ class ReflTests(unittest.TestCase):
         with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_value), \
              self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
                 self.ca.set_pv_value("BL:MODE:SP", expected_value)
+
+    def test_GIVEN_theta_init_to_non_zero_and_det_pos_not_autosaved_WHEN_initialising_det_pos_THEN_det_pos_sp_is_initialised_to_rbv_minus_offset_from_theta(self):
+        expected_value = DET_INIT_OFFSET - SPACING  # angle between theta component and detector is 45 deg
+
+        self.ca.assert_that_pv_is_number("PARAM:INIT:SP:RBV", expected_value)
+
+    def test_GIVEN_theta_is_non_zero_and_param_is_autosaved_WHEN_initialising_detector_height_param_THEN_param_sp_is_initialised_to_autosave_value(self):
+        expected_value = DET_INIT_OFFSET_AUTOSAVE
+
+        self.ca.assert_that_pv_is_number("PARAM:INIT_AUTO:SP:RBV", expected_value)
