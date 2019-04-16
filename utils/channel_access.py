@@ -387,7 +387,7 @@ class ChannelAccess(object):
              UnableToConnectToPVException: if pv does not exist within timeout
         """
         def _condition(val):
-            return min_value <= val <= max_value
+            return min_value <= float(val) <= max_value
 
         message = "Expected PV value to between {} and {}".format(min_value, max_value)
         return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, timeout, message)
