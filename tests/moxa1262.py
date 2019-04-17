@@ -32,7 +32,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MOXA12XX"),
         "emulator": "moxa12xx",
-        "emulator_protocol": "MOXA_1262",
+        "lewis_protocol": "MOXA_1262",
         "macros": macros
     },
 ]
