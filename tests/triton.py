@@ -66,6 +66,7 @@ class TritonTests(unittest.TestCase):
         for value in TEMPERATURE_TEST_VALUES:
             self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
 
+    @skip_if_recsim("This is implemented at the protocol level, so does not work in recsim")
     def test_WHEN_temperature_setpoint_is_set_THEN_closed_loop_turned_on_automatically(self):
         for value in TEMPERATURE_TEST_VALUES:
             self.ca.set_pv_value("CLOSEDLOOP:SP", "Off")
