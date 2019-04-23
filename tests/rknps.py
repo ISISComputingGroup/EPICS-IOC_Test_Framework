@@ -146,19 +146,6 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(0, "{0}:{1}:POWER".format(PREFIX, IDN),
                                                           "{0}:{1}:POWER:SP".format(PREFIX, IDN), "Off")
 
-    @skip("In dev sim this test fails as the status is maintained by the emulator. In recsim it is hard to implement.")
-    def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback("........................", "{0}:{1}:POWER".format(PREFIX, IDN),
-                                                          "{0}:{1}:SIM:_READILKS".format(PREFIX, IDN), "On")
-
-    @skip_if_devsim("In dev sim this test fails as the status is maintained by the emulator")
-    def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_off_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback("!.......................",
-                                                          "{0}:{1}:POWER".format(PREFIX, IDN),
-                                                          "{0}:{1}:SIM:_READILKS".format(PREFIX, IDN), "Off")
-
     def test_WHEN_polarity_is_positive_THEN_value_is_as_expected(self):
         for IDN in IDS:
             self.ca.assert_setting_setpoint_sets_readback(0, "{0}:{1}:POL".format(PREFIX, IDN),
