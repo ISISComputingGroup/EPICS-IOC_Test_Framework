@@ -78,8 +78,10 @@ class RknpsTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
         self.ca = ChannelAccess(default_timeout=30)
-        self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID3), timeout=30)
         self._lewis.backdoor_set_on_device("connected", True)
+
+        for ID in IDS:
+            self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID), timeout=30)
 
     def _pv_alarms_when_disconnected(self, pv):
         """
@@ -100,20 +102,6 @@ class RknpsTests(unittest.TestCase):
         Activate both interlocks in the emulator.
         """
         self._lewis.backdoor_set_on_device("set_all_interlocks", True)
-
-    def _activate_single_interlocks(self, interlock):
-        """
-        Activate one interlock in the emulator.
-
-        Args:
-            interlock: string, The name of the interlock to be set
-        """
-        
-        if IOCRegister.uses_rec_sim:
-            for IDN in IDS:
-                self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), ".........!..............")
-        else:
-            self._lewis.backdoor_set_on_device("set_all_interlocks", True)
 
     def _disable_interlocks(self):
         """
@@ -162,14 +150,14 @@ class RknpsTests(unittest.TestCase):
     def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
         for IDN in IDS:
             self.ca.assert_setting_setpoint_sets_readback("........................", "{0}:{1}:POWER".format(PREFIX, IDN),
-                                                          "{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "On")
+                                                          "{0}:{1}:SIM:_READILKS".format(PREFIX, IDN), "On")
 
     @skip_if_devsim("In dev sim this test fails as the status is maintained by the emulator")
     def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_off_THEN_value_is_as_expected(self):
         for IDN in IDS:
             self.ca.assert_setting_setpoint_sets_readback("!.......................",
                                                           "{0}:{1}:POWER".format(PREFIX, IDN),
-                                                          "{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "Off")
+                                                          "{0}:{1}:SIM:_READILKS".format(PREFIX, IDN), "Off")
 
     def test_WHEN_polarity_is_positive_THEN_value_is_as_expected(self):
         for IDN in IDS:
