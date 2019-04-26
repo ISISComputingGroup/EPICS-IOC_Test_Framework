@@ -17,6 +17,13 @@ IOCS = [
 ]
 
 
+# Can only be set in multiples of 10
+VALID_FREQUENCIES = [20, 140, 280, 0]
+
+VALID_PHASE_DELAYS = [0.0, 0.01, 123.45, 999.99]
+
+
+# Devsim for this device is not a usual lewis emulator but puts the actual IOC into a sort of simulation mode.
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
@@ -28,23 +35,15 @@ class AstriumTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_WHEN_phase_set_to_10_p_5_THEN_phase_readback_is_10_p_5(self):
-        expected_phase = 10.5
-        self.ca.set_pv_value("CH1:PHASE:SP", expected_phase)
-        self.ca.assert_that_pv_is("CH1:PHASE", expected_phase)
-
-    # Can only be set in values of 10
-    @parameterized.expand(
-        parameterized_list([
-            20,
-            140,
-            280,
-            0
-        ])
-    )
+    @parameterized.expand(parameterized_list(VALID_FREQUENCIES))
     def test_that_WHEN_setting_the_frequency_setpoint_THEN_it_is_set(self, _, value):
         self.ca.set_pv_value("CH1:FREQ:SP", value)
         self.ca.assert_that_pv_is("CH1:FREQ", value)
+
+    @parameterized.expand(parameterized_list(VALID_PHASE_DELAYS))
+    def test_that_WHEN_setting_the_phase_setpoint_THEN_it_is_set(self, _, value):
+        self.ca.set_pv_value("CH1:PHASE:SP", value)
+        self.ca.assert_that_pv_is("CH1:PHASE", value)
 
     def test_WHEN_frequency_set_to_180_THEN_actual_setpoint_not_updated(self):
         sent_frequency = 180
