@@ -33,7 +33,7 @@ class AstriumTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
 
     @parameterized.expand(parameterized_list(VALID_FREQUENCIES))
     def test_that_WHEN_setting_the_frequency_setpoint_THEN_it_is_set(self, _, value):
@@ -44,6 +44,32 @@ class AstriumTests(unittest.TestCase):
     def test_that_WHEN_setting_the_phase_setpoint_THEN_it_is_set(self, _, value):
         self.ca.set_pv_value("CH1:PHASE:SP", value)
         self.ca.assert_that_pv_is("CH1:PHASE", value)
+
+    @parameterized.expand(parameterized_list(VALID_PHASE_DELAYS))
+    @skip_if_recsim("Behaviour of phase readback not implemented in recsim")
+    def test_that_WHEN_setting_the_phase_setpoint_and_then_speed_THEN_phases_to_the_correct_place(self, _, value):
+        """
+        This test simulates the bug in https://github.com/ISISComputingGroup/IBEX/issues/4123
+        """
+
+        # Arrange - set initial speed and phase
+        old_speed = 10
+        self.ca.set_pv_value("CH1:FREQ:SP", old_speed)
+        self.ca.assert_that_pv_is_number("CH1:FREQ", old_speed)  # Wait for it to get there
+        self.ca.set_pv_value("CH1:PHASE:SP", value)
+        self.ca.assert_that_pv_is_number("CH1:PHASE", value)
+        self.ca.assert_that_pv_is_number("CH1:PHASE:SP:RBV", value)
+
+        # Act - set frequency
+        new_speed = 20
+        self.ca.set_pv_value("CH1:FREQ:SP", new_speed)
+        self.ca.assert_that_pv_is_number("CH1:FREQ", new_speed)  # Wait for it to get there
+
+        # Assert - both the actual phase and the setpoint readback should be correct after setting speed.
+        self.ca.assert_that_pv_is_number("CH1:PHASE", value)
+        self.ca.assert_that_pv_value_is_unchanged("CH1:PHASE", wait=10)
+        self.ca.assert_that_pv_is_number("CH1:PHASE:SP:RBV", value)
+        self.ca.assert_that_pv_value_is_unchanged("CH1:PHASE:SP:RBV", wait=10)
 
     def test_WHEN_frequency_set_to_180_THEN_actual_setpoint_not_updated(self):
         sent_frequency = 180
