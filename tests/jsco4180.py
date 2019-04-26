@@ -38,7 +38,7 @@ class Jsco4180Tests(unittest.TestCase):
     def resetIocRecords(self):
         self.ca.set_pv_value("TIME", 0)
         self.ca.set_pv_value("TIME:RUN:SP", 60)
-        self.ca.set_pv_value("TIME:MODE", "STOP")
+        self.ca.set_pv_value("TIME:MODE", "STOPPED")
         self.ca.set_pv_value("FLOWRATE:SP", 0.010)
         self.ca.set_pv_value("FLOWRATE", 0.000)
         self.ca.set_pv_value("PRESSURE", 0)
@@ -108,14 +108,14 @@ class Jsco4180Tests(unittest.TestCase):
     def test_GIVEN_an_ioc_WHEN_continuous_pump_set_THEN_pump_on(self):
         self.ca.set_pv_value("START:SP", 1)
 
-        self.ca.assert_that_pv_is("TIME:STATUS", "CONTINUOUS")
+        self.ca.assert_that_pv_is("TIME:MODE", "CONTINUOUS")
 
     def test_GIVEN_an_ioc_WHEN_timed_pump_set_THEN_timed_pump_on(self):
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
         self.ca.set_pv_value("TIMED:SP", 1)
 
-        self.ca.assert_that_pv_is("TIME:STATUS", "TIMED")
+        self.ca.assert_that_pv_is("TIME:MODE", "TIMED")
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_an_ioc_WHEN_get_current_pressure_THEN_current_pressure_returned(self):
@@ -198,20 +198,20 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
         self.ca.set_pv_value("TIMED:SP.PROC", 1)
         expected_value = "TIMED"
-        self.ca.assert_that_pv_is("TIME:STATUS", expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
 
         self.ca.set_pv_value("START:SP", 1)
         expected_value = "CONTINUOUS"
-        self.ca.assert_that_pv_is("TIME:STATUS", expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
 
     def test_GIVEN_constant_pump_WHEN_set_timed_pump_THEN_state_updated_to_timed_pump(self):
         self.ca.set_pv_value("START:SP", 1)
         expected_value = "CONTINUOUS"
-        self.ca.assert_that_pv_is("TIME:STATUS",expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
 
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
         self.ca.set_pv_value("TIMED:SP", 1)
         expected_value = "TIMED"
-        self.ca.assert_that_pv_is("TIME:STATUS", expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
 
