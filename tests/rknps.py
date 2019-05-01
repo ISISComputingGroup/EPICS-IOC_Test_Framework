@@ -1,12 +1,12 @@
 import unittest
-from time import sleep
 
 from unittest import skip
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
+from utils.testing import parameterized_list, get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
 
 # Prefix for addressing PVs on this device
 PREFIX = "RKNPS_01"
@@ -25,6 +25,7 @@ ID4 = "RB4"
 CLEAR_STATUS = "."*24
 IDS = [ID1, ID2, ID3, ID4]
 
+PSU_ADDRESSES = [ADR1, ADR2, ADR3, ADR4]
 
 IOCS = [
     {
@@ -50,6 +51,24 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
+INTERLOCKS = ("TRANS",
+              "DCOC",
+              "DCOL",
+              "REGMOD",
+              "PREREG",
+              "PHAS",
+              "MPSWATER",
+              "EARTHLEAK",
+              "THERMAL",
+              "MPSTEMP",
+              "DOOR",
+              "MAGWATER",
+              "MAGTEMP",
+              "MPSREADY")
+
+TRIPPED_OK = {True: "Tripped", False: "OK"}
+
+
 class RknpsTests(unittest.TestCase):
     """
     Tests for the RIKEN Multidrop Danfysik Power Supplies.
@@ -58,9 +77,11 @@ class RknpsTests(unittest.TestCase):
     # Runs before every test.
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
-        self.ca = ChannelAccess(default_timeout=30)
-        self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID1), timeout=30)
+        self.ca = ChannelAccess(default_timeout=60)
         self._lewis.backdoor_set_on_device("connected", True)
+
+        for ID in IDS:
+            self.ca.assert_that_pv_exists("{0}:{1}:ADDRESS".format(PREFIX, ID), timeout=30)
 
     def _pv_alarms_when_disconnected(self, pv):
         """
@@ -80,11 +101,7 @@ class RknpsTests(unittest.TestCase):
         """
         Activate both interlocks in the emulator.
         """
-        if IOCRegister.uses_rec_sim:
-            for IDN in IDS:
-                self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), ".........!..............")
-        else:
-            self._lewis.backdoor_set_on_device("set_all_interlocks", True)
+        self._lewis.backdoor_set_on_device("set_all_interlocks", True)
 
     def _disable_interlocks(self):
         """
@@ -96,11 +113,13 @@ class RknpsTests(unittest.TestCase):
         else:
             self._lewis.backdoor_set_on_device("set_all_interlocks", False)
 
+    @skip_if_recsim("Interlock statuses now depend on emulator")
     def test_WHEN_interlocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
         for IDN in IDS:
-            self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "Interlock")
+            self.ca.assert_that_pv_is("{0}:{1}:ILK".format(PREFIX, IDN), "Tripped")
 
+    @skip_if_recsim("Interlock statuses now depend on emulator")
     def test_WHEN_interlocks_are_inactive_THEN_ilk_is_not_Interlocked(self):
         self._disable_interlocks()
         for IDN in IDS:
@@ -126,19 +145,6 @@ class RknpsTests(unittest.TestCase):
         for IDN in IDS:
             self.ca.assert_setting_setpoint_sets_readback(0, "{0}:{1}:POWER".format(PREFIX, IDN),
                                                           "{0}:{1}:POWER:SP".format(PREFIX, IDN), "Off")
-
-    @skip("In dev sim this test fails as the status is maintained by the emulator. In recsim it is hard to implement.")
-    def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback("........................", "{0}:{1}:POWER".format(PREFIX, IDN),
-                                                          "{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "On")
-
-    @skip_if_devsim("In dev sim this test fails as the status is maintained by the emulator")
-    def test_GIVEN_emulator_not_in_use_WHEN_power_is_turned_off_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback("!.......................",
-                                                          "{0}:{1}:POWER".format(PREFIX, IDN),
-                                                          "{0}:{1}:SIM:STATUS".format(PREFIX, IDN), "Off")
 
     def test_WHEN_polarity_is_positive_THEN_value_is_as_expected(self):
         for IDN in IDS:
@@ -202,6 +208,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:{1}:CURR".format(PREFIX, IDN), return_value)
             self.ca.assert_that_pv_is("{0}:{1}:RA".format(PREFIX, IDN), return_value)
 
+    @skip_if_recsim("Power updates through protocol redirection")
     def test_GIVEN_rb3_status_changes_THEN_rb3_banner_pv_updates_correctly(self):
         if "RB3" not in IDS:
             self.fail("Didn't find RB3 for test.")
@@ -211,6 +218,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{}:RB3:BANNER".format(PREFIX),
                                       "on; beam to ports 1,2" if powered_on else "off; ports 1,2 safe")
 
+    @skip_if_recsim("Power updates through protocol redirection")
     def test_GIVEN_rb4_status_changes_THEN_rb4_banner_pv_updates_correctly(self):
         if "RB4" not in IDS:
             self.fail("Didn't find RB4 for test.")
@@ -219,7 +227,7 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("{}:RB4:POWER:SP".format(PREFIX), powered_on)
             self.ca.assert_that_pv_is("{}:RB4:BANNER".format(PREFIX),
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
-    
+
     @skip_if_recsim("Cannot test connection in recsim")
     def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("CURR")
@@ -227,3 +235,25 @@ class RknpsTests(unittest.TestCase):
     @skip_if_recsim("Cannot test connection in recsim")
     def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("VOLT")
+
+    @parameterized.expand(INTERLOCKS)
+    @skip_if_recsim("Test requires emulator to change interlock state")
+    def test_GIVEN_interlock_status_WHEN_read_all_status_THEN_status_is_as_expected(self, interlock):
+        for boolean_value, expected_value in TRIPPED_OK.items():
+            for IDN, ADDR in zip(IDS, PSU_ADDRESSES):
+                # GIVEN
+                self._lewis.backdoor_run_function_on_device("set_{0}".format(interlock), (boolean_value, ADDR))
+
+                # THEN
+                self.ca.assert_that_pv_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), expected_value)
+                self.ca.assert_that_pv_alarm_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), self.ca.Alarms.NONE)
+
+    @parameterized.expand(INTERLOCKS)
+    @skip_if_recsim("Test requires emulator")
+    def test_GIVEN_individual_interlock_read_WHEN_device_not_connected_THEN_interlock_PV_in_alarm(self, interlock):
+        # WHEN
+        self._lewis.backdoor_set_on_device("connected", False)
+
+        # THEN
+        for IDN, ADDR in zip(IDS, PSU_ADDRESSES):
+            self.ca.assert_that_pv_alarm_is("{0}:{1}:ILK:{2}".format(PREFIX, IDN, interlock), self.ca.Alarms.INVALID)
