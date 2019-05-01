@@ -77,7 +77,7 @@ class RknpsTests(unittest.TestCase):
     # Runs before every test.
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
-        self.ca = ChannelAccess(default_timeout=30)
+        self.ca = ChannelAccess(default_timeout=60)
         self._lewis.backdoor_set_on_device("connected", True)
 
         for ID in IDS:
