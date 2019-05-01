@@ -300,7 +300,6 @@ class ChannelTests(unittest.TestCase):
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
 
-    @unittest.skip("To be fixed in ticket 3939")
     @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_reading_inserted_THEN_channel_PVs_get_correct_values(self):
         _reset_drift_channels(self)
@@ -351,7 +350,6 @@ class DriftTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("IDN")
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
 
-    @unittest.skip("To be fixed in ticket 3939")
     @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_values_added_THEN_temp_AND_drift_correct(self, test_data=drift_test_data):
         _reset_drift_channels(self)
