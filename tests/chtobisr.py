@@ -68,22 +68,22 @@ class ChtobisrTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_status_requested_WHEN_device_connected__AND_laser_fault_set_THEN_correct_status_code_is_returned(self):
-        expected_value = "00000001"
+        expected_value = 0x1
         self._lewis.backdoor_run_function_on_device("backdoor_set_status", ["laser_fault", True])
-        self.ca.assert_that_pv_is("STAT", expected_value)
+        self.ca.assert_that_pv_is("STAT:LOW.VAL", expected_value)
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_faults_requested_WHEN_device_connected__AND_base_plate_temp_fault_set_THEN_correct_fault_code_is_returned(self):
-        expected_value = "00000001"
+        expected_value = 0x1
         self._lewis.backdoor_run_function_on_device("backdoor_set_fault", ["base_plate_temp_fault", True])
-        self.ca.assert_that_pv_is("FAULT", expected_value)
+        self.ca.assert_that_pv_is("FAULT:LOW.VAL", expected_value)
 
-    # @skip_if_recsim("Lewis backdoor not available in RecSim")
-    # def test_GIVEN_base_plate_temperature_fault_active_WHEN_read_faults_THEN_pv_reads_fault_active(self):
-    #     for state in [False, True]:
-    #         self._lewis.backdoor_run_function_on_device("backdoor_set_fault", ["base_plate_temp_fault", state])
-    #         self.ca.assert_that_pv_is("FAULT:BASEPLATETEMP", state)
-    #
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
+    def test_GIVEN_base_plate_temperature_fault_state_WHEN_read_faults_THEN_pv_reads_correct_fault_state(self):
+        for state in ["False", "True"]:
+            self._lewis.backdoor_run_function_on_device("backdoor_set_fault", ["base_plate_temp_fault", state])
+            self.ca.assert_that_pv_is("FAULT:BASEPLATETEMP", state)
+
     # @parameterized.expand(parameterized_list([
     #     ("base_plate_temp_fault", "FAULT:BASEPLATETEMP"),
     #     ("...", "FAULT:..."),
