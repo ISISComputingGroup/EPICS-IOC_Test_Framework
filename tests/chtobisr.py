@@ -69,7 +69,7 @@ class ChtobisrTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_status_requested_WHEN_lowest_status_bit_set_THEN_correct_status_code_is_returned(self):
-        expected_value = 0x1
+        expected_value = 0x0001
         self._lewis.backdoor_run_function_on_device("backdoor_set_status", ["laser_fault", True])
         self.ca.assert_that_pv_is("STAT:LOW.VAL", expected_value)
 
@@ -81,7 +81,7 @@ class ChtobisrTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_faults_requested_WHEN_lowest_fault_bit_set_THEN_correct_fault_code_is_returned(self):
-        expected_value = 0x1
+        expected_value = 0x0001
         self._lewis.backdoor_run_function_on_device("backdoor_set_fault", ["base_plate_temp_fault", True])
         self.ca.assert_that_pv_is("FAULT:LOW.VAL", expected_value)
 
