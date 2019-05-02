@@ -25,7 +25,7 @@ TEST_MODES = [TestModes.DEVSIM]
 class Ag33220aTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(emulator_name, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.reset_values()
 

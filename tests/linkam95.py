@@ -15,7 +15,7 @@ IOCS = [
         "directory": get_default_ioc_dir("LINKAM95"),
         "macros": {},
         "emulator": EMULATOR_NAME,
-        "emulator_package": None
+        "lewis_package": None
     },
 ]
 
