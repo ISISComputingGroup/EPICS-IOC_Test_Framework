@@ -6,7 +6,9 @@ from unittest import skip
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim, parameterized_list
+
+from parameterized import parameterized
 
 # Prefix for addressing PVs on this device
 PREFIX = "RKNPS_01"
@@ -47,7 +49,9 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+# TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+# TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class RknpsTests(unittest.TestCase):
@@ -228,45 +232,45 @@ class RknpsTests(unittest.TestCase):
     def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("VOLT")
 
+    @parameterized.expand(parameterized_list([
+        ("FAULT STATE", 0, 0),
+        ("BEND 1", 1, 0),
+        ("BEND 2", 0, 1),
+        ("SEPTUM", 1, 1),
+    ]))
     @skip_if_devsim("DAQ does not exist in devsim")
-    def test_GIVEN_mock_DAQ_inputs_THEN_RB2_mode_is_correct(self):
-        test_table = {
-            "FAULT STATE": (0, 0),
-            "BEND 1": (1, 0),
-            "BEND 2": (0, 1),
-            "SEPTUM": (1, 1),
-        }
+    def test_GIVEN_mock_DAQ_inputs_THEN_RB2_mode_is_correct(self, _, state, val1, val2):
+        self.ca.set_pv_value("{}:DAQ:R04:DATA".format(PREFIX), val1)
+        self.ca.set_pv_value("{}:DAQ:R05:DATA".format(PREFIX), val2)
+        self.ca.assert_that_pv_is("{}:RB2:MODE".format(PREFIX), state)
 
-        for exp_condition in test_table:
-            self.ca.set_pv_value("{}:DAQ:R04:DATA".format(PREFIX), test_table[exp_condition][0])
-            self.ca.set_pv_value("{}:DAQ:R05:DATA".format(PREFIX), test_table[exp_condition][1])
-            self.ca.assert_that_pv_is("{}:RB2:MODE".format(PREFIX), exp_condition)
-
+    @parameterized.expand(parameterized_list([
+        ("FAULT (LOW)", 0, 0),
+        ("PORT 3 (RQ18-20)", 1, 0),
+        ("PORT 4 (RQ21-23)", 0, 1),
+        ("FAULT (HIGH)", 1, 1),
+    ]))
     @skip_if_devsim("DAQ does not exist in devsim")
-    def test_GIVEN_mock_DAQ_inputs_THEN_PORT3_4_mode_is_correct(self):
-        test_table = {
-            "FAULT (LOW)": (0, 0),
-            "PORT 3 (RQ18-20)": (1, 0),
-            "PORT 4 (RQ21-23)": (0, 1),
-            "FAULT (HIGH)": (1, 1),
-        }
-
-        for exp_condition in test_table:
-            self.ca.set_pv_value("{}:DAQ:R02:DATA".format(PREFIX), test_table[exp_condition][0])
-            self.ca.set_pv_value("{}:DAQ:R03:DATA".format(PREFIX), test_table[exp_condition][1])
-            self.ca.assert_that_pv_is("{}:PORT3_4".format(PREFIX), exp_condition)
+    def test_GIVEN_mock_DAQ_inputs_THEN_PORT3_4_mode_is_correct(self, _, state, val1, val2):
+        self.ca.set_pv_value("{}:DAQ:R02:DATA".format(PREFIX), val1)
+        self.ca.set_pv_value("{}:DAQ:R03:DATA".format(PREFIX), val2)
+        self.ca.assert_that_pv_is("{}:PORT3_4:MODE".format(PREFIX), state)
 
     @skip_if_devsim("DAQ does not exist in devsim")
-    def test_GIVEN_fault_condition_THEN_alarms_correct(self):
-        fault_vals = [(0, 0), (1, 1)]
-
-        # RB2
-        self.ca.set_pv_value("{}:DAQ:R04:DATA".format(PREFIX), fault_vals[0][0])
-        self.ca.set_pv_value("{}:DAQ:R05:DATA".format(PREFIX), fault_vals[0][1])
+    def test_GIVEN_fault_condition_THEN_RB2_alarms_correct(self):
+        self.ca.set_pv_value("{}:DAQ:R04:DATA".format(PREFIX), 0)
+        self.ca.set_pv_value("{}:DAQ:R05:DATA".format(PREFIX), 0)
         self.ca.assert_that_pv_alarm_is("{}:RB2:MODE".format(PREFIX), ChannelAccess.Alarms.MAJOR)
 
-        # PORT 3/4
-        for pair in fault_vals:
-            self.ca.set_pv_value("{}:DAQ:R02:DATA".format(PREFIX), pair[0])
-            self.ca.set_pv_value("{}:DAQ:R03:DATA".format(PREFIX), pair[1])
-            self.ca.assert_that_pv_alarm_is("{}:PORT3_4".format(PREFIX), ChannelAccess.Alarms.MAJOR)
+    @skip_if_devsim("DAQ does not exist in devsim")
+    def test_GIVEN_high_fault_condition_THEN_PORT3_4_alarms_correct(self):
+        self.ca.set_pv_value("{}:DAQ:R04:DATA".format(PREFIX), 1)
+        self.ca.set_pv_value("{}:DAQ:R05:DATA".format(PREFIX), 1)
+        self.ca.assert_that_pv_alarm_is("{}:PORT3_4:MODE".format(PREFIX), ChannelAccess.Alarms.MAJOR)
+
+    @skip_if_devsim("DAQ does not exist in devsim")
+    def test_GIVEN_low_fault_condition_THEN_PORT3_4_alarms_correct(self):
+        self.ca.set_pv_value("{}:DAQ:R04:DATA".format(PREFIX), 0)
+        self.ca.set_pv_value("{}:DAQ:R05:DATA".format(PREFIX), 0)
+        self.ca.assert_that_pv_alarm_is("{}:PORT3_4:MODE".format(PREFIX), ChannelAccess.Alarms.MAJOR)
+
