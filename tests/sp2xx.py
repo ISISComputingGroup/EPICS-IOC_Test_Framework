@@ -15,7 +15,6 @@ IOCS = [
         "directory": get_default_ioc_dir("SP2XX"),
         "macros": {},
         "emulator": "sp2xx",
-        "emulator_protocol": "stream"
     }
 ]
 

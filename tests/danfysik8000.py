@@ -18,7 +18,7 @@ IOCS = [
             "FACTOR_WRITE_I": "1",
         },
         "emulator": EMULATOR_NAME,
-        "emulator_protocol": "model8000",
+        "lewis_protocol": "model8000",
     },
 ]
 

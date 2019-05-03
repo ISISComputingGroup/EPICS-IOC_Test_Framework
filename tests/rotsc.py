@@ -15,7 +15,7 @@ IOCS = [
         "directory": get_default_ioc_dir("ROTSC"),
         "macros": {},
         "emulator": "rotating_sample_changer",
-        "emulator_protocol": "POLARIS",
+        "lewis_protocol": "POLARIS",
     },
 ]
 

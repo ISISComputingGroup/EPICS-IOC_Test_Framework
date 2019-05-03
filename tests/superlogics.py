@@ -15,7 +15,6 @@ IOCS = [
         "directory": get_default_ioc_dir("SPRLG"),
         "macros": {},
         "emulator": "superlogics",
-        "emulator_protocol": "stream",
     },
 ]
 

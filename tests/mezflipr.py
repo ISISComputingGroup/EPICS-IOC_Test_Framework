@@ -24,7 +24,11 @@ IOCS = [
         "emulator_command_line": "{} {} --port {{port}}".format(
             sys.executable,
             os.path.join(EPICS_TOP, "support", "deviceemulator", "master", "other_emulators", "mezei_flipper", "flipper_emulator.py")
-        )
+        ),
+        "macros": {
+            "POLARISERPRESENT": "yes",
+            "ANALYSERPRESENT": "yes",
+        },
     },
 ]
 
@@ -49,7 +53,7 @@ class MezfliprTests(unittest.TestCase):
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
     def test_GIVEN_amplitude_is_set_THEN_amplitude_can_be_read_back(self, flipper):
-        for val in [0., 0.12, 5000.5]:
+        for val in [0., 0.12, 2.99]:  # Amplitude should be limited to 3A
             self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:AMPLITUDE".format(flipper))
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
@@ -59,7 +63,7 @@ class MezfliprTests(unittest.TestCase):
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
     def test_GIVEN_dt_is_set_THEN_dt_can_be_read_back(self, flipper):
-        for val in [0., 0.12, 5000.5]:
+        for val in [0., -0.12, -5000.5]:  # DT only accepts negative values.
             self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:DT".format(flipper))
 
     @parameterized.expand(["ANALYSER", "POLARISER"])

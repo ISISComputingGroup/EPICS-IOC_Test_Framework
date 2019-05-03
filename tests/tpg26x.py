@@ -15,7 +15,6 @@ IOCS = [
         "directory": get_default_ioc_dir("TPG26X"),
         "macros": {},
         "emulator": "tpg26x",
-        "emulator_protocol": "stream",
     },
 ]
 
