@@ -50,10 +50,7 @@ IOCS = [
     },
 ]
 
-# TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
-# TEST_MODES = [TestModes.RECSIM]
-TEST_MODES = [TestModes.DEVSIM]
-
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 INTERLOCKS = ("TRANS",
               "DCOC",
