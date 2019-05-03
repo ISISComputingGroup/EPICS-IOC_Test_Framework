@@ -50,22 +50,21 @@ class ChtobisrTests(unittest.TestCase):
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_reset_requested_THEN_emulator_is_reset(self):
         self._lewis.backdoor_set_on_device("interlock", "ON")
-        self.ca.assert_that_pv_is("INTERLOCK:STAT", "ON")
+        self.ca.assert_that_pv_is("INTERLOCK", "CLOSED")
         self._lewis.backdoor_run_function_on_device("reset")
-        self.ca.assert_that_pv_is("INTERLOCK:STAT", "OFF")
+        self.ca.assert_that_pv_is("INTERLOCK", "OPEN")
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_reset_requested_WHEN_device_connected_THEN_device_is_reset(self):
         self._lewis.backdoor_set_on_device("interlock", "ON")
-        self.ca.assert_that_pv_is("INTERLOCK:STAT", "ON")
+        self.ca.assert_that_pv_is("INTERLOCK", "CLOSED")
         self.ca.set_pv_value("RESET", "1")
-        self.ca.assert_that_pv_is("INTERLOCK:STAT", "OFF")
+        self.ca.assert_that_pv_is("INTERLOCK", "OPEN")
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_interlock_status_requested_WHEN_device_connected_THEN_interlock_status_is_returned(self):
-        expected_value = "ON"
-        self._lewis.backdoor_set_on_device("interlock", expected_value)
-        self.ca.assert_that_pv_is("INTERLOCK:STAT", expected_value)
+        self._lewis.backdoor_set_on_device("interlock", "OFF")
+        self.ca.assert_that_pv_is("INTERLOCK", "OPEN")
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_status_requested_WHEN_lowest_status_bit_set_THEN_correct_status_code_is_returned(self):
