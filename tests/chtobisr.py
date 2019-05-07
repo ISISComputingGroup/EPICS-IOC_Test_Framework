@@ -19,11 +19,7 @@ IOCS = [
     },
 ]
 
-
-# TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
-TEST_MODES = [TestModes.DEVSIM]
-
-ON_OFF = {True: "ON", False: "OFF"}
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class ChtobisrTests(unittest.TestCase):
