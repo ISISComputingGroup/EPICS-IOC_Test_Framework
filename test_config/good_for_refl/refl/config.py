@@ -10,7 +10,9 @@ from ReflectometryServer import *
 SPACING = 2
 
 # This is the position if s3 is out of the beam relative to straight through beam
-OUT_POSITION = -5
+S3_OUT_POSITION = -5
+
+INIT_OUT_POSITION = -2
 
 
 def get_beamline():
@@ -56,11 +58,11 @@ def get_beamline():
                            theta_auto]
     # DRIVES
     drivers = [DisplacementDriver(s1, MotorPVWrapper("MOT:MTR0101")),
-               DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102"), OUT_POSITION),
+               DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102"), S3_OUT_POSITION),
                DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0103")),
                AngleDriver(detector, MotorPVWrapper("MOT:MTR0104")),
-               DisplacementDriver(out_comp, MotorPVWrapper("MOT:MTR0105"), OUT_POSITION, tolerance_on_out_of_beam_position=1),
-               DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0106"), OUT_POSITION, tolerance_on_out_of_beam_position=1),
+               DisplacementDriver(out_comp, MotorPVWrapper("MOT:MTR0105"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
+               DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0106"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
                DisplacementDriver(detector_for_init, MotorPVWrapper("MOT:MTR0107"))]
 
     # MODES

@@ -1,5 +1,6 @@
 import os
 import unittest
+import time
 from contextlib import contextmanager
 from math import tan, radians
 
@@ -9,7 +10,7 @@ from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
-OUT_COMP_INIT_POS = -5.5
+OUT_COMP_INIT_POS = -2.0
 IN_COMP_INIT_POS = 1.0
 DET_INIT_POS = 5.0
 DET_INIT_POS_AUTOSAVE = 1.0
@@ -43,6 +44,7 @@ IOCS = [
         },
         "environment_vars": {
             "ICPCONFIGROOT": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
+            "ICPVARDIR": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
         }
     },
 
@@ -179,6 +181,10 @@ class ReflTests(unittest.TestCase):
              self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
 
             self.ca.set_pv_value("PARAM:S1:SP", pos_below_res)
+
+    def test_WHEN_ioc_started_up_THEN_rbvs_are_initialised_to_motor_values(self):
+        self.ca.assert_that_pv_is("PARAM:IN_POS", IN_COMP_INIT_POS)
+        self.ca.assert_that_pv_is("PARAM:OUT_POS", OUT_COMP_INIT_POS)
 
     def test_GIVEN_theta_init_to_non_zero_and_det_pos_not_autosaved_WHEN_initialising_det_pos_THEN_det_pos_sp_is_initialised_to_rbv_minus_offset_from_theta(self):
         expected_value = DET_INIT_POS - SPACING  # angle between theta component and detector is 45 deg
