@@ -33,10 +33,10 @@ class Knr1050Tests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("reset")
         # Set the device in remote mode ready to receive instructions
         self.ca.set_pv_value("MODE:SP", "REMOTE")
-        self.ca.set_pv_value("MODE:STATUS.PROC", 1)
+        self.ca.set_pv_value("MODE.PROC", 1)
         # Set the flow and concentrations to a default state that enable pump switch on
         self.ca.set_pv_value("STOP:SP", 1)
-        self.ca.set_pv_value("STATUS", "SYS_ST_OFF")
+        self.ca.set_pv_value("STATUS", "OFF")
         self.ca.set_pv_value("FLOWRATE:SP", 0.01)
         self.ca.set_pv_value("PRESSURE:MIN:SP", 0)
         self.ca.set_pv_value("PRESSURE:MAX:SP", 100)
@@ -57,17 +57,17 @@ class Knr1050Tests(unittest.TestCase):
     def test_GIVEN_an_ioc_WHEN_start_pump_sent_THEN_pump_starts(self):
         self.ca.set_pv_value("START:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", "SYS_ST_IDLE")
+        self.ca.assert_that_pv_is("STATUS", "IDLE")
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_an_ioc_WHEN_timed_pump_sent_THEN_pump_starts(self):
         self.ca.set_pv_value("TIMED:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", "SYS_ST_IDLE")
+        self.ca.assert_that_pv_is("STATUS", "IDLE")
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_an_ioc_WHEN_stop_pump_sent_via_ioc_THEN_device_state_off(self):
-        expected_dev_state = "SYS_ST_OFF"
+        expected_dev_state = "OFF"
         self.ca.set_pv_value("STOP:SP", 1)
 
         self.ca.assert_that_pv_is("STATUS", expected_dev_state)
@@ -114,7 +114,7 @@ class Knr1050Tests(unittest.TestCase):
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_an_ioc_WHEN_pump_switched_on_then_back_to_off_THEN_device_state_off(self):
-        expected_dev_state = "SYS_ST_OFF"
+        expected_dev_state = "OFF"
         self.ca.set_pv_value("START:SP", 1)
         self.ca.set_pv_value("STOP:SP", 1)
         state = self._lewis.backdoor_get_from_device("state")
@@ -185,7 +185,7 @@ class Knr1050Tests(unittest.TestCase):
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_ioc_turned_on_WHEN_get_dev_state_via_ioc_THEN_off_state_returned(self):
-        expected_dev_state = 'SYS_ST_OFF'
+        expected_dev_state = 'OFF'
         state = self.ca.get_pv_value("STATUS")
 
         self.assertEqual(expected_dev_state, state)
@@ -202,14 +202,14 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("MODE:SP", "LOCAL")
         self.ca.set_pv_value("START:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", 'SYS_ST_OFF')
+        self.ca.assert_that_pv_is("STATUS", 'OFF')
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_incorrect_gradients_WHEN_set_pump_on_via_IOC_THEN_pump_disabled(self):
         self.ca.set_pv_value("COMP:A:SP", 50)  # sum of gradients =/= 100%
         self.ca.set_pv_value("START:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", 'SYS_ST_OFF')
+        self.ca.assert_that_pv_is("STATUS", 'OFF')
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
@@ -228,7 +228,7 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:SP", 10)
         self.ca.set_pv_value("TIMED:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", 'SYS_ST_OFF', timeout=15)
+        self.ca.assert_that_pv_is("STATUS", 'OFF', timeout=15)
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_long_timed_run_started_THEN_if_remaining_time_checked_then_not_finished(self):
@@ -246,3 +246,9 @@ class Knr1050Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_value_is_decreasing("VOL:REMAINING", wait=5)
 
+    @skip_if_recsim("Can't use lewis backdoor in RECSIM")
+    def test_GIVEN_input_error_THEN_error_string_captured(self):
+        expected_error = "20,Instrument in standalone mode"
+        self._lewis.backdoor_set_on_device("input_correct", False)
+
+        self.ca.assert_that_pv_is("ERROR:STR", expected_error, timeout=5)
