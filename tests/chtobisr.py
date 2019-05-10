@@ -54,7 +54,7 @@ class ChtobisrTests(unittest.TestCase):
     def test_GIVEN_reset_requested_WHEN_device_connected_THEN_device_is_reset(self):
         self._lewis.backdoor_set_on_device("interlock", "ON")
         self.ca.assert_that_pv_is("INTERLOCK", "CLOSED")
-        self.ca.set_pv_value("RESET", "1")
+        self.ca.set_pv_value("RESET:SP", "TRUE")
         self.ca.assert_that_pv_is("INTERLOCK", "OPEN")
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
