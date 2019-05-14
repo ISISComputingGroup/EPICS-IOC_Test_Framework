@@ -28,10 +28,11 @@ def get_beamline():
     # for init tests
     out_comp = Component("out_comp", PositionAndAngle(0.0, 6*SPACING, 90))
     in_comp = Component("in_comp", PositionAndAngle(0.0, 7*SPACING, 90))
-    detector_for_init = TiltingComponent("det_init_comp", PositionAndAngle(0.0, 9*SPACING, 90))
-    theta_for_init = ThetaComponent("theta_init_comp", PositionAndAngle(0.0, 8*SPACING, 90), [detector_for_init])
+    det_for_init = TiltingComponent("det_init_comp", PositionAndAngle(0.0, 9*SPACING, 90))
+    det_for_init_auto = TiltingComponent("det_init_auto_comp", PositionAndAngle(0.0, 10*SPACING, 90))
+    theta_for_init = ThetaComponent("theta_init_comp", PositionAndAngle(0.0, 8*SPACING, 90), [det_for_init])
 
-    comps = [s1, theta, s3, detector, out_comp, in_comp, theta_for_init, detector_for_init]
+    comps = [s1, theta, s3, detector, out_comp, in_comp, theta_for_init, det_for_init]
 
     # BEAMLINE PARAMETERS
     slit1_pos = TrackingPosition("S1", s1, True)
@@ -47,8 +48,8 @@ def get_beamline():
     is_in = InBeamParameter("is_in", in_comp, autosave=False)
     in_pos = TrackingPosition("in_pos", in_comp, autosave=False)
     theta_auto = AngleParameter("theta_auto", theta_for_init, autosave=True)
-    init = TrackingPosition("init", detector_for_init, autosave=False)
-    init_auto = TrackingPosition("init_auto", detector_for_init, autosave=True)
+    init = TrackingPosition("init", det_for_init, autosave=False)
+    init_auto = TrackingPosition("init_auto", det_for_init_auto, autosave=True)
 
     params_all = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle,
                   is_out, out_pos, is_in, in_pos, theta_auto, init, init_auto]
@@ -63,7 +64,8 @@ def get_beamline():
                AngleDriver(detector, MotorPVWrapper("MOT:MTR0104")),
                DisplacementDriver(out_comp, MotorPVWrapper("MOT:MTR0105"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
                DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0106"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
-               DisplacementDriver(detector_for_init, MotorPVWrapper("MOT:MTR0107"))]
+               DisplacementDriver(det_for_init, MotorPVWrapper("MOT:MTR0107")),
+               DisplacementDriver(det_for_init_auto, MotorPVWrapper("MOT:MTR0108"))]
 
     # MODES
     nr_inits = {}
