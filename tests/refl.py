@@ -81,6 +81,18 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
 
+    def _check_param_pvs(self, param_name, expected_value):
+        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
+
+    @contextmanager
+    def _assert_pv_monitors(self, param_name, expected_value):
+        with self.ca.assert_that_pv_monitor_is_number("PARAM:%s" % param_name, expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01):
+            yield
+
     def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
         self.ca.assert_that_pv_is("BL:STAT", "OKAY")
 
@@ -137,18 +149,6 @@ class ReflTests(unittest.TestCase):
         self._check_param_pvs("DET_ANG", 0.0)
         expected_det_angle = 2.0 * theta_angle
         self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_angle, 0.01)
-
-    def _check_param_pvs(self, param_name, expected_value):
-        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
-
-    @contextmanager
-    def _assert_pv_monitors(self, param_name, expected_value):
-        with self.ca.assert_that_pv_monitor_is_number("PARAM:%s" % param_name, expected_value, 0.01), \
-             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01), \
-             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01):
-            yield
 
     def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
         expected_value = "OUT"
@@ -210,3 +210,7 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PARAM:IS_IN:SP:RBV", expected_inbeam)
         self.ca.assert_that_pv_is("PARAM:IN_POS:SP:RBV", expected_pos)
 
+    def test_GIVEN_motor_values_set_WHEN_starting_refl_ioc_THEN_parameter_rbvs_are_initialised_correctly(self):
+        expected = IN_COMP_INIT_POS
+
+        self.ca.assert_that_pv_is("PARAM:IN_POS", expected)
