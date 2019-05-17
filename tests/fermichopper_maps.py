@@ -16,7 +16,7 @@ IOCS = [
             "MHZ": "18.0",
         },
         "emulator": "fermichopper",
-        "emulator_protocol": "fermi_maps",
+        "lewis_protocol": "fermi_maps",
     },
 ]
 

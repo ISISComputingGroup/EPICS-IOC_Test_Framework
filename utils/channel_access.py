@@ -94,7 +94,7 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += "{}:".format(device_prefix)
 
-    def set_pv_value(self, pv, value, wait=False):
+    def set_pv_value(self, pv, value, wait=False, sleep_after_set=1.0):
         """
         Sets the specified PV to the supplied value.
 
@@ -113,7 +113,7 @@ class ChannelAccess(object):
         # but it should not hold up all the other tests
         self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
         # Give lewis time to process
-        time.sleep(1.0)
+        time.sleep(sleep_after_set)
 
     def get_pv_value(self, pv):
         """
@@ -372,9 +372,9 @@ class ChannelAccess(object):
         message = "Expected PV value to be in {}".format(expected_values)
         return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, timeout, message)
 
-    def assert_that_pv_is_an_integer_between(self, pv, min_value, max_value, timeout=None):
+    def assert_that_pv_is_within_range(self, pv, min_value, max_value, timeout=None):
         """
-        Assert that the pv has one of the expected values or that it becomes one of the expected value within the
+        Assert that the pv is within or at the bounds of the ranges  between a minimum and maximum within the
         timeout
 
         Args:
@@ -387,14 +387,9 @@ class ChannelAccess(object):
              UnableToConnectToPVException: if pv does not exist within timeout
         """
         def _condition(val):
-            try:
-                int_pv_value = int(val)
-            except ValueError:
-                return False
+            return min_value <= float(val) <= max_value
 
-            return min_value <= int_pv_value <= max_value
-
-        message = "Expected PV value to be an integer between {} and {}".format(min_value, max_value)
+        message = "Expected PV value to between {} and {}".format(min_value, max_value)
         return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, timeout, message)
 
     def assert_that_pv_exists(self, pv, timeout=None):

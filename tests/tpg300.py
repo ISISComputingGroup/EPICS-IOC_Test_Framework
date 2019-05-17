@@ -15,7 +15,6 @@ IOCS = [
         "directory": get_default_ioc_dir("TPG300"),
         "macros": {},
         "emulator": "tpg300",
-        "emulator_protocol": "stream",
     },
 ]
 

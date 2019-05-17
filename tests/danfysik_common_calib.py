@@ -14,7 +14,7 @@ IOCS = [
             "LOCAL_CALIB": "no"
         },
         "emulator": EMULATOR_NAME,
-        "emulator_protocol": "model8000",
+        "lewis_protocol": "model8000",
     },
 ]
 
