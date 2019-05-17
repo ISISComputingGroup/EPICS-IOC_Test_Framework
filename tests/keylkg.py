@@ -21,7 +21,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM] #, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 class KeylkgTests(unittest.TestCase):
