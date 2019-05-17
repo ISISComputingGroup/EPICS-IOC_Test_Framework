@@ -21,7 +21,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM] #, TestModes.RECSIM]
 
 
 class KeylkgTests(unittest.TestCase):
@@ -60,7 +60,7 @@ class KeylkgTests(unittest.TestCase):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
-        self.ca.assert_that_pv_is_an_integer_between("OFFSET:OUTPUT:1", -99.9999, 99.9999)
+        self.ca.assert_that_pv_is_within_range("OFFSET:OUTPUT:1", -99.9999, 99.9999)
 
     @parameterized.expand([('low limit', -99.9999), ('test_value_1', -2.3122), ('test_value_2', 12.3423), ('high limit', 99.9999)])
     def test_GIVE_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self, _, mock_offset):
@@ -74,7 +74,7 @@ class KeylkgTests(unittest.TestCase):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
-        self.ca.assert_that_pv_is_an_integer_between("OFFSET:OUTPUT:2", -99.9999, 99.9999)
+        self.ca.assert_that_pv_is_within_range("OFFSET:OUTPUT:2", -99.9999, 99.9999)
 
     def test_GIVEN_running_ioc_WHEN_change_to_head1_measurement_mode_THEN_mode_changed(self):
         expected_value = "MULTI-REFLECTIVE"
@@ -112,10 +112,10 @@ class KeylkgTests(unittest.TestCase):
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
-        expected_value = "ER,OF,00"
+        expected_value = "Command error"
         self._lewis.backdoor_set_on_device('input_correct', False)
 
-        self.ca.assert_that_pv_is_not("ERROR:STR", expected_value)
+        self.ca.assert_that_pv_is_not("ERROR", expected_value)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_output1_THEN_output1_reset(self):
@@ -137,18 +137,4 @@ class KeylkgTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", test_value, timeout=2)
         self.ca.set_pv_value("RESET:OUTPUT:2:SP", "RESET")
 
-        self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value, timeout=2)
-
-    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
-    def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_both_outputs_THEN_both_outputs_reset(self):
-        expected_value = 0.0000
-        test_value = 0.1234
-        self._lewis.backdoor_set_on_device("output1_raw_value", test_value)
-        self._lewis.backdoor_set_on_device("output2_raw_value", test_value)
-        self.ca.set_pv_value("MODE:SP", "MEASURE")
-        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", test_value, timeout=2)
-        self.ca.assert_that_pv_is("VALUE:OUTPUT:2", test_value, timeout=2)
-        self.ca.set_pv_value("RESET:OUTPUT:BOTH:SP", "RESET")
-
-        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value, timeout=2)
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value, timeout=2)
