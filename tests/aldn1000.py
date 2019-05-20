@@ -78,7 +78,7 @@ class Aldn1000Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("VOLUME:UNITS", expected_units, timeout=2)
 
     @parameterized.expand([('Value 1', 0.123), ('Value 2', 1.342), ('Value 3', 12.34)])
-    @skip_if_recsim("Not supported in RECSIM")
+    @skip_if_recsim("Logic not supported in RECSIM")
     def test_GIVEN_new_volume_WHEN_set_volume_THEN_new_volume_set(self, _, value):
         expected_volume = value
         self.ca.set_pv_value("VOLUME:SP", expected_volume)
@@ -92,13 +92,16 @@ class Aldn1000Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("DIRECTION", expected_direction)
 
-    @skip_if_recsim("Not supported in RECSIM")
-    def test_GIVEN_existing_direction_WHEN_set_reverse_direction_THEN_direction_reversed(self):
-        initial_direction = self.ca.get_pv_value("DIRECTION")
+    @parameterized.expand([('Direction 1', 'Withdraw'), ('Direction 2', 'Infuse')])
+    @skip_if_recsim("Logic not supported in RECSIM")
+    def test_GIVEN_direction_WHEN_set_reverse_direction_THEN_direction_reversed(self, _, direction):
+        initial_direction = direction
         if initial_direction == 'Infuse':
             expected_direction = 'Withdraw'
         else:
             expected_direction = 'Infuse'
+        self.ca.set_pv_value("DIRECTION:SP", direction)
+        self.ca.assert_that_pv_is("DIRECTION", direction, timeout=2)
         self.ca.set_pv_value("DIRECTION:SP", 'Reverse')
 
         self.ca.assert_that_pv_is("DIRECTION", expected_direction, timeout=2)
