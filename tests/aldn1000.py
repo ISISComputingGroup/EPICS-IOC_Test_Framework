@@ -50,7 +50,7 @@ class Aldn1000Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("DIAMETER", expected_diameter, timeout=2)
 
-    @parameterized.expand([('Value 1', -2345), ('Value 2', -1234), ('Value 3', -0676424)])
+    @parameterized.expand([('Value 1', -2345), ('Value 2', -1234), ('Value 3', -676424)])
     @skip_if_recsim("Not supported in RECSIM")
     def test_GIVEN_new_invalid_low_diameter_WHEN_set_diameter_THEN_diameter_set_limit_returned(self, _, value):
         invalid_diameter = value
