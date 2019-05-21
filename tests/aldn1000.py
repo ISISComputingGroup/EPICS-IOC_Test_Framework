@@ -168,11 +168,16 @@ class Aldn1000Tests(unittest.TestCase):
 
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
     def test_GIVEN_pump_on_WHEN_set_pump_off_THEN_pump_paused(self):
-        status_mode = 'Pumping Program Paused'
+        status_mode = "Infusing"
+        expected_status_mode = "Pumping Program Paused"
+        self.ca.set_pv_value("VOLUME:SP", 100.00)
+        self.ca.set_pv_value("DIRECTION:SP", "Infuse")
         self.ca.set_pv_value("RUN:SP", "Run")
+        self.ca.assert_that_pv_is("STATUS", status_mode, timeout=2)
+
         self.ca.set_pv_value("STOP:SP", "Stop")
 
-        self.ca.assert_that_pv_is("STATUS", status_mode)
+        self.ca.assert_that_pv_is("STATUS", expected_status_mode)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_given_program_function_WHEN_program_function_changed_THEN_program_function_updated(self):
@@ -199,4 +204,16 @@ class Aldn1000Tests(unittest.TestCase):
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('STATUS', ChannelAccess.Alarms.INVALID, timeout=2)
+        self.ca.set_pv_value("STATUS.PROC", 1)
+        self.ca.assert_that_pv_alarm_is('STATUS', ChannelAccess.Alarms.INVALID, timeout=5)
+
+    def test_GIVEN_pump_infusing_WHEN_pump_on_THEN_infused_volume_dispensed_increases(self):
+        self.ca.set_pv_value("VOLUME:SP", 10.00)
+        self.ca.set_pv_value("RATE:SP", 0.50)
+        self.ca.set_pv_value("RATE:UNITS:SP", "uL/min")
+        self.ca.set_pv_value("DIRECTION:SP", "Infuse")
+        self.ca.set_pv_value("VOLUME:INF:CLEAR:SP", "CLEAR")
+        self.ca.set_pv_value("RUN:SP", "Run")
+
+        self.ca.assert_that_pv_is_not("VOLUME:INF", 0.0, timeout=0.0)
+        self.ca.set_pv_value("STOP:SP", "Stop")
