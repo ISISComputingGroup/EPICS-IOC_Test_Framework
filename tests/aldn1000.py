@@ -221,8 +221,18 @@ class Aldn1000Tests(unittest.TestCase):
 
     @parameterized.expand([("Low limit", 1.0, "uL"), ("High limit", 15.0, "mL")])
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
-    def test_GIVEN_diameter_change_WHEN_new_diamater_causes_units_changed_THEN_volume_units_EGU_updated(self, _, value, units):
+    def test_GIVEN_diameter_change_WHEN_new_diamater_causes_units_changed_THEN_volume_EGU_units_updated(self, _, value, units):
         expected_units = units
         self.ca.set_pv_value("DIAMETER:SP", value)
 
         self.ca.assert_that_pv_is("VOLUME.EGU", expected_units)
+
+    @parameterized.expand(("uL/min", "mL/min", "uL/min", "mL/hr"))
+    @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
+    def test_GIVEN_rate_change_WHEN_new_rate_units_THEN_rate_EGU_units_updated(self, units):
+        expected_units = units
+        self.ca.set_pv_value("RATE:UNITS:SP", expected_units)
+        self.ca.set_pv_value("RATE:SP.PROC", 1)
+
+        self.ca.assert_that_pv_is("RATE.EGU", expected_units)
+
