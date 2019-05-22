@@ -195,7 +195,7 @@ class Aldn1000Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("ERROR", expected_value, timeout=2)
 
-    @skip_if_recsim("Not supported in RECSIM")
+    @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
     def test_GIVEN_device_connected_WHEN_get_status_THEN_device_status_returned(self):
         expected_status = 'Pumping Program Stopped'
 
@@ -207,6 +207,7 @@ class Aldn1000Tests(unittest.TestCase):
         self.ca.set_pv_value("STATUS.PROC", 1)
         self.ca.assert_that_pv_alarm_is('STATUS', ChannelAccess.Alarms.INVALID, timeout=5)
 
+    @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
     def test_GIVEN_pump_infusing_WHEN_pump_on_THEN_infused_volume_dispensed_increases(self):
         self.ca.set_pv_value("VOLUME:SP", 10.00)
         self.ca.set_pv_value("RATE:SP", 0.50)
@@ -217,3 +218,11 @@ class Aldn1000Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_not("VOLUME:INF", 0.0, timeout=0.0)
         self.ca.set_pv_value("STOP:SP", "Stop")
+
+    @parameterized.expand([("Low limit", 1.0, "uL"), ("High limit", 15.0, "mL")])
+    @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
+    def test_GIVEN_diameter_change_WHEN_new_diamater_causes_units_changed_THEN_volume_units_EGU_updated(self, _, value, units):
+        expected_units = units
+        self.ca.set_pv_value("DIAMETER:SP", value)
+
+        self.ca.assert_that_pv_is("VOLUME.EGU", expected_units)
