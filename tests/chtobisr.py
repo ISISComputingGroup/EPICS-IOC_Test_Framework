@@ -19,7 +19,8 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+# IOC has no SIM records
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class ChtobisrTests(unittest.TestCase):
