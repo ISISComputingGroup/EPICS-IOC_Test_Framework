@@ -1,7 +1,6 @@
 import unittest
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir
 from genie_python.genie_cachannel_wrapper import WriteAccessException
 import os
 from parameterized.parameterized import parameterized

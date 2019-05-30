@@ -5,6 +5,7 @@ import abc
 
 UNDERLYING_GAP_SP = "MOT:JAWS{}:{}GAP:SP"
 UNDERLYING_CENT_SP = "MOT:JAWS{}:{}CENT:SP"
+MOD_GAP = "JAWMAN:MOD:{}GAP:SP"
 
 
 @six.add_metaclass(abc.ABCMeta)
