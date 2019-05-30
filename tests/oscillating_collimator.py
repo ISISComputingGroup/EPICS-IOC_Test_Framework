@@ -20,6 +20,8 @@ RADIUS = "RADIUS"
 VELOCITY = "VEL:SP"
 DISTANCE = "DIST:SP"
 DISCRIMINANT = "VEL:SP:DISC:CHECK"
+# The default motor resoltuion is chosen because this is reolution used when extracting the original numbers from LabView
+DEFAULT_MOTOR_RESOLUTION = 0.00250
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "oscillatingCollimator"))
@@ -51,10 +53,10 @@ class OscillatingCollimatorTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("GALIL_01")
         ca_mot = ChannelAccess()
         ca_mot.assert_that_pv_exists("MOT:MTR0103", timeout=30)
-        ca_mot.assert_that_pv_is("MOT:MTR0103.MRES", 0.00250)
+        ca_mot.assert_setting_setpoint_sets_readback(DEFAULT_MOTOR_RESOLUTION,
+                                                     set_point_pv="MOT:MTR0103.MRES", readback_pv="MOT:MTR0103.MRES", )
         self.ca = ChannelAccess(device_prefix=PREFIX)
         self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
-        self.ca.assert_that_pv_is("STEPS:_CALC", 400)
 
     def _custom_name_func(testcase_func, param_num, param):
         return "{}_ang_{}_freq_{}_rad_{}".format(
