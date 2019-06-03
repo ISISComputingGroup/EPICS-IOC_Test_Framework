@@ -52,6 +52,10 @@ class CP2800StatusTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:ERR", 1)
         self.ca.assert_that_pv_is("ERR", 1, 10)
 
-    def test_GIVEN_error_value_THEN_alarm_correct(self):
+    def test_GIVEN_positive_error_value_THEN_alarm_correct(self):
         self.ca.set_pv_value("SIM:ERR", 1)
         self.ca.assert_that_pv_alarm_is("ERR", self.ca.Alarms.MINOR, 10)
+
+    def test_GIVEN_negative_error_value_THEN_alarm_correct(self):
+        self.ca.set_pv_value("SIM:ERR", -1)
+        self.ca.assert_that_pv_alarm_is("ERR", self.ca.Alarms.MAJOR, 10)
