@@ -270,6 +270,7 @@ class IocLauncher(BaseLauncher):
         :param var_dir: The directory into which the launcher will save log files.
         """
         self._device = ioc['name']
+        self._custom_prefix = ioc.get('custom_prefix', None)
         self._directory = ioc['directory']
         self.macros = ioc.get("macros", {})
         self._var_dir = var_dir
@@ -277,6 +278,7 @@ class IocLauncher(BaseLauncher):
         self._ioc_started_text = ioc.get("started_text", "epics>")
         self._pv_for_existence = ioc.get("pv_for_existence", "DISABLE")
         self._extra_environment_vars = ioc.get("environment_vars", {})
+        self._init_values = ioc.get('inits', {})
 
         if test_mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
             raise ValueError("Invalid test mode provided")
@@ -368,6 +370,9 @@ class IocLauncher(BaseLauncher):
         self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
+        for key, value in self._init_values.items():
+            print("Initialising PV {} to {}".format(key, value))
+            ca.set_pv_value(key, value)
 
     def close(self):
         """
@@ -428,7 +433,8 @@ class IocLauncher(BaseLauncher):
         :return (ChannelAccess): the channel access component
         """
         if self._ca is None:
-            self._ca = ChannelAccess(device_prefix=self._device)
+            prefix = self._custom_prefix or self._device
+            self._ca = ChannelAccess(device_prefix=prefix)
 
         return self._ca
 
