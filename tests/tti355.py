@@ -70,7 +70,7 @@ class Tti355Tests(unittest.TestCase):
     
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
     def test_WHEN_identity_requested_THEN_correct_identity_returned(self):
-        expected_identity = "THURLBY EX355P, <version>"
+        expected_identity = "Thurlby Thandar,EL302P,0,v1.14"
         self.ca.assert_that_pv_is("IDENT", expected_identity)
 
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
@@ -130,7 +130,7 @@ class Tti355Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "On")
         self.ca.assert_that_pv_is("CURRENT:SP:RBV", current)
         self.ca.assert_that_pv_is_number("CURRENT", current, tolerance=0.01)
-        
+
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
     def test_GIVEN_voltage_WHEN_current_limit_is_lower_than_potential_current_THEN_mode_is_CC(self):
         self.ca.assert_that_pv_is("OUTPUTMODE", "Constant Voltage")
@@ -138,6 +138,3 @@ class Tti355Tests(unittest.TestCase):
         self.ca.set_pv_value("CURRENT:SP", 2.5)
         self.ca.set_pv_value("VOLTAGE:SP", 25)
         self.ca.assert_that_pv_is("OUTPUTMODE", "Constant Current")
-
-
- 
