@@ -18,8 +18,7 @@ IOCS = [
         "directory": get_default_ioc_dir("JULABO"),
         "macros": {},
         "emulator": "julabo",
-        "emulator_protocol": "julabo-version-1",
-        "emulator_package": None,
+        "lewis_protocol": "julabo-version-1",
     },
 ]
 
@@ -37,7 +36,7 @@ class JulaboTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("julabo", "JULABO_01")
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("TEMP", timeout=30)
+        self.ca.assert_that_pv_exists("TEMP", timeout=30)
         # Turn off circulate
         self.ca.set_pv_value("MODE:SP", 0)
 
@@ -177,3 +176,7 @@ class JulaboTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("EXTP", start_p)
         self.ca.assert_that_pv_is_number("EXTI", start_i)
         self.ca.assert_that_pv_is_number("EXTD", start_d)
+
+    def test_setting_control_mode_on_device_changes_control_mode_readback(self):
+        for control_mode in ["Internal", "External", "Internal"]:  # Check both transitions
+            self.ca.assert_setting_setpoint_sets_readback(control_mode, "CONTROLMODE")

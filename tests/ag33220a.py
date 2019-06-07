@@ -3,19 +3,18 @@ import unittest
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import skip_if_recsim
+from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
 
 
 DEVICE_PREFIX = "AG33220A_01"
-
+emulator_name = "ag33220a"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("AG33220A"),
         "macros": {},
-        "emulator": "ag33220a",
-        "emulator_protocol": "stream",
+        "emulator": emulator_name,
     },
 ]
 
@@ -25,11 +24,13 @@ TEST_MODES = [TestModes.DEVSIM]
 
 class Ag33220aTests(unittest.TestCase):
     def setUp(self):
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("DISABLE", timeout=30)
+        self._lewis, self._ioc = get_running_lewis_and_ioc(emulator_name, DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
+        self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.reset_values()
 
     def reset_values(self):
+        self._lewis.backdoor_set_on_device('connected', True)
         self.ca.set_pv_value("AMPLITUDE:SP", 0.1)
         self.ca.set_pv_value("FREQUENCY:SP", 1000)
         self.ca.set_pv_value("OFFSET:SP", 0)
@@ -124,3 +125,8 @@ class Ag33220aTests(unittest.TestCase):
         self.ca.assert_that_pv_is("AMPLITUDE", 6)
         self.ca.assert_that_pv_is("VOLT:LOW", -1)
         self.ca.assert_that_pv_is("VOLT:HIGH", 5)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('FREQUENCY', ChannelAccess.Alarms.INVALID)

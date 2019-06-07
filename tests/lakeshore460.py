@@ -60,7 +60,7 @@ class Lakeshore460Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("lakeshore460", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix="LKSH460_01", default_timeout=30)
-        self.ca.wait_for("IDN")
+        self.ca.assert_that_pv_exists("IDN")
 
     def test_GIVEN_unit_set_gauss_WHEN_read_THEN_unit_is_gauss(self):
         self.ca.set_pv_value("CHANNEL", "X")

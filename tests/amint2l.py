@@ -37,6 +37,7 @@ class Amint2lTests(unittest.TestCase):
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self._lewis.backdoor_set_on_device('connected', True)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _set_pressure(self, expected_pressure):
@@ -48,7 +49,7 @@ class Amint2lTests(unittest.TestCase):
         self._set_pressure(expected_pressure)
 
         self.ca.assert_that_pv_is("PRESSURE", expected_pressure)
-        self.ca.assert_pv_alarm_is("PRESSURE", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("PRESSURE", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("RANGE:ERROR", "No Error")
 
     def test_GIVEN_negative_pressure_set_WHEN_read_THEN_pressure_is_as_expected(self):
@@ -68,7 +69,7 @@ class Amint2lTests(unittest.TestCase):
         expected_pressure = "OR"
         self._set_pressure(expected_pressure)
 
-        self.ca.assert_pv_alarm_is("PRESSURE", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is("PRESSURE", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_is("RANGE:ERROR", "Over Range")
 
     @skip_if_recsim("In rec sim this test fails")
@@ -76,7 +77,7 @@ class Amint2lTests(unittest.TestCase):
         expected_pressure = "UR"
         self._set_pressure(expected_pressure)
 
-        self.ca.assert_pv_alarm_is("PRESSURE", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is("PRESSURE", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_is("RANGE:ERROR", "Under Range")
 
     @skip_if_recsim("In rec sim this test fails")
@@ -85,4 +86,9 @@ class Amint2lTests(unittest.TestCase):
         # Setting none simulates no response from device which is like pulling the serial cable. Disconnecting the
         # emulator using the backdoor makes the record go udf not timeout which is what the actual device does.
 
-        self.ca.assert_pv_alarm_is("PRESSURE", ChannelAccess.ALARM_INVALID)
+        self.ca.assert_that_pv_alarm_is("PRESSURE", self.ca.Alarms.INVALID)
+
+    @skip_if_recsim("Can not test disconnection in recsim")
+    def test_GIVEN_device_not_connected_WHEN_get_pressure_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.INVALID)

@@ -2,7 +2,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 DEVICE_PREFIX = "KEPCO_01"
 
@@ -45,7 +45,9 @@ class KepcoTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("kepco", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("VOLTAGE", timeout=30)
+        self._lewis.backdoor_run_function_on_device("reset")
+        self.ca.assert_that_pv_exists("VOLTAGE", timeout=30)
+
 
     def _write_voltage(self, expected_voltage):
         self._lewis.backdoor_set_on_device("voltage", expected_voltage)
@@ -109,5 +111,14 @@ class KepcoTests(unittest.TestCase):
         expected_idn = "000000000000000000111111111111111111111"
         self._set_IDN(expected_idn)
         # Made Proc field force scan as IDN scan is passive
-        self.ca.set_pv_value("IDN.PROC", 1)
+        self.ca.process_pv("IDN")
         self.ca.assert_that_pv_is("IDN", expected_idn)
+
+    @skip_if_recsim("In rec sim you can not diconnect the device")
+    def test_GIVEN_diconnected_WHEN_read_THEN_alarms_on_readbacks(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+
+        self.ca.assert_that_pv_alarm_is("OUTPUTMODE", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is("CURRENT", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is("VOLTAGE", self.ca.Alarms.INVALID)
+

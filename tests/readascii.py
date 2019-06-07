@@ -1,6 +1,9 @@
+from __future__ import division
+
 import os
 import unittest
 import shutil
+import time
 from contextlib import contextmanager
 
 from utils.channel_access import ChannelAccess
@@ -31,6 +34,15 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM]
 
+
+SECONDS_PER_MINUTE = 60
+
+TEST_VALUES = [
+    0.123456789,
+    987654321,
+]
+
+
 class ReadasciiTests(unittest.TestCase):
     """
     Tests for ReadASCII
@@ -48,6 +60,7 @@ class ReadasciiTests(unittest.TestCase):
             for row in data:
                 assert len(row) == 5, "Each row should have exactly 5 elements"
                 f.write("{}\n".format(" ".join(str(d) for d in row)))
+        time.sleep(5) # allow new file on disk to be noticed
 
     @contextmanager
     def _generate_temporary_test_file(self, data):
@@ -89,7 +102,9 @@ class ReadasciiTests(unittest.TestCase):
 
         # The LUTON PV is FLNK'ed to by the IOCs that use ReadASCII after the setpoint changes.
         # Here we're not using any particular IOC so have to trigger the processing manually.
-        self.ca.set_pv_value("LUTON.PROC", 1)
+        self.ca.assert_that_pv_is("LUTON:RBV", "1")
+        self.ca.assert_that_pv_is("LUTON", "1")
+        self.ca.process_pv("LUTON")
 
         self.ca.assert_that_pv_is_number("OUT_P", p, tolerance=TOLERANCE)
         self.ca.assert_that_pv_is_number("OUT_I", i, tolerance=TOLERANCE)
@@ -99,7 +114,8 @@ class ReadasciiTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
-        self.ca.wait_for("DIRBASE")
+        self.ca.assert_that_pv_exists("DIRBASE")
+        self._set_ramp_status(False)
 
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(self):
         rows = [
@@ -151,3 +167,36 @@ class ReadasciiTests(unittest.TestCase):
 
             for row in new_rows:
                 self._set_and_check(*row)
+
+    def _set_ramp_status(self, status):
+        self.ca.set_pv_value("RAMPON", status)
+
+    def test_GIVEN_ramping_is_off_WHEN_setting_setpoint_THEN_it_is_sent_to_device_immediately(self):
+        self._set_ramp_status(False)
+        for val in TEST_VALUES:
+            self.ca.assert_setting_setpoint_sets_readback(val, set_point_pv="VAL:SP", readback_pv="OUT_SP")
+
+    def test_GIVEN_ramping_is_on_WHEN_setting_setpoint_THEN_setpoint_sent_to_the_device_ramps(self):
+        setpoint_change = 1  # K
+
+        # secs - The test will take at least this long to run but if it's too small may get random timing problems
+        # causing the test to fail
+        ramp_time = 20
+
+        ramp_rate = setpoint_change * SECONDS_PER_MINUTE / ramp_time  # K per min
+
+        # Ensure ramp is off and setpoint is zero initially
+        self._set_ramp_status(False)
+        self.ca.set_pv_value("VAL:SP", 0)
+        self.ca.assert_that_pv_is("OUT_SP", 0)
+
+        # Set up ramp and set a setpoint so that the ramp starts.
+        self.ca.assert_setting_setpoint_sets_readback(ramp_rate, "RATE")
+        self._set_ramp_status(True)
+        self.ca.set_pv_value("VAL:SP", setpoint_change)
+
+        # Verify that setpoint does not reach final value within first half of ramp time
+        self.ca.assert_that_pv_is_not("OUT_SP", setpoint_change, timeout=ramp_time/2)
+
+        # ... But after a further ramp_time, it should have.
+        self.ca.assert_that_pv_is("OUT_SP", setpoint_change, timeout=ramp_time)

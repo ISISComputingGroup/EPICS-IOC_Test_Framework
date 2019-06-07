@@ -57,7 +57,7 @@ class Ilm200Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ilm200", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("VERSION", timeout=30)
+        self.ca.assert_that_pv_exists("VERSION", timeout=30)
         self._lewis.backdoor_set_on_device("cycle", False)
 
     def set_level_via_backdoor(self, channel, level):
@@ -73,16 +73,16 @@ class Ilm200Tests(unittest.TestCase):
 
     def test_GIVEN_ilm200_THEN_has_version(self):
         self.ca.assert_that_pv_is_not("VERSION", "")
-        self.ca.assert_pv_alarm_is("VERSION", ChannelAccess.ALARM_NONE)
+        self.ca.assert_that_pv_alarm_is("VERSION", self.ca.Alarms.NONE)
 
     def test_GIVEN_ilm200_THEN_each_channel_has_type(self):
         for i in self.channel_range():
             self.ca.assert_that_pv_is_not(self.ch_pv(i, self.TYPE), "Not in use")
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, self.TYPE), ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.TYPE), self.ca.Alarms.NONE)
 
     def test_GIVEN_ilm_200_THEN_can_read_level(self):
         for i in self.channel_range():
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, self.LEVEL), ChannelAccess.ALARM_NONE)
+            self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.LEVEL), self.ca.Alarms.NONE)
 
     @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
     def test_GIVEN_ilm_200_WHEN_level_set_on_device_THEN_reported_level_matches_set_level(self):
@@ -98,7 +98,7 @@ class Ilm200Tests(unittest.TestCase):
             def not_equal(a, b):
                 tolerance = self.LEVEL_TOLERANCE
                 return abs(a-b)/(a+b+tolerance) > tolerance
-            self.ca.assert_pv_value_over_time(self.ch_pv(i, self.LEVEL), 2*Ilm200Tests.DEFAULT_SCAN_RATE, not_equal)
+            self.ca.assert_that_pv_value_over_time_satisfies_comparator(self.ch_pv(i, self.LEVEL), 2 * Ilm200Tests.DEFAULT_SCAN_RATE, not_equal)
 
     def test_GIVEN_ilm200_channel_WHEN_rate_change_requested_THEN_rate_changed(self):
         for i in self.channel_range():
@@ -139,7 +139,7 @@ class Ilm200Tests(unittest.TestCase):
         for i in self.channel_range():
             level = self.FILL/2
             self.set_level_via_backdoor(i, level)
-            self.ca.assert_pv_alarm_is(self.ch_pv(i, "LOW"), self.ca.ALARM_MINOR)
+            self.ca.assert_that_pv_alarm_is(self.ch_pv(i, "LOW"), self.ca.Alarms.MINOR)
 
     @skip_if_recsim("Cannot do back door in recsim")
     def test_GIVEN_helium_channel_WHEN_helium_current_set_on_THEN_ioc_reports_current(self):

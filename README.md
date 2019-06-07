@@ -17,27 +17,61 @@ To run all the tests in the test framework, use:
 
 ```
 C:\Instrument\Apps\EPICS\config_env.bat
+```
+Then `cd` to `C:\Instrument\Apps\EPICS\support\IocTestFramework\master` and use:
+```
 python run_tests.py
 ```
 
-There is a batch file which does this for you, called `run_tests.bat`
+There is a batch file which does this for you, called `run_all_tests.bat`
 
-### Running specific tests
+### Running tests in modules
 
-Specify the test modules you want to run via the `-tm` argument:
+You can run tests in specific modules using the `-t` argument as follows:
 
 ```
-python run_tests.py -tm instron_stress_rig amint2l  # Will run the stress rig tests and then the amint2l tests.
+python run_tests.py -t instron_stress_rig amint2l  # Will run the stress rig tests and then the amint2l tests.
 ```
 
-The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` directory, with the `.py` extension removed.
+The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` 
+directory, with the `.py` extension removed.
+
+### Running tests in classes
+
+You can run classes of tests in modules using the `-t` argument as follows:
+
+```
+python run_tests.py -t sp2xx.RunCommandTests # This will run all the tests in the RunCommandTests class in the sp2xx module. 
+```
+
+The argument is the "dotted name" of the class containing the tests. The dotted name takes the form `module.class`.
+You can run the tests in multiple classes in different modules.
+
+### Running tests by name
+
+You can run tests by name using `-t` argument as follows:
+
+```
+python run_tests.py -t sp2xx.RunCommandTests.test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped # This will run the test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped test in the RunCommandTests class in the sp2xx module. 
+```
+
+The argument is the "dotted name" of the test containing the tests. The dotted name takes the form `module.class.test`.
+You can run multiple tests from multiple classes in different modules.
+
+### Running tests with failfast
+
+Running tests with `-f` argument will cause tests to run normally _until_ the first test fails, upon which it will quit testing and provide the usual output for a failed test.
+
+>`python run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
 
 ## Troubleshooting 
 
 If all tests are failing then it is likely that the PV prefix is incorrect.
 If a large percentage of tests are failing then it may that the macros in the IOC are not being set properly for the testing framework.
 
-In most cases it requires inspecting what the IOC is doing, to do that one needs to edit the ioc_launcher.py file to remove the redirection of stdout, stdin and stderr. This will mean that the IOC will dump all its output to the console, so it will then be possible to scroll through it to check the prefix and macros are set correctly.
+It is important to explicitly set each of the macro values for an IOC in its IOC test module. This is to prevent macros set in a configuration from interfering with the values used in the test, even if they are the default values.
+
+To inspect the IOC settings in further detail, one needs to edit the ioc_launcher.py file to remove the redirection of stdout, stdin and stderr. This will mean that the IOC will dump all its output to the console, so it will then be possible to scroll through it to check the prefix and macros are set correctly.
 
 Note: in this mode the IOC will not automatically terminate after the tests have finished, this means it is possible to run diagnostic commands in the IOC, such as `dbl` etc.
 
@@ -83,6 +117,8 @@ Essential attributes in devsim mode:
 
 Optional attributes:
 - `macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
+- `inits` : A dictionary of initialisation values for PVs in this IOC. Defaults to an empty dictionary.
+- `custom_prefix` : A custom PV prefix for this IOC in case this is different from the IOC name (example: custom prefix `MOT` for IOC `GALIL_01`)
 - `emulator_protocol`: The lewis protocol to use. Defaults to `stream`, which is used by the majority of ISIS emulators.
 - `emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
 - `emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
@@ -97,10 +133,24 @@ IOCS = [
         "macros": {
             "MY_MACRO": "My_value",
         },
+        "inits": {
+            "MYPV:SP": 5.0
+        },
         "emulator": "my_emulator_name",
     },
 ]
 ```
+
+#### Changing the IOC number
+
+If you want a to run the IOC tests against a different number IOC, e.g. "IOCNAME_02", 
+you need to change the following:
+
+1. Set `DEVICE_PREFIX` to `IOCNAME_02`.
+1. Change the "name" property of the IOC dictionary to `IOCNAME_02`.
+1. Pass the keyword argument `iocnum=2` to `get_default_ioc_dir()`.
+
+The test framework now start the `IOCNAME_02` IOC to run the tests against.
 
 ### The `TEST_MODES` attribute
 
@@ -158,8 +208,18 @@ A number of custom assert statements are available in the test framework:
   * Checks that a PV has a particular alarm state. 
 * `assert_setting_setpoint_sets_readback`
   * Checks that a PV is a particular value after the relevant setpoint is changed.
+* `assert_that_pv_monitor_is`
+  * Checks that a PV has issued a monitor for a pv and that the value is as set. This used in a with:
+      ```
+      with self.ca.assert_that_pv_monitor_is("MY:PV:NAME", expected_value):
+            self.ca.set_pv_value("MY:PV:NAME:SP", 1)
+      ```
+* `assert_that_pv_monitor_is_number`
+  * Checks that a PV has issued a monitor for a pv and that it is a number, within a specified tolerance. Used in a similar way to `assert_that_pv_monitor_is`
 
 If you find yourself needing other assert functions, please add them!
+
+Note: If using PyCharm, you can add code completeion/suggestions for function names by opening the folder `IoCTestFramework`, rightclick on `master` in the project explorer on the left, and selecting `Mark Directory as... > Sources Root`. 
 
 ### Skipping tests in RECSIM
 
@@ -177,6 +237,18 @@ Any test which includes a Lewis backdoor command MUST have this annotation, othe
 
 There is also an equivalent `skip_if_devsim` annotation which can be used.
 
+If you do not call the decorator with a message as its first argument, the test will fail with a message like:
+```
+Traceback (most recent call last):
+  File "C:\Instrument\Apps\EPICS\support\IocTestFramework\master\utils\testing.py", line 93, in decorator
+    @functools.wraps(func)
+  File "C:\Instrument\Apps\Python\lib\functools.py", line 33, in update_wrapper
+    setattr(wrapper, attr, getattr(wrapped, attr))
+AttributeError: 'obj' object has no attribute '__name__'
+```
+
+This can be avoided by calling the decorator like ` @skip_if_recsim("In rec sim this test fails") `
+
 ### Avoiding tests affecting other tests
 
 * When run by the IOC test framework, the IOC + emulator state persists between tests
@@ -184,6 +256,9 @@ There is also an equivalent `skip_if_devsim` annotation which can be used.
 * Solution is to ensure a consistent startup state in the setUp method of the tests. 
 This will run before each test, and it should “reset” all relevant properties of the device so that each test always starts from a consistent starting state
 * Doing lots in the setup method will make the tests run a bit slower – this is preferable to having inconsistently passing tests!
+* When creating base classes for tests please have your base class inherit from `object` and your subclasses inherit
+from your base class and `unittest.TestCase`. See [Python unit tests with base and sub class](https://stackoverflow.com/questions/1323455/python-unit-test-with-base-and-sub-class)
+for more discussion.
 
 ### Parameterised tests
 You can create tests which check a few values, e.g. boundaries, negative numbers, zero, floats and integers (if applicable to the device):
@@ -195,6 +270,33 @@ def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
         self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
 ```
 Testing different types of values can quickly catch simple errors in the IOC’s records or protocol file, for example accidentally having a %i (integer) instead of %d (double) format converter.
+
+The above was the old way of parameterizing tests. After installing `parameterized` using pip, you can parameterize your tests so that a new test runs for each case. Documentation for parameterized can be found at https://github.com/wolever/parameterized.
+
+Example code:
+
+```python
+@parameterized.expand([
+        ("Pin_{}".format(i), i) for i in range(2, 8)
+    ])
+    def test_that_we_can_read_a_digital_input(self, _, pin):
+        # Given
+        pv = "PIN_{}".format(pin)
+        self._lewis.backdoor_run_function_on_device("set_input_state_via_the_backdoor", [pin, "FALSE"])
+        self.ca.assert_that_pv_is(pv, "FALSE")
+
+        self._lewis.backdoor_run_function_on_device("set_input_state_via_the_backdoor", [pin, "TRUE"])
+
+        # When:
+        self.ca.process_pv(pv)
+
+        # Then:
+        self.ca.assert_that_pv_is(pv, "TRUE")
+```
+
+This runs a new test for each case with the name `test_that_we_can_read_a_digital_input_{j}_Pin_{i}` where `{j}` indexes the tests from `0` to `5` and `{i}` runs from `2` to `7`.
+
+**Note:** Trying to run a single test using `-tn test_that_we_can_read_a_digital_input` will result in *no tests* being run. However, you can run a single test with the correct suffix, e.g `-tn test_that_we_can_read_a_digital_input_0_Pin_2` runs the test case with `pin = 2`.
 
 ### Rounding errors
 

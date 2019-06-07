@@ -1,5 +1,4 @@
 import unittest
-import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -85,15 +84,15 @@ class GemJawsTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("gem_jaws")
         self.ca = ChannelAccess(default_timeout=30)
 
-        [self.ca.wait_for(mot) for mot in all_motors]
+        [self.ca.assert_that_pv_exists(mot) for mot in all_motors]
 
     def _test_readback(self, underlying_motor, calibrated_axis, to_read_func, x):
-        self.ca.set_pv_value(underlying_motor, x)
+        self.ca.set_pv_value(underlying_motor, x, wait=True)
         self.ca.assert_that_pv_is_number(underlying_motor + ".DMOV", 1)  # Wait for axis to finish moving
         self.ca.assert_that_pv_is_number(calibrated_axis + ".RBV", to_read_func(x), TOLERANCE)
 
     def _test_set_point(self, underlying_motor, calibrated_axis, to_write_func, x):
-        self.ca.set_pv_value(calibrated_axis, x)
+        self.ca.set_pv_value(calibrated_axis, x, wait=True)
         self.ca.assert_that_pv_is_number(underlying_motor + ".DMOV", 1)  # Wait for axis to finish moving
         self.ca.assert_that_pv_is_number(underlying_motor + ".VAL", to_write_func(x), TOLERANCE)
 
@@ -122,14 +121,14 @@ class GemJawsTests(unittest.TestCase):
                 self._test_set_point(underlying, mot, calc_expected_linear_write, position)
 
     def test_GIVEN_quad_calibrated_motor_limits_set_THEN_underlying_motor_limits_set(self):
-        for lim in [".DLLM", ".DHLM"]:
+        for lim in [".LLM", ".HLM"]:
             underlying_limit = self.ca.get_pv_value(UNDERLYING_MTR_WEST + lim)
 
             self.ca.assert_that_pv_is_number(MOTOR_W + lim, calc_expected_quad_read(underlying_limit),
                                              TOLERANCE)
 
     def test_GIVEN_linear_calibrated_motor_limits_set_THEN_underlying_motor_limits_set(self):
-        for lim in [".DLLM", ".DHLM"]:
+        for lim in [".LLM", ".HLM"]:
             underlying_limit = self.ca.get_pv_value(UNDERLYING_MTR_NORTH + lim)
 
             self.ca.assert_that_pv_is_number(MOTOR_N + lim, calc_expected_linear_read(underlying_limit),

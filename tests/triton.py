@@ -19,7 +19,7 @@ RESISTANCE_TEST_VALUES = 10, 3456
 EXCITATION_TEST_VALUES = PID_TEST_VALUES
 TIME_DELAY_TEST_VALUES = RESISTANCE_TEST_VALUES
 
-VALID_TEMPERATURE_SENSORS = [i for i in range(0, 6)]
+VALID_TEMPERATURE_SENSORS = [i for i in range(1, 7)]
 VALID_PRESSURE_SENSORS = [1, 2, 3, 5]
 
 
@@ -28,6 +28,10 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("TRITON"),
         "emulator": "triton",
+        "macros": {
+            "USE_RAMP_FILE": 0,
+            "RAMP_FILE_NAME": "Default.txt",
+        }
     },
 ]
 
@@ -62,6 +66,24 @@ class TritonTests(unittest.TestCase):
         for value in TEMPERATURE_TEST_VALUES:
             self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
 
+    @skip_if_recsim("This is implemented at the protocol level, so does not work in recsim")
+    def test_WHEN_temperature_setpoint_is_set_THEN_closed_loop_turned_on_automatically(self):
+        for value in TEMPERATURE_TEST_VALUES:
+            self.ca.set_pv_value("CLOSEDLOOP:SP", "Off")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "Off")
+            self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "On")
+
+    def test_GIVEN_closed_loop_already_on_WHEN_temperature_setpoint_is_set_THEN_closed_loop_setpoint_not_reprocessed(self):
+        for value in TEMPERATURE_TEST_VALUES:
+            self.ca.set_pv_value("CLOSEDLOOP:SP", "On")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "On")
+            timestamp_before = self.ca.get_pv_value("CLOSEDLOOP:SP.TSEL")
+            self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "On")
+            self.ca.assert_that_pv_is("CLOSEDLOOP:SP.TSEL", timestamp_before)
+            self.ca.assert_that_pv_value_is_unchanged("CLOSEDLOOP:SP.TSEL", wait=5)
+
     def test_WHEN_heater_range_is_set_THEN_readback_updates(self):
         for value in HEATER_RANGE_TEST_VALUES:
             self.ca.assert_setting_setpoint_sets_readback(value, "HEATER:RANGE")
@@ -71,19 +93,13 @@ class TritonTests(unittest.TestCase):
         for value in HEATER_RANGE_TEST_VALUES:
             self._lewis.backdoor_set_on_device("heater_power", value)
             self.ca.assert_that_pv_is("HEATER:POWER", value)
+            self.ca.assert_that_pv_alarm_is("HEATER:POWER", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_closed_loop_mode_is_set_via_backdoor_THEN_the_closed_loop_pv_updates_with_value_just_set(self):
         for value in [False, True, False]:  # Need to check both transitions work properly
             self._lewis.backdoor_set_on_device("closed_loop", value)
             self.ca.assert_that_pv_is("CLOSEDLOOP", "On" if value else "Off")
-
-    @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_valve_state_is_set_via_backdoor_THEN_valve_state_pvs_update_with_value_just_set(self):
-        for valve in range(1, 11):
-            for valve_state in [False, True, False]:
-                self._lewis.backdoor_command(["device", "set_valve_state_backdoor", str(valve), str(valve_state)])
-                self.ca.assert_that_pv_is("VALVES:V{}:STATE".format(valve), "OPEN" if valve_state else "CLOSED")
 
     @skip_if_recsim("Behaviour too complex for recsim")
     def test_WHEN_channels_are_enabled_and_disabled_via_pv_THEN_the_readback_pv_updates_with_value_just_set(self):
@@ -122,7 +138,7 @@ class TritonTests(unittest.TestCase):
 
         # Allow truncation for long status, but it should still display as many characters as possible
         self._lewis.backdoor_set_on_device("status", long_status)
-        self.ca.assert_pv_value_causes_func_to_return_true(
+        self.ca.assert_that_pv_value_causes_func_to_return_true(
             "STATUS", lambda val: long_status.startswith(val) and len(val) >= minimum_characters_in_pv)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -182,8 +198,8 @@ class TritonTests(unittest.TestCase):
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_read_mc_id_is_issued_via_arbitrary_command_THEN_response_is_in_format_device_uses(self):
         self.ca.set_pv_value("ARBITRARY:SP", "READ:SYS:DR:CHAN:MC")
-        self.ca.assert_pv_value_causes_func_to_return_true("ARBITRARY",
-                                                           lambda val: val.startswith("STAT:SYS:DR:CHAN:MC:"))
+        self.ca.assert_that_pv_value_causes_func_to_return_true("ARBITRARY",
+                                                                lambda val: val.startswith("STAT:SYS:DR:CHAN:MC:"))
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_channel_temperature_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(self):

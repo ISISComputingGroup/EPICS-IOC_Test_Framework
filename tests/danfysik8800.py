@@ -1,10 +1,11 @@
-from time import sleep
+import unittest
 
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
 
-from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
+from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME
 from utils.testing import skip_if_recsim
+
 
 IOCS = [
     {
@@ -18,7 +19,7 @@ IOCS = [
             "FACTOR_WRITE_I": "1",
         },
         "emulator": EMULATOR_NAME,
-        "emulator_protocol": "model8800",
+        "lewis_protocol": "model8800",
     },
 ]
 
@@ -47,7 +48,7 @@ INTERLOCKS = {
 }
 
 
-class Danfysik8800Tests(DanfysikBase):
+class Danfysik8800Tests(DanfysikCommon, unittest.TestCase):
     """
     Tests for danfysik model 8800. Tests inherited from DanfysikBase.
     """

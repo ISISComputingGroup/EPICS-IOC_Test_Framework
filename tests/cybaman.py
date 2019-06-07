@@ -10,14 +10,14 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 
 DEVICE_PREFIX = "CYBAMAN_01"
-
+EMULATOR_DEVICE = "cybaman"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("CYBAMAN"),
         "macros": {},
-        "emulator": "cybaman",
+        "emulator": EMULATOR_DEVICE,
     },
 ]
 
@@ -34,15 +34,16 @@ class CybamanTests(unittest.TestCase):
     test_positions = [-200, -1.23, 0, 180.0]
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("cybaman", DEVICE_PREFIX)
-
+        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
-        self.ca.wait_for("INITIALIZE", timeout=30)
+        self.ca.assert_that_pv_exists("INITIALIZE", timeout=30)
+
+        self._lewis.backdoor_set_on_device('connected', True)
 
         # Check that all the relevant PVs are up.
         for axis in self.AXES:
-            self.ca.wait_for(axis)
-            self.ca.wait_for("{}:SP".format(axis))
+            self.ca.assert_that_pv_exists(axis)
+            self.ca.assert_that_pv_exists("{}:SP".format(axis))
 
         # Initialize the device, do this in setup to avoid doing it in every test
         self.ca.set_pv_value("INITIALIZE", 1)
@@ -76,7 +77,7 @@ class CybamanTests(unittest.TestCase):
         self.ca.assert_that_pv_is("INITIALIZED", "FALSE")
         self.ca.set_pv_value("INITIALIZE", 1)
         self.ca.assert_that_pv_is("INITIALIZED", "TRUE")
-        self.ca.assert_pv_value_over_time("INITIALIZED", 10, operator.eq)
+        self.ca.assert_that_pv_value_is_unchanged("INITIALIZED", 10)
 
         original = {}
         for axis in self.AXES:
@@ -188,7 +189,7 @@ class CybamanTests(unittest.TestCase):
         # Wait for homing to start
         sleep(2)
         # Assert that A has stopped moving (i.e. homing is finished)
-        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
+        self.ca.assert_that_pv_value_is_unchanged("A", 5)
         home_position = self.ca.get_pv_value("A")
 
         # Modify an unrelated setpoint
@@ -197,4 +198,11 @@ class CybamanTests(unittest.TestCase):
 
         # Verify that A has not changed from it's home position
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
-        self.ca.assert_pv_value_over_time("A", 5, operator.eq)
+        self.ca.assert_that_pv_value_is_unchanged("A", 5)
+
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('A', ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is('B', ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is('C', ChannelAccess.Alarms.INVALID)
