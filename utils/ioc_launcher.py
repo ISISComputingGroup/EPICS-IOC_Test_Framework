@@ -154,9 +154,6 @@ class ProcServLauncher(BaseLauncher):
         self.telnet = None
         self.autorestart = True
 
-    def __exit__(self, *args, **kwargs):
-        self.close()
-
     def _get_channel_access(self):
         """
         :return (ChannelAccess): the channel access component
