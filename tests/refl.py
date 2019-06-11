@@ -1,5 +1,6 @@
 import os
 import unittest
+import time
 from contextlib import contextmanager
 from math import tan, radians
 
@@ -9,21 +10,31 @@ from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
+OUT_COMP_INIT_POS = -2.0
+IN_COMP_INIT_POS = 1.0
+DET_INIT_POS = 5.0
+DET_INIT_POS_AUTOSAVE = 1.0
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
 IOCS = [
     {
         "name": GALIL_PREFIX,
+        "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "AXIS1",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
         },
+        "inits": {
+            "MTR0105.VAL": OUT_COMP_INIT_POS,
+            "MTR0106.VAL": IN_COMP_INIT_POS,
+            "MTR0107.VAL": DET_INIT_POS
+        }
     },
     {
-        "LAUNCHER": PythonIOCLauncher,
+        "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
         "directory": REFL_PATH,
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
@@ -33,6 +44,7 @@ IOCS = [
         },
         "environment_vars": {
             "ICPCONFIGROOT": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
+            "ICPVARDIR": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
         }
     },
 
@@ -47,6 +59,7 @@ SPACING = 2
 
 # This is the position if s3 is out of the beam relative to straight through beam
 OUT_POSITION = -5
+
 
 class ReflTests(unittest.TestCase):
     """
@@ -64,9 +77,21 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
         self.ca.set_pv_value("PARAM:S3_ENABLED:SP", "IN")
-        self.ca.set_pv_value("BL:MOVE", 1)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
+        self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
+
+    def _check_param_pvs(self, param_name, expected_value):
+        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
+
+    @contextmanager
+    def _assert_pv_monitors(self, param_name, expected_value):
+        with self.ca.assert_that_pv_monitor_is_number("PARAM:%s" % param_name, expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01):
+            yield
 
     def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
         self.ca.assert_that_pv_is("BL:STAT", "OKAY")
@@ -125,18 +150,6 @@ class ReflTests(unittest.TestCase):
         expected_det_angle = 2.0 * theta_angle
         self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_angle, 0.01)
 
-    def _check_param_pvs(self, param_name, expected_value):
-        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
-
-    @contextmanager
-    def _assert_pv_monitors(self, param_name, expected_value):
-        with self.ca.assert_that_pv_monitor_is_number("PARAM:%s" % param_name, expected_value, 0.01), \
-             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01), \
-             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01):
-            yield
-
     def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
         expected_value = "OUT"
 
@@ -152,3 +165,52 @@ class ReflTests(unittest.TestCase):
         with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_value), \
              self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
                 self.ca.set_pv_value("BL:MODE:SP", expected_value)
+
+    def test_GIVEN_new_parameter_setpoint_WHEN_triggering_move_THEN_SP_is_only_set_on_motor_when_difference_above_motor_resolution(self):
+        target_mres = 0.001
+        pos_above_res = 0.01
+        pos_below_res = pos_above_res + 0.0001
+        self.ca_galil.set_pv_value("MTR0101.MRES", target_mres)
+
+        with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
+             self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+
+            self.ca.set_pv_value("PARAM:S1:SP", pos_above_res)
+
+        with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
+             self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+
+            self.ca.set_pv_value("PARAM:S1:SP", pos_below_res)
+
+    def test_WHEN_ioc_started_up_THEN_rbvs_are_initialised_to_motor_values(self):
+        self.ca.assert_that_pv_is("PARAM:IN_POS", IN_COMP_INIT_POS)
+        self.ca.assert_that_pv_is("PARAM:OUT_POS", OUT_COMP_INIT_POS)
+
+    def test_GIVEN_theta_init_to_non_zero_and_det_pos_not_autosaved_WHEN_initialising_det_pos_THEN_det_pos_sp_is_initialised_to_rbv_minus_offset_from_theta(self):
+        expected_value = DET_INIT_POS - SPACING  # angle between theta component and detector is 45 deg
+
+        self.ca.assert_that_pv_is_number("PARAM:INIT:SP:RBV", expected_value)
+
+    def test_GIVEN_theta_is_non_zero_and_param_is_autosaved_WHEN_initialising_detector_height_param_THEN_param_sp_is_initialised_to_autosave_value(self):
+        expected_value = DET_INIT_POS_AUTOSAVE
+
+        self.ca.assert_that_pv_is_number("PARAM:INIT_AUTO:SP:RBV", expected_value)
+
+    def test_GIVEN_component_out_of_beam_WHEN_starting_up_ioc_THEN_inbeam_sp_false_and_pos_sp_zero(self):
+        expected_inbeam = "OUT"
+        expected_pos = 0.0
+
+        self.ca.assert_that_pv_is("PARAM:IS_OUT:SP:RBV", expected_inbeam)
+        self.ca.assert_that_pv_is("PARAM:OUT_POS:SP:RBV", expected_pos)
+
+    def test_GIVEN_component_in_beam_WHEN_starting_up_ioc_THEN_inbeam_sp_true_and_pos_sp_accurate(self):
+        expected_inbeam = "IN"
+        expected_pos = IN_COMP_INIT_POS
+
+        self.ca.assert_that_pv_is("PARAM:IS_IN:SP:RBV", expected_inbeam)
+        self.ca.assert_that_pv_is("PARAM:IN_POS:SP:RBV", expected_pos)
+
+    def test_GIVEN_motor_values_set_WHEN_starting_refl_ioc_THEN_parameter_rbvs_are_initialised_correctly(self):
+        expected = IN_COMP_INIT_POS
+
+        self.ca.assert_that_pv_is("PARAM:IN_POS", expected)

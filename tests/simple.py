@@ -1,5 +1,6 @@
 import unittest
 import os
+from unittest import skip
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
@@ -13,7 +14,7 @@ EPICS_ROOT = os.getenv("EPICS_KIT_ROOT")
 
 IOCS = [
     {
-        "LAUNCHER": ProcServLauncher,
+        "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
         "directory": os.path.realpath(os.path.join(EPICS_ROOT, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple")),
         "macros": {},
@@ -22,6 +23,11 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.RECSIM, ]
+
+# Wait 5 minutes for the IOC to come back up
+MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 300
+
+IOC_STARTED_TEXT = "epics>"
 
 
 class SimpleTests(unittest.TestCase):
@@ -47,10 +53,9 @@ class SimpleTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("DISABLE")
 
         # WHEN
-        with assert_log_messages(self._ioc, in_time=30, must_contain="dbLoadRecords"):
-            self.ca.set_pv_value("CRASHVALUE", "1")
+        self.ca.set_pv_value("CRASHVALUE", "1")
+
+        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, IOC_STARTED_TEXT)
 
         # THEN
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
-
-

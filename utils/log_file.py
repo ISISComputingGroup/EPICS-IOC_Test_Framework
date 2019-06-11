@@ -3,7 +3,7 @@ from time import sleep
 import threading
 
 # Directory for log files
-LOG_FILES_DIRECTORY = os.path.join("logs","IOCTestFramework")
+LOG_FILES_DIRECTORY = os.path.join("logs", "IOCTestFramework")
 
 
 def log_filename(what, device, uses_rec_sim, var_dir):
@@ -60,9 +60,9 @@ class LogFileManager(object):
         for i in range(timeout):
             new_messages = self.read_log()
 
-            # for diagnostics
-            message_with_newline = [new_message.rstrip("\r\n") for new_message in new_messages]
-            print("    {}s: '{}'".format(i, "'\n       '".join(message_with_newline)))
+            # uncomment for extra diagnostics
+            # message_with_newline = [new_message.rstrip("\r\n") for new_message in new_messages]
+            # print("    {}s: '{}'".format(i, "'\n       '".join(message_with_newline)))
 
             if any(ioc_started_text in line for line in new_messages):
                 break

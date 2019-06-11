@@ -58,6 +58,11 @@ python run_tests.py -t sp2xx.RunCommandTests.test_that_GIVEN_an_initialized_pump
 The argument is the "dotted name" of the test containing the tests. The dotted name takes the form `module.class.test`.
 You can run multiple tests from multiple classes in different modules.
 
+### Running tests with failfast
+
+Running tests with `-f` argument will cause tests to run normally _until_ the first test fails, upon which it will quit testing and provide the usual output for a failed test.
+
+>`python run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
 
 ## Troubleshooting 
 
@@ -112,6 +117,8 @@ Essential attributes in devsim mode:
 
 Optional attributes:
 - `macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
+- `inits` : A dictionary of initialisation values for PVs in this IOC. Defaults to an empty dictionary.
+- `custom_prefix` : A custom PV prefix for this IOC in case this is different from the IOC name (example: custom prefix `MOT` for IOC `GALIL_01`)
 - `emulator_protocol`: The lewis protocol to use. Defaults to `stream`, which is used by the majority of ISIS emulators.
 - `emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
 - `emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
@@ -125,6 +132,9 @@ IOCS = [
         "directory": get_default_ioc_dir("IOCNAME"),
         "macros": {
             "MY_MACRO": "My_value",
+        },
+        "inits": {
+            "MYPV:SP": 5.0
         },
         "emulator": "my_emulator_name",
     },

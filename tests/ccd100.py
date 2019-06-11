@@ -18,7 +18,7 @@ IOCS = [
         "name": DEVICE_A_PREFIX,
         "directory": get_default_ioc_dir("CCD100"),
         "emulator": EMULATOR_DEVICE,
-        "emulator_id": DEVICE_A_PREFIX
+        "emulator_id": DEVICE_A_PREFIX,
     },
 
     {
@@ -26,7 +26,7 @@ IOCS = [
         "directory": get_default_ioc_dir("CCD100", iocnum=2),
         "emulator": EMULATOR_DEVICE,
         "emulator_id": DEVICE_E_PREFIX,
-        "macros": {"ADDRESS": "e"}
+        "macros": {"ADDRESS": "e"},
     },
 ]
 

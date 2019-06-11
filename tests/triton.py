@@ -28,6 +28,10 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("TRITON"),
         "emulator": "triton",
+        "macros": {
+            "USE_RAMP_FILE": 0,
+            "RAMP_FILE_NAME": "Default.txt",
+        }
     },
 ]
 
@@ -62,6 +66,24 @@ class TritonTests(unittest.TestCase):
         for value in TEMPERATURE_TEST_VALUES:
             self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
 
+    @skip_if_recsim("This is implemented at the protocol level, so does not work in recsim")
+    def test_WHEN_temperature_setpoint_is_set_THEN_closed_loop_turned_on_automatically(self):
+        for value in TEMPERATURE_TEST_VALUES:
+            self.ca.set_pv_value("CLOSEDLOOP:SP", "Off")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "Off")
+            self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "On")
+
+    def test_GIVEN_closed_loop_already_on_WHEN_temperature_setpoint_is_set_THEN_closed_loop_setpoint_not_reprocessed(self):
+        for value in TEMPERATURE_TEST_VALUES:
+            self.ca.set_pv_value("CLOSEDLOOP:SP", "On")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "On")
+            timestamp_before = self.ca.get_pv_value("CLOSEDLOOP:SP.TSEL")
+            self.ca.assert_setting_setpoint_sets_readback(value, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
+            self.ca.assert_that_pv_is("CLOSEDLOOP", "On")
+            self.ca.assert_that_pv_is("CLOSEDLOOP:SP.TSEL", timestamp_before)
+            self.ca.assert_that_pv_value_is_unchanged("CLOSEDLOOP:SP.TSEL", wait=5)
+
     def test_WHEN_heater_range_is_set_THEN_readback_updates(self):
         for value in HEATER_RANGE_TEST_VALUES:
             self.ca.assert_setting_setpoint_sets_readback(value, "HEATER:RANGE")
@@ -71,6 +93,7 @@ class TritonTests(unittest.TestCase):
         for value in HEATER_RANGE_TEST_VALUES:
             self._lewis.backdoor_set_on_device("heater_power", value)
             self.ca.assert_that_pv_is("HEATER:POWER", value)
+            self.ca.assert_that_pv_alarm_is("HEATER:POWER", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_closed_loop_mode_is_set_via_backdoor_THEN_the_closed_loop_pv_updates_with_value_just_set(self):

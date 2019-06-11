@@ -372,9 +372,9 @@ class ChannelAccess(object):
         message = "Expected PV value to be in {}".format(expected_values)
         return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, timeout, message)
 
-    def assert_that_pv_is_an_integer_between(self, pv, min_value, max_value, timeout=None):
+    def assert_that_pv_is_within_range(self, pv, min_value, max_value, timeout=None):
         """
-        Assert that the pv has one of the expected values or that it becomes one of the expected value within the
+        Assert that the pv is within or at the bounds of the ranges  between a minimum and maximum within the
         timeout
 
         Args:
@@ -387,14 +387,9 @@ class ChannelAccess(object):
              UnableToConnectToPVException: if pv does not exist within timeout
         """
         def _condition(val):
-            try:
-                int_pv_value = int(val)
-            except ValueError:
-                return False
+            return min_value <= float(val) <= max_value
 
-            return min_value <= int_pv_value <= max_value
-
-        message = "Expected PV value to be an integer between {} and {}".format(min_value, max_value)
+        message = "Expected PV value to between {} and {}".format(min_value, max_value)
         return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, timeout, message)
 
     def assert_that_pv_exists(self, pv, timeout=None):
@@ -445,6 +440,7 @@ class ChannelAccess(object):
     def assert_that_pv_alarm_is(self, pv, alarm, timeout=None):
         """
         Assert that a pv is in alarm state given or timeout.
+        Checks the SERV of the pv name with any field name removed.
 
         Args:
              pv: pv name
@@ -454,7 +450,8 @@ class ChannelAccess(object):
              AssertionError: if alarm does not become requested value
              UnableToConnectToPVException: if pv does not exist within timeout
         """
-        return self.assert_that_pv_is("{}.SEVR".format(pv), alarm, timeout=timeout)
+        pv_no_field = pv.rsplit(".", 1)[0]
+        return self.assert_that_pv_is("{}.SEVR".format(pv_no_field), alarm, timeout=timeout)
 
     def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None,
                                               expected_alarm=Alarms.NONE, timeout=None):

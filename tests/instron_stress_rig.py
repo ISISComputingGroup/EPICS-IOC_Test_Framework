@@ -203,13 +203,13 @@ class InstronStressRigTests(unittest.TestCase):
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
         self.ca.set_pv_value("ARBITRARY:SP", "Q22")
         # Assert that the response to Q22 is a status code
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_value=0, max_value=65535)
+        self.ca.assert_that_pv_is_within_range("ARBITRARY", min_value=0, max_value=65535)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q300_is_sent_THEN_the_response_is_a_number_between_1_and_3(self):
         self.ca.set_pv_value("ARBITRARY:SP", "Q300")
         # Assert that the response to Q300 is between 1 and 3
-        self.ca.assert_that_pv_is_an_integer_between("ARBITRARY", min_value=1, max_value=3)
+        self.ca.assert_that_pv_is_within_range("ARBITRARY", min_value=1, max_value=3)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):

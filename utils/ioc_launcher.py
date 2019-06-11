@@ -7,6 +7,8 @@ import psutil
 from time import sleep
 from abc import ABCMeta
 
+import six
+
 from utils.channel_access import ChannelAccess
 from utils.log_file import log_filename, LogFileManager
 from utils.test_modes import TestModes
@@ -88,11 +90,11 @@ class IOCRegister(object):
         cls.RunningIOCs[name] = ioc
 
 
+@six.add_metaclass(ABCMeta)
 class BaseLauncher(object):
     """
     Launcher base, this is the base class for a launcher of application under test.
     """
-    __metaclass__ = ABCMeta
 
     def open(self):
         """
@@ -278,7 +280,7 @@ class ProcServLauncher(BaseLauncher):
 
         """
         start_command = "\x18"
-        self.telnet.write(start_command + "\n")
+        self.telnet.write("{cmd}\n".format(cmd=start_command))
 
     def quit_ioc(self):
         """
@@ -286,7 +288,7 @@ class ProcServLauncher(BaseLauncher):
 
         """
         quit_command = "\x11"
-        self.telnet.write(quit_command + "\n")
+        self.telnet.write("{cmd}\n".format(cmd=quit_command))
 
     def toggle_autorestart(self):
         """
@@ -296,7 +298,7 @@ class ProcServLauncher(BaseLauncher):
         self.telnet.read_very_eager()
 
         autorestart_command = "-"
-        self.telnet.write(autorestart_command + "\n")
+        self.telnet.write("{cmd}\n".format(cmd=autorestart_command))
         response = self.telnet.read_very_eager()
 
         if "OFF" in response:
@@ -360,6 +362,7 @@ class IocLauncher(BaseLauncher):
         :param var_dir: The directory into which the launcher will save log files.
         """
         self._device = ioc['name']
+        self._custom_prefix = ioc.get('custom_prefix', None)
         self._directory = ioc['directory']
         self.macros = ioc.get("macros", {})
         self._var_dir = var_dir
@@ -367,6 +370,7 @@ class IocLauncher(BaseLauncher):
         self._ioc_started_text = ioc.get("started_text", "epics>")
         self._pv_for_existence = ioc.get("pv_for_existence", "DISABLE")
         self._extra_environment_vars = ioc.get("environment_vars", {})
+        self._init_values = ioc.get('inits', {})
 
         if test_mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
             raise ValueError("Invalid test mode provided")
@@ -458,6 +462,9 @@ class IocLauncher(BaseLauncher):
         self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
+        for key, value in self._init_values.items():
+            print("Initialising PV {} to {}".format(key, value))
+            ca.set_pv_value(key, value)
 
     def close(self):
         """
@@ -481,9 +488,17 @@ class IocLauncher(BaseLauncher):
                     if loop_count % 100 == 99:
                         print("   waited {}".format(loop_count*wait_per_loop))
             else:
-                print("IOC process did not die after {} seconds. Continuing anyway but next set of tests may fail."
-                      .format(max_wait_for_ioc_to_die))
+                print("IOC process did not die after {} seconds after killing with `exit` in iocsh. "
+                      "Killing process and waiting another {} seconds"
+                      .format(max_wait_for_ioc_to_die, max_wait_for_ioc_to_die))
                 self._process.kill()
+                sleep(max_wait_for_ioc_to_die)
+                try:
+                    self._get_channel_access().assert_that_pv_does_not_exist(self._pv_for_existence)
+                    print("After killing process forcibly and waiting, IOC died correctly.")
+                except AssertionError:
+                    print("After killing process forcibly and waiting, IOC was still up. Will continue anyway, but "
+                          "the next set of tests to use this IOC are likely to fail")
 
         self._print_log_file_location()
 
@@ -510,7 +525,8 @@ class IocLauncher(BaseLauncher):
         :return (ChannelAccess): the channel access component
         """
         if self._ca is None:
-            self._ca = ChannelAccess(device_prefix=self._device)
+            prefix = self._custom_prefix or self._device
+            self._ca = ChannelAccess(device_prefix=prefix)
 
         return self._ca
 
