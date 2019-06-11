@@ -327,8 +327,8 @@ class ChannelAccess(object):
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
         """
-        message = "Expected PV value to be equal to {} (tolerance: {})"\
-            .format(format_value(expected), format_value(tolerance))
+        message = "Expected PV '{}' value to be equal to {} (tolerance: {})"\
+            .format(self._create_pv_with_prefix(pv), format_value(expected), format_value(tolerance))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: self._within_tolerance_condition(val, expected, tolerance), timeout, message=message,
