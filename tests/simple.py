@@ -9,6 +9,7 @@ from utils.testing import assert_log_messages
 from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "SIMPLE"
+IOC_STARTED_TEXT = "epics>"
 
 EPICS_ROOT = os.getenv("EPICS_KIT_ROOT")
 
@@ -18,6 +19,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": os.path.realpath(os.path.join(EPICS_ROOT, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple")),
         "macros": {},
+        "started_text": IOC_STARTED_TEXT,
     },
 ]
 
@@ -26,8 +28,6 @@ TEST_MODES = [TestModes.RECSIM, ]
 
 # Wait 5 minutes for the IOC to come back up
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 300
-
-IOC_STARTED_TEXT = "epics>"
 
 
 class SimpleTests(unittest.TestCase):

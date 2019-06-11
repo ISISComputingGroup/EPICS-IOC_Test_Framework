@@ -265,8 +265,8 @@ class ProcServLauncher(BaseLauncher):
         """
         self.telnet = telnetlib.Telnet("localhost", self.port, timeout=timeout)
 
-        # Wait for procServ to become responsive by checking for an epics prompt
-        init_output = self.telnet.read_until(b"epics>", timeout)
+        # Wait for procServ to become responsive by checking for the IOC started text ("epics>")
+        init_output = self.telnet.read_until(self._ioc_started_text.encode(), timeout)
 
         if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
