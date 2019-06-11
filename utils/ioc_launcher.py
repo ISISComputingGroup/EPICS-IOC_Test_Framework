@@ -15,7 +15,6 @@ from utils.test_modes import TestModes
 from datetime import date
 import telnetlib
 from signal import SIGTERM
-import atexit
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
@@ -155,7 +154,8 @@ class ProcServLauncher(BaseLauncher):
         self.telnet = None
         self.autorestart = True
 
-        atexit.register(self.close)
+    def __exit__(self, *args, **kwargs):
+        self.close()
 
     def _get_channel_access(self):
         """
