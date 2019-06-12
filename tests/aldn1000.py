@@ -162,6 +162,7 @@ class Aldn1000Tests(unittest.TestCase):
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
     def test_GIVEN_pump_off_WHEN_set_pump_on_THEN_pump_turned_on(self):
         status_mode = 'Pumping Program Stopped'
+        self.ca.set_pv_value("VOLUME:SP", 1.0)
         self.ca.set_pv_value("RUN:SP", "Run")
 
         self.ca.assert_that_pv_is_not("STATUS", status_mode)
