@@ -4,7 +4,8 @@ from utils.ioc_launcher import get_default_ioc_dir
 import os
 from parameterized.parameterized import parameterized
 from utils.testing import parameterized_list
-from common_tests.jaws_manager_utils import JawsManagerBase
+from common_tests.jaws_manager_utils import JawsManagerBase, MOD_GAP
+from time import sleep
 
 # IP address of device
 from utils.test_modes import TestModes
@@ -27,16 +28,12 @@ IOCS = [{
            } for i in range(1, 4)]
 
 TEST_MODES = [TestModes.RECSIM]
-MOD_GAP = "JAWMAN:MOD:{}GAP:SP"
 
 
 class NimrodJawsManagerTests(JawsManagerBase, unittest.TestCase):
     """
     Tests for the Jaws Manager on Nimrod.
     """
-    def get_sample_pv(self):
-        return "SAMPLE"
-
     def get_num_of_jaws(self):
         return 6
 
@@ -48,4 +45,5 @@ class NimrodJawsManagerTests(JawsManagerBase, unittest.TestCase):
     ]))
     def test_WHEN_sample_gap_set_THEN_other_jaws_as_expected(self, _, mod_gap, sample_gap, expected):
         self.ca.set_pv_value(MOD_GAP.format("V"), mod_gap)
+        sleep(1)  # Setting moderator and sample in quick succession causes issues
         self._test_WHEN_sample_gap_set_THEN_other_jaws_as_expected("V", sample_gap, expected)

@@ -28,18 +28,17 @@ IOCS = [{
            } for i in range(1, 4)]
 
 TEST_MODES = [TestModes.RECSIM]
-MOD_GAP = "GEMJAWSET:MOD:{}GAP:SP"
 
 
 class GemJawsManagerTests(JawsManagerBase, unittest.TestCase):
     """
     Tests for the Jaws Manager on Gem.
     """
-    def get_sample_pv(self):
-        return "GEMJAWSET:SAMPLE"
-
     def get_num_of_jaws(self):
         return 5
+
+    # def get_sample_pv(self):
+    #     return "GEMJAWSET:SAMPLE"
 
     @parameterized.expand(parameterized_list([
         # Numbers taken experimentally

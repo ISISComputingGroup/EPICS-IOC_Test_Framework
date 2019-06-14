@@ -2,9 +2,11 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 import six
 import abc
+from time import sleep
 
 UNDERLYING_GAP_SP = "MOT:JAWS{}:{}GAP:SP"
 UNDERLYING_CENT_SP = "MOT:JAWS{}:{}CENT:SP"
+MOD_GAP = "JAWMAN:MOD:{}GAP:SP"
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -20,9 +22,8 @@ class JawsManagerBase(object):
         self.ca = ChannelAccess()
         self.ca.assert_that_pv_exists(self.get_sample_pv() + ":{}GAP:SP".format("V"), timeout=30)
 
-    @abc.abstractmethod
     def get_sample_pv(self):
-        pass
+        return "JAWMAN:SAMPLE"
 
     @abc.abstractmethod
     def get_num_of_jaws(self):
@@ -38,5 +39,6 @@ class JawsManagerBase(object):
 
     def _test_WHEN_sample_gap_set_THEN_other_jaws_as_expected(self, direction, sample_gap, expected):
         self.ca.set_pv_value(self.get_sample_pv() + ":{}GAP:SP".format(direction), sample_gap)
+        sleep(1)
         for i, exp in enumerate(expected):
             self.ca.assert_that_pv_is_number(UNDERLYING_GAP_SP.format(i + 1, direction), exp, 0.1)
