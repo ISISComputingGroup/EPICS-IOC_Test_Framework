@@ -214,3 +214,24 @@ class ReflTests(unittest.TestCase):
         expected = IN_COMP_INIT_POS
 
         self.ca.assert_that_pv_is("PARAM:IN_POS", expected)
+
+    def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
+        
+        expected_mode_value = "TESTING"
+        PARAM_PREFIX = "PARAM:"
+        IN_MODE_SUFFIX = ":IN_MODE"
+        expected_in_mode_value = "YES"
+        expected_out_of_mode_value = "NO"
+
+        with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_mode_value), \
+             self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_mode_value):
+                self.ca.set_pv_value("BL:MODE:SP", expected_mode_value)
+
+        test_in_mode_param_names = ["S1", "S3", "THETA", "DET_POS", "S3_ENABLED"]
+        test_out_of_mode_params = ["DET_ANG", "THETA_AUTO"]
+
+        for param in test_in_mode_param_names:
+            self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_in_mode_value)
+        
+        for param in test_out_of_mode_params:
+            self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_out_of_mode_value)
