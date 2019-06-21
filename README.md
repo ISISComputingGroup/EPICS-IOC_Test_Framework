@@ -1,6 +1,6 @@
 # EPICS-IOC_Test_Framework
 
-A framework for testing the functionality of IOCs using Lewis in place of real hardware.
+A framework for testing the functionality of IOCs using [Lewis](https://lewis.readthedocs.io/en/latest/) in place of real hardware.
 This uses the Python unittest module to test setting and reading PV values etc. to check that the IOC responds correctly.
 
 Note: the unittest module is used for convenience. The tests themselves are not strictly unit tests, so it is okay to deviate a little from unit testing best practises.
@@ -128,6 +128,7 @@ Optional attributes:
 - `emulator_protocol`: The lewis protocol to use. Defaults to `stream`, which is used by the majority of ISIS emulators.
 - `emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
 - `emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
+- `emulator_launcher_class`: Used if you want to launch an emulator that is not Lewis see [other emulators.](#other-emulators)
 
 Example:
 
@@ -354,3 +355,22 @@ You can force extra debug output by:
 * Adding `@has_log` at the top of the class
 * Using `self.log.debug("message")`
 * `log.info`, `log.warning` and `log.error` are also available
+
+## Other Emulators
+ 
+ By default the test framework will run emulators written under the [Lewis](https://lewis.readthedocs.io/en/latest/) framework. However, in some cases you may want to run up a different emulator. This is useful if there is already an emulator provided by the device manufacture, as is the case for the mezei flipper and the beckhoff.
+ 
+### Command Line Emulator
+
+Other than Lewis this is currently the only other emulation method. It will run a given command line script and optionally wait for it to complete. To use it you should add the following to the `IOCS` [attribute](#the-iocs-attribute).
+
+Essential attributes:
+- `emulator_launcher_class`: Use `CommandLineEmulatorLauncher` to use this emulator.
+- `emulator_command_line`: The script to run on the command line e.g. `python my_emulator.py`
+
+Optional attributes:
+- `emulator_wait_to_finish`: If `true` wait for the process to complete and return before running the tests. This can be useful if the emulator will start up as a background process. It defaults to `false`.
+
+### Adding an Emulator Type
+
+To add an additional emulator type you should create a class in `emulator_launcher.py` that inherits from `EmulatorLauncher`.
