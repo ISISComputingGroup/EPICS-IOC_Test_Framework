@@ -64,6 +64,12 @@ Running tests with `-f` argument will cause tests to run normally _until_ the fi
 
 >`python run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
 
+### Running tests in a given path
+
+By default the framework searches for tests inside `.\tests\`. If you wish to specify tests in another directory you can use the `-tp` flag.
+
+>`python run_tests.py -tp C:\my_ioc_tests` will run tests in the `my_ioc_tests` folder.
+
 ## Troubleshooting 
 
 If all tests are failing then it is likely that the PV prefix is incorrect.
