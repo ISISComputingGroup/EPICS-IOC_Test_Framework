@@ -3,6 +3,7 @@ from parameterized import parameterized
 import unittest
 from time import clock, sleep
 import threading
+from numpy import dot
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -21,19 +22,38 @@ DAQ_CURR_READ_SCALE_FACTOR = MAX_SEPARATOR_CURR / MAX_DAQ_VOLT
 
 MARGIN_OF_ERROR = 1e-5
 
-# Voltage and current stability limits
-VOLT_LOWERLIM = 0.1
-VOLT_UPPERLIM = MAX_SEPARATOR_VOLT
-
-VOLT_STEADY = 0.5*MAX_SEPARATOR_VOLT
-
-CURR_STEADY = 0.5*MAX_SEPARATOR_CURR
-CURR_LIMIT = MAX_SEPARATOR_CURR
-
 SAMPLE_LEN = 100
 SAMPLETIME = 1.0/float(SAMPLE_LEN)
 
 BUFFER_LEN = 600
+
+# Data taken from 2018-11-09 10:46:08.55940 in separator_signal_analysis/data/raw/2018-11-09-voltage-datas.txt.
+# Some data points were modified to simulate sparks.
+DAQ_DATA = [4.63045, 4.6872, 4.633, 4.6337, 4.63396, 4.68465, 4.68364, 4.68497, 4.63523, 4.67987, 4.63683,
+            4.6821, 4.63364, 4.6821, 4.6846, 4.67923, 4.63619, 4.67891, 4.63715, 4.67859, 4.63906, 4.67859,
+            4.63906, 4.67636, 4.64097, 4.67604, 4.64161, 4.67381, 4.64225, 4.67349, 4.64416, 4.6719, 4.64384,
+            4.6719, 4.64703, 4.6703, 4.64735, 4.6703, 4.64735, 4.66775, 4.65022, 4.6668, 4.64894, 4.66743,
+            4.64926, 4.6668, 4.65149, 4.66456, 4.65117, 4.66297, 4.65341, 4.66297, 4.65245, 4.66361, 4.65404,
+            4.66138, 4.65596, 4.66201, 4.65436, 4.66233, 4.65755, 4.65883, 4.66201, 4.65946, 4.65659, 4.65787,
+            4.6601, 4.65628, 4.66106, 4.65755, 4.66138, 4.65596, 4.6617, 4.65883, 4.6601, 4.65596, 4.66361,
+            4.65468, 4.6652, 4.65436, 4.6617, 4.655, 4.66456, 4.65245, 4.66807, 4.65277, 4.66456, 4.65086,
+            4.66871, 4.65086, 4.66584, 4.64926, 4.66839, 4.64703, 4.67062, 4.64735, 4.66935, 4.64544,
+            4.6719, 4.64352]
+
+# Scale the DAQ data to prevent scaling twice when writing to the records.
+DAQ_DATA = dot(DAQ_DATA, 1.0 / DAQ_VOLT_WRITE_SCALE_FACTOR)
+
+# Set tight voltage stability limits around the data acquired from the DAQ
+VOLT_UPPERLIM = 0.999*max(DAQ_DATA)
+VOLT_LOWERLIM = 1.001*min(DAQ_DATA)
+
+# Voltage and current stability limits
+VOLT_STEADY = 0.5*(VOLT_UPPERLIM + VOLT_LOWERLIM)
+
+CURR_STEADY = 0.5*MAX_SEPARATOR_CURR
+CURR_LIMIT = MAX_SEPARATOR_CURR
+
+STRIDE_LENGTH = 1
 
 IOCS = [
     {
@@ -84,9 +104,6 @@ def current_set_up(ca):
 
 def stability_set_up(ca):
     """ Sets up the PVs for the separator stability tests """
-    ca.set_pv_value("STABILITY", 0.0)
-    ca.assert_that_pv_is_number("STABILITY", 0.0, tolerance=1e-3)
-
     ca.set_pv_value("WINDOWSIZE", BUFFER_LEN)
     ca.assert_that_pv_is_number("WINDOWSIZE", BUFFER_LEN, tolerance=1e-3)
 
@@ -94,8 +111,6 @@ def stability_set_up(ca):
     ca.assert_that_pv_is_number("_ADDCOUNTS", 0.0, tolerance=1e-3)
 
     ca.set_pv_value("RESETWINDOW", 1)
-
-    ca.assert_that_pv_is_number("UNSTABLETIME", 0.0)
 
     ca.set_pv_value("SAMPLETIME", SAMPLETIME)
     ca.assert_that_pv_is_number("SAMPLETIME", SAMPLETIME)
@@ -112,6 +127,10 @@ def stability_set_up(ca):
     ca.set_pv_value("THRESHOLD", 0.5)
     ca.assert_that_pv_is_number("THRESHOLD", 0.5, tolerance=1e-3)
 
+    ca.assert_that_pv_is_number("UNSTABLETIME", 0.0)
+
+    ca.assert_that_pv_is_number("STABILITY", 1.0, tolerance=1e-3)
+
 
 def shared_setup(ca):
     """
@@ -127,6 +146,20 @@ def shared_setup(ca):
     stability_set_up(ca)
 
     return None
+
+
+def apply_average_filter(unfiltered_data, stride=1):
+    """
+    Applies a moving average filter of size stride to a data packet. Modified from separator-signal-analysis notebooks
+
+    Args:
+        unfiltered_data: Array containing a data packet from DAQ
+        stride: int, the number of indices between the two points to be averaged
+    Return:
+        data (list): Row for a pandas DataFrame after filtering.
+    """
+    data = [0.5*(unfiltered_data[i] + unfiltered_data[i + stride]) for i in range(0, len(unfiltered_data) - stride)]
+    return data
 
 
 def stream_data(ca, n_repeat, curr, volt, stop_event):
@@ -278,11 +311,38 @@ class VoltageTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VOLT", MIN_SEPARATOR_VOLT)
         self.ca.assert_that_pv_is("VOLT:SP", MIN_SEPARATOR_VOLT)
 
+    def test_GIVEN_data_to_be_filtered_WHEN_filtering_applied_THEN_returned_data_has_correct_shape(self):
+        # stride_length = 1
+        # GIVEN
+        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", DAQ_DATA)
+
+        # THEN
+        returned_data_shape = self.ca.get_pv_value("FILTERED:VOLT.NORD")
+
+        # THEN
+        self.assertEqual(returned_data_shape, len(DAQ_DATA) - STRIDE_LENGTH)
+
+    def test_GIVEN_unfiltered_data_WHEN_filtering_applied_THEN_corrected_data_is_returned(self):
+        # GIVEN
+        # Writing directly to DAQ:VOLT, need to remove the scaling factor
+        self.ca.set_pv_value("DAQ:VOLT:WV:SIM", DAQ_DATA * DAQ_VOLT_WRITE_SCALE_FACTOR)
+
+        # THEN
+        returned_data_shape = int(self.ca.get_pv_value("FILTERED:VOLT.NORD"))
+        returned_data = self.ca.get_pv_value("FILTERED:VOLT")[:returned_data_shape]
+
+        filtered_data = apply_average_filter(DAQ_DATA)
+
+        self.assertEqual(len(returned_data), len(filtered_data))
+
+        for filtered_value, reference_value in zip(returned_data, filtered_data):
+            self.assertAlmostEqual(filtered_value, reference_value, places=3)
+
 
 class CurrentTests(unittest.TestCase):
     # These current testing values are uncalibrated values from the DAQ lying between 0 and 10.
     current_values = [0, 1.33333, 5e1, 10e-3, 10]
-    current_values_which_give_alarms = [-2, 0, 10, 11]
+    current_values_which_give_alarms = [10, 11]
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
@@ -347,7 +407,8 @@ class StabilityTests(unittest.TestCase):
 
         """
 
-        voltage_instability = [(VOLT_LOWERLIM >= volt_measured) or (volt_measured >= VOLT_UPPERLIM) for volt_measured in voltage_values]
+        voltage_instability = [(VOLT_LOWERLIM >= volt_measured) or
+                               (volt_measured >= VOLT_UPPERLIM) for volt_measured in voltage_values]
 
         return voltage_instability
 
@@ -398,15 +459,29 @@ class StabilityTests(unittest.TestCase):
 
         ("unsteady_current_steady_voltage", CURRENT_DATA, [VOLT_STEADY] * SAMPLE_LEN),
 
-        ("unsteady_current_and_voltage", simulate_current_data(), simulate_voltage_data())
+        ("unsteady_current_and_voltage", CURRENT_DATA, VOLTAGE_DATA)
     ])
     def test_GIVEN_current_and_voltage_data_WHEN_limits_are_tested_THEN_number_of_samples_out_of_range_returned(self, _, curr_data, volt_data):
         self.write_simulated_current(curr_data)
         self.write_simulated_voltage(volt_data)
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data)
+        averaged_volt_data = apply_average_filter(volt_data, stride=STRIDE_LENGTH)
 
-        self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples, tolerance=0.05*expected_out_of_range_samples)
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data)
+
+        self.ca.assert_that_pv_is_number("_STABILITYCHECK", expected_out_of_range_samples,
+                                         tolerance=0.05*expected_out_of_range_samples)
+
+    def test_GIVEN_noisy_voltage_data_WHEN_moving_average_is_applied_THEN_averaged_data_has_fewer_out_of_range_points(self):
+        curr_data = [CURR_STEADY]*SAMPLE_LEN
+        self.write_simulated_current(curr_data)
+        self.write_simulated_voltage(DAQ_DATA)
+
+        out_of_range_samples_before_average = self.get_out_of_range_samples(curr_data, DAQ_DATA)
+
+        out_of_range_samples_after_average = self.ca.get_pv_value("_STABILITYCHECK")
+
+        self.assertLess(out_of_range_samples_after_average, out_of_range_samples_before_average)
 
     @parameterized.expand([
         ("unsteady_current", simulate_current_data(), [VOLT_STEADY] * SAMPLE_LEN),
@@ -415,10 +490,18 @@ class StabilityTests(unittest.TestCase):
     ])
     def test_GIVEN_multiple_samples_in_one_second_WHEN_buffer_read_THEN_buffer_reads_all_out_of_range_samples(self, _, curr_data, volt_data):
 
-        # Setting this to 3 as channel access takes ~0.25s. May need lowering for slow machines.
+        # Setting this to 3 as channel access takes ~0.25s. May need reducing for slow machines.
         writes_per_second = 3
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, volt_data) * writes_per_second
+        # Change buffer length is 1 so UNSTABLETIME PV only reports 1 second of data
+        length_of_buffer = 1
+
+        self.ca.set_pv_value("WINDOWSIZE", length_of_buffer)
+        self.ca.set_pv_value("RESETWINDOW", 1)
+
+        averaged_volt_data = apply_average_filter(volt_data, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(curr_data, averaged_volt_data) * writes_per_second
 
         self.STOP_DATA_THREAD.clear()
 
@@ -426,7 +509,8 @@ class StabilityTests(unittest.TestCase):
         scaled_volt_data = [x * DAQ_VOLT_WRITE_SCALE_FACTOR for x in volt_data]
 
         data_supply_thread = threading.Thread(target=stream_data,
-                                              args=(self.ca, writes_per_second, scaled_curr_data, scaled_volt_data, self.STOP_DATA_THREAD))
+                                              args=(self.ca, writes_per_second, scaled_curr_data,
+                                                    scaled_volt_data, self.STOP_DATA_THREAD))
 
         # GIVEN
         data_supply_thread.start()
@@ -434,20 +518,24 @@ class StabilityTests(unittest.TestCase):
         self.assertGreater(writes_per_second, 1)
 
         # THEN
-        self.ca.assert_that_pv_is_number("_ADDCOUNTS", expected_out_of_range_samples, timeout=60.0)
+        self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples * SAMPLETIME,
+                                         timeout=60.0, tolerance=0.1*SAMPLETIME)
 
         self.STOP_DATA_THREAD.set()
 
     def test_GIVEN_buffer_with_data_WHEN_resetwindow_PV_processed_THEN_buffer_is_cleared(self):
         number_of_writes = 50
 
-        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA,
-                                                                      VOLTAGE_DATA) * number_of_writes * SAMPLETIME
+        averaged_volt_data = apply_average_filter(DAQ_DATA, stride=STRIDE_LENGTH)
+
+        expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA, averaged_volt_data)
+
+        expected_out_of_range_samples *= number_of_writes * SAMPLETIME
 
         # GIVEN
         for i in range(number_of_writes):
             self.write_simulated_current(CURRENT_DATA)
-            self.write_simulated_voltage(VOLTAGE_DATA)
+            self.write_simulated_voltage(DAQ_DATA)
 
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples)
 
@@ -503,7 +591,7 @@ class StabilityTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("UNSTABLETIME", expected_out_of_range_samples,
-                                         tolerance=0.05*expected_out_of_range_samples)
+                                         tolerance=0.025*expected_out_of_range_samples)
 
     def test_GIVEN_power_supply_switched_on_WHEN_power_supply_out_of_stability_threshold_THEN_stability_PV_equals_zero_and_goes_into_alarm(self):
         # GIVEN

@@ -38,6 +38,8 @@ class RikenChangeover(object):
 
     def _set_input_pv(self, ok_to_run_psus):
         self.ca.set_pv_value("{}:SIM".format(self.get_input_pv()), 1 if ok_to_run_psus else 0)
+        self.ca.assert_that_pv_is("{}:SIM".format(self.get_input_pv()), 1 if ok_to_run_psus else 0)
+        self.ca.assert_that_pv_alarm_is("{}".format(self.get_input_pv()), self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("{}".format(self.get_input_pv()), 1 if ok_to_run_psus else 0)
 
     def _set_power_supply_state(self, supply, on):
@@ -67,6 +69,8 @@ class RikenChangeover(object):
 
         self._assert_necessary_pvs_exist()
 
+        self._set_input_pv(False)  # Set it to false so that the sequencer see the change,
+                                   # probably to do with it being in RECSIM
         self._set_input_pv(True)
         self._assert_all_power_supplies_disabled(False)
         self._set_all_power_supply_states(False)

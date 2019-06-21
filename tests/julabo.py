@@ -18,7 +18,7 @@ IOCS = [
         "directory": get_default_ioc_dir("JULABO"),
         "macros": {},
         "emulator": "julabo",
-        "emulator_protocol": "julabo-version-1",
+        "lewis_protocol": "julabo-version-1",
     },
 ]
 

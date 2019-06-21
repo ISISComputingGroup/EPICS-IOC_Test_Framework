@@ -16,7 +16,7 @@ IOCS = [
             "LOCAL_CALIB": "yes"
         },
         "emulator": EMULATOR_NAME,
-        "emulator_protocol": "model8000",
+        "lewis_protocol": "model8000",
     },
 ]
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
