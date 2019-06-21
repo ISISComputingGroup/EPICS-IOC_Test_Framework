@@ -32,7 +32,7 @@ class KeylkgTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_run_function_on_device("reset")
-        self.ca.set_pv_value("MODE:SP", "SET-UP")
+        self.ca.set_pv_value("MODE:SP", "MEASURE")
         self.ca.set_pv_value("MEASUREMODE:HEAD:A:SP", 0)
         self.ca.set_pv_value("MEASUREMODE:HEAD:B:SP", 0)
 
