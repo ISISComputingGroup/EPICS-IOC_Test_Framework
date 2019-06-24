@@ -238,6 +238,7 @@ class ReflTests(unittest.TestCase):
 
     def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_interrupted_THEN_velocity_reverted_to_original_value(self):
         expected = INITIAL_VELOCITY
+        final_position = SPACING
         self.set_up_velocity_tests(expected)
 
         # move and wait for completion
@@ -247,8 +248,10 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.set_pv_value("MTR0104.STOP", 1)
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=2)
+        self.ca_galil.assert_that_pv_is_not_number("MTR0102.RBV", final_position, tolerance=0.1)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
         self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=2)
+        self.ca_galil.assert_that_pv_is_not_number("MTR0103.RBV", 2 * final_position, tolerance=0.1)
         self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
 
     def test_GIVEN_move_was_issued_while_different_move_already_in_progress_WHEN_move_completed_THEN_velocity_reverted_to_value_before_first_move(self):
