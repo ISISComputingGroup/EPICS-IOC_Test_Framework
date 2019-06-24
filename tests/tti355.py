@@ -51,8 +51,8 @@ class Tti355Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("CURRENT:SP:RBV", current)
 
     @parameterized.expand([
-        ["On",],
-        ["Off",]
+        ["ON",],
+        ["OFF",]
     ])
     def test_WHEN_outputstatus_is_set_THEN_outputstatus_readback_updates(self, status):
         self.ca.set_pv_value("OUTPUTSTATUS:SP", status)
@@ -94,7 +94,7 @@ class Tti355Tests(unittest.TestCase):
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
     def test_WHEN_ioc_in_constant_current_mode_THEN_correct_mode_returned(self):
         expected_value = "Constant Current"
-        self._lewis.backdoor_set_on_device("output_mode", "M CC")
+        self._lewis.backdoor_set_on_device("output_mode", "M CI")
         self.ca.assert_that_pv_is("OUTPUTMODE", expected_value, timeout=1)
 
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
@@ -110,10 +110,10 @@ class Tti355Tests(unittest.TestCase):
     ])
     def test_GIVEN_set_output_conditions_WHEN_the_output_is_on_THEN_readback_voltage_is_close_to_the_voltage_setpoint(self, voltage):
         
-        self.ca.set_pv_value("OUTPUTSTATUS:SP", "On")
-        self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "On")
+        self.ca.set_pv_value("OUTPUTSTATUS:SP", "ON")
+        self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "ON")
         self.ca.set_pv_value("VOLTAGE:SP", voltage)
-        self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "On")
+        self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "ON")
         self.ca.assert_that_pv_is("VOLTAGE:SP:RBV", voltage)
         self.ca.assert_that_pv_is_number("VOLTAGE", voltage, tolerance=0.1)
   
@@ -123,16 +123,17 @@ class Tti355Tests(unittest.TestCase):
         [0.2]
     ])
     def test_GIVEN_set_output_conditions_WHEN_the_output_is_on_THEN_readback_current_is_close_to_the_current_setpoint(self, current):
-        self.ca.set_pv_value("OUTPUTSTATUS:SP", "On")
-        self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "On")
+        self.ca.set_pv_value("OUTPUTSTATUS:SP", "ON")
+        self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "ON")
+
+        self._lewis.backdoor_set_on_device("output_mode", "M CI")
 
         self.ca.set_pv_value("CURRENT:SP", current)
-        self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", "On")
         self.ca.assert_that_pv_is("CURRENT:SP:RBV", current)
         self.ca.assert_that_pv_is_number("CURRENT", current, tolerance=0.01)
 
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
-    def test_GIVEN_voltage_WHEN_current_limit_is_lower_than_potential_current_THEN_mode_is_CC(self):
+    def test_GIVEN_voltage_WHEN_current_limit_is_lower_than_potential_current_THEN_mode_is_CI(self):
         self.ca.assert_that_pv_is("OUTPUTMODE", "Constant Voltage")
         self._lewis.backdoor_set_on_device("load_resistance", 8.00)
         self.ca.set_pv_value("CURRENT:SP", 2.5)
