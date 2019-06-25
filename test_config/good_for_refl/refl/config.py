@@ -41,6 +41,7 @@ def get_beamline():
     detector_position = TrackingPosition("det_pos", detector, True)
     detector_angle = AngleParameter("det_ang", detector, True)
     s3_enabled = InBeamParameter("s3_enabled", s3)
+    hgap_param = SlitGapParameter("S1HG", AxisPVWrapper("MOT:JAWS1:HGAP"), is_vertical=False)
 
     # for init tests
     is_out = InBeamParameter("is_out", out_comp, autosave=False)
@@ -52,7 +53,7 @@ def get_beamline():
     init_auto = TrackingPosition("init_auto", det_for_init_auto, autosave=True)
 
     params_all = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle,
-                  is_out, out_pos, is_in, in_pos, theta_auto, init, init_auto]
+                  is_out, out_pos, is_in, in_pos, theta_auto, init, init_auto, hgap_param]
 
     # Do not want parameters for init tests to be moved by other tests.
     params_without_init = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle,

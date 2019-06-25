@@ -17,20 +17,34 @@ DET_INIT_POS_AUTOSAVE = 1.0
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
+GALIL_PREFIX_JAWS = "GALIL_02"
+test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 IOCS = [
     {
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
-        "pv_for_existence": "AXIS1",
+        "pv_for_existence": "MOT:MTR0101",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
             "MTR0105.VAL": OUT_COMP_INIT_POS,
             "MTR0106.VAL": IN_COMP_INIT_POS,
             "MTR0107.VAL": DET_INIT_POS
+        }
+    },
+    {
+        "name": GALIL_PREFIX_JAWS,
+        "custom_prefix": "MOT",
+        "directory": get_default_ioc_dir("GALIL", iocnum=2),
+        "pv_for_existence": "MOT:MTR0201",
+        "macros": {
+            "GALILADDR": GALIL_ADDR,
+            "MTRCTRL": "2",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         }
     },
     {
@@ -43,8 +57,8 @@ IOCS = [
         "macros": {
         },
         "environment_vars": {
-            "ICPCONFIGROOT": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
-            "ICPVARDIR": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
+            "ICPCONFIGROOT": test_config_path,
+            "ICPVARDIR": test_config_path,
         }
     },
 
@@ -214,3 +228,17 @@ class ReflTests(unittest.TestCase):
         expected = IN_COMP_INIT_POS
 
         self.ca.assert_that_pv_is("PARAM:IN_POS", expected)
+
+    def test_GIVEN_jaws_set_to_value_WHEN_change_sp_at_low_level_THEN_jaws_sp_rbv_does_not_change(self):
+
+        expected_gap_in_refl = 0.2
+        expected_change_to_gap = 1.0
+
+        time.sleep(5)
+        self.ca.assert_setting_setpoint_sets_readback(readback_pv="PARAM:S1HG", value=expected_gap_in_refl, expected_alarm=None)
+
+        self.ca_galil.assert_setting_setpoint_sets_readback(readback_pv="JAWS1:HGAP", value=expected_change_to_gap)
+
+        self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
+        self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)
+
