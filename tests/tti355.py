@@ -78,17 +78,11 @@ class Tti355Tests(unittest.TestCase):
         expected_value = "Cmd outside limits"
         self._lewis.backdoor_set_on_device("error", "ERR 2")
         self.ca.assert_that_pv_is("ERROR", expected_value, timeout=1)
-
-    @skip_if_recsim("Behaviour cannot be simulated in Recsim")
-    def test_WHEN_ioc_in_error_state_1_THEN_correct_error_state_returned(self):
-        expected_value = "Cmd not recognised"
-        self._lewis.backdoor_set_on_device("error", "ERR 1")
-        self.ca.assert_that_pv_is("ERROR", expected_value, timeout=1)
     
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
     def test_WHEN_ioc_not_in_error_state_THEN_correct_error_state_returned(self):
         expected_value = "No error"
-        self._lewis.backdoor_set_on_device("error", "ERR 0")
+        self.ca.set_pv_value("CURRENT:SP", 3.0)
         self.ca.assert_that_pv_is("ERROR", expected_value, timeout=1)
 
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
