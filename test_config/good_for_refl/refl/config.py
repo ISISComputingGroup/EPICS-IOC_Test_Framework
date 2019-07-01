@@ -58,6 +58,9 @@ def get_beamline():
     # Do not want parameters for init tests to be moved by other tests.
     params_without_init = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle,
                            theta_auto]
+    
+    params_for_mode_testing = [slit1_pos, theta_ang, slit3_pos, detector_position, s3_enabled]
+
     # DRIVES
     drivers = [DisplacementDriver(s1, MotorPVWrapper("MOT:MTR0101")),
                DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102"), S3_OUT_POSITION),
@@ -72,7 +75,8 @@ def get_beamline():
     nr_inits = {}
     nr_mode = BeamlineMode("NR", [param.name for param in params_without_init], nr_inits)
     polarised_mode = BeamlineMode("POLARISED", [param.name for param in params_without_init], nr_inits)
-    modes = [nr_mode, polarised_mode]
+    testing_mode = BeamlineMode("TESTING", [param.name for param in params_for_mode_testing], nr_inits)
+    modes = [nr_mode, polarised_mode, testing_mode]
 
     beam_start = PositionAndAngle(0.0, 0.0, 0.0)
     bl = Beamline(comps, params_all, drivers, modes, beam_start)
