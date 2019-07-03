@@ -21,7 +21,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 
 
 class KeylkgTests(unittest.TestCase):
@@ -32,9 +32,11 @@ class KeylkgTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_run_function_on_device("reset")
-        self.ca.set_pv_value("MODE:SP", "MEASURE")
+
         self.ca.set_pv_value("MEASUREMODE:HEAD:A:SP", 0)
         self.ca.set_pv_value("MEASUREMODE:HEAD:B:SP", 0)
+        # Set the mode incorrectly so that auto correct is tested for all commands
+        self.ca.set_pv_value("MODE:SP", "SET-UP")
 
     def test_GIVEN_running_ioc_WHEN_change_to_communication_mode_THEN_mode_changed(self):
         expected_value = "SET-UP"
@@ -94,7 +96,7 @@ class KeylkgTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("output1_raw_value", expected_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
 
-        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value, timeout=2)
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value)
 
     @skip_if_recsim('No emulation of data capture in RECSIM')
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output2_takes_data(self):
@@ -138,3 +140,12 @@ class KeylkgTests(unittest.TestCase):
         self.ca.set_pv_value("RESET:OUTPUT:2:SP", "RESET")
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value, timeout=2)
+
+    @skip_if_recsim('Cannot use lewis backdoor in RECSIM')
+    def test_GIVEN_running_ioc_WHEN_in_setup_mode_THEN_output1_swicthes_to_measurement_mode_and_takes_data(self):
+        expected_value = 0.1234
+        self.ca.set_pv_value("MODE:SP", "SET-UP")
+        self._lewis.backdoor_set_on_device("output1_raw_value", expected_value)
+
+
+        self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value)
