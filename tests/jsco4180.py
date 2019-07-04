@@ -54,57 +54,56 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("COMP:C:SP", 0)
         self.ca.set_pv_value("COMP:D", 0)
 
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_wrong_component_on_device_WHEN_running_THEN_retry_run_and_updates_component(self):
+        expected_value = 50
+        self.ca.set_pv_value("COMP:A:SP", expected_value)
+        self.ca.set_pv_value("COMP:B:SP", expected_value)
+
+        self.ca.set_pv_value("START:SP", 1)
+
+        self._lewis.backdoor_set_on_device("component_A", 33)
+
+        sleep(5)
+
+        self.ca.assert_that_pv_is("COMP:A", expected_value)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_device_in_single_channel_mode_WHEN_running_THEN_pump_stops_and_errors(self):
+        self._lewis.backdoor_set_on_device("single_channel_mode", True)
+        expected_status = "STOPPED"
+        expected_error = "Single Channel"
+        self.ca.set_pv_value("COMP:A:SP", 50)
+        self.ca.set_pv_value("COMP:C:SP", 50)
+
+        self.ca.set_pv_value("START:SP", 1)
+
+        sleep(20)
+
+        self.ca.assert_that_pv_is("STATUS", expected_status)
+        self.ca.assert_that_pv_is("ERROR:COMP", expected_error)
+
+    @skip_if_recsim("Flowrate device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_flowrate_THEN_flowrate_setpoint_is_correct(self):
         expected_value = 1.000
         self.ca.set_pv_value("FLOWRATE:SP", expected_value)
 
-        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_value, timeout=1)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_value)
+
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("FLOWRATE", expected_value)
 
     def test_GIVEN_an_ioc_WHEN_set_maximum_pressure_limit_THEN_maximum_pressure_limit_is_correct(self):
         expected_value = 200
         self.ca.set_pv_value("PRESSURE:MAX:SP", expected_value)
 
-        self.ca.assert_that_pv_is("PRESSURE:MAX", expected_value, timeout=1)
+        self.ca.assert_that_pv_is("PRESSURE:MAX", expected_value)
 
     def test_GIVEN_an_ioc_WHEN_set_minimum_pressure_limit_THEN_minimum_pressure_limit_is_correct(self):
         expected_value = 100
         self.ca.set_pv_value("PRESSURE:MIN:SP", expected_value)
 
-        self.ca.assert_that_pv_is("PRESSURE:MIN", expected_value, timeout=1)
-
-    def test_GIVEN_and_ioc_WHEN_set_pump_off_timer_THEN_pump_off_timer_set(self):
-        expected_value = 12.4
-        self.ca.set_pv_value("_PUMP:TIMER:OFF", expected_value)
-
-        self.ca.assert_that_pv_is("_PUMP:TIMER:OFF", expected_value)
-
-    def test_GIVEN_and_ioc_WHEN_set_pump_on_timer_THEN_pump_on_timer_set(self):
-        expected_value = 50.4
-        self.ca.set_pv_value("_PUMP:TIMER:ON", expected_value)
-
-        self.ca.assert_that_pv_is("_PUMP:TIMER:ON", expected_value)
-
-    def test_GIVEN_an_ioc_WHEN_set_valve_position_THEN_valve_positon_updated(self):
-        expected_value = 4
-        self.ca.set_pv_value("VALVE:POS:SP", expected_value)
-
-        self.ca.assert_that_pv_is("VALVE:POS", expected_value, timeout=1)
-
-    def test_GIVEN_an_ioc_WHEN_set_file_number_THEN_file_number_set(self):
-        expected_value = "File 3"
-        self.ca.set_pv_value("FILE:NUM:SP", expected_value)
-
-        self.ca.assert_that_pv_is("FILE:NUM", expected_value)
-
-    def test_GIVEN_an_ioc_WHEN_open_file_THEN_file_opened(self):
-        self.ca.set_pv_value("FILE:OPEN:SP", "Open")
-
-        self.ca.assert_that_pv_is("FILE:OPEN", "Open")
-
-    def test_GIVEN_an_ioc_WHEN_close_file_THEN_file_closed(self):
-        self.ca.set_pv_value("FILE:CLOSE:SP", "Close")
-
-        self.ca.assert_that_pv_is("FILE:CLOSE", "Close")
+        self.ca.assert_that_pv_is("PRESSURE:MIN", expected_value)
 
     def test_GIVEN_an_ioc_WHEN_continuous_pump_set_THEN_pump_on(self):
         self.ca.set_pv_value("START:SP", 1)
@@ -123,7 +122,7 @@ class Jsco4180Tests(unittest.TestCase):
         expected_value = 300
         self._lewis.backdoor_set_on_device("pressure", expected_value)
 
-        self.ca.assert_that_pv_is("PRESSURE", expected_value, timeout=1)
+        self.ca.assert_that_pv_is("PRESSURE", expected_value)
 
     @parameterized.expand([
         ("component_{}".format(suffix), suffix) for suffix in ["A", "B", "C", "D"]
@@ -133,7 +132,7 @@ class Jsco4180Tests(unittest.TestCase):
         expected_value = 10.0
         self._lewis.backdoor_set_on_device(component, expected_value)
 
-        self.ca.assert_that_pv_is("COMP:{}".format(suffix), expected_value, timeout=4)
+        self.ca.assert_that_pv_is("COMP:{}".format(suffix), expected_value)
 
     @parameterized.expand([
         ("COMP:{}".format(suffix), suffix) for suffix in ["A", "B", "C"]
@@ -144,9 +143,9 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("COMP:{}:SP".format(suffix), expected_value)
         # Call the hidden function rather than the normal full sequence (START:SP) as we are testing this
         # specific set composition record
-        self.ca.set_pv_value("_COMP:SP", "Set")
+        self.ca.set_pv_value("COMP:SP", "Set")
 
-        self.ca.assert_that_pv_is(component, expected_value, timeout=4)
+        self.ca.assert_that_pv_is(component, expected_value)
 
     def test_GIVEN_ioc_initial_state_WHEN_get_error_THEN_error_returned(self):
         expected_value = "No error"
@@ -158,7 +157,7 @@ class Jsco4180Tests(unittest.TestCase):
         expected_value = "Hardware error"
         self._lewis.backdoor_set_on_device("error", 4)
 
-        self.ca.assert_that_pv_is("ERROR", expected_value, timeout=2)
+        self.ca.assert_that_pv_is("ERROR", expected_value)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_ioc_in_error_state_WHEN_reset_error_THEN_error_reset(self):
@@ -166,21 +165,14 @@ class Jsco4180Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("error", 2)
         self.ca.set_pv_value("ERROR:SP", "Reset")
 
-        self.ca.assert_that_pv_is("ERROR", expected_value, timeout=1)
-
-    def test_GIVEN_an_ioc_WHEN_set_composition_time_setpoint_THEN_time_set(self):
-        expected_value = 23.5
-        self.ca.set_pv_value("COMP:TIME:SP", expected_value)
-
-        self.ca.assert_that_pv_is("COMP:TIME", expected_value)
+        self.ca.assert_that_pv_is("ERROR", expected_value)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
-    def test_GIVEN_an_input_error_WHEN_open_file_THEN_file_error_str_returned(self):
-        self._lewis.backdoor_set_on_device("input_correct", False)
-        expected_value = "[Error:file open error]"
-        self.ca.set_pv_value("FILE:OPEN:SP", "Open")
+    def test_GIVEN_ioc_in_error_state_WHEN_reset_error_THEN_error_reset(self):
+        expected_value = "No error"
+        self._lewis.backdoor_set_on_device("error", 4)
 
-        self.ca.assert_that_pv_is("ERROR:STR", expected_value)
+        self.ca.assert_that_pv_is("ERROR", expected_value)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
@@ -199,22 +191,22 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
         self.ca.set_pv_value("TIMED:SP.PROC", 1)
         expected_value = "TIMED"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
 
         self.ca.set_pv_value("START:SP", 1)
         expected_value = "CONTINUOUS"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
 
     def test_GIVEN_constant_pump_WHEN_set_timed_pump_THEN_state_updated_to_timed_pump(self):
         self.ca.set_pv_value("START:SP", 1)
         expected_value = "CONTINUOUS"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
 
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
         self.ca.set_pv_value("TIMED:SP", 1)
         expected_value = "TIMED"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value, timeout=3)
+        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
 
     def test_GIVEN_calc_mode_is_time_WHEN_setting_time_THEN_time_and_volume_are_correctly_set(self):
         expected_time = 600
@@ -223,8 +215,8 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("TIME:RUN:SP", expected_time)
 
-        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time, timeout=3)
-        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume, timeout=3)
+        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
+        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
 
     def test_GIVEN_calc_mode_is_time_WHEN_setting_volume_THEN_set_is_ignored(self):
         expected_time = self.ca.get_pv_value("TIME:RUN:SP")
@@ -233,8 +225,8 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("TIME:VOL:SP", expected_volume * 10)
 
-        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time, timeout=3)
-        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume, timeout=3)
+        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
+        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
 
     def test_GIVEN_calc_mode_is_volume_WHEN_setting_volume_THEN_time_and_volume_are_correctly_set(self):
         expected_time = 600
@@ -243,8 +235,8 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("TIME:VOL:SP", expected_volume)
 
-        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time, timeout=3)
-        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume, timeout=3)
+        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
+        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
 
     def test_GIVEN_calc_mode_is_volume_WHEN_setting_time_THEN_set_is_ignored(self):
         expected_time = self.ca.get_pv_value("TIME:RUN:SP")
@@ -253,6 +245,12 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("TIME:RUN:SP", expected_time * 10)
 
-        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time, timeout=3)
-        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume, timeout=3)
+        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
+        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
+
+    def test_GIVEN_input_incorrect_WHEN_set_flowrate_THEN_trouble_message_returned(self):
+        self._lewis.backdoor_set_on_device("input_correct", False)
+        self.ca.set_pv_value("FLOWRATE:SP", 0.010)
+
+        self.ca.assert_that_pv_is("ERROR:STR", "[Error:stack underflow]")
 
