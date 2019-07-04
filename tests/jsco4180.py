@@ -62,6 +62,8 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("START:SP", 1)
 
+        # Setting an incorrect component on the device will result in the state machine attempting
+        # to rerun the pump and reset components.
         self._lewis.backdoor_set_on_device("component_A", 33)
 
         sleep(5)
@@ -78,6 +80,7 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("START:SP", 1)
 
+        # Give the state machine some time to attempt 4 restarts
         sleep(20)
 
         self.ca.assert_that_pv_is("STATUS", expected_status)
@@ -248,6 +251,7 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
         self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
 
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_input_incorrect_WHEN_set_flowrate_THEN_trouble_message_returned(self):
         self._lewis.backdoor_set_on_device("input_correct", False)
         self.ca.set_pv_value("FLOWRATE:SP", 0.010)
