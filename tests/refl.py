@@ -14,6 +14,8 @@ OUT_COMP_INIT_POS = -2.0
 IN_COMP_INIT_POS = 1.0
 DET_INIT_POS = 5.0
 DET_INIT_POS_AUTOSAVE = 1.0
+INITIAL_VELOCITY = 0.5
+FAST_VELOCITY = 100
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
@@ -31,6 +33,9 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
+            "MTR0102.VMAX": INITIAL_VELOCITY,
+            "MTR0103.VMAX": INITIAL_VELOCITY,
+            "MTR0104.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
             "MTR0105.VAL": OUT_COMP_INIT_POS,
             "MTR0106.VAL": IN_COMP_INIT_POS,
             "MTR0107.VAL": DET_INIT_POS
@@ -94,6 +99,11 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
+
+    def set_up_velocity_tests(self, velocity):
+        self.ca_galil.set_pv_value("MTR0102.VELO", velocity)
+        self.ca_galil.set_pv_value("MTR0103.VELO", velocity)
+        self.ca_galil.set_pv_value("MTR0104.VELO", FAST_VELOCITY)  # Remove angle as a speed limiting factor
 
     def _check_param_pvs(self, param_name, expected_value):
         self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
@@ -228,6 +238,58 @@ class ReflTests(unittest.TestCase):
         expected = IN_COMP_INIT_POS
 
         self.ca.assert_that_pv_is("PARAM:IN_POS", expected)
+
+    def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_completed_THEN_velocity_reverted_to_original_value(self):
+        expected = INITIAL_VELOCITY
+        self.set_up_velocity_tests(expected)
+
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
+
+    def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_interrupted_THEN_velocity_reverted_to_original_value(self):
+        expected = INITIAL_VELOCITY
+        final_position = SPACING
+        self.set_up_velocity_tests(expected)
+
+        # move and wait for completion
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+        self.ca_galil.set_pv_value("MTR0102.STOP", 1)
+        self.ca_galil.set_pv_value("MTR0103.STOP", 1)
+        self.ca_galil.set_pv_value("MTR0104.STOP", 1)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=2)
+        self.ca_galil.assert_that_pv_is_not_number("MTR0102.RBV", final_position, tolerance=0.1)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=2)
+        self.ca_galil.assert_that_pv_is_not_number("MTR0103.RBV", 2 * final_position, tolerance=0.1)
+        self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
+
+    def test_GIVEN_move_was_issued_while_different_move_already_in_progress_WHEN_move_completed_THEN_velocity_reverted_to_value_before_first_move(self):
+        expected = INITIAL_VELOCITY
+        self.set_up_velocity_tests(expected)
+        self.ca_galil.set_pv_value("MTR0102", -4)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=15)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+
+    def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_motor_retains_new_value_after_move_completed(self):
+        initial = INITIAL_VELOCITY
+        expected = INITIAL_VELOCITY / 2.0
+        self.set_up_velocity_tests(initial)
+
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
+        self.ca_galil.set_pv_value("MTR0102.VELO", expected)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
 
     def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
         
