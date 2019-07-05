@@ -37,9 +37,6 @@ class GemJawsManagerTests(JawsManagerBase, unittest.TestCase):
     def get_num_of_jaws(self):
         return 5
 
-    # def get_sample_pv(self):
-    #     return "GEMJAWSET:SAMPLE"
-
     @parameterized.expand(parameterized_list([
         # Numbers taken experimentally
         (30, 10, [22.6, 20.4, 17.9, 15.1, 11.9]),
@@ -48,5 +45,5 @@ class GemJawsManagerTests(JawsManagerBase, unittest.TestCase):
     ]))
     def test_WHEN_sample_gap_set_THEN_other_jaws_as_expected(self, _, mod_gap, sample_gap, expected):
         self.ca.set_pv_value(MOD_GAP.format("V"), mod_gap)
-        sleep(1)  # Setting moderator and sample in quick succession causes issues
         self._test_WHEN_sample_gap_set_THEN_other_jaws_as_expected("V", sample_gap, expected)
+

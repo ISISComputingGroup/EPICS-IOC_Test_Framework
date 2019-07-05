@@ -6,7 +6,6 @@ import os
 from parameterized.parameterized import parameterized
 from utils.testing import parameterized_list, ManagerMode
 from common_tests.jaws_manager_utils import JawsManagerBase, UNDERLYING_GAP_SP
-
 # IP address of device
 from utils.test_modes import TestModes
 

@@ -19,6 +19,7 @@ class JawsManagerBase(object):
         ChannelAccess().assert_that_pv_exists("MOT:MTR0101", timeout=30)
         for jaw in range(1, self.get_num_of_jaws() + 1):
             ChannelAccess().assert_that_pv_exists(UNDERLYING_GAP_SP.format(jaw, "V"), timeout=30)
+            ChannelAccess().assert_that_pv_exists(UNDERLYING_GAP_SP.format(jaw, "H"), timeout=30)
         self.ca = ChannelAccess()
         self.ca.assert_that_pv_exists(self.get_sample_pv() + ":{}GAP:SP".format("V"), timeout=30)
 
@@ -39,6 +40,5 @@ class JawsManagerBase(object):
 
     def _test_WHEN_sample_gap_set_THEN_other_jaws_as_expected(self, direction, sample_gap, expected):
         self.ca.set_pv_value(self.get_sample_pv() + ":{}GAP:SP".format(direction), sample_gap)
-        sleep(1)
         for i, exp in enumerate(expected):
-            self.ca.assert_that_pv_is_number(UNDERLYING_GAP_SP.format(i + 1, direction), exp, 0.1)
+            self.ca.assert_that_pv_is_number(UNDERLYING_GAP_SP.format(i + 1, direction), exp, 0.1, timeout=1)
