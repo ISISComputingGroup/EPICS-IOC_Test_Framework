@@ -327,8 +327,8 @@ class ChannelAccess(object):
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
         """
-        message = "Expected PV value to be equal to {} (tolerance: {})"\
-            .format(format_value(expected), format_value(tolerance))
+        message = "Expected PV '{}' value to be equal to {} (tolerance: {})"\
+            .format(self._create_pv_with_prefix(pv), format_value(expected), format_value(tolerance))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: self._within_tolerance_condition(val, expected, tolerance), timeout, message=message,
@@ -440,6 +440,7 @@ class ChannelAccess(object):
     def assert_that_pv_alarm_is(self, pv, alarm, timeout=None):
         """
         Assert that a pv is in alarm state given or timeout.
+        Checks the SERV of the pv name with any field name removed.
 
         Args:
              pv: pv name
@@ -449,7 +450,8 @@ class ChannelAccess(object):
              AssertionError: if alarm does not become requested value
              UnableToConnectToPVException: if pv does not exist within timeout
         """
-        return self.assert_that_pv_is("{}.SEVR".format(pv), alarm, timeout=timeout)
+        pv_no_field = pv.rsplit(".", 1)[0]
+        return self.assert_that_pv_is("{}.SEVR".format(pv_no_field), alarm, timeout=timeout)
 
     def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None,
                                               expected_alarm=Alarms.NONE, timeout=None):
