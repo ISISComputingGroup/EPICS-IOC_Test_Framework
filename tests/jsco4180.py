@@ -81,7 +81,7 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("START:SP", 1)
 
         # Give the state machine some time to attempt 4 restarts
-        sleep(20)
+        sleep(30)
 
         self.ca.assert_that_pv_is("STATUS", expected_status)
         self.ca.assert_that_pv_is("ERROR:COMP", expected_error)
@@ -96,12 +96,14 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("START:SP", 1)
         self.ca.assert_that_pv_is("FLOWRATE", expected_value)
 
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_maximum_pressure_limit_THEN_maximum_pressure_limit_is_correct(self):
         expected_value = 200
         self.ca.set_pv_value("PRESSURE:MAX:SP", expected_value)
 
         self.ca.assert_that_pv_is("PRESSURE:MAX", expected_value)
 
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_minimum_pressure_limit_THEN_minimum_pressure_limit_is_correct(self):
         expected_value = 100
         self.ca.set_pv_value("PRESSURE:MIN:SP", expected_value)
@@ -257,4 +259,3 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("FLOWRATE:SP", 0.010)
 
         self.ca.assert_that_pv_is("ERROR:STR", "[Error:stack underflow]")
-
