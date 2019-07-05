@@ -19,15 +19,18 @@ FAST_VELOCITY = 100
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
+GALIL_PREFIX_JAWS = "GALIL_02"
+test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 IOCS = [
     {
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
-        "pv_for_existence": "AXIS1",
+        "pv_for_existence": "MOT:MTR0101",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
             "MTR0102.VMAX": INITIAL_VELOCITY,
@@ -36,6 +39,17 @@ IOCS = [
             "MTR0105.VAL": OUT_COMP_INIT_POS,
             "MTR0106.VAL": IN_COMP_INIT_POS,
             "MTR0107.VAL": DET_INIT_POS
+        }
+    },
+    {
+        "name": GALIL_PREFIX_JAWS,
+        "custom_prefix": "MOT",
+        "directory": get_default_ioc_dir("GALIL", iocnum=2),
+        "pv_for_existence": "MOT:MTR0201",
+        "macros": {
+            "GALILADDR": GALIL_ADDR,
+            "MTRCTRL": "2",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         }
     },
     {
@@ -48,8 +62,8 @@ IOCS = [
         "macros": {
         },
         "environment_vars": {
-            "ICPCONFIGROOT": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
-            "ICPVARDIR": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")),
+            "ICPCONFIGROOT": test_config_path,
+            "ICPVARDIR": test_config_path,
         }
     },
 
@@ -276,3 +290,37 @@ class ReflTests(unittest.TestCase):
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+
+    def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
+        
+        expected_mode_value = "TESTING"
+        PARAM_PREFIX = "PARAM:"
+        IN_MODE_SUFFIX = ":IN_MODE"
+        expected_in_mode_value = "YES"
+        expected_out_of_mode_value = "NO"
+
+        with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_mode_value), \
+             self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_mode_value):
+                self.ca.set_pv_value("BL:MODE:SP", expected_mode_value)
+
+        test_in_mode_param_names = ["S1", "S3", "THETA", "DET_POS", "S3_ENABLED"]
+        test_out_of_mode_params = ["DET_ANG", "THETA_AUTO"]
+
+        for param in test_in_mode_param_names:
+            self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_in_mode_value)
+        
+        for param in test_out_of_mode_params:
+            self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_out_of_mode_value)
+
+    def test_GIVEN_jaws_set_to_value_WHEN_change_sp_at_low_level_THEN_jaws_sp_rbv_does_not_change(self):
+
+        expected_gap_in_refl = 0.2
+        expected_change_to_gap = 1.0
+
+        time.sleep(5)
+        self.ca.assert_setting_setpoint_sets_readback(readback_pv="PARAM:S1HG", value=expected_gap_in_refl, expected_alarm=None)
+
+        self.ca_galil.assert_setting_setpoint_sets_readback(readback_pv="JAWS1:HGAP", value=expected_change_to_gap)
+
+        self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
+        self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)

@@ -4,9 +4,12 @@ from unittest import skip
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
-from utils.testing import get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister
+from utils.testing import assert_log_messages
+from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "SIMPLE"
+IOC_STARTED_TEXT = "epics>"
 
 EPICS_ROOT = os.getenv("EPICS_KIT_ROOT")
 
@@ -16,11 +19,15 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": os.path.realpath(os.path.join(EPICS_ROOT, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple")),
         "macros": {},
+        "started_text": IOC_STARTED_TEXT,
     },
 ]
 
 
-TEST_MODES = [None, ]
+TEST_MODES = [TestModes.RECSIM, ]
+
+# Wait 5 minutes for the IOC to come back up
+MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 300
 
 
 class SimpleTests(unittest.TestCase):
@@ -29,12 +36,26 @@ class SimpleTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("Simple", DEVICE_PREFIX)
-        self.assertIsNotNone(self._lewis)
+        self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    @skip("This test is not ready yet")
-    def test_that_always_passes(self):
-        pass
+        self.set_auto_restart_to_true()
+
+    def set_auto_restart_to_true(self):
+        if not self._ioc.autorestart:
+            self._ioc.toggle_autorestart()
+
+    def test_GIVEN_running_ioc_in_auto_restart_mode_WHEN_ioc_crashes_THEN_ioc_reboots(self):
+        # GIVEN
+        self.set_auto_restart_to_true()
+        self.ca.assert_that_pv_exists("DISABLE")
+
+        # WHEN
+        self.ca.set_pv_value("CRASHVALUE", "1")
+
+        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, IOC_STARTED_TEXT)
+
+        # THEN
+        self.ca.assert_that_pv_exists("DISABLE", timeout=30)
