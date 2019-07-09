@@ -98,7 +98,7 @@ class Itc503Tests(unittest.TestCase):
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_setting_control_mode_THEN_can_be_read_back(self):
         for mode in ("Locked", "Remote only", "Local only", "Local and remote"):
-            self.ca.assert_setting_setpoint_sets_readback(mode, "CTRL")
+            self.ca.assert_setting_setpoint_sets_readback(mode, "CTRL", expected_alarm=None)
 
     @skip_if_recsim("Backdoor does not exist in recsim")
     def test_WHEN_sweeping_mode_is_set_via_backdoor_THEN_it_updates_in_the_ioc(self):
