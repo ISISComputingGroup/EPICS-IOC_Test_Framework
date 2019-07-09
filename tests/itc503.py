@@ -116,8 +116,8 @@ class Itc503Tests(unittest.TestCase):
     @skip_if_recsim("Backdoor does not exist in recsim")
     def test_WHEN_heater_voltage_is_set_THEN_heater_voltage_updates(self):
         for val in TEST_VALUES:
-            self.ca.set_pv_value("HEATERV:SP", val)
-            self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
+            self.ca.set_pv_value("HEATERP:SP", val)
+            self.ca.assert_that_pv_is_number("HEATERP", val, tolerance=0.1)
 
             # Emulator responds with heater p == heater v. Test that heater p is also reading.
-            self.ca.assert_that_pv_is_number("HEATERP", val, tolerance=0.1)
+            self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
