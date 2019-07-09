@@ -34,6 +34,11 @@ CHANNELS = (
     "Channel 3",
 )
 
+CTRL_MODE_ALARMS = {"Locked": ChannelAccess.Alarms.NONE,
+                    "Remote only": ChannelAccess.Alarms.NONE,
+                    "Local only": ChannelAccess.Alarms.MAJOR,
+                    "Local and remote": ChannelAccess.Alarms.NONE}
+
 
 class Itc503Tests(unittest.TestCase):
     """
@@ -98,7 +103,7 @@ class Itc503Tests(unittest.TestCase):
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_setting_control_mode_THEN_can_be_read_back(self):
         for mode in ("Locked", "Remote only", "Local only", "Local and remote"):
-            self.ca.assert_setting_setpoint_sets_readback(mode, "CTRL")
+            self.ca.assert_setting_setpoint_sets_readback(mode, "CTRL", expected_alarm=CTRL_MODE_ALARMS[mode])
 
     @skip_if_recsim("Backdoor does not exist in recsim")
     def test_WHEN_sweeping_mode_is_set_via_backdoor_THEN_it_updates_in_the_ioc(self):
@@ -116,8 +121,8 @@ class Itc503Tests(unittest.TestCase):
     @skip_if_recsim("Backdoor does not exist in recsim")
     def test_WHEN_heater_voltage_is_set_THEN_heater_voltage_updates(self):
         for val in TEST_VALUES:
-            self.ca.set_pv_value("HEATERV:SP", val)
-            self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
+            self.ca.set_pv_value("HEATERP:SP", val)
+            self.ca.assert_that_pv_is_number("HEATERP", val, tolerance=0.1)
 
             # Emulator responds with heater p == heater v. Test that heater p is also reading.
-            self.ca.assert_that_pv_is_number("HEATERP", val, tolerance=0.1)
+            self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
