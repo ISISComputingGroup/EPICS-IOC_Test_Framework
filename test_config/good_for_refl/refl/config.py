@@ -43,7 +43,7 @@ def get_beamline():
     detector_angle = AngleParameter("det_ang", detector, True)
     not_in_mode_pos = TrackingPosition("notinmode", not_in_mode, True)
     s3_enabled = InBeamParameter("s3_enabled", s3)
-    hgap_param = SlitGapParameter("S1HG", AxisPVWrapper("MOT:JAWS1:HGAP"), is_vertical=False)
+    hgap_param = SlitGapParameter("S1HG", JawsGapPVWrapper("MOT:JAWS1", is_vertical=False))
 
     # for init tests
     is_out = InBeamParameter("is_out", out_comp, autosave=False)
