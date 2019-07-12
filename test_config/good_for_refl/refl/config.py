@@ -24,6 +24,7 @@ def get_beamline():
     s3 = Component("s3", PositionAndAngle(0.0, 3*SPACING, 90))
     detector = TiltingComponent("Detector", PositionAndAngle(0.0, 4*SPACING, 90))
     theta = ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2*SPACING, 90), [detector])
+    not_in_mode = Component("NotInModeComp", PositionAndAngle(0.0, 5*SPACING, 90))
 
     # for init tests
     out_comp = Component("out_comp", PositionAndAngle(0.0, 6*SPACING, 90))
@@ -32,7 +33,7 @@ def get_beamline():
     det_for_init_auto = TiltingComponent("det_init_auto_comp", PositionAndAngle(0.0, 10*SPACING, 90))
     theta_for_init = ThetaComponent("theta_init_comp", PositionAndAngle(0.0, 8*SPACING, 90), [det_for_init])
 
-    comps = [s1, theta, s3, detector, out_comp, in_comp, theta_for_init, det_for_init]
+    comps = [s1, theta, s3, detector, not_in_mode, out_comp, in_comp, theta_for_init, det_for_init]
 
     # BEAMLINE PARAMETERS
     slit1_pos = TrackingPosition("S1", s1, True)
@@ -40,6 +41,7 @@ def get_beamline():
     theta_ang = AngleParameter("Theta", theta, True)
     detector_position = TrackingPosition("det_pos", detector, True)
     detector_angle = AngleParameter("det_ang", detector, True)
+    not_in_mode_pos = TrackingPosition("notinmode", not_in_mode, True)
     s3_enabled = InBeamParameter("s3_enabled", s3)
     hgap_param = SlitGapParameter("S1HG", JawsGapPVWrapper("MOT:JAWS1", is_vertical=False))
 
@@ -52,7 +54,7 @@ def get_beamline():
     init = TrackingPosition("init", det_for_init, autosave=False)
     init_auto = TrackingPosition("init_auto", det_for_init_auto, autosave=True)
 
-    params_all = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle,
+    params_all = [s3_enabled, slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle, not_in_mode_pos,
                   is_out, out_pos, is_in, in_pos, theta_auto, init, init_auto, hgap_param]
 
     # Do not want parameters for init tests to be moved by other tests.
@@ -69,7 +71,9 @@ def get_beamline():
                DisplacementDriver(out_comp, MotorPVWrapper("MOT:MTR0105"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
                DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0106"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
                DisplacementDriver(det_for_init, MotorPVWrapper("MOT:MTR0107")),
-               DisplacementDriver(det_for_init_auto, MotorPVWrapper("MOT:MTR0108"))]
+               DisplacementDriver(det_for_init_auto, MotorPVWrapper("MOT:MTR0108")),
+               # MTR0201-MTR0204 used for jaws1
+               DisplacementDriver(not_in_mode, MotorPVWrapper("MOT:MTR0205"))]
 
     # MODES
     nr_inits = {}
