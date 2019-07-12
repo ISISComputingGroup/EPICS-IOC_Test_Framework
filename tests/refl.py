@@ -332,7 +332,7 @@ class ReflTests(unittest.TestCase):
 
         self.ca.set_pv_value("BL:MOVE", 1, wait=True)
 
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", expected)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", expected)
 
@@ -342,7 +342,7 @@ class ReflTests(unittest.TestCase):
 
         self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
 
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", expected)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", expected)
 
@@ -350,40 +350,40 @@ class ReflTests(unittest.TestCase):
         param_sp = 0.0
         motor_pos = 1.0
         self.ca.set_pv_value("PARAM:NOTINMODE:SP", param_sp)
-        self.ca_galil.set_pv_value("MTR0201", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 0.2, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
-        self.ca_galil.assert_that_pv_is_number("MTR0201", motor_pos)
+        self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
 
     def test_GIVEN_param_not_in_mode_and_sp_unchanged_WHEN_performing_beamline_move_THEN_no_value_applied(self):
         param_sp = 0.0
         motor_pos = 1.0
-        self.ca_galil.set_pv_value("MTR0201", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
         self.ca.set_pv_value("BL:MOVE", 1, wait=True)
 
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
-        self.ca_galil.assert_that_pv_is_number("MTR0201", motor_pos)
+        self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
 
     def test_GIVEN_param_not_in_mode_and_sp_unchanged_WHEN_performing_individual_move_THEN_sp_is_applied(self):
         param_sp = 0.0
         motor_pos = 1.0
-        self.ca_galil.set_pv_value("MTR0201", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
         self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
 
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", param_sp)
@@ -391,13 +391,13 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_param_not_in_mode_and_sp_unchanged_WHEN_performing_individual_move_on_other_param_THEN_no_value_applied(self):
         param_sp = 0.0
         motor_pos = 1.0
-        self.ca_galil.set_pv_value("MTR0201", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 0.2, wait=True)
 
-        self.ca_galil.assert_that_pv_is("MTR0201.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
-        self.ca_galil.assert_that_pv_is_number("MTR0201", motor_pos)
+        self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)

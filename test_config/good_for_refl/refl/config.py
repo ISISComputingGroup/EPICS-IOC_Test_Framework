@@ -72,7 +72,8 @@ def get_beamline():
                DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0106"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
                DisplacementDriver(det_for_init, MotorPVWrapper("MOT:MTR0107")),
                DisplacementDriver(det_for_init_auto, MotorPVWrapper("MOT:MTR0108")),
-               DisplacementDriver(not_in_mode, MotorPVWrapper("MOT:MTR0201"))]
+               # MTR0201-MTR0204 used for jaws1
+               DisplacementDriver(not_in_mode, MotorPVWrapper("MOT:MTR0205"))]
 
     # MODES
     nr_inits = {}
