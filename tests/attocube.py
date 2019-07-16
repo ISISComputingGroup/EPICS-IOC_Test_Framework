@@ -27,11 +27,13 @@ TEST_MODES = [TestModes.DEVSIM]
 
 class AttocubeTests(unittest.TestCase):
     """
-    Tests for the Cryvalve IOC.
+    Tests for the Attocube IOC.
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=None)
+        self._lewis.backdoor_set_on_device('connected', True)
+        self.ca.assert_that_pv_exists("MOT:MTR0101.RBV")
 
     def test_WHEN_moved_to_position_THEN_position_reached(self):
         position_setpoint = 5
@@ -39,6 +41,6 @@ class AttocubeTests(unittest.TestCase):
         self.ca.assert_that_pv_value_is_increasing("MOT:MTR0101.RBV", 1)
         self.ca.assert_that_pv_is_number("MOT:MTR0101.RBV", position_setpoint, timeout=10)
 
-    # def test_sleep(self):
-    #     sleep(1000)
-
+    def test_GIVEN_device_not_connected_THEN_pv_in_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('MOT:MTR0101', ChannelAccess.Alarms.INVALID, timeout=60)
