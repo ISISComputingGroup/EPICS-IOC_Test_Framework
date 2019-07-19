@@ -97,3 +97,7 @@ IOCTestFramework.iml
 
 /test-reports
 NULL
+
+# VS Code files
+.vscode/
+settings.json
