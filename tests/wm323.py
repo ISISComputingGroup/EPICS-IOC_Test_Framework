@@ -31,3 +31,6 @@ class Itc503Tests(unittest.TestCase):
 
     def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
+
+    def test_WHEN_speed_setpoint_is_sent_THEN_readback_updates(self):
+        self.ca.assert_setting_setpoint_sets_readback(42, 'SPEED')
