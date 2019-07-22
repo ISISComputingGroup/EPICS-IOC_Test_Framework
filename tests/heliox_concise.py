@@ -1,3 +1,4 @@
+import itertools
 import unittest
 
 from parameterized import parameterized
@@ -50,3 +51,15 @@ class HelioxConciseTests(unittest.TestCase):
         for stable in [True, False, True]:  # Check both transitions
             self._lewis.backdoor_set_on_device("temperature_stable", stable)
             self.ca.assert_that_pv_is("STABILITY", "Stable" if stable else "Unstable")
+
+    @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_TEMPERATURES)))
+    @skip_if_recsim("Lewis Backdoor not available in recsim")
+    def test_WHEN_individual_channel_temperature_is_set_THEN_readback_updates(self, _, chan, temperature):
+        self._lewis.backdoor_run_function_on_device("backdoor_set_channel_temperature", [chan, temperature])
+        self.ca.assert_that_pv_is_number("{}:TEMP".format(chan), temperature, tolerance=0.01)
+
+    @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_TEMPERATURES)))
+    @skip_if_recsim("Lewis Backdoor not available in recsim")
+    def test_WHEN_individual_channel_temperature_setpoint_is_set_THEN_readback_updates(self, _, chan, temperature):
+        self._lewis.backdoor_run_function_on_device("backdoor_set_channel_temperature_sp", [chan, temperature])
+        self.ca.assert_that_pv_is_number("{}:TEMP:SP:RBV".format(chan), temperature, tolerance=0.01)
