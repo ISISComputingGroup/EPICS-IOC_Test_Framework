@@ -31,6 +31,7 @@ class StringValues(object):
     ON = "ON"
     OFF = "OFF"
 
+
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
@@ -39,7 +40,7 @@ class HfmagpsuTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("HFMAGPSU", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
-        self.ca.wait_for("DIRECTION")
+        self.ca.assert_that_pv_exists("DIRECTION")
         time.sleep(8)
 
     def test_GIVEN_midTarget_set_WHEN_read_THEN_midTarget_is_as_expected(self):
