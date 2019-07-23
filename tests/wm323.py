@@ -34,3 +34,11 @@ class Itc503Tests(unittest.TestCase):
 
     def test_WHEN_speed_setpoint_is_sent_THEN_readback_updates(self):
         self.ca.assert_setting_setpoint_sets_readback(42, 'SPEED')
+
+    def test_WHEN_direction_setpoint_is_sent_THEN_readback_updates(self):
+        for mode in ["Clockwise", "Anti-clockwise"]:
+            self.ca.assert_setting_setpoint_sets_readback(mode, "DIRECTION")
+
+    def test_WHEN_running_setpoint_is_sent_THEN_readback_updates(self):
+        for mode in ["Running", "Stopped"]:
+            self.ca.assert_setting_setpoint_sets_readback(mode, "RUNNING")
