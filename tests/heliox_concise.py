@@ -74,3 +74,10 @@ class HelioxConciseTests(unittest.TestCase):
         for stability in [True, False, True]:  # Check both transitions
             self._lewis.backdoor_run_function_on_device("backdoor_set_channel_stability", [chan, stability])
             self.ca.assert_that_pv_is("{}:STABILITY".format(chan), "Stable" if stability else "Unstable")
+
+    @parameterized.expand(parameterized_list(CHANNELS_WITH_HEATER_AUTO))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_channel_heater_auto_is_set_via_backdoor_THEN_readback_updates(self, _, chan):
+        for heater_auto in [True, False, True]:  # Check both transitions
+            self._lewis.backdoor_run_function_on_device("backdoor_set_channel_heater_auto", [chan, heater_auto])
+            self.ca.assert_that_pv_is("{}:HEATER:AUTO".format(chan), "On" if heater_auto else "Off")
