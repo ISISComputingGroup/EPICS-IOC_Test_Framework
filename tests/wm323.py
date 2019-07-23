@@ -34,6 +34,10 @@ class Itc503Tests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
+    @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
+    def test_WHEN_ioc_is_started_THEN_pump_type_pv_correct(self):
+        self.ca.assert_that_pv_is("TYPE", "323Du")
+
     def test_WHEN_speed_setpoint_is_sent_THEN_readback_updates(self):
         self.ca.assert_setting_setpoint_sets_readback(42, 'SPEED')
 
@@ -44,8 +48,12 @@ class Itc503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("SPEED:SP", SPEED_HIGH_LIMIT)
 
     def test_WHEN_direction_setpoint_is_sent_THEN_readback_updates(self):
-        for mode in ["Clockwise", "Anti-clockwise"]:
+        for mode in ["Clockwise", "Anti-Clockwise"]:
             self.ca.assert_setting_setpoint_sets_readback(mode, "DIRECTION")
+
+    def test_WHEN_status_setpoint_is_sent_THEN_readback_updates(self):
+        for mode in ["Running", "Stopped"]:
+            self.ca.assert_setting_setpoint_sets_readback(mode, "STATUS")
 
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
     def test_GIVEN_pump_off_WHEN_set_pump_on_THEN_pump_turned_on(self):
