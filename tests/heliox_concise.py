@@ -26,6 +26,10 @@ TEST_TEMPERATURES = [0.0, 0.01, 0.333, 300]
 
 CHANNELS = ["HE3SORB", "HE4POT", "HELOW", "HEHIGH"]
 
+CHANNELS_WITH_STABILITY = ["HE3SORB", "HE4POT"]
+
+CHANNELS_WITH_HEATER_AUTO = ["HE3SORB", "HEHIGH", "HELOW"]
+
 
 class HelioxConciseTests(unittest.TestCase):
     """
@@ -63,3 +67,10 @@ class HelioxConciseTests(unittest.TestCase):
     def test_WHEN_individual_channel_temperature_setpoint_is_set_THEN_readback_updates(self, _, chan, temperature):
         self._lewis.backdoor_run_function_on_device("backdoor_set_channel_temperature_sp", [chan, temperature])
         self.ca.assert_that_pv_is_number("{}:TEMP:SP:RBV".format(chan), temperature, tolerance=0.01)
+
+    @parameterized.expand(parameterized_list(CHANNELS_WITH_STABILITY))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_channel_statbility_is_set_via_backdoor_THEN_readback_updates(self, _, chan):
+        for stability in [True, False, True]:  # Check both transitions
+            self._lewis.backdoor_run_function_on_device("backdoor_set_channel_stability", [chan, stability])
+            self.ca.assert_that_pv_is("{}:STABILITY".format(chan), "Stable" if stability else "Unstable")
