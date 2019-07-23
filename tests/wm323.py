@@ -47,6 +47,17 @@ class Itc503Tests(unittest.TestCase):
         for mode in ["Clockwise", "Anti-clockwise"]:
             self.ca.assert_setting_setpoint_sets_readback(mode, "DIRECTION")
 
-    def test_WHEN_running_setpoint_is_sent_THEN_readback_updates(self):
-        for mode in ["Running", "Stopped"]:
-            self.ca.assert_setting_setpoint_sets_readback(mode, "RUNNING")
+    @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
+    def test_GIVEN_pump_off_WHEN_set_pump_on_THEN_pump_turned_on(self):
+        self.ca.set_pv_value("RUN:SP", "Run")
+
+        self.ca.assert_that_pv_is("STATUS", "Running")
+
+    @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
+    def test_GIVEN_pump_on_WHEN_set_pump_off_THEN_pump_paused(self):
+        self.ca.set_pv_value("RUN:SP", "Run")
+        self.ca.assert_that_pv_is("STATUS", "Running", timeout=2)
+
+        self.ca.set_pv_value("STOP:SP", "Stop")
+
+        self.ca.assert_that_pv_is("STATUS", "Stopped")
