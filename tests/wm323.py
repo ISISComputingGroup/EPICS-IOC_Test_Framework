@@ -18,6 +18,8 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+SPEED_LOW_LIMIT = 3
+SPEED_HIGH_LIMIT = 400
 
 
 class Itc503Tests(unittest.TestCase):
@@ -34,6 +36,12 @@ class Itc503Tests(unittest.TestCase):
 
     def test_WHEN_speed_setpoint_is_sent_THEN_readback_updates(self):
         self.ca.assert_setting_setpoint_sets_readback(42, 'SPEED')
+
+    def test_WHEN_speed_setpoint_is_set_outside_max_limits_THEN_setpoint_within(self):
+        self.ca.set_pv_value("SPEED:SP", SPEED_LOW_LIMIT - 1)
+        self.ca.assert_that_pv_is("SPEED:SP", SPEED_LOW_LIMIT)
+        self.ca.set_pv_value("SPEED:SP", SPEED_HIGH_LIMIT + 1)
+        self.ca.assert_that_pv_is("SPEED:SP", SPEED_HIGH_LIMIT)
 
     def test_WHEN_direction_setpoint_is_sent_THEN_readback_updates(self):
         for mode in ["Clockwise", "Anti-clockwise"]:
