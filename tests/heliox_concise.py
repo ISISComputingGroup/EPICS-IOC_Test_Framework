@@ -23,6 +23,7 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 TEST_TEMPERATURES = [0.0, 0.01, 0.333, 300]
+TEST_HEATER_PERCENTAGES = [0.0, 0.01, 99.98, 100.0]
 
 CHANNELS = ["HE3SORB", "HE4POT", "HELOW", "HEHIGH"]
 
@@ -60,13 +61,13 @@ class HelioxConciseTests(unittest.TestCase):
     @skip_if_recsim("Lewis Backdoor not available in recsim")
     def test_WHEN_individual_channel_temperature_is_set_THEN_readback_updates(self, _, chan, temperature):
         self._lewis.backdoor_run_function_on_device("backdoor_set_channel_temperature", [chan, temperature])
-        self.ca.assert_that_pv_is_number("{}:TEMP".format(chan), temperature, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("{}:TEMP".format(chan), temperature, tolerance=0.005)
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_TEMPERATURES)))
     @skip_if_recsim("Lewis Backdoor not available in recsim")
     def test_WHEN_individual_channel_temperature_setpoint_is_set_THEN_readback_updates(self, _, chan, temperature):
         self._lewis.backdoor_run_function_on_device("backdoor_set_channel_temperature_sp", [chan, temperature])
-        self.ca.assert_that_pv_is_number("{}:TEMP:SP:RBV".format(chan), temperature, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("{}:TEMP:SP:RBV".format(chan), temperature, tolerance=0.005)
 
     @parameterized.expand(parameterized_list(CHANNELS_WITH_STABILITY))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -81,3 +82,9 @@ class HelioxConciseTests(unittest.TestCase):
         for heater_auto in [True, False, True]:  # Check both transitions
             self._lewis.backdoor_run_function_on_device("backdoor_set_channel_heater_auto", [chan, heater_auto])
             self.ca.assert_that_pv_is("{}:HEATER:AUTO".format(chan), "On" if heater_auto else "Off")
+
+    @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_HEATER_PERCENTAGES)))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_individual_channel_heater_percentage_is_set_THEN_readback_updates(self, _, chan, percent):
+        self._lewis.backdoor_run_function_on_device("backdoor_set_channel_heater_percent", [chan, percent])
+        self.ca.assert_that_pv_is_number("{}:HEATER:PERCENT".format(chan), percent, tolerance=0.005)
