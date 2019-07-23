@@ -8,6 +8,21 @@ from utils.ioc_launcher import IOCRegister, IocLauncher
 from utils.emulator_launcher import EmulatorRegister, LewisLauncher
 
 
+class ManagerMode(object):
+    """A context manager for switching manager mode on."""
+    MANAGER_MODE_PV = "CS:MANAGER"
+
+    def __init__(self, channel_access):
+        self.channel_access = channel_access
+        self.channel_access.assert_that_pv_exists(self.MANAGER_MODE_PV)
+
+    def __enter__(self):
+        self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 1)
+
+    def __exit__(self, *args):
+        self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 0)
+
+
 class _AssertLogContext(object):
     """A context manager used to implement assert_log_messages."""
     messages = list()
