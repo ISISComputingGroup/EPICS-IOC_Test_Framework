@@ -15,6 +15,7 @@ IN_COMP_INIT_POS = 1.0
 DET_INIT_POS = 5.0
 DET_INIT_POS_AUTOSAVE = 1.0
 INITIAL_VELOCITY = 0.5
+MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
@@ -50,8 +51,12 @@ IOCS = [
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "2",
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
+        },
+        "inits": {
+            "MTR0206.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
+            "MTR0206.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
         }
-    },
+        },
     {
         "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
@@ -401,3 +406,17 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
         self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
+
+    def test_GIVEN_non_synchronised_axis_WHEN_move_which_should_change_velocity_THEN_velocity_not_changed(self):
+        self.ca_galil.set_pv_value("MTR0206.VELO", MEDIUM_VELOCITY)
+
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+
+        # soon after movement starts and before movement stops the velocity should be the same
+        self.ca_galil.assert_that_pv_is("MTR0206.DMOV", 0, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0206.VELO", MEDIUM_VELOCITY, timeout=0.5)
+        self.ca_galil.assert_that_pv_is("MTR0206.DMOV", 0, timeout=10)
+
+        # when the movement finishes it should still be the same
+        self.ca_galil.assert_that_pv_is("MTR0206.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0206.VELO", MEDIUM_VELOCITY)
