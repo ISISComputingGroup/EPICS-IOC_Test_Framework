@@ -1,6 +1,7 @@
 import itertools
 import unittest
 
+import six
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
@@ -32,6 +33,9 @@ CHANNELS_WITH_STABILITY = ["HE3SORB", "HE4POT"]
 CHANNELS_WITH_HEATER_AUTO = ["HE3SORB", "HEHIGH", "HELOW"]
 
 
+SKIP_SLOW_TESTS = True
+
+
 class HelioxConciseTests(unittest.TestCase):
     """
     Tests for the heliox IOC.
@@ -39,6 +43,7 @@ class HelioxConciseTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=10)
+        self._lewis.backdoor_set_on_device("connected", True)
 
     def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -88,3 +93,29 @@ class HelioxConciseTests(unittest.TestCase):
     def test_WHEN_individual_channel_heater_percentage_is_set_THEN_readback_updates(self, _, chan, percent):
         self._lewis.backdoor_run_function_on_device("backdoor_set_channel_heater_percent", [chan, percent])
         self.ca.assert_that_pv_is_number("{}:HEATER:PERCENT".format(chan), percent, tolerance=0.005)
+
+    @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
+    def test_WHEN_device_disconnected_THEN_temperature_goes_into_alarm(self):
+        self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
+        self._lewis.backdoor_set_on_device("connected", False)
+        self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
+
+    @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
+    @unittest.skipIf(SKIP_SLOW_TESTS, "Slow test skipped")
+    def test_WHEN_device_disconnected_THEN_temperature_comms_error_stays_on_for_at_least_60s_afterwards(self):
+        """
+        Test is slow because the logic under test is checking whether any comms errors have occured in last 120 sec.
+        """
+        self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 0, timeout=150)
+        self._lewis.backdoor_set_on_device("connected", False)
+        self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
+        # Should immediately indicate that there was an error
+        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 3)
+        self._lewis.backdoor_set_on_device("connected", True)
+        self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 3)
+        # Should stay unchanged for 120s but only assert that it doesn't change for 60 secs.
+        self.ca.assert_that_pv_value_is_unchanged("_TEMPERATURE_COMMS_ERROR", wait=60)
+        # Make sure it does eventually clear (within a further 150s)
+        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 0, timeout=150)
