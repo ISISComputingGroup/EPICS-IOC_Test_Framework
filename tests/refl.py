@@ -4,6 +4,8 @@ import time
 from contextlib import contextmanager
 from math import tan, radians
 
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
@@ -89,6 +91,7 @@ class ReflTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("refl")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT")
+        self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS")
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("PARAM:S1:SP", 0)
         self.ca.set_pv_value("PARAM:S3:SP", 0)
@@ -292,7 +295,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
 
     def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
-        
+
         expected_mode_value = "TESTING"
         PARAM_PREFIX = "PARAM:"
         IN_MODE_SUFFIX = ":IN_MODE"
@@ -308,7 +311,7 @@ class ReflTests(unittest.TestCase):
 
         for param in test_in_mode_param_names:
             self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_in_mode_value)
-        
+
         for param in test_out_of_mode_params:
             self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_out_of_mode_value)
 
@@ -324,3 +327,45 @@ class ReflTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
         self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)
+
+    @parameterized.expand([("slits", "S1", 30.00), ("multi_component", "THETA", 20.00), ("angle", "DET_ANG", -80.0),
+                           ("displacement", "DET_POS", 20.0), ("binary", "S3_ENABLED", 0)])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_changing_THEN_parameter_changing_pv_correct(self, _, param, value):
+        expected_value = "YES"
+        value = value
+
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
+
+    @parameterized.expand([("slits", "S1", 500.00), ("multi_component", "THETA", -500.00), ("angle", "DET_ANG", -800.0),
+                           ("displacement", "DET_POS", 500.0), ("binary", "S3_ENABLED", 0)])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_not_changing_THEN_parameter_changing_pv_correct(self, _, param, value):
+        expected_value = "NO"
+        value = value
+
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
+
+    @parameterized.expand([("slits", "S1", 500.00), ("multi_component", "THETA", 500.00), ("angle", "DET_ANG", -800.0),
+                           ("displacement", "DET_POS", 500.0), ("binary", "S3_ENABLED", 0)])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_outside_of_sp_target_tolerance_THEN_parameter_at_rbv_pv_correct(self, _, param, value):
+        expected_value = "NO"
+        value = value
+
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+
+        self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
+
+    @parameterized.expand([("slits", "S1", 0.00), ("multi_component", "THETA", 0.00), ("angle", "DET_ANG", 0.0),
+                           ("displacement", "DET_POS", 0.0), ("binary", "S3_ENABLED", 1)])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_within_sp_target_tolerance_THEN_parameter_at_rbv_pv_correct(self, _, param, value):
+        expected_value = "YES"
+        value = value
+
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+
+        self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
