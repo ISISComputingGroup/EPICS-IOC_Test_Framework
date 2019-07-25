@@ -39,6 +39,9 @@ CHANNELS_WITH_STABILITY = ["HE3SORB", "HE4POT"]
 
 CHANNELS_WITH_HEATER_AUTO = ["HE3SORB", "HEHIGH", "HELOW"]
 
+# We only know some of these statuses - not an exhaustive set.
+HELIOX_STATUSES = ["Low Temp", "High Temp", "Regenerate", "Shutdown"]
+
 
 SKIP_SLOW_TESTS = True
 slow_test = unittest.skipIf(SKIP_SLOW_TESTS, "Slow test skipped")
@@ -151,6 +154,7 @@ class HelioxConciseTests(unittest.TestCase):
         self.ca.assert_that_pv_is("REGEN:TEMP_COARSE_CHECK", 0)
 
     @skip_if_recsim("Complex device behaviour (drifting) is not captured in recsim.")
+    @slow_test
     def test_GIVEN_helium_3_pot_is_empty_WHEN_drifting_THEN_drift_rate_correct(self):
         self.ca.assert_setting_setpoint_sets_readback(0.01, readback_pv="TEMP:SP:RBV", set_point_pv="TEMP:SP")
 
@@ -167,3 +171,15 @@ class HelioxConciseTests(unittest.TestCase):
 
         # Assert that if the temperature stops drifting the check goes false (after potentially some delay)
         self.ca.assert_that_pv_is("REGEN:TEMP_DRIFT_RATE", 0, timeout=(DRIFT_BUFFER_SIZE+10))
+
+    @parameterized.expand(parameterized_list(HELIOX_STATUSES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_heliox_status_set_via_backdoor_THEN_status_record_updates(self, _, status):
+        self._lewis.backdoor_set_on_device("status", status)
+        self.ca.assert_that_pv_is("STATUS", status)
+
+    @parameterized.expand(parameterized_list(HELIOX_STATUSES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_heliox_status_set_via_backdoor_THEN_regeneration_low_temp_status_record_updates(self, _, status):
+        self._lewis.backdoor_set_on_device("status", status)
+        self.ca.assert_that_pv_is("REGEN:LOW_TEMP_MODE", 1 if status == "Low Temp" else 0)
