@@ -111,10 +111,10 @@ class HelioxConciseTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("connected", False)
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
         # Should immediately indicate that there was an error
-        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 3)
+        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 1)
         self._lewis.backdoor_set_on_device("connected", True)
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 3)
+        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 1)
         # Should stay unchanged for 120s but only assert that it doesn't change for 60 secs.
         self.ca.assert_that_pv_value_is_unchanged("_TEMPERATURE_COMMS_ERROR", wait=60)
         # Make sure it does eventually clear (within a further 150s)
