@@ -1,7 +1,7 @@
 import itertools
 import unittest
+from contextlib import contextmanager
 
-import six
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
@@ -12,11 +12,16 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameteriz
 DEVICE_PREFIX = "HELIOX_01"
 EMULATOR_NAME = "heliox"
 
+HE3POT_COARSE_TIME = 20
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("HELIOX"),
         "emulator": EMULATOR_NAME,
+        "macros": {
+            "HE3POT_COARSE_TIME": HE3POT_COARSE_TIME,
+        }
     },
 ]
 
@@ -34,6 +39,7 @@ CHANNELS_WITH_HEATER_AUTO = ["HE3SORB", "HEHIGH", "HELOW"]
 
 
 SKIP_SLOW_TESTS = True
+slow_test = unittest.skipIf(SKIP_SLOW_TESTS, "Slow test skipped")
 
 
 class HelioxConciseTests(unittest.TestCase):
@@ -101,21 +107,43 @@ class HelioxConciseTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
 
     @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
-    @unittest.skipIf(SKIP_SLOW_TESTS, "Slow test skipped")
+    @slow_test
     def test_WHEN_device_disconnected_THEN_temperature_comms_error_stays_on_for_at_least_60s_afterwards(self):
         """
         Test is slow because the logic under test is checking whether any comms errors have occured in last 120 sec.
         """
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 0, timeout=150)
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 0, timeout=150)
         self._lewis.backdoor_set_on_device("connected", False)
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
         # Should immediately indicate that there was an error
-        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 1)
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 1)
         self._lewis.backdoor_set_on_device("connected", True)
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 1)
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 1)
         # Should stay unchanged for 120s but only assert that it doesn't change for 60 secs.
-        self.ca.assert_that_pv_value_is_unchanged("_TEMPERATURE_COMMS_ERROR", wait=60)
+        self.ca.assert_that_pv_value_is_unchanged("REGEN:NO_RECENT_COMMS_ERROR", wait=60)
         # Make sure it does eventually clear (within a further 150s)
-        self.ca.assert_that_pv_is("_TEMPERATURE_COMMS_ERROR", 0, timeout=150)
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 0, timeout=150)
+
+    @contextmanager
+    def _simulate_helium_3_pot_empty(self):
+        """
+        Simulates the helium 3 pot being empty. In this state, the he3 pot temperature will drift towards 1.5K
+        regardless of the current temperature setpoint.
+        """
+        self._lewis.backdoor_set_on_device("helium_3_pot_empty", True)
+        try:
+            yield
+        finally:
+            self._lewis.backdoor_set_on_device("helium_3_pot_empty", False)
+
+    @skip_if_recsim("Complex device behaviour (drifting) is not captured in recsim.")
+    def test_GIVEN_helium_3_pot_is_empty_WHEN_temperature_stays_above_setpoint_for_coarse_time_THEN_regeneration_logic_detects_this(self):
+        self.ca.assert_setting_setpoint_sets_readback(0.01, readback_pv="TEMP:SP:RBV", set_point_pv="TEMP:SP")
+        self.ca.assert_that_pv_is("REGEN:TEMP_COARSE_CHECK", 0, timeout=(HE3POT_COARSE_TIME+10))
+
+        with self._simulate_helium_3_pot_empty():  # Will cause temperature to drift to 1.5K
+            self.ca.assert_that_pv_is("REGEN:TEMP_COARSE_CHECK", 1, timeout=(HE3POT_COARSE_TIME+10))
+
+        self.ca.assert_that_pv_is("REGEN:TEMP_COARSE_CHECK", 0)
