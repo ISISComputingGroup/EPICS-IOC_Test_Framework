@@ -1,6 +1,6 @@
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from .heliox_concise import HelioxConciseTests as HelioxVerboseTests, HE3POT_COARSE_TIME
+from .heliox_concise import HelioxConciseTests as HelioxVerboseTests, HE3POT_COARSE_TIME, DRIFT_BUFFER_SIZE
 
 DEVICE_PREFIX = "HELIOX_01"
 EMULATOR_NAME = "heliox"
@@ -12,7 +12,8 @@ IOCS = [
         "emulator": EMULATOR_NAME,
         "macros": {
             "PROTO": "heliox_v.proto",  # Use verbose protocol for these tests.
-            "HE3POT_COARSE_TIME": HE3POT_COARSE_TIME,
+            "HE3POT_COARSE_TIME": str(HE3POT_COARSE_TIME),
+            "DRIFT_BUFFER_SIZE": str(DRIFT_BUFFER_SIZE),
         }
     },
 ]
