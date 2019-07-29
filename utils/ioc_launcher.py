@@ -39,22 +39,31 @@ def get_default_ioc_dir(iocname, iocnum=1):
     return os.path.join(EPICS_TOP, "ioc", "master", iocname, "iocBoot", "ioc{}-IOC-{:02d}".format(iocname, iocnum))
 
 
-def check_if_ioc_already_running(ca, device, test_pv="DISABLE"):
+class check_existence_pv:
     """
-    Checks to see if a IOC is already running by asserting that a pv does not exist.
+    Checks to see if a IOC has been started correctly by asserting that a pv does not exist on entry and does on exit
     Args:
         ca: channel access
         device: the device
-        test_pv: the name of the test pv
-
-    Returns:
-
+        test_pv: the name of the test pv, defaults to the DISABLE PV
     """
-    try:
-        print("Check that IOC is not running")
-        ca.assert_that_pv_does_not_exist(test_pv)
-    except AssertionError as ex:
-        raise AssertionError("IOC '{}' appears to already be running: {}".format(device, ex))
+    def __init__(self, ca, device, test_pv="DISABLE"):
+        self.ca = ca
+        self.device = device
+        self.test_pv = test_pv
+
+    def __enter__(self):
+        try:
+            print("Check that IOC is not running")
+            self.ca.assert_that_pv_does_not_exist(self.test_pv)
+        except AssertionError as ex:
+            raise AssertionError("IOC '{}' appears to already be running: {}".format(self.device, ex))
+
+    def __exit__(self, type, value, traceback):
+        try:
+            self.ca.assert_that_pv_exists(self.test_pv)
+        except AssertionError as ex:
+            raise AssertionError("IOC '{}' appears to not be running: {}".format(self.device, ex))
 
 
 class IOCRegister(object):
@@ -95,6 +104,29 @@ class BaseLauncher(object):
     Launcher base, this is the base class for a launcher of application under test.
     """
 
+    def __init__(self, ioc_config, var_dir):
+        """
+        Constructor which picks some generic things out of the config.
+        Args:
+            ioc_config: Dictionary containing
+                 name: String, Device name
+                 directory: String, the directory where st.cmd for the IOC is found
+                 custom_prefix: String, the prefix for the IOC PVs, default of IOC name
+                 started_text: String, the text printed when the IOC has started, default of `epics>`
+                 pv_for_existence: String, the PV to check for whether the IOC is running, default of DISABLE
+                 macros: Dict, the macros that should be passed to this IOC
+            var_dir: The directory into which the launcher will save log files.
+        """
+        self._device = ioc_config['name']
+        self._directory = ioc_config['directory']
+        self._prefix = ioc_config.get('custom_prefix', self._device)
+        self._ioc_started_text = ioc_config.get("started_text", "epics>")
+        self._pv_for_existence = ioc_config.get("pv_for_existence", "DISABLE")
+        self.macros = ioc_config.get("macros", {})
+        self.port = int(self.macros['EMULATOR_PORT'])
+        self._var_dir = var_dir
+        self.ca = None
+
     def open(self):
         """
         Starts the application under test.
@@ -107,15 +139,21 @@ class BaseLauncher(object):
         """
         pass
 
-    def _set_environment_vars(self):
-        pass
-
     def __enter__(self):
         self.open()
         return self
 
     def __exit__(self, *args, **kwargs):
         self.close()
+
+    def _get_channel_access(self):
+        """
+        :return (ChannelAccess): the channel access component
+        """
+        if self.ca is None:
+            self.ca = ChannelAccess(device_prefix=self._prefix)
+
+        return self.ca
 
 
 class ProcServLauncher(BaseLauncher):
@@ -138,30 +176,15 @@ class ProcServLauncher(BaseLauncher):
             test_mode: Ignored by non-emulator launchers
             var_dir: The directory into which the launcher will save log files.
         """
-
-        self._directory = ioc['directory']
-        self._device = ioc['name']
-        self._var_dir = var_dir
-        self.port = int(ioc['macros']['EMULATOR_PORT'])
-        self.logport = int(ioc['macros']['LOG_PORT'])
-        self._ioc_started_text = ioc.get("started_text", "epics>")
+        super(ProcServLauncher, self).__init__(ioc, var_dir)
+        self.logport = int(self.macros['LOG_PORT'])
 
         self.ioc_run_command = None
         self._process = None
         self.log_file_manager = None
-        self._ca = None
-        self.macros = None
+
         self.telnet = None
         self.autorestart = True
-
-    def _get_channel_access(self):
-        """
-        :return (ChannelAccess): the channel access component
-        """
-        if self._ca is None:
-            self._ca = ChannelAccess(device_prefix=self._device)
-
-        return self._ca
 
     def _set_environment_vars(self):
         settings = os.environ.copy()
@@ -213,39 +236,38 @@ class ProcServLauncher(BaseLauncher):
 
         ca = self._get_channel_access()
 
-        check_if_ioc_already_running(ca, self._device)
+        with check_existence_pv(ca, self._device, self._pv_for_existence):
+            comspec = os.getenv("ComSpec")
 
-        comspec = os.getenv("ComSpec")
+            cygwin_dir = self.to_cygwin_address(self._directory)
+            self.ioc_run_command = ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS), '--logstamp',
+                                    '--logfile="{}"'.format(self.to_cygwin_address(self._log_filename())),
+                                    '--timefmt="%Y-%m-%d %H:%M:%S"',
+                                    '--restrict', '--ignore="^D^C"', '--autorestart', '--wait',
+                                    '--name={}'.format(self._device.upper()),
+                                    '--pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
+                                    '--logport={:d}'.format(self.logport), '--chdir="{}"'.format(cygwin_dir),
+                                    '{:d}'.format(self.port), '{}'.format(comspec), '/c', 'runIOC.bat', 'st.cmd']
 
-        cygwin_dir = self.to_cygwin_address(self._directory)
-        self.ioc_run_command = ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS), '--logstamp',
-                                '--logfile="{}"'.format(self.to_cygwin_address(self._log_filename())),
-                                '--timefmt="%Y-%m-%d %H:%M:%S"',
-                                '--restrict', '--ignore="^D^C"', '--autorestart', '--wait',
-                                '--name={}'.format(self._device.upper()),
-                                '--pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
-                                '--logport={:d}'.format(self.logport), '--chdir="{}"'.format(cygwin_dir),
-                                '{:d}'.format(self.port), '{}'.format(comspec), '/c', 'runIOC.bat', 'st.cmd']
+            print("Starting IOC ({})".format(self._device))
 
-        print("Starting IOC ({})".format(self._device))
+            settings = self._set_environment_vars()
 
-        settings = self._set_environment_vars()
+            self.log_file_manager = LogFileManager(self._log_filename())
+            self.log_file_manager.log_file.write("Started IOC with '{0}'\n".format(" ".join(self.ioc_run_command)))
 
-        self.log_file_manager = LogFileManager(self._log_filename())
-        self.log_file_manager.log_file.write("Started IOC with '{0}'\n".format(" ".join(self.ioc_run_command)))
+            # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
+            # This does mean that the IOC will need to be closed manually after the tests.
+            # Make sure to revert before checking code in
 
-        # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
-        # This does mean that the IOC will need to be closed manually after the tests.
-        # Make sure to revert before checking code in
+            self._process = subprocess.Popen(' '.join(self.ioc_run_command), creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                             cwd=self._directory, stdout=self.log_file_manager.log_file,
+                                             stderr=subprocess.STDOUT, env=settings)
 
-        self._process = subprocess.Popen(' '.join(self.ioc_run_command), creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                         cwd=self._directory, stdout=self.log_file_manager.log_file,
-                                         stderr=subprocess.STDOUT, env=settings)
+            self.connect_to_procserv()
+            self.start_ioc()
 
-        self.connect_to_procserv()
-        self.start_ioc()
-
-        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+            self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
 
@@ -358,14 +380,7 @@ class IocLauncher(BaseLauncher):
         :param test_mode: TestModes.RECSIM or TestModes.DEVSIM depending on IOC test mode
         :param var_dir: The directory into which the launcher will save log files.
         """
-        self._device = ioc['name']
-        self._custom_prefix = ioc.get('custom_prefix', None)
-        self._directory = ioc['directory']
-        self.macros = ioc.get("macros", {})
-        self._var_dir = var_dir
-        self.port = self.macros['EMULATOR_PORT']
-        self._ioc_started_text = ioc.get("started_text", "epics>")
-        self._pv_for_existence = ioc.get("pv_for_existence", "DISABLE")
+        super(IocLauncher, self).__init__(ioc, var_dir)
         self._extra_environment_vars = ioc.get("environment_vars", {})
         self._init_values = ioc.get('inits', {})
 
@@ -375,7 +390,6 @@ class IocLauncher(BaseLauncher):
         self.use_rec_sim = test_mode == TestModes.RECSIM
 
         IOCRegister.uses_rec_sim = self.use_rec_sim
-        self._ca = None
         self._process = None
         self.log_file_manager = None
 
@@ -400,13 +414,6 @@ class IocLauncher(BaseLauncher):
             settings[env_name] = setting
         return settings
 
-    def __enter__(self):
-        self.open()
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        self.close()
-
     def _command_line(self):
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
@@ -425,38 +432,34 @@ class IocLauncher(BaseLauncher):
         ioc_run_commandline = self._command_line()
 
         ca = self._get_channel_access()
-        try:
-            print("Check that IOC is not running")
-            ca.assert_that_pv_does_not_exist(self._pv_for_existence)
-        except AssertionError as ex:
-            raise AssertionError("IOC '{}' appears to already be running: {}".format(self._device, ex))
 
-        print("Starting IOC ({})".format(self._device))
+        with check_existence_pv(ca, self._device, self._pv_for_existence):
+            print("Starting IOC ({})".format(self._device))
 
-        settings = self._set_environment_vars()
+            settings = self._set_environment_vars()
 
-        # create macros
-        full_dir = os.path.join(self._var_dir, "tmp")
-        if not os.path.exists(full_dir):
-            os.makedirs(full_dir)
-        with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
-            for macro, value in self.macros.items():
-                f.write('epicsEnvSet("{macro}", "{value}")\n'
-                        .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
+            # create macros
+            full_dir = os.path.join(self._var_dir, "tmp")
+            if not os.path.exists(full_dir):
+                os.makedirs(full_dir)
+            with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
+                for macro, value in self.macros.items():
+                    f.write('epicsEnvSet("{macro}", "{value}")\n'
+                            .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
 
-        self.log_file_manager = LogFileManager(self._log_filename())
-        self.log_file_manager.log_file.write("Started IOC with '{0}'".format(" ".join(ioc_run_commandline)))
+            self.log_file_manager = LogFileManager(self._log_filename())
+            self.log_file_manager.log_file.write("Started IOC with '{0}'".format(" ".join(ioc_run_commandline)))
 
-        # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
-        # This does mean that the IOC will need to be closed manually after the tests.
-        # Make sure to revert before checking code in
-        self._process = subprocess.Popen(ioc_run_commandline, creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                         cwd=self._directory, stdin=subprocess.PIPE,
-                                         stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT, env=settings)
+            # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
+            # This does mean that the IOC will need to be closed manually after the tests.
+            # Make sure to revert before checking code in
+            self._process = subprocess.Popen(ioc_run_commandline, creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                             cwd=self._directory, stdin=subprocess.PIPE,
+                                             stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT, env=settings)
 
-        # Write a return so that an epics terminal will appear after boot
-        self._process.stdin.write("\n")
-        self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+            # Write a return so that an epics terminal will appear after boot
+            self._process.stdin.write("\n")
+            self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
         IOCRegister.add_ioc(self._device, self)
         for key, value in self._init_values.items():
@@ -512,20 +515,8 @@ class IocLauncher(BaseLauncher):
         :param value: value to set
         :return:
         """
-
         if self.use_rec_sim:
-            ca = self._get_channel_access()
-            ca.set_pv_value(pv_name, value)
-
-    def _get_channel_access(self):
-        """
-        :return (ChannelAccess): the channel access component
-        """
-        if self._ca is None:
-            prefix = self._custom_prefix or self._device
-            self._ca = ChannelAccess(device_prefix=prefix)
-
-        return self._ca
+            self._get_channel_access().set_pv_value(pv_name, value)
 
 
 class PythonIOCLauncher(IocLauncher):
