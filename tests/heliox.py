@@ -23,6 +23,10 @@ IOCS = [
         "macros": {
             "HE3POT_COARSE_TIME": str(HE3POT_COARSE_TIME),
             "DRIFT_BUFFER_SIZE": str(DRIFT_BUFFER_SIZE),
+            "HE3SORB_NAME": "He3Sorb",
+            "HE4POT_NAME": "He4Pot",
+            "HEHIGH_NAME": "HeHigh",
+            "HELOW_NAME": "HeLow",
         }
     },
 ]
@@ -43,11 +47,11 @@ CHANNELS_WITH_HEATER_AUTO = ["HE3SORB", "HEHIGH", "HELOW"]
 HELIOX_STATUSES = ["Low Temp", "High Temp", "Regenerate", "Shutdown"]
 
 
-SKIP_SLOW_TESTS = True
+SKIP_SLOW_TESTS = False
 slow_test = unittest.skipIf(SKIP_SLOW_TESTS, "Slow test skipped")
 
 
-class HelioxConciseTests(unittest.TestCase):
+class HelioxTests(unittest.TestCase):
     """
     Tests for the heliox IOC.
     """
@@ -118,18 +122,20 @@ class HelioxConciseTests(unittest.TestCase):
         Test is slow because the logic under test is checking whether any comms errors have occured in last 120 sec.
         """
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 0, timeout=150)
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 1, timeout=150)
         self._lewis.backdoor_set_on_device("connected", False)
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
         # Should immediately indicate that there was an error
-        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 1)
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 0)
         self._lewis.backdoor_set_on_device("connected", True)
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 1)
+
         # Should stay unchanged for 120s but only assert that it doesn't change for 60 secs.
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 0)
         self.ca.assert_that_pv_value_is_unchanged("REGEN:NO_RECENT_COMMS_ERROR", wait=60)
+
         # Make sure it does eventually clear (within a further 150s)
-        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 0, timeout=150)
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 1, timeout=150)
 
     @contextmanager
     def _simulate_helium_3_pot_empty(self):
