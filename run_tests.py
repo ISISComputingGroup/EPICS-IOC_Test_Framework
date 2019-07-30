@@ -25,7 +25,7 @@ def clean_environment():
     Cleans up the test environment between tests.
     """
     autosave_directory = os.path.join(var_dir, "autosave")
-    files = glob.glob('{}/*/*'.format(autosave_directory))
+    files = glob.glob('{}/*SIM/*'.format(autosave_directory))
     for autosave_file in files:
         try:
             os.remove(autosave_file)
