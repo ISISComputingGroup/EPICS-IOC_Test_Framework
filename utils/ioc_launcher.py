@@ -39,7 +39,7 @@ def get_default_ioc_dir(iocname, iocnum=1):
     return os.path.join(EPICS_TOP, "ioc", "master", iocname, "iocBoot", "ioc{}-IOC-{:02d}".format(iocname, iocnum))
 
 
-class check_existence_pv:
+class check_existence_pv(object):
     """
     Checks to see if a IOC has been started correctly by asserting that a pv does not exist on entry and does on exit
     Args:
