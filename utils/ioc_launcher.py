@@ -63,7 +63,7 @@ class check_existence_pv:
         try:
             self.ca.assert_that_pv_exists(self.test_pv)
         except AssertionError as ex:
-            raise AssertionError("IOC '{}' appears to not be running: {}".format(self.device, ex))
+            print("Warning, {} still does not exist after IOC start".format(self.test_pv))
 
 
 class IOCRegister(object):
