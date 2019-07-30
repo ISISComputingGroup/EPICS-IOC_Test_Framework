@@ -108,7 +108,8 @@ def load_and_run_tests(test_names, failfast):
     modes = set()
 
     for module in modules_to_be_tested:
-        module.tests = [test for test in test_names if test.startswith(module.name)]
+        # Add tests that are either the module or a subset of the module i.e. module.TestClass
+        module.tests = [test for test in test_names if test == module.name or test.startswith(module.name + ".")]
         modes.update(module.modes)
 
     test_results = []
