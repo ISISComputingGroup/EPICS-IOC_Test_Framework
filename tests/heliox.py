@@ -189,3 +189,23 @@ class HelioxTests(unittest.TestCase):
     def test_GIVEN_heliox_status_set_via_backdoor_THEN_regeneration_low_temp_status_record_updates(self, _, status):
         self._lewis.backdoor_set_on_device("status", status)
         self.ca.assert_that_pv_is("REGEN:LOW_TEMP_MODE", 1 if status == "Low Temp" else 0)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    @slow_test
+    def test_WHEN_all_regeneration_conditions_are_met_THEN_regeneration_required_pv_is_true(self):
+        self._lewis.backdoor_run_function_on_device("backdoor_set_channel_heater_auto", ["HE3SORB", True])
+        self.ca.assert_that_pv_is("HE3SORB:HEATER:AUTO", "On")
+
+        self._lewis.backdoor_run_function_on_device("backdoor_set_channel_heater_percent", ["HE3SORB", 0.0])
+        self.ca.assert_that_pv_is("HE3SORB:HEATER:PERCENT", 0.0)
+
+        self._lewis.backdoor_set_on_device("status", "Low Temp")
+        self.ca.assert_that_pv_is("STATUS", "Low Temp")
+
+        self.ca.assert_that_pv_is("REGEN:NO_RECENT_COMMS_ERROR", 1, timeout=150)
+
+        self._lewis.backdoor_set_on_device("drift_towards", 9999999999)
+        self._lewis.backdoor_set_on_device("drift_rate", 1.0 / 100)  # Emulator runs at 100x speed in framework
+
+        with self._simulate_helium_3_pot_empty():
+            self.ca.assert_that_pv_is("REGEN:REQUIRED", "Yes", timeout=(DRIFT_BUFFER_SIZE+10))
