@@ -2,7 +2,6 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 import six
 import abc
-from time import sleep
 
 UNDERLYING_GAP_SP = "MOT:JAWS{}:{}GAP:SP"
 UNDERLYING_CENT_SP = "MOT:JAWS{}:{}CENT:SP"
@@ -16,11 +15,11 @@ class JawsManagerBase(object):
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
-        ChannelAccess().assert_that_pv_exists("MOT:MTR0101", timeout=30)
-        for jaw in range(1, self.get_num_of_jaws() + 1):
-            ChannelAccess().assert_that_pv_exists(UNDERLYING_GAP_SP.format(jaw, "V"), timeout=30)
-            ChannelAccess().assert_that_pv_exists(UNDERLYING_GAP_SP.format(jaw, "H"), timeout=30)
         self.ca = ChannelAccess()
+        self.ca.assert_that_pv_exists("MOT:MTR0101", timeout=30)
+        for jaw in range(1, self.get_num_of_jaws() + 1):
+            self.ca.assert_that_pv_exists(UNDERLYING_GAP_SP.format(jaw, "V"), timeout=30)
+            self.ca.assert_that_pv_exists(UNDERLYING_GAP_SP.format(jaw, "H"), timeout=30)
         self.ca.assert_that_pv_exists(self.get_sample_pv() + ":{}GAP:SP".format("V"), timeout=30)
 
     def get_sample_pv(self):
