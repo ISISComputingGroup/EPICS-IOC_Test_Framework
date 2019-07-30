@@ -8,6 +8,7 @@ import sys
 import traceback
 import unittest
 import xmlrunner
+import glob
 
 from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
@@ -17,6 +18,19 @@ from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
+
+
+def clean_environment():
+    """
+    Cleans up the test environment between tests.
+    """
+    autosave_directory = os.path.join(var_dir, "autosave")
+    files = glob.glob('{}/*/*'.format(autosave_directory))
+    for autosave_file in files:
+        try:
+            os.remove(autosave_file)
+        except Exception as e:
+            print("Failed to delete {}: {}".format(autosave_file, e))
 
 
 def make_device_launchers_from_module(test_module, mode):
@@ -103,6 +117,7 @@ def load_and_run_tests(test_names, failfast):
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
+            clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
             test_results.append(
                 run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers), failfast))
