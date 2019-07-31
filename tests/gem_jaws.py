@@ -10,6 +10,8 @@ IOCS = [
     {
         "name": "LINMOT_01",
         "directory": get_default_ioc_dir("LINMOT"),
+        "custom_prefix": "MOT",
+        "pv_for_existence": "MTR0101",
         "macros": {
             "AXIS1": "yes",
             "AXIS2": "yes",
