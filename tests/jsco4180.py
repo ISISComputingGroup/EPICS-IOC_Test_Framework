@@ -23,7 +23,6 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
-
 class Jsco4180Tests(unittest.TestCase):
     """
     Tests for the Jsco4180 IOC.
@@ -39,7 +38,7 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME", 0)
         self.ca.set_pv_value("TIME:CALC:SP", "Time")
         self.ca.set_pv_value("TIME:RUN:SP", 60)
-        self.ca.set_pv_value("TIME:MODE", "STOPPED")
+        self.ca.set_pv_value("STATUS", "Off")
         self.ca.set_pv_value("FLOWRATE:SP", 0.010)
         self.ca.set_pv_value("FLOWRATE", 0.000)
         self.ca.set_pv_value("PRESSURE", 0)
@@ -71,20 +70,38 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("COMP:A", expected_value)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
-    def test_GIVEN_device_in_single_channel_mode_WHEN_running_THEN_pump_stops_and_errors(self):
-        self._lewis.backdoor_set_on_device("single_channel_mode", True)
-        expected_status = "STOPPED"
-        expected_error = "Single Channel"
-        self.ca.set_pv_value("COMP:A:SP", 50)
-        self.ca.set_pv_value("COMP:C:SP", 50)
+    def test_GIVEN_wrong_component_on_device_WHEN_running_continuous_THEN_retry_run_and_updates_component_in_correct_mode(self):
+        value = 50
+        expected_value = "Pumping"
+        self.ca.set_pv_value("COMP:A:SP", value)
+        self.ca.set_pv_value("COMP:B:SP", value)
 
         self.ca.set_pv_value("START:SP", 1)
 
-        # Give the state machine some time to attempt 4 restarts
-        sleep(30)
+        # Setting an incorrect component on the device will result in the state machine attempting
+        # to rerun the pump and reset components.
+        self._lewis.backdoor_set_on_device("component_A", 33)
 
-        self.ca.assert_that_pv_is("STATUS", expected_status)
-        self.ca.assert_that_pv_is("ERROR:COMP", expected_error)
+        sleep(5)
+
+        self.ca.assert_that_pv_is("STATUS", expected_value)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_wrong_component_on_device_WHEN_running_timed_THEN_retry_run_and_updates_component_in_correct_mode(self):
+        value = 50
+        expected_value = "Pumping"
+        self.ca.set_pv_value("COMP:A:SP", value)
+        self.ca.set_pv_value("COMP:B:SP", value)
+        self.ca.set_pv_value("TIME:RUN:SP", 100)
+        self.ca.set_pv_value("PUMP_FOR_TIME:SP", 1)
+
+        # Setting an incorrect component on the device will result in the state machine attempting
+        # to rerun the pump and reset components.
+        self._lewis.backdoor_set_on_device("component_A", 33)
+
+        sleep(5)
+
+        self.ca.assert_that_pv_is("STATUS", expected_value)
 
     @skip_if_recsim("Flowrate device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_flowrate_THEN_flowrate_setpoint_is_correct(self):
@@ -113,14 +130,14 @@ class Jsco4180Tests(unittest.TestCase):
     def test_GIVEN_an_ioc_WHEN_continuous_pump_set_THEN_pump_on(self):
         self.ca.set_pv_value("START:SP", 1)
 
-        self.ca.assert_that_pv_is("TIME:MODE", "CONTINUOUS")
+        self.ca.assert_that_pv_is("STATUS", "Pumping")
 
     def test_GIVEN_an_ioc_WHEN_timed_pump_set_THEN_timed_pump_on(self):
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
-        self.ca.set_pv_value("TIMED:SP", 1)
+        self.ca.set_pv_value("PUMP_FOR_TIME:SP", 1)
 
-        self.ca.assert_that_pv_is("TIME:MODE", "TIMED")
+        self.ca.assert_that_pv_is("STATUS", "Pumping")
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_an_ioc_WHEN_get_current_pressure_THEN_current_pressure_returned(self):
@@ -146,9 +163,16 @@ class Jsco4180Tests(unittest.TestCase):
     def test_GIVEN_an_ioc_WHEN_set_component_THEN_correct_component_set(self, component, suffix):
         expected_value = 100.0
         self.ca.set_pv_value("COMP:{}:SP".format(suffix), expected_value)
-        # Call the hidden function rather than the normal full sequence (START:SP) as we are testing this
-        # specific set composition record
-        self.ca.set_pv_value("COMP:SP", "Set")
+        if component == "COMP:A":
+            self.ca.set_pv_value("COMP:B:SP", 0)
+            self.ca.set_pv_value("COMP:C:SP", 0)
+        elif component == "COMP:B":
+            self.ca.set_pv_value("COMP:A:SP", 0)
+            self.ca.set_pv_value("COMP:C:SP", 0)
+        elif component == "COMP:C":
+            self.ca.set_pv_value("COMP:A:SP", 0)
+            self.ca.set_pv_value("COMP:B:SP", 0)
+        self.ca.set_pv_value("PUMP_FOR_TIME:SP", "Start")
 
         self.ca.assert_that_pv_is(component, expected_value)
 
@@ -182,36 +206,36 @@ class Jsco4180Tests(unittest.TestCase):
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('ERROR:SP', ChannelAccess.Alarms.INVALID, timeout=2)
+        self.ca.assert_that_pv_alarm_is('ERROR:SP', ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("Reliant on setUP lewis backdoor call")
     def test_GIVEN_timed_pump_WHEN_get_program_runtime_THEN_program_runtime_increments(self):
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
-        self.ca.set_pv_value("TIMED:SP", 1)
+        self.ca.set_pv_value("PUMP_FOR_TIME:SP", 1)
 
         self.ca.assert_that_pv_value_is_increasing("TIME", wait=2)
 
     def test_GIVEN_timed_pump_WHEN_set_constant_pump_THEN_state_updated_to_constant_pump(self):
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
-        self.ca.set_pv_value("TIMED:SP.PROC", 1)
-        expected_value = "TIMED"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
+        self.ca.set_pv_value("PUMP_FOR_TIME:SP.PROC", 1)
+        expected_value = "Pumping"
+        self.ca.assert_that_pv_is("STATUS", expected_value)
 
         self.ca.set_pv_value("START:SP", 1)
-        expected_value = "CONTINUOUS"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
+        expected_value = "Pumping"
+        self.ca.assert_that_pv_is("STATUS", expected_value)
 
     def test_GIVEN_constant_pump_WHEN_set_timed_pump_THEN_state_updated_to_timed_pump(self):
         self.ca.set_pv_value("START:SP", 1)
-        expected_value = "CONTINUOUS"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
+        expected_value = "Pumping"
+        self.ca.assert_that_pv_is("STATUS", expected_value)
 
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
-        self.ca.set_pv_value("TIMED:SP", 1)
-        expected_value = "TIMED"
-        self.ca.assert_that_pv_is("TIME:MODE", expected_value)
+        self.ca.set_pv_value("PUMP_FOR_TIME:SP", 1)
+        expected_value = "Pumping"
+        self.ca.assert_that_pv_is("STATUS", expected_value)
 
     def test_GIVEN_calc_mode_is_time_WHEN_setting_time_THEN_time_and_volume_are_correctly_set(self):
         expected_time = 600
@@ -259,3 +283,18 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("FLOWRATE:SP", 0.010)
 
         self.ca.assert_that_pv_is("ERROR:STR", "[Error:stack underflow]")
+
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
+    def test_GIVEN_command_seq_that_would_crash_pump_WHEN_command_seq_called_THEN_pump_crashes(self):
+        self.ca.set_pv_value("_TEST_CRASH.PROC", 1)
+
+        self.ca.assert_that_pv_alarm_is("COMP:A", ChannelAccess.Alarms.INVALID)
+
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
+    def test_GIVEN_pump_running_WHEN_set_file_number_command_called_THEN_program_is_busy_error(self):
+        expected_value = "[Program is Busy]"
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.set_pv_value("FILE:SP", 0)
+
+        self.ca.assert_that_pv_is("ERROR:STR", expected_value)
+
