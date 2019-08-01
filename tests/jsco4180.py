@@ -65,7 +65,7 @@ class Jsco4180Tests(unittest.TestCase):
         # to rerun the pump and reset components.
         self._lewis.backdoor_set_on_device("component_A", 33)
 
-        sleep(5)
+        sleep(20)
 
         self.ca.assert_that_pv_is("COMP:A", expected_value)
 
