@@ -127,11 +127,13 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PRESSURE:MIN", expected_value)
 
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_continuous_pump_set_THEN_pump_on(self):
         self.ca.set_pv_value("START:SP", 1)
 
         self.ca.assert_that_pv_is("STATUS", "Pumping")
 
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_timed_pump_set_THEN_timed_pump_on(self):
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
@@ -215,6 +217,7 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_value_is_increasing("TIME", wait=2)
 
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_timed_pump_WHEN_set_constant_pump_THEN_state_updated_to_constant_pump(self):
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
@@ -226,6 +229,7 @@ class Jsco4180Tests(unittest.TestCase):
         expected_value = "Pumping"
         self.ca.assert_that_pv_is("STATUS", expected_value)
 
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_constant_pump_WHEN_set_timed_pump_THEN_state_updated_to_timed_pump(self):
         self.ca.set_pv_value("START:SP", 1)
         expected_value = "Pumping"
