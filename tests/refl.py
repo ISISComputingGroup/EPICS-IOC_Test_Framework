@@ -26,7 +26,7 @@ IOCS = [
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
-        "pv_for_existence": "MOT:MTR0101",
+        "pv_for_existence": "MTR0101",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
@@ -45,7 +45,7 @@ IOCS = [
         "name": GALIL_PREFIX_JAWS,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL", iocnum=2),
-        "pv_for_existence": "MOT:MTR0201",
+        "pv_for_existence": "MTR0201",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "2",
