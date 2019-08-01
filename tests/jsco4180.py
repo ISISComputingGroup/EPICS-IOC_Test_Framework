@@ -23,6 +23,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
+
 class Jsco4180Tests(unittest.TestCase):
     """
     Tests for the Jsco4180 IOC.
@@ -55,19 +56,27 @@ class Jsco4180Tests(unittest.TestCase):
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_running_THEN_retry_run_and_updates_component(self):
-        expected_value = 50
-        self.ca.set_pv_value("COMP:A:SP", expected_value)
-        self.ca.set_pv_value("COMP:B:SP", expected_value)
+        expected_value_A = 30
+        expected_value_B = 15
+        expected_value_C = 55
+
+        self.ca.set_pv_value("COMP:A:SP", expected_value_A)
+        self.ca.set_pv_value("COMP:B:SP", expected_value_B)
+        self.ca.set_pv_value("COMP:C:SP", expected_value_C)
 
         self.ca.set_pv_value("START:SP", 1)
 
         # Setting an incorrect component on the device will result in the state machine attempting
         # to rerun the pump and reset components.
-        self._lewis.backdoor_set_on_device("component_A", 33)
+        self._lewis.backdoor_set_on_device("component_A", 25)
+        self._lewis.backdoor_set_on_device("component_B", 10)
+        self._lewis.backdoor_set_on_device("component_C", 14)
 
         sleep(20)
 
-        self.ca.assert_that_pv_is("COMP:A", expected_value)
+        self.ca.assert_that_pv_is("COMP:A", expected_value_A)
+        self.ca.assert_that_pv_is("COMP:B", expected_value_B)
+        self.ca.assert_that_pv_is("COMP:C", expected_value_C)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_running_continuous_THEN_retry_run_and_updates_component_in_correct_mode(self):
