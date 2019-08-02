@@ -72,7 +72,7 @@ class Jsco4180Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("component_B", 10)
         self._lewis.backdoor_set_on_device("component_C", 14)
 
-        sleep(20)
+        sleep(30)
 
         self.ca.assert_that_pv_is("COMP:A", expected_value_A)
         self.ca.assert_that_pv_is("COMP:B", expected_value_B)
@@ -119,7 +119,9 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_value)
 
-        self.ca.set_pv_value("START:SP", 1)
+        self.ca.set_pv_value("TIME:RUN:SP", 100)
+        self.ca.set_pv_value("START:SP", "Start")
+
         self.ca.assert_that_pv_is("FLOWRATE", expected_value)
 
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
@@ -300,6 +302,8 @@ class Jsco4180Tests(unittest.TestCase):
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_command_seq_that_would_crash_pump_WHEN_command_seq_called_THEN_pump_crashes(self):
         self.ca.set_pv_value("_TEST_CRASH.PROC", 1)
+
+        sleep(10)
 
         self.ca.assert_that_pv_alarm_is("COMP:A", ChannelAccess.Alarms.INVALID)
 
