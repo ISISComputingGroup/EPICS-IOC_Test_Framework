@@ -159,20 +159,22 @@ class HelioxTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("REGEN:TEMP_COARSE_CHECK", 0)
 
+
+    @parameterized.expand(parameterized_list([0.3, 1.0, 1.234, 5.67, 12.34]))
     @skip_if_recsim("Complex device behaviour (drifting) is not captured in recsim.")
     @slow_test
-    def test_GIVEN_helium_3_pot_is_empty_WHEN_drifting_THEN_drift_rate_correct(self):
+    def test_GIVEN_helium_3_pot_is_empty_WHEN_drifting_THEN_drift_rate_correct(self, _, value):
         self.ca.assert_setting_setpoint_sets_readback(0.01, readback_pv="TEMP:SP:RBV", set_point_pv="TEMP:SP")
 
         self._lewis.backdoor_set_on_device("drift_towards", 9999999999)
-        self._lewis.backdoor_set_on_device("drift_rate", 1.0/100)  # Emulator runs at 100x speed in framework
+        self._lewis.backdoor_set_on_device("drift_rate", value/100)  # Emulator runs at 100x speed in framework
 
         with self._simulate_helium_3_pot_empty():  # Will cause temperature to drift upwards continuously
             self.ca.assert_that_pv_is_number(
-                "REGEN:_CALCULATE_TEMP_DRIFT.VALB", 1, timeout=(DRIFT_BUFFER_SIZE+10), tolerance=0.05)
+                "REGEN:_CALCULATE_TEMP_DRIFT.VALB", value, timeout=(DRIFT_BUFFER_SIZE+10), tolerance=0.05)
             self.ca.assert_that_pv_value_over_time_satisfies_comparator(
                 "REGEN:_CALCULATE_TEMP_DRIFT.VALB", wait=DRIFT_BUFFER_SIZE,
-                comparator=lambda initial, final: abs(initial - final) < 0.05 and abs(1-final) < 0.05)
+                comparator=lambda initial, final: abs(initial - final) < 0.05 and abs(value-final) < 0.05)
             self.ca.assert_that_pv_is("REGEN:TEMP_DRIFT_RATE", 1)
 
         # Assert that if the temperature stops drifting the check goes false (after potentially some delay)
