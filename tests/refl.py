@@ -2,7 +2,7 @@ import os
 import unittest
 import time
 from contextlib import contextmanager
-from math import tan, radians
+from math import tan, radians, cos
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
@@ -78,6 +78,9 @@ SPACING = 2
 
 # This is the position if s3 is out of the beam relative to straight through beam
 OUT_POSITION = -5
+
+# Rough tolerance of the motors
+MOTOR_TOLERANCE = 0.001
 
 
 class ReflTests(unittest.TestCase):
@@ -401,3 +404,18 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
         self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
+
+    def test_GIVEN_engineering_correction_WHEN_move_THEN_move_includes_engineering_correction(self):
+        theta = 2
+        self.ca.set_pv_value("PARAM:THETA:SP", theta)
+        self.ca.set_pv_value("PARAM:S4:SP", 0)
+
+        self.ca.assert_that_pv_is("COR:MOT:MTR0206.DESC",
+                                  "Interpolated from file s4_correction.dat on MOT:MTR0206 for s4")
+        self.ca.assert_that_pv_is("COR:MOT:MTR0206", theta)  # s4 correction is a linear with theta
+
+        # soon after movement starts and before movement stops the velocity should be the same
+        distance_from_sample_to_s4 = (3.5 - 2.0) * 2
+        self.ca_galil.assert_that_pv_is_number("MTR0206.RBV", distance_from_sample_to_s4 * tan(radians(theta*2)) + theta, tolerance=MOTOR_TOLERANCE, timeout=30)
+        self.ca.assert_that_pv_is_number("PARAM:S4", 0, tolerance=MOTOR_TOLERANCE, timeout=10)
+
