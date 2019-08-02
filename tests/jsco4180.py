@@ -21,7 +21,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class Jsco4180Tests(unittest.TestCase):
@@ -66,6 +66,7 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("START:SP", 1)
 
+        sleep(10)
         # Setting an incorrect component on the device will result in the state machine attempting
         # to rerun the pump and reset components.
         self._lewis.backdoor_set_on_device("component_A", 25)
@@ -87,11 +88,12 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("START:SP", 1)
 
+        sleep(10)
         # Setting an incorrect component on the device will result in the state machine attempting
         # to rerun the pump and reset components.
         self._lewis.backdoor_set_on_device("component_A", 33)
 
-        sleep(5)
+        sleep(30)
 
         self.ca.assert_that_pv_is("STATUS", expected_value)
 
@@ -104,11 +106,12 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:RUN:SP", 100)
         self.ca.set_pv_value("PUMP_FOR_TIME:SP", 1)
 
+        sleep(10)
         # Setting an incorrect component on the device will result in the state machine attempting
         # to rerun the pump and reset components.
         self._lewis.backdoor_set_on_device("component_A", 33)
 
-        sleep(5)
+        sleep(30)
 
         self.ca.assert_that_pv_is("STATUS", expected_value)
 
@@ -219,6 +222,7 @@ class Jsco4180Tests(unittest.TestCase):
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
+
         self.ca.assert_that_pv_alarm_is('ERROR:SP', ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("Reliant on setUP lewis backdoor call")
@@ -303,7 +307,7 @@ class Jsco4180Tests(unittest.TestCase):
     def test_GIVEN_command_seq_that_would_crash_pump_WHEN_command_seq_called_THEN_pump_crashes(self):
         self.ca.set_pv_value("_TEST_CRASH.PROC", 1)
 
-        sleep(10)
+        sleep(30)
 
         self.ca.assert_that_pv_alarm_is("COMP:A", ChannelAccess.Alarms.INVALID)
 
