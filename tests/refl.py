@@ -412,10 +412,10 @@ class ReflTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("COR:MOT:MTR0206.DESC",
                                   "Interpolated from file s4_correction.dat on MOT:MTR0206 for s4")
-        self.ca.assert_that_pv_is("COR:MOT:MTR0206", theta)  # s4 correction is a linear with theta
+        self.ca.assert_that_pv_is("COR:MOT:MTR0206", theta/10.0)  # s4 correction is a 1/10 of theta
 
         # soon after movement starts and before movement stops the velocity should be the same
         distance_from_sample_to_s4 = (3.5 - 2.0) * 2
-        self.ca_galil.assert_that_pv_is_number("MTR0206.RBV", distance_from_sample_to_s4 * tan(radians(theta*2)) + theta, tolerance=MOTOR_TOLERANCE, timeout=30)
+        expected_position = distance_from_sample_to_s4 * tan(radians(theta * 2)) + theta / 10.0
+        self.ca_galil.assert_that_pv_is_number("MTR0206.RBV", expected_position, tolerance=MOTOR_TOLERANCE, timeout=30)
         self.ca.assert_that_pv_is_number("PARAM:S4", 0, tolerance=MOTOR_TOLERANCE, timeout=10)
-
