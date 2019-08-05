@@ -1,0 +1,3 @@
+[submodule "ibex_utils"]
+	path = ibex_utils
+	url = https://github.com/ISISComputingGroup/ibex_utils
