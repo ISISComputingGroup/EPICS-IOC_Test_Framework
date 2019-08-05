@@ -14,8 +14,7 @@ OUT_COMP_INIT_POS = -2.0
 IN_COMP_INIT_POS = 1.0
 DET_INIT_POS = 5.0
 DET_INIT_POS_AUTOSAVE = 1.0
-INITIAL_VELOCITY = 0.5
-FAST_VELOCITY = 100
+FAST_VELOCITY = 10
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
@@ -32,12 +31,12 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
-            "MTR0102.VMAX": INITIAL_VELOCITY,
-            "MTR0103.VMAX": INITIAL_VELOCITY,
-            "MTR0104.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
-            "MTR0105.VAL": OUT_COMP_INIT_POS,
-            "MTR0106.VAL": IN_COMP_INIT_POS,
-            "MTR0107.VAL": DET_INIT_POS
+            "MTR0101.VMAX": FAST_VELOCITY,
+            "MTR0102.VMAX": FAST_VELOCITY,
+            "MTR0103.VMAX": FAST_VELOCITY,
+            "MTR0101.VAL": OUT_COMP_INIT_POS,
+            "MTR0102.VAL": IN_COMP_INIT_POS,
+            "MTR0103.VAL": DET_INIT_POS
         }
     },
     {
@@ -78,11 +77,6 @@ class ReflTests(unittest.TestCase):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT")
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
-
-    def set_up_velocity_tests(self, velocity):
-        self.ca_galil.set_pv_value("MTR0102.VELO", velocity)
-        self.ca_galil.set_pv_value("MTR0103.VELO", velocity)
-        self.ca_galil.set_pv_value("MTR0104.VELO", FAST_VELOCITY)  # Remove angle as a speed limiting factor
 
     def _check_param_pvs(self, param_name, expected_value):
         self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
