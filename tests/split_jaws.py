@@ -64,35 +64,15 @@ class SplitJawsTests(unittest.TestCase):
             self.ca.set_pv_value("{}.VMAX".format(axis), 100)
             self.ca.set_pv_value("{}.VELO".format(axis), 100)
 
-    def test_GIVEN_ioc_started_THEN_north_underlying_mtr_fields_can_be_read(self):
-        expected = self.ca.get_pv_value("{}.VELO".format(UNDERLYING_MTR_NORTH))
-        north_pv = "{}:JN".format(JAWS_BASE_PV)
+    @parameterized.expand([(UNDERLYING_MTR_NORTH, "JN"),
+                           (UNDERLYING_MTR_SOUTH, "JS"),
+                           (UNDERLYING_MTR_WEST, "JW"),
+                           (UNDERLYING_MTR_EAST, "JE")])
+    def test_GIVEN_ioc_started_THEN_underlying_mtr_fields_can_be_read(self, underlying_mtr, direction_key):
+        expected = self.ca.get_pv_value("{}.VELO".format(underlying_mtr))
+        jaw_blade_pv = "{}:{}".format(JAWS_BASE_PV, direction_key)
 
-        actual = self.ca.get_pv_value("{}:MTR.VELO".format(north_pv))
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_ioc_started_THEN_south_underlying_mtr_fields_can_be_read(self):
-        expected = self.ca.get_pv_value("{}.VELO".format(UNDERLYING_MTR_SOUTH))
-        south_pv = "{}:JS".format(JAWS_BASE_PV)
-
-        actual = self.ca.get_pv_value("{}:MTR.VELO".format(south_pv))
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_ioc_started_THEN_east_underlying_mtr_fields_can_be_read(self):
-        expected = self.ca.get_pv_value("{}.VELO".format(UNDERLYING_MTR_EAST))
-        east_pv = "{}:JE".format(JAWS_BASE_PV)
-
-        actual = self.ca.get_pv_value("{}:MTR.VELO".format(east_pv))
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_ioc_started_THEN_west_underlying_mtr_fields_can_be_read(self):
-        expected = self.ca.get_pv_value("{}.VELO".format(UNDERLYING_MTR_WEST))
-        west_pv = "{}:JW".format(JAWS_BASE_PV)
-
-        actual = self.ca.get_pv_value("{}:MTR.VELO".format(west_pv))
+        actual = self.ca.get_pv_value("{}:MTR.VELO".format(jaw_blade_pv))
 
         self.assertEqual(expected, actual)
 
