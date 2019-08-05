@@ -40,9 +40,9 @@ class _MonitorAssertion:
             pv: name of pv to monitor
         """
         self.pv = pv
-        self._full_pv_name = channel_access._create_pv_with_prefix(pv)
+        self._full_pv_name = channel_access.create_pv_with_prefix(pv)
         self._value = None
-        CaChannelWrapper.add_monitor(channel_access._create_pv_with_prefix(pv), self._set_val)
+        CaChannelWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
 
     def _set_val(self, value, alarm_severity, alarm_status):
         self._value = value
@@ -111,7 +111,7 @@ class ChannelAccess(object):
         # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
-        self.ca.set_pv_value(self._create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
+        self.ca.set_pv_value(self.create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
         # Give lewis time to process
         time.sleep(sleep_after_set)
 
@@ -124,7 +124,7 @@ class ChannelAccess(object):
         Returns:
             the current value
         """
-        return self.ca.get_pv_value(self._create_pv_with_prefix(pv))
+        return self.ca.get_pv_value(self.create_pv_with_prefix(pv))
 
     def process_pv(self, pv):
         """
@@ -133,7 +133,7 @@ class ChannelAccess(object):
         Args:
             pv: the EPICS PV name
         """
-        pv_proc = "{}.PROC".format(self._create_pv_with_prefix(pv))
+        pv_proc = "{}.PROC".format(self.create_pv_with_prefix(pv))
         return self.ca.set_pv_value(pv_proc, 1)
 
     @contextmanager
@@ -158,7 +158,7 @@ class ChannelAccess(object):
         finally:
             _set_and_check_simulated_alarm(pv, self.Alarms.NONE)
 
-    def _create_pv_with_prefix(self, pv):
+    def create_pv_with_prefix(self, pv):
         """
         Create the full pv name with instrument prefix.
 
@@ -229,7 +229,7 @@ class ChannelAccess(object):
 
         if message is None:
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
-                .format(func.__name__, self._create_pv_with_prefix(pv))
+                .format(func.__name__, self.create_pv_with_prefix(pv))
 
         err = self._wait_for_pv_lambda(partial(_wrapper, message), timeout)
 
@@ -252,7 +252,7 @@ class ChannelAccess(object):
         """
 
         if msg is None:
-            msg = "Expected PV, '{}' to have value {}.".format(self._create_pv_with_prefix(pv),
+            msg = "Expected PV, '{}' to have value {}.".format(self.create_pv_with_prefix(pv),
                                                                format_value(expected_value))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
@@ -328,7 +328,7 @@ class ChannelAccess(object):
             UnableToConnectToPVException: if pv does not exist within timeout
         """
         message = "Expected PV '{}' value to be equal to {} (tolerance: {})"\
-            .format(self._create_pv_with_prefix(pv), format_value(expected), format_value(tolerance))
+            .format(self.create_pv_with_prefix(pv), format_value(expected), format_value(tolerance))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: self._within_tolerance_condition(val, expected, tolerance), timeout, message=message,
@@ -405,8 +405,8 @@ class ChannelAccess(object):
         if timeout is None:
             timeout = self._default_timeout
 
-        if not self.ca.pv_exists(self._create_pv_with_prefix(pv), timeout=timeout):
-            raise AssertionError("PV {pv} does not exist".format(pv=self._create_pv_with_prefix(pv)))
+        if not self.ca.pv_exists(self.create_pv_with_prefix(pv), timeout=timeout):
+            raise AssertionError("PV {pv} does not exist".format(pv=self.create_pv_with_prefix(pv)))
 
     def assert_that_pv_does_not_exist(self, pv, timeout=2):
         """
@@ -419,9 +419,9 @@ class ChannelAccess(object):
              AssertionError: if pv exists
         """
 
-        pv_name = self._create_pv_with_prefix(pv)
+        pv_name = self.create_pv_with_prefix(pv)
         if self.ca.pv_exists(pv_name, timeout):
-            raise AssertionError("PV {pv} exists".format(pv=self._create_pv_with_prefix(pv)))
+            raise AssertionError("PV {pv} exists".format(pv=self.create_pv_with_prefix(pv)))
 
     def assert_that_pv_alarm_is_not(self, pv, alarm, timeout=None):
         """
