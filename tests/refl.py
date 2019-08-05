@@ -124,8 +124,8 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_read_back_MTR_and_setpoints_moves_to_given_value(self):
         expected_value = 3.0
 
-        self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
-        self.ca.assert_that_pv_is("PARAM:S1:SP_NO_MOVE", expected_value)
+        self.ca.set_pv_value("PARAM:S1:SP_NO_ACTION", expected_value)
+        self.ca.assert_that_pv_is("PARAM:S1:SP_NO_ACTION", expected_value)
         self.ca.set_pv_value("BL:MOVE", 1)
 
         self.ca.assert_that_pv_is("PARAM:S1:SP:RBV", expected_value)
@@ -136,7 +136,7 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_monitors_updated(self):
         expected_value = 3.0
 
-        self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
+        self.ca.set_pv_value("PARAM:S1:SP_NO_ACTION", expected_value)
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca.assert_that_pv_monitor_is("PARAM:S1", expected_value)
 
@@ -179,7 +179,7 @@ class ReflTests(unittest.TestCase):
         expected_value = "OUT"
 
         with self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value):
-            self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_MOVE", expected_value)
+            self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_ACTION", expected_value)
             self.ca.set_pv_value("BL:MOVE", 1)
 
         self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION)
@@ -328,7 +328,7 @@ class ReflTests(unittest.TestCase):
 
     def test_GIVEN_param_not_in_mode_and_sp_changed_WHEN_performing_beamline_move_THEN_sp_is_applied(self):
         expected = 1.0
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_MOVE", expected)
+        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_ACTION", expected)
 
         self.ca.set_pv_value("BL:MOVE", 1, wait=True)
 
@@ -338,9 +338,9 @@ class ReflTests(unittest.TestCase):
 
     def test_GIVEN_param_not_in_mode_and_sp_changed_WHEN_performing_individual_move_THEN_sp_is_applied(self):
         expected = 1.0
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_MOVE", expected)
+        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_ACTION", expected)
 
-        self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
+        self.ca.set_pv_value("PARAM:NOTINMODE:ACTION", 1, wait=True)
 
         self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", expected)
@@ -381,7 +381,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
-        self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
+        self.ca.set_pv_value("PARAM:NOTINMODE:ACTION", 1, wait=True)
 
         self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
