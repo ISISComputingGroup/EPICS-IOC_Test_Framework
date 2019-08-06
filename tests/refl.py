@@ -369,3 +369,9 @@ class ReflTests(unittest.TestCase):
         self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
 
         self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
+
+    def test_GIVEN_a_low_level_beamline_change_WHEN_values_changed_THEN_high_level_parameters_updated(self):
+        self.ca_galil.set_pv_value("MTR0102", -400)
+
+        self.ca.assert_that_pv_value_is_changing("PARAM:S3", wait=2)
+        self.ca.assert_that_pv_is("PARAM:S3:RBV:AT_SP", "NO")
