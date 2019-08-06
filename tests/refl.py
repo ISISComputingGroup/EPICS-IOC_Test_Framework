@@ -211,7 +211,7 @@ class ReflTests(unittest.TestCase):
         expected = INITIAL_VELOCITY
         self.set_up_velocity_tests(expected)
 
-        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+        self.ca.set_pv_value("PARAM:THETA:SP", 5)
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
