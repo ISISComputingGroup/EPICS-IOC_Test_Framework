@@ -25,7 +25,8 @@ all_motors = [MOTOR_N, MOTOR_S,
 TEST_POSITIONS = [-5, 0, 10, 10e-1]
 
 # Tests will fail if JAWS support module is not up to date and built
-test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings"))
+test_path = os.path.realpath(
+    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_vertical_only"))
 
 IOCS = [
     {
