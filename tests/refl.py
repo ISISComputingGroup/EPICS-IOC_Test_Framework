@@ -349,7 +349,7 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
 
     @parameterized.expand([("slits", "S1", 500.00), ("multi_component", "THETA", 500.00), ("angle", "DET_ANG", -800.0),
-                           ("displacement", "DET_POS", 500.0), ("binary", "S3_ENABLED", 0)])
+                           ("displacement", "DET_POS", 500.0), ("binary", "S3_ENABLED", "OUT")])
     def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_outside_of_sp_target_tolerance_THEN_parameter_at_rbv_pv_correct(self, _, param, value):
         expected_value = "NO"
         value = value
