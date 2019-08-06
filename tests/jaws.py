@@ -52,9 +52,12 @@ class JawsTests(unittest.TestCase):
     def setUp(self):
         self._ioc = IOCRegister.get_running("jaws")
         self.ca = ChannelAccess(default_timeout=30)
-        for axis in self.UNDERLYING_MTRS:
-            self.ca.set_pv_value("{}.VMAX".format(axis), 100)
-            self.ca.set_pv_value("{}.VELO".format(axis), 100)
+        for mtr in self.UNDERLYING_MTRS:
+            self.ca.set_pv_value("{}.VMAX".format(mtr), 100)
+            self.ca.set_pv_value("{}.VELO".format(mtr), 100)
+
+        self.ca.set_pv_value("{}:ABLE:SP".format(JAWS_BASE_PV), 0)
+        self.ca.set_pv_value("{}:LOCK:SP".format(JAWS_BASE_PV), 0)
 
     def test_GIVEN_ioc_started_THEN_underlying_mtr_north_fields_can_be_read(self):
         underlying_mtr = self.MTR_NORTH
@@ -130,3 +133,47 @@ class JawsTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is(e_pv, 0.5)
         self.ca.assert_that_pv_is(w_pv, -0.5)
+
+
+    @parameterized.expand([("lock", "Unlocked"),
+                           ("able", "Enable")])
+    def test_GIVEN_all_jaws_have_state_set_THEN_overall_state_is_set(self, key, expected):
+        enabled_val = 0
+        for mtr in self.UNDERLYING_MTRS:
+            mtr_status_pv = "{}_{}".format(mtr, key)
+            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), enabled_val)
+
+        jaws_status_readback_pv = "{}:{}".format(JAWS_BASE_PV, key.upper())
+        actual = self.ca.get_pv_value(jaws_status_readback_pv)
+
+        self.assertEqual(expected, actual)
+
+    @parameterized.expand([("lock", "Locked"),
+                           ("able", "Disable")])
+    def test_GIVEN_no_jaws_have_state_set_THEN_overall_state_is_not_set(self, key, expected):
+        disabled_val = 1
+        for mtr in self.UNDERLYING_MTRS:
+            mtr_status_pv = "{}_{}".format(mtr, key)
+            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), disabled_val)
+
+        jaws_status_readback_pv = "{}:{}".format(JAWS_BASE_PV, key.upper())
+        actual = self.ca.get_pv_value(jaws_status_readback_pv)
+
+        self.assertEqual(expected, actual)
+
+    @parameterized.expand([("lock", "Unknown"),
+                           ("able", "Unknown")])
+    def test_GIVEN_some_jaws_have_state_set_THEN_overall_state_is_unknown(self, key, expected):
+        disabled_val = 0
+        enabled_val = 1
+        for mtr in self.UNDERLYING_MTRS[:2]:
+            mtr_status_pv = "{}_{}".format(mtr, key)
+            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), enabled_val)
+        for mtr in self.UNDERLYING_MTRS[2:]:
+            mtr_status_pv = "{}_{}".format(mtr, key)
+            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), disabled_val)
+
+        jaws_status_readback_pv = "{}:{}".format(JAWS_BASE_PV, key.upper())
+        actual = self.ca.get_pv_value(jaws_status_readback_pv)
+
+        self.assertEqual(expected, actual)
