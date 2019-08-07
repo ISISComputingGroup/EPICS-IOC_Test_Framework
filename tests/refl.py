@@ -28,7 +28,7 @@ IOCS = [
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
-        "pv_for_existence": "MOT:MTR0101",
+        "pv_for_existence": "MTR0101",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
@@ -47,7 +47,7 @@ IOCS = [
         "name": GALIL_PREFIX_JAWS,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL", iocnum=2),
-        "pv_for_existence": "MOT:MTR0201",
+        "pv_for_existence": "MTR0201",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "2",
@@ -209,44 +209,11 @@ class ReflTests(unittest.TestCase):
 
             self.ca.set_pv_value("PARAM:S1:SP", pos_below_res)
 
-    def test_WHEN_ioc_started_up_THEN_rbvs_are_initialised_to_motor_values(self):
-        self.ca.assert_that_pv_is("PARAM:IN_POS", IN_COMP_INIT_POS)
-        self.ca.assert_that_pv_is("PARAM:OUT_POS", OUT_COMP_INIT_POS)
-
-    def test_GIVEN_theta_init_to_non_zero_and_det_pos_not_autosaved_WHEN_initialising_det_pos_THEN_det_pos_sp_is_initialised_to_rbv_minus_offset_from_theta(self):
-        expected_value = DET_INIT_POS - SPACING  # angle between theta component and detector is 45 deg
-
-        self.ca.assert_that_pv_is_number("PARAM:INIT:SP:RBV", expected_value)
-
-    def test_GIVEN_theta_is_non_zero_and_param_is_autosaved_WHEN_initialising_detector_height_param_THEN_param_sp_is_initialised_to_autosave_value(self):
-        expected_value = DET_INIT_POS_AUTOSAVE
-
-        self.ca.assert_that_pv_is_number("PARAM:INIT_AUTO:SP:RBV", expected_value)
-
-    def test_GIVEN_component_out_of_beam_WHEN_starting_up_ioc_THEN_inbeam_sp_false_and_pos_sp_zero(self):
-        expected_inbeam = "OUT"
-        expected_pos = 0.0
-
-        self.ca.assert_that_pv_is("PARAM:IS_OUT:SP:RBV", expected_inbeam)
-        self.ca.assert_that_pv_is("PARAM:OUT_POS:SP:RBV", expected_pos)
-
-    def test_GIVEN_component_in_beam_WHEN_starting_up_ioc_THEN_inbeam_sp_true_and_pos_sp_accurate(self):
-        expected_inbeam = "IN"
-        expected_pos = IN_COMP_INIT_POS
-
-        self.ca.assert_that_pv_is("PARAM:IS_IN:SP:RBV", expected_inbeam)
-        self.ca.assert_that_pv_is("PARAM:IN_POS:SP:RBV", expected_pos)
-
-    def test_GIVEN_motor_values_set_WHEN_starting_refl_ioc_THEN_parameter_rbvs_are_initialised_correctly(self):
-        expected = IN_COMP_INIT_POS
-
-        self.ca.assert_that_pv_is("PARAM:IN_POS", expected)
-
     def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_completed_THEN_velocity_reverted_to_original_value(self):
         expected = INITIAL_VELOCITY
         self.set_up_velocity_tests(expected)
 
-        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+        self.ca.set_pv_value("PARAM:THETA:SP", 5)
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)

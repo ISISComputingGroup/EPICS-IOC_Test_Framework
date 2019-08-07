@@ -18,7 +18,8 @@ test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
 IOCS = [{
             "name": "GALIL_0{}".format(i),
             "directory": get_default_ioc_dir("GALIL", i),
-            "pv_for_existence": "AXIS1",
+            "custom_prefix": "MOT",
+            "pv_for_existence": "MTR0{}01".format(i),
             "macros": {
                 "GALILADDR": GALIL_ADDR,
                 "MTRCTRL": "0{}".format(i),
