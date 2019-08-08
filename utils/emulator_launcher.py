@@ -487,6 +487,12 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         except KeyError:
             raise KeyError("To use a command line emulator launcher, the 'emulator_command_line' option must be "
                            "provided as part of the options dictionary")
+
+        try:
+            self.wait = options["emulator_wait_to_finish"]
+        except KeyError:
+            self.wait = False
+
         self._process = None
         self._log_file = None
 
@@ -496,6 +502,8 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._log_file,
                                          stderr=subprocess.STDOUT)
+        if self.wait:
+            self._process.wait()
 
     def _close(self):
         if self._process is not None:
