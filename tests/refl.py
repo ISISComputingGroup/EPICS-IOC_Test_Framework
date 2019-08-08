@@ -4,6 +4,8 @@ import time
 from contextlib import contextmanager
 from math import tan, radians
 
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
@@ -89,6 +91,7 @@ class ReflTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("refl")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT")
+        self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS")
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("PARAM:S1:SP", 0)
         self.ca.set_pv_value("PARAM:S3:SP", 0)
@@ -96,7 +99,6 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
         self.ca.set_pv_value("PARAM:S3_ENABLED:SP", "IN")
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP", 0)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
@@ -293,78 +295,50 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
         self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)
 
-    def test_GIVEN_param_not_in_mode_and_sp_changed_WHEN_performing_beamline_move_THEN_sp_is_applied(self):
-        expected = 1.0
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_MOVE", expected)
+    @parameterized.expand([("slits", "S1", 30.00), ("multi_component", "THETA", 20.00), ("angle", "DET_ANG", -80.0),
+                           ("displacement", "DET_POS", 20.0), ("binary", "S3_ENABLED", 0)])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_changing_THEN_parameter_changing_pv_correct(self, _, param, value):
+        expected_value = "YES"
+        value = value
 
-        self.ca.set_pv_value("BL:MOVE", 1, wait=True)
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
 
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", expected)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", expected)
+    @parameterized.expand([("slits", "S1", 500.00), ("multi_component", "THETA", -500.00), ("angle", "DET_ANG", -800.0),
+                           ("displacement", "DET_POS", 500.0), ("binary", "S3_ENABLED", 0)])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_not_changing_THEN_parameter_changing_pv_correct(self, _, param, value):
+        expected_value = "NO"
+        value = value
 
-    def test_GIVEN_param_not_in_mode_and_sp_changed_WHEN_performing_individual_move_THEN_sp_is_applied(self):
-        expected = 1.0
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_MOVE", expected)
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
 
-        self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
 
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", expected)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", expected)
+    @parameterized.expand([("slits", "S1", 500.00), ("multi_component", "THETA", 500.00), ("angle", "DET_ANG", -800.0),
+                           ("displacement", "DET_POS", 500.0), ("binary", "S3_ENABLED", "OUT")])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_outside_of_sp_target_tolerance_THEN_parameter_at_rbv_pv_correct(self, _, param, value):
+        expected_value = "NO"
+        value = value
 
-    def test_GIVEN_param_not_in_mode_and_sp_changed_WHEN_performing_individual_move_on_other_param_THEN_no_value_applied(self):
-        param_sp = 0.0
-        motor_pos = 1.0
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP", param_sp)
-        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
 
-        self.ca.set_pv_value("PARAM:THETA:SP", 0.2, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
-        self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
+        self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
 
-    def test_GIVEN_param_not_in_mode_and_sp_unchanged_WHEN_performing_beamline_move_THEN_no_value_applied(self):
-        param_sp = 0.0
-        motor_pos = 1.0
-        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
+    @parameterized.expand([("slits", "S1", 0.00), ("multi_component", "THETA", 0.00), ("angle", "DET_ANG", 0.0),
+                           ("displacement", "DET_POS", 0.0), ("binary", "S3_ENABLED", 1)])
+    def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_within_sp_target_tolerance_THEN_parameter_at_rbv_pv_correct(self, _, param, value):
+        expected_value = "YES"
+        value = value
 
-        self.ca.set_pv_value("BL:MOVE", 1, wait=True)
+        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
 
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
-        self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
+        self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
 
-    def test_GIVEN_param_not_in_mode_and_sp_unchanged_WHEN_performing_individual_move_THEN_sp_is_applied(self):
-        param_sp = 0.0
-        motor_pos = 1.0
-        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
+    def test_GIVEN_a_low_level_beamline_change_WHEN_values_changed_THEN_high_level_parameters_updated(self):
+        self.ca_galil.set_pv_value("MTR0102", -400)
 
-        self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
-
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", param_sp)
-
-    def test_GIVEN_param_not_in_mode_and_sp_unchanged_WHEN_performing_individual_move_on_other_param_THEN_no_value_applied(self):
-        param_sp = 0.0
-        motor_pos = 1.0
-        self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
-
-        self.ca.set_pv_value("PARAM:THETA:SP", 0.2, wait=True)
-
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)
-        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", param_sp)
-        self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
+        self.ca.assert_that_pv_value_is_changing("PARAM:S3", wait=2)
+        self.ca.assert_that_pv_is("PARAM:S3:RBV:AT_SP", "NO")

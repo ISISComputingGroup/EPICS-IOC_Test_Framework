@@ -513,6 +513,9 @@ class ChannelAccess(object):
     assert_that_pv_value_is_unchanged = \
         partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.eq)
 
+    assert_that_pv_value_is_changing = \
+        partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.ne)
+
     @contextmanager
     def assert_that_pv_monitor_is(self, pv, expected_value):
         """
