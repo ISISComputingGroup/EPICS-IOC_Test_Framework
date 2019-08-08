@@ -374,3 +374,23 @@ Optional attributes:
 ### Adding an Emulator Type
 
 To add an additional emulator type you should create a class in `emulator_launcher.py` that inherits from `EmulatorLauncher`.
+
+### Manager Mode
+
+The utils testing module has a decorator for turning manager mode on and can be used like:
+```python
+    from utils.testing import ManagerMode
+    def test_something(self):
+        with ManagerMode(self.ca):
+            # Now in manager mode
+            self.ca.set_pv_value(LOCKED_PV, value)
+        # Now not in manager mode
+```
+
+To run this you will need the `INSTETC` IOC running and so the following must be added to your list of IOCs:
+```python
+    {
+        "name": "INSTETC",
+        "directory": get_default_ioc_dir("INSTETC")
+    }
+```
