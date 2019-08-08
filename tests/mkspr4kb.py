@@ -154,6 +154,6 @@ class MKS_PR4000B_Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     @skip_if_recsim("Complex behaviour not properly emulated (values push from protocol).")
-    def test_WHEN_range_is_set_THEN_readbacks_updates(self, chan, val):
+    def test_WHEN_range_is_set_THEN_readbacks_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val, readback_pv="{}:RANGE".format(chan), set_point_pv="{}:RANGE:SP".format(chan))
