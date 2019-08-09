@@ -125,180 +125,180 @@ class ReflTests(unittest.TestCase):
              self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01):
             yield
 
-    # def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
-    #     self.ca.assert_that_pv_is("BL:STAT", "OKAY")
-    #
-    # def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_read_back_MTR_and_setpoints_moves_to_given_value(self):
-    #     expected_value = 3.0
-    #
-    #     self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
-    #     self.ca.assert_that_pv_is("PARAM:S1:SP_NO_MOVE", expected_value)
-    #     self.ca.set_pv_value("BL:MOVE", 1)
-    #
-    #     self.ca.assert_that_pv_is("PARAM:S1:SP:RBV", expected_value)
-    #     self.ca_galil.assert_that_pv_is("MTR0101", expected_value)
-    #     self.ca_galil.assert_that_pv_is("MTR0101.RBV", expected_value)
-    #     self.ca.assert_that_pv_is("PARAM:S1", expected_value)
-    #
-    # def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_monitors_updated(self):
-    #     expected_value = 3.0
-    #
-    #     self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
-    #     self.ca.set_pv_value("BL:MOVE", 1)
-    #     self.ca.assert_that_pv_monitor_is("PARAM:S1", expected_value)
-    #
-    # def test_GIVEN_theta_with_detector_and_slits3_WHEN_set_theta_THEN_values_are_all_correct_rbvs_updated_via_monitors_and_are_available_via_gets(self):
-    #     theta_angle = 2
-    #     self.ca.set_pv_value("PARAM:THETA:SP", theta_angle)
-    #
-    #     expected_s3_value = SPACING * tan(radians(theta_angle * 2.0))
-    #
-    #     with self._assert_pv_monitors("S1", 0.0), \
-    #          self._assert_pv_monitors("S3", 0.0), \
-    #          self._assert_pv_monitors("THETA", theta_angle), \
-    #          self._assert_pv_monitors("DET_POS", 0.0), \
-    #          self._assert_pv_monitors("DET_ANG", 0.0):
-    #
-    #         self.ca.set_pv_value("BL:MOVE", 1)
-    #
-    #     # s1 not moved
-    #     self._check_param_pvs("S1", 0.0)
-    #     self.ca_galil.assert_that_pv_is_number("MTR0101", 0.0, 0.01)
-    #
-    #     # s3 moved in line
-    #     self._check_param_pvs("S3", 0.0)
-    #     self.ca_galil.assert_that_pv_is_number("MTR0102", expected_s3_value, 0.01)
-    #
-    #     # theta set
-    #     self._check_param_pvs("THETA", theta_angle)
-    #
-    #     # detector moved in line
-    #     self._check_param_pvs("DET_POS", 0.0)
-    #     expected_det_value = 2 * SPACING * tan(radians(theta_angle * 2.0))
-    #     self.ca_galil.assert_that_pv_is_number("MTR0103", expected_det_value, 0.01)
-    #
-    #     # detector angle faces beam
-    #     self._check_param_pvs("DET_ANG", 0.0)
-    #     expected_det_angle = 2.0 * theta_angle
-    #     self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_angle, 0.01)
-    #
-    # def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
-    #     expected_value = "OUT"
-    #
-    #     with self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value):
-    #         self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_MOVE", expected_value)
-    #         self.ca.set_pv_value("BL:MOVE", 1)
-    #
-    #     self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION)
-    #
-    # def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode(self):
-    #     expected_value = "POLARISED"
-    #
-    #     with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_value), \
-    #          self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
-    #             self.ca.set_pv_value("BL:MODE:SP", expected_value)
-    #
-    # def test_GIVEN_new_parameter_setpoint_WHEN_triggering_move_THEN_SP_is_only_set_on_motor_when_difference_above_motor_resolution(self):
-    #     target_mres = 0.001
-    #     pos_above_res = 0.01
-    #     pos_below_res = pos_above_res + 0.0001
-    #     self.ca_galil.set_pv_value("MTR0101.MRES", target_mres)
-    #
-    #     with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
-    #          self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
-    #
-    #         self.ca.set_pv_value("PARAM:S1:SP", pos_above_res)
-    #
-    #     with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
-    #          self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
-    #
-    #         self.ca.set_pv_value("PARAM:S1:SP", pos_below_res)
-    #
-    # def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_completed_THEN_velocity_reverted_to_original_value(self):
-    #     expected = INITIAL_VELOCITY
-    #     self.set_up_velocity_tests(expected)
-    #
-    #     self.ca.set_pv_value("PARAM:THETA:SP", 5)
-    #
-    #     self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
-    #     self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
-    #     self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
-    #     self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
-    #
-    # def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_interrupted_THEN_velocity_reverted_to_original_value(self):
-    #     expected = INITIAL_VELOCITY
-    #     final_position = SPACING
-    #     self.set_up_velocity_tests(expected)
-    #
-    #     # move and wait for completion
-    #     self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
-    #     self.ca_galil.set_pv_value("MTR0102.STOP", 1)
-    #     self.ca_galil.set_pv_value("MTR0103.STOP", 1)
-    #     self.ca_galil.set_pv_value("MTR0104.STOP", 1)
-    #
-    #     self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=2)
-    #     self.ca_galil.assert_that_pv_is_not_number("MTR0102.RBV", final_position, tolerance=0.1)
-    #     self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
-    #     self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=2)
-    #     self.ca_galil.assert_that_pv_is_not_number("MTR0103.RBV", 2 * final_position, tolerance=0.1)
-    #     self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
-    #
-    # def test_GIVEN_move_was_issued_while_different_move_already_in_progress_WHEN_move_completed_THEN_velocity_reverted_to_value_before_first_move(self):
-    #     expected = INITIAL_VELOCITY
-    #     self.set_up_velocity_tests(expected)
-    #     self.ca_galil.set_pv_value("MTR0102", -4)
-    #
-    #     self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
-    #     self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
-    #
-    #     self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=15)
-    #     self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
-    #
-    # def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_motor_retains_new_value_after_move_completed(self):
-    #     initial = INITIAL_VELOCITY
-    #     expected = INITIAL_VELOCITY / 2.0
-    #     self.set_up_velocity_tests(initial)
-    #
-    #     self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
-    #     self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
-    #     self.ca_galil.set_pv_value("MTR0102.VELO", expected)
-    #
-    #     self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
-    #     self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
-    #
-    # def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
-    #
-    #     expected_mode_value = "TESTING"
-    #     PARAM_PREFIX = "PARAM:"
-    #     IN_MODE_SUFFIX = ":IN_MODE"
-    #     expected_in_mode_value = "YES"
-    #     expected_out_of_mode_value = "NO"
-    #
-    #     with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_mode_value), \
-    #          self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_mode_value):
-    #             self.ca.set_pv_value("BL:MODE:SP", expected_mode_value)
-    #
-    #     test_in_mode_param_names = ["S1", "S3", "THETA", "DET_POS", "S3_ENABLED"]
-    #     test_out_of_mode_params = ["DET_ANG", "THETA_AUTO"]
-    #
-    #     for param in test_in_mode_param_names:
-    #         self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_in_mode_value)
-    #
-    #     for param in test_out_of_mode_params:
-    #         self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_out_of_mode_value)
-    #
-    # def test_GIVEN_jaws_set_to_value_WHEN_change_sp_at_low_level_THEN_jaws_sp_rbv_does_not_change(self):
-    #
-    #     expected_gap_in_refl = 0.2
-    #     expected_change_to_gap = 1.0
-    #
-    #     time.sleep(5)
-    #     self.ca.assert_setting_setpoint_sets_readback(readback_pv="PARAM:S1HG", value=expected_gap_in_refl, expected_alarm=None)
-    #
-    #     self.ca_galil.assert_setting_setpoint_sets_readback(readback_pv="JAWS1:HGAP", value=expected_change_to_gap)
-    #
-    #     self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
-    #     self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)
+    def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
+        self.ca.assert_that_pv_is("BL:STAT", "OKAY")
+
+    def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_read_back_MTR_and_setpoints_moves_to_given_value(self):
+        expected_value = 3.0
+
+        self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
+        self.ca.assert_that_pv_is("PARAM:S1:SP_NO_MOVE", expected_value)
+        self.ca.set_pv_value("BL:MOVE", 1)
+
+        self.ca.assert_that_pv_is("PARAM:S1:SP:RBV", expected_value)
+        self.ca_galil.assert_that_pv_is("MTR0101", expected_value)
+        self.ca_galil.assert_that_pv_is("MTR0101.RBV", expected_value)
+        self.ca.assert_that_pv_is("PARAM:S1", expected_value)
+
+    def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_monitors_updated(self):
+        expected_value = 3.0
+
+        self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
+        self.ca.set_pv_value("BL:MOVE", 1)
+        self.ca.assert_that_pv_monitor_is("PARAM:S1", expected_value)
+
+    def test_GIVEN_theta_with_detector_and_slits3_WHEN_set_theta_THEN_values_are_all_correct_rbvs_updated_via_monitors_and_are_available_via_gets(self):
+        theta_angle = 2
+        self.ca.set_pv_value("PARAM:THETA:SP", theta_angle)
+
+        expected_s3_value = SPACING * tan(radians(theta_angle * 2.0))
+
+        with self._assert_pv_monitors("S1", 0.0), \
+             self._assert_pv_monitors("S3", 0.0), \
+             self._assert_pv_monitors("THETA", theta_angle), \
+             self._assert_pv_monitors("DET_POS", 0.0), \
+             self._assert_pv_monitors("DET_ANG", 0.0):
+
+            self.ca.set_pv_value("BL:MOVE", 1)
+
+        # s1 not moved
+        self._check_param_pvs("S1", 0.0)
+        self.ca_galil.assert_that_pv_is_number("MTR0101", 0.0, 0.01)
+
+        # s3 moved in line
+        self._check_param_pvs("S3", 0.0)
+        self.ca_galil.assert_that_pv_is_number("MTR0102", expected_s3_value, 0.01)
+
+        # theta set
+        self._check_param_pvs("THETA", theta_angle)
+
+        # detector moved in line
+        self._check_param_pvs("DET_POS", 0.0)
+        expected_det_value = 2 * SPACING * tan(radians(theta_angle * 2.0))
+        self.ca_galil.assert_that_pv_is_number("MTR0103", expected_det_value, 0.01)
+
+        # detector angle faces beam
+        self._check_param_pvs("DET_ANG", 0.0)
+        expected_det_angle = 2.0 * theta_angle
+        self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_angle, 0.01)
+
+    def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
+        expected_value = "OUT"
+
+        with self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value):
+            self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_MOVE", expected_value)
+            self.ca.set_pv_value("BL:MOVE", 1)
+
+        self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION)
+
+    def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode(self):
+        expected_value = "POLARISED"
+
+        with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_value), \
+             self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
+                self.ca.set_pv_value("BL:MODE:SP", expected_value)
+
+    def test_GIVEN_new_parameter_setpoint_WHEN_triggering_move_THEN_SP_is_only_set_on_motor_when_difference_above_motor_resolution(self):
+        target_mres = 0.001
+        pos_above_res = 0.01
+        pos_below_res = pos_above_res + 0.0001
+        self.ca_galil.set_pv_value("MTR0101.MRES", target_mres)
+
+        with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
+             self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+
+            self.ca.set_pv_value("PARAM:S1:SP", pos_above_res)
+
+        with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
+             self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+
+            self.ca.set_pv_value("PARAM:S1:SP", pos_below_res)
+
+    def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_completed_THEN_velocity_reverted_to_original_value(self):
+        expected = INITIAL_VELOCITY
+        self.set_up_velocity_tests(expected)
+
+        self.ca.set_pv_value("PARAM:THETA:SP", 5)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
+
+    def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_interrupted_THEN_velocity_reverted_to_original_value(self):
+        expected = INITIAL_VELOCITY
+        final_position = SPACING
+        self.set_up_velocity_tests(expected)
+
+        # move and wait for completion
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+        self.ca_galil.set_pv_value("MTR0102.STOP", 1)
+        self.ca_galil.set_pv_value("MTR0103.STOP", 1)
+        self.ca_galil.set_pv_value("MTR0104.STOP", 1)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=2)
+        self.ca_galil.assert_that_pv_is_not_number("MTR0102.RBV", final_position, tolerance=0.1)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=2)
+        self.ca_galil.assert_that_pv_is_not_number("MTR0103.RBV", 2 * final_position, tolerance=0.1)
+        self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
+
+    def test_GIVEN_move_was_issued_while_different_move_already_in_progress_WHEN_move_completed_THEN_velocity_reverted_to_value_before_first_move(self):
+        expected = INITIAL_VELOCITY
+        self.set_up_velocity_tests(expected)
+        self.ca_galil.set_pv_value("MTR0102", -4)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=15)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+
+    def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_motor_retains_new_value_after_move_completed(self):
+        initial = INITIAL_VELOCITY
+        expected = INITIAL_VELOCITY / 2.0
+        self.set_up_velocity_tests(initial)
+
+        self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
+        self.ca_galil.set_pv_value("MTR0102.VELO", expected)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
+
+    def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
+
+        expected_mode_value = "TESTING"
+        PARAM_PREFIX = "PARAM:"
+        IN_MODE_SUFFIX = ":IN_MODE"
+        expected_in_mode_value = "YES"
+        expected_out_of_mode_value = "NO"
+
+        with self.ca.assert_that_pv_monitor_is("BL:MODE", expected_mode_value), \
+             self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_mode_value):
+                self.ca.set_pv_value("BL:MODE:SP", expected_mode_value)
+
+        test_in_mode_param_names = ["S1", "S3", "THETA", "DET_POS", "S3_ENABLED"]
+        test_out_of_mode_params = ["DET_ANG", "THETA_AUTO"]
+
+        for param in test_in_mode_param_names:
+            self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_in_mode_value)
+
+        for param in test_out_of_mode_params:
+            self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_out_of_mode_value)
+
+    def test_GIVEN_jaws_set_to_value_WHEN_change_sp_at_low_level_THEN_jaws_sp_rbv_does_not_change(self):
+
+        expected_gap_in_refl = 0.2
+        expected_change_to_gap = 1.0
+
+        time.sleep(5)
+        self.ca.assert_setting_setpoint_sets_readback(readback_pv="PARAM:S1HG", value=expected_gap_in_refl, expected_alarm=None)
+
+        self.ca_galil.assert_setting_setpoint_sets_readback(readback_pv="JAWS1:HGAP", value=expected_change_to_gap)
+
+        self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
+        self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)
 
     @parameterized.expand([("slits", "S1", 30.00), ("multi_component", "THETA", 20.00), ("angle", "DET_ANG", -80.0),
                            ("displacement", "DET_POS", 20.0), ("binary", "S3_ENABLED", 0)])
@@ -342,8 +342,8 @@ class ReflTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
 
-    # def test_GIVEN_a_low_level_beamline_change_WHEN_values_changed_THEN_high_level_parameters_updated(self):
-    #     self.ca_galil.set_pv_value("MTR0102", -400)
-    #
-    #     self.ca.assert_that_pv_value_is_changing("PARAM:S3", wait=2)
-    #     self.ca.assert_that_pv_is("PARAM:S3:RBV:AT_SP", "NO")
+    def test_GIVEN_a_low_level_beamline_change_WHEN_values_changed_THEN_high_level_parameters_updated(self):
+        self.ca_galil.set_pv_value("MTR0102", -400)
+
+        self.ca.assert_that_pv_value_is_changing("PARAM:S3", wait=2)
+        self.ca.assert_that_pv_is("PARAM:S3:RBV:AT_SP", "NO")
