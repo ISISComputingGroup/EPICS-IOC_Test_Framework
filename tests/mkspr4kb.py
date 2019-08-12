@@ -11,9 +11,6 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameteriz
 DEVICE_PREFIX = "MKSPR4KB_01"
 EMULATOR_NAME = "mkspr4kb"
 
-HE3POT_COARSE_TIME = 20
-DRIFT_BUFFER_SIZE = 20
-
 IOCS = [
     {
         "name": DEVICE_PREFIX,
@@ -151,6 +148,10 @@ class MKS_PR4000B_Tests(unittest.TestCase):
     def test_WHEN_range_units_are_set_THEN_readbacks_updates(self, _, chan, units):
         self.ca.assert_setting_setpoint_sets_readback(
             units, readback_pv="{}:RANGE:UNITS".format(chan), set_point_pv="{}:RANGE:UNITS:SP".format(chan))
+
+        # Units should also be copied to value's EGU field
+        self.ca.assert_that_pv_is("{}:VAL.EGU".format(chan), units)
+        self.ca.assert_that_pv_is("{}:VAL:SP:RBV.EGU".format(chan), units)
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     @skip_if_recsim("Complex behaviour not properly emulated (values push from protocol).")
