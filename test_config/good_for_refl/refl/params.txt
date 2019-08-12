@@ -1,3 +1,0 @@
-theta_auto 1.0
-init_auto 1.0
-S4 0.0
