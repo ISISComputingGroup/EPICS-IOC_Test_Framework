@@ -88,7 +88,7 @@ class KeylkgTests(unittest.TestCase):
     @skip_if_recsim('Cannot use lewis backdoor in RECSIM')
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output1_takes_data(self):
         expected_value = 0.1234
-        self._lewis.backdoor_set_on_device("output1_raw_value", expected_value)
+        self._lewis.backdoor_set_on_device("detector_1_raw_value", expected_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value)
@@ -96,7 +96,7 @@ class KeylkgTests(unittest.TestCase):
     @skip_if_recsim('No emulation of data capture in RECSIM')
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output2_takes_data(self):
         expected_value = 0.1234
-        self._lewis.backdoor_set_on_device("output2_raw_value", expected_value)
+        self._lewis.backdoor_set_on_device("detector_2_raw_value", expected_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value)
@@ -118,7 +118,7 @@ class KeylkgTests(unittest.TestCase):
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_output1_THEN_output1_reset(self):
         expected_value = 0.0000
         test_value = 0.1234
-        self._lewis.backdoor_set_on_device("output1_raw_value", test_value)
+        self._lewis.backdoor_set_on_device("detector_1_raw_value", test_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
         self.ca.assert_that_pv_is("VALUE:OUTPUT:1", test_value)
         self.ca.set_pv_value("RESET:OUTPUT:1:SP", "RESET")
@@ -129,7 +129,7 @@ class KeylkgTests(unittest.TestCase):
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_output2_THEN_output2_reset(self):
         expected_value = 0.0000
         test_value = 0.1234
-        self._lewis.backdoor_set_on_device("output2_raw_value", test_value)
+        self._lewis.backdoor_set_on_device("detector_2_raw_value", test_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", test_value)
         self.ca.set_pv_value("RESET:OUTPUT:2:SP", "RESET")
@@ -140,6 +140,6 @@ class KeylkgTests(unittest.TestCase):
     def test_GIVEN_running_ioc_WHEN_in_setup_mode_THEN_output1_swicthes_to_measurement_mode_and_takes_data(self):
         expected_value = 0.1234
         self.ca.set_pv_value("MODE:SP", "SET-UP")
-        self._lewis.backdoor_set_on_device("output1_raw_value", expected_value)
+        self._lewis.backdoor_set_on_device("detector_1_raw_value", expected_value)
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value)
