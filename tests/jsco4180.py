@@ -21,7 +21,8 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
+
 
 
 class Jsco4180Tests(unittest.TestCase):
