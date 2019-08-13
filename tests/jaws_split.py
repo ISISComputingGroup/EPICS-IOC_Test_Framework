@@ -3,10 +3,11 @@ import os
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 
+from .jaws import JawsTests as SplitJawsTests
+
 MTR_01 = "GALIL_01"
 MTR_02 = "GALIL_02"
 
-# Tests will fail if JAWS support module is not up to date and built
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_full_split"))
 
@@ -32,11 +33,6 @@ IOCS = [
 ]
 
 TEST_MODES = [TestModes.DEVSIM]
-
-# PV names for GALIL motors
-
-
-from .jaws import JawsTests as SplitJawsTests
 
 mtr_north = "MOT:MTR0101"
 mtr_south = "MOT:MTR0102"

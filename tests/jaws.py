@@ -8,7 +8,6 @@ from utils.testing import parameterized_list
 from parameterized import parameterized
 
 MTR_01 = "GALIL_01"
-MTR_02 = "GALIL_02"
 
 # PV names for motors
 JAWS_BASE_PV = "MOT:JAWS1"
@@ -32,10 +31,7 @@ IOCS = [
     },
 ]
 
-
 TEST_MODES = [TestModes.DEVSIM]
-
-# PV names for GALIL motors
 
 
 class JawsTests(unittest.TestCase):
@@ -58,6 +54,9 @@ class JawsTests(unittest.TestCase):
 
         self.ca.set_pv_value("{}:ABLE:SP".format(JAWS_BASE_PV), 0)
         self.ca.set_pv_value("{}:LOCK:SP".format(JAWS_BASE_PV), 0)
+
+        self.ca.set_pv_value("MOT:JAWS1:HGAP:SP", 0)
+        self.ca.set_pv_value("MOT:JAWS1:VGAP:SP", 0)
 
     def test_GIVEN_ioc_started_THEN_underlying_mtr_north_fields_can_be_read(self):
         underlying_mtr = self.MTR_NORTH
@@ -130,6 +129,7 @@ class JawsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MOT:JAWS1:HCENT", 0)
         # WHEN
         self.ca.set_pv_value("MOT:JAWS1:HGAP:SP", 1)
+
         # THEN
         self.ca.assert_that_pv_is(e_pv, 0.5)
         self.ca.assert_that_pv_is(w_pv, -0.5)
