@@ -8,6 +8,7 @@ import sys
 import traceback
 import unittest
 import xmlrunner
+import glob
 
 from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
@@ -17,6 +18,19 @@ from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
+
+
+def clean_environment():
+    """
+    Cleans up the test environment between tests.
+    """
+    autosave_directory = os.path.join(var_dir, "autosave")
+    files = glob.glob('{}/*SIM/*'.format(autosave_directory))
+    for autosave_file in files:
+        try:
+            os.remove(autosave_file)
+        except Exception as e:
+            print("Failed to delete {}: {}".format(autosave_file, e))
 
 
 def make_device_launchers_from_module(test_module, mode):
@@ -94,7 +108,8 @@ def load_and_run_tests(test_names, failfast):
     modes = set()
 
     for module in modules_to_be_tested:
-        module.tests = [test for test in test_names if test.startswith(module.name)]
+        # Add tests that are either the module or a subset of the module i.e. module.TestClass
+        module.tests = [test for test in test_names if test == module.name or test.startswith(module.name + ".")]
         modes.update(module.modes)
 
     test_results = []
@@ -103,6 +118,7 @@ def load_and_run_tests(test_names, failfast):
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
+            clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
             test_results.append(
                 run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers), failfast))
@@ -130,7 +146,7 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
         'EPICS_CA_ADDR_LIST': "127.255.255.255"
     }
 
-    test_names = ["tests.{}".format(test) for test in tests_to_run]
+    test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
 
     with modified_environment(**settings), device_launchers:
 
@@ -170,14 +186,25 @@ if __name__ == '__main__':
                         Module just runs the tests in a module. 
                         Module.class runs the the test class in Module.
                         Module.class.method runs a specific test.""")
+    parser.add_argument('-tp', '--tests-path', default="tests",
+                        help="""Path to find the tests in, this must be a valid python module. 
+                        Default is in the tests folder of this repo""")
     parser.add_argument('-f', '--failfast', action='store_true',
                         help="""Determines if the rest of tests are skipped after the first failure""")
 
     arguments = parser.parse_args()
 
+    if os.path.dirname(arguments.tests_path):
+        tests_module_path = os.path.abspath(os.path.dirname(arguments.tests_path))
+        if not os.path.isdir(tests_module_path):
+            print("Test path {} not found".format(tests_module_path))
+            sys.exit(-1)
+        sys.path.insert(0, tests_module_path)
+        arguments.tests_path = os.path.basename(arguments.tests_path)
+
     if arguments.list_devices:
         print("Available tests:")
-        print('\n'.join(sorted(package_contents("tests"))))
+        print('\n'.join(sorted(package_contents(arguments.tests_path))))
         sys.exit(0)
 
     var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
@@ -191,7 +218,7 @@ if __name__ == '__main__':
         print("Cannot run without emulator path")
         sys.exit(-1)
 
-    tests = arguments.tests if arguments.tests is not None else package_contents("tests")
+    tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
     failfast = arguments.failfast
 
     try:

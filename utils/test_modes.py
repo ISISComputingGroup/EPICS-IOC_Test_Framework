@@ -6,7 +6,7 @@ from enum import Enum
 
 class TestModes(Enum):
     """
-    Modes in which a et of unit tests can be run
+    Modes in which a set of unit tests can be run
     """
     RECSIM = 1
     DEVSIM = 2
