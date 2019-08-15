@@ -12,10 +12,6 @@ from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
-OUT_COMP_INIT_POS = -2.0
-IN_COMP_INIT_POS = 1.0
-DET_INIT_POS = 5.0
-DET_INIT_POS_AUTOSAVE = 1.0
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
@@ -37,11 +33,8 @@ IOCS = [
         },
         "inits": {
             "MTR0102.VMAX": INITIAL_VELOCITY,
-            "MTR0103.VMAX": INITIAL_VELOCITY,
-            "MTR0104.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
-            "MTR0105.VAL": OUT_COMP_INIT_POS,
-            "MTR0106.VAL": IN_COMP_INIT_POS,
-            "MTR0107.VAL": DET_INIT_POS
+            "MTR0104.VMAX": INITIAL_VELOCITY,
+            "MTR0105.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
         }
     },
     {
@@ -55,10 +48,10 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
-            "MTR0206.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
-            "MTR0206.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
+            "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
+            "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
         }
-        },
+    },
     {
         "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
@@ -107,12 +100,12 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:NOTINMODE:SP", 0)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("BL:MOVE", 1)
-        self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
+        self.ca_galil.assert_that_pv_is("MTR0105", 0.0)
 
     def set_up_velocity_tests(self, velocity):
         self.ca_galil.set_pv_value("MTR0102.VELO", velocity)
-        self.ca_galil.set_pv_value("MTR0103.VELO", velocity)
-        self.ca_galil.set_pv_value("MTR0104.VELO", FAST_VELOCITY)  # Remove angle as a speed limiting factor
+        self.ca_galil.set_pv_value("MTR0104.VELO", velocity)
+        self.ca_galil.set_pv_value("MTR0105.VELO", FAST_VELOCITY)  # Remove angle as a speed limiting factor
 
     def _check_param_pvs(self, param_name, expected_value):
         self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
@@ -176,12 +169,12 @@ class ReflTests(unittest.TestCase):
         # detector moved in line
         self._check_param_pvs("DET_POS", 0.0)
         expected_det_value = 2 * SPACING * tan(radians(theta_angle * 2.0))
-        self.ca_galil.assert_that_pv_is_number("MTR0103", expected_det_value, 0.01)
+        self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_value, 0.01)
 
         # detector angle faces beam
         self._check_param_pvs("DET_ANG", 0.0)
         expected_det_angle = 2.0 * theta_angle
-        self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_angle, 0.01)
+        self.ca_galil.assert_that_pv_is_number("MTR0105", expected_det_angle, 0.01)
 
     def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
         expected_value = "OUT"
@@ -223,8 +216,8 @@ class ReflTests(unittest.TestCase):
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
-        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
-        self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
+        self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0104.VELO", expected)
 
     def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_interrupted_THEN_velocity_reverted_to_original_value(self):
         expected = INITIAL_VELOCITY
@@ -234,15 +227,15 @@ class ReflTests(unittest.TestCase):
         # move and wait for completion
         self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
         self.ca_galil.set_pv_value("MTR0102.STOP", 1)
-        self.ca_galil.set_pv_value("MTR0103.STOP", 1)
         self.ca_galil.set_pv_value("MTR0104.STOP", 1)
+        self.ca_galil.set_pv_value("MTR0105.STOP", 1)
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=2)
         self.ca_galil.assert_that_pv_is_not_number("MTR0102.RBV", final_position, tolerance=0.1)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
-        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=2)
-        self.ca_galil.assert_that_pv_is_not_number("MTR0103.RBV", 2 * final_position, tolerance=0.1)
-        self.ca_galil.assert_that_pv_is("MTR0103.VELO", expected)
+        self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=2)
+        self.ca_galil.assert_that_pv_is_not_number("MTR0104.RBV", 2 * final_position, tolerance=0.1)
+        self.ca_galil.assert_that_pv_is("MTR0104.VELO", expected)
 
     def test_GIVEN_move_was_issued_while_different_move_already_in_progress_WHEN_move_completed_THEN_velocity_reverted_to_value_before_first_move(self):
         expected = INITIAL_VELOCITY
@@ -364,7 +357,7 @@ class ReflTests(unittest.TestCase):
         motor_pos = 1.0
         self.ca.set_pv_value("PARAM:NOTINMODE:SP", param_sp)
         self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)3
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 0.2, wait=True)
@@ -416,15 +409,15 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is_number("MTR0205", motor_pos)
 
     def test_GIVEN_non_synchronised_axis_WHEN_move_which_should_change_velocity_THEN_velocity_not_changed(self):
-        self.ca_galil.set_pv_value("MTR0206.VELO", MEDIUM_VELOCITY)
+        self.ca_galil.set_pv_value("MTR0103.VELO", MEDIUM_VELOCITY)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
 
         # soon after movement starts and before movement stops the velocity should be the same
-        self.ca_galil.assert_that_pv_is("MTR0206.DMOV", 0, timeout=10)
-        self.ca_galil.assert_that_pv_is("MTR0206.VELO", MEDIUM_VELOCITY, timeout=0.5)
-        self.ca_galil.assert_that_pv_is("MTR0206.DMOV", 0, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 0, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0103.VELO", MEDIUM_VELOCITY, timeout=0.5)
+        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 0, timeout=10)
 
         # when the movement finishes it should still be the same
-        self.ca_galil.assert_that_pv_is("MTR0206.DMOV", 1, timeout=10)
-        self.ca_galil.assert_that_pv_is("MTR0206.VELO", MEDIUM_VELOCITY)
+        self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0103.VELO", MEDIUM_VELOCITY)

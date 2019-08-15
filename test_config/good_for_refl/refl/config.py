@@ -22,7 +22,7 @@ def get_beamline():
     # COMPONENTS
     s1 = Component("s1", PositionAndAngle(0.0, 1*SPACING, 90))
     s3 = Component("s3", PositionAndAngle(0.0, 3*SPACING, 90))
-    s4_comp = Component("s4", PositionAndAngle(0.0, 3.5* SPACING, 90))
+    s4_comp = Component("s4", PositionAndAngle(0.0, 3.5 * SPACING, 90))
     detector = TiltingComponent("Detector", PositionAndAngle(0.0, 4*SPACING, 90))
     theta = ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2*SPACING, 90), [detector])
     not_in_mode = Component("NotInModeComp", PositionAndAngle(0.0, 5*SPACING, 90))
@@ -48,11 +48,11 @@ def get_beamline():
     # DRIVES
     drivers = [DisplacementDriver(s1, MotorPVWrapper("MOT:MTR0101")),
                DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102"), S3_OUT_POSITION),
-               DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0103")),
-               AngleDriver(detector, MotorPVWrapper("MOT:MTR0104")),
+               DisplacementDriver(s4_comp, MotorPVWrapper("MOT:MTR0103"), synchronised=False),
+               DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0104")),
+               AngleDriver(detector, MotorPVWrapper("MOT:MTR0105")),
                # MTR0201-MTR0204 used for jaws1
                DisplacementDriver(not_in_mode, MotorPVWrapper("MOT:MTR0205"))]
-               DisplacementDriver(s4_comp, MotorPVWrapper("MOT:MTR0206"), synchronised=False)]
 
     # MODES
     nr_inits = {}
