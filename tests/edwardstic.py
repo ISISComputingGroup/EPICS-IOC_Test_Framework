@@ -31,11 +31,12 @@ class EdwardsTICTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("edwardstic", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    
-    #def test_GIVEN_turbo_pump_in_a_state_WHEN_status_requested_THEN_correct_status_read_back(self)
     def test_GIVEN_turbo_pump_switched_on_WHEN_status_requested_THEN_status_reads_switched_on(self):
         # GIVEN
         self.ca.set_pv_value("TURBO:START", "On", wait=True)
 
         # THEN
         self.ca.assert_that_pv_is("TURBO:STA", "Running")
+
+    def test_GIVEN_disconnected_device_WHEN_pump_status_read_THEN_PVs_read_invalid(self):
+        pass
