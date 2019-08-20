@@ -30,6 +30,7 @@ class EdwardsTICTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("edwardstic", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self._lewis.backdoor_set_on_device("is_connected", True)
 
     def test_GIVEN_turbo_pump_switched_on_WHEN_status_requested_THEN_status_reads_switched_on(self):
         # GIVEN
@@ -39,4 +40,8 @@ class EdwardsTICTests(unittest.TestCase):
         self.ca.assert_that_pv_is("TURBO:STA", "Running")
 
     def test_GIVEN_disconnected_device_WHEN_pump_status_read_THEN_PVs_read_invalid(self):
-        pass
+        # GIVEN
+        self._lewis.backdoor_set_on_device("is_connected", False)
+
+        # WHEN
+        self.ca.assert_that_pv_alarm_is("TURBO:STA", self.ca.Alarms.INVALID)
