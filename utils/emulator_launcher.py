@@ -541,8 +541,6 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
             plc_to_start = os.path.join(self.beckhoff_root, "PLC Development.sln")
             self.beckhoff_command_line = '{} "{}" '.format(automation_tools, plc_to_start)
             self.startup_command = self.beckhoff_command_line + "activate run"
-            self.run_command = self.beckhoff_command_line + "run"
-            self.stop_command = self.beckhoff_command_line + "stop"
         except KeyError:
             raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' option must be "
                            "provided as part of the options dictionary")
@@ -550,16 +548,3 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
         options["emulator_wait_to_finish"] = True
         super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
 
-    def backdoor_emulator_disconnect_device(self, *args, **kwargs):
-        self._call_command_line(self.stop_command)
-
-    def backdoor_emulator_connect_device(self, *args, **kwargs):
-        self._call_command_line(self.run_command)
-
-    @contextmanager
-    def disconnected_device(self):
-        self.backdoor_emulator_disconnect_device()
-        try:
-            yield
-        finally:
-            self.backdoor_emulator_connect_device()
