@@ -52,12 +52,15 @@ class OerconeTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PRESSURE", pressure)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_measurement_unit_is_set_via_backdoor_THEN_readback_updates(self):
-        for unit in Units:
-            self._lewis.backdoor_run_function_on_device("backdoor_set_unit", [unit.value])
-            expected_unit = unit.name
-            self.ca.assert_that_pv_is("PRESSURE.EGU", expected_unit)
+    def test_WHEN_measurement_units_is_set_via_backdoor_THEN_readback_updates(self):
+        for units in Units:
+            self._lewis.backdoor_run_function_on_device("backdoor_set_units", [units.value])
+            expected_units = units.name
+            self.ca.assert_that_pv_is("PRESSURE.EGU", expected_units)
 
+    @parameterized.expand(parameterized_list(Units))
+    def test_WHEN_units_setpoint_set_THEN_read_back_is_correct(self, _, units):
+        self.ca.assert_setting_setpoint_sets_readback(units.name, "UNITS")
 
 
 
