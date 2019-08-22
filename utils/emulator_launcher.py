@@ -537,8 +537,9 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
     def __init__(self, device, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
+            self.solution_path = options["solution_path"]
             automation_tools = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools", "bin", "x64", "Release", "AutomationTools.exe")
-            plc_to_start = os.path.join(self.beckhoff_root, "PLC Development.sln")
+            plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
             self.beckhoff_command_line = '{} "{}" '.format(automation_tools, plc_to_start)
             self.startup_command = self.beckhoff_command_line + "activate run"
         except KeyError:
