@@ -44,5 +44,25 @@ class LinmotTests(unittest.TestCase):
         self.ca_linmot.assert_that_pv_is("MTR0101", expected_value, timeout=2)
 
     def test_GIVEN_velocity_WHEN_started_up_THEN_velocity_is_correct(self):
-        expected_value = 0.1
-        self.ca_linmot.assert_that_pv_is("MTR0101.VELO", expected_value, timeout=2)
+        expected_value = 1
+        self.ca_linmot.set_pv_value("MTR0101.VELO", expected_value)
+        self.ca_linmot.process_pv("MTR0101:SP")
+        device_value = int(self._lewis.backdoor_get_from_device("velocity"))
+
+        self.assertEqual(expected_value, device_value)
+
+    @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
+    def test_GIVEN_start_up_WHEN_get_motor_warn_status_THEN_it_is_correct(self):
+        expected_value = 256
+        device_value = int(self._lewis.backdoor_get_from_device("motor_warn_status"))
+        self.assertEqual(device_value, expected_value)
+
+    def test_GIVEN_new_accel_WHEN_set_accel_THEN_accel_set(self):
+        expected_value = 2
+        self.ca_linmot.set_pv_value("MTR0101.ACCL", expected_value)
+        self.ca_linmot.assert_that_pv_is("MTR0101.ACCL", expected_value)
+
+    def test_GIVEN_new_position_WHEN_moving_THEN_DMOVE_status_updated(self):
+        expected_value = 0
+        self.ca_linmot.set_pv_value("MTR0101:SP", 9000)
+        self.ca_linmot.assert_that_pv_is("MTR0101.DMOV", expected_value)
