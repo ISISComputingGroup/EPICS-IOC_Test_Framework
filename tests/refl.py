@@ -66,7 +66,12 @@ IOCS = [
             "ICPVARDIR": test_config_path,
         }
     },
-
+    {
+        "name": "INSTETC",
+        "directory": get_default_ioc_dir("INSTETC"),
+        "custom_prefix": "CS",
+        "pv_for_existence": "MANAGER",
+    },
 
 ]
 
