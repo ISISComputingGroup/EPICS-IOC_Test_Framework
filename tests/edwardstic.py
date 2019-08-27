@@ -32,12 +32,21 @@ class EdwardsTICTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device("is_connected", True)
 
+        self.ca.assert_setting_setpoint_sets_readback("No", "TURBO:STBY", set_point_pv="TURBO:SETSTBY", timeout=30)
+
     def test_GIVEN_turbo_pump_switched_on_WHEN_status_requested_THEN_status_reads_switched_on(self):
         # GIVEN
         self.ca.set_pv_value("TURBO:START", "On", wait=True)
 
         # THEN
         self.ca.assert_that_pv_is("TURBO:STA", "Running")
+
+    def test_GIVEN_standby_mode_switched_on_WHEN_status_requested_THEN_standby_reads_switched_on(self):
+        # GIVEN
+        self.ca.set_pv_value("TURBO:SETSTBY", "Yes")
+
+        # THEN
+        self.ca.assert_that_pv_is("TURBO:STBY", "Yes", timeout=10)
 
     @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
