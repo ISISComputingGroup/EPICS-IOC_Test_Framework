@@ -66,7 +66,12 @@ IOCS = [
             "ICPVARDIR": test_config_path,
         }
     },
-
+    {
+        "name": "INSTETC",
+        "directory": get_default_ioc_dir("INSTETC"),
+        "custom_prefix": "CS",
+        "pv_for_existence": "MANAGER",
+    },
 
 ]
 
@@ -357,7 +362,7 @@ class ReflTests(unittest.TestCase):
         motor_pos = 1.0
         self.ca.set_pv_value("PARAM:NOTINMODE:SP", param_sp)
         self.ca_galil.set_pv_value("MTR0205", motor_pos, wait=True)
-        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)3
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 0.2, wait=True)
