@@ -43,24 +43,31 @@ class EdwardsTICTests(unittest.TestCase):
 
     def test_GIVEN_standby_mode_switched_on_WHEN_status_requested_THEN_standby_reads_switched_on(self):
         # GIVEN
-        self.ca.set_pv_value("TURBO:SETSTBY", "Yes")
+        self.ca.set_pv_value("TURBO:SETSTBY", "Yes", wait=True)
 
         # THEN
-        self.ca.assert_that_pv_is("TURBO:STBY", "Yes", timeout=10)
+        self.ca.assert_that_pv_is("TURBO:STBY", "Yes")
+
+    def test_GIVEN_standby_mode_switched_off_WHEN_status_requested_THEN_standby_reads_switched_off(self):
+        # GIVEN
+        self.ca.set_pv_value("TURBO:SETSTBY", "No", wait=True)
+
+        # THEN
+        self.ca.assert_that_pv_is("TURBO:STBY", "No")
 
     @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
-        #("turbo_speed", "TURBO:SPEED"),
-        #("turbo_power", "TURBO:POWER"),
-        #("turbo_norm", "TURBO:NORM"),
-        #("turbo_standby", "TURBO:STBY"),
-        #("turbo_cycle", "TURBO:CYCLE")
+        ("turbo_speed", "TURBO:SPEED"),
+        ("turbo_power", "TURBO:POWER"),
+        ("turbo_norm", "TURBO:NORM"),
+        ("turbo_standby", "TURBO:STBY"),
+        ("turbo_cycle", "TURBO:CYCLE")
     ])
     def test_GIVEN_disconnected_device_WHEN_pump_status_read_THEN_PVs_read_invalid(self, _, base_pv):
         # GIVEN
         self._lewis.backdoor_set_on_device("is_connected", False)
 
         # WHEN
-        self.ca.assert_that_pv_alarm_is(base_pv, self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is(base_pv, self.ca.Alarms.INVALID, timeout=20)
         self.ca.assert_that_pv_alarm_is("{base}:ALERT".format(base=base_pv), self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("{base}:PRI".format(base=base_pv), self.ca.Alarms.INVALID)
