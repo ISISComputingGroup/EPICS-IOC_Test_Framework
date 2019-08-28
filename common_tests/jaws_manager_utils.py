@@ -37,6 +37,21 @@ class JawsManagerBase(object):
             self.ca.assert_that_pv_is_number(UNDERLYING_CENT_SP.format(jaw, direction), 10, 0.1)
             self.ca.assert_that_pv_is_number(UNDERLYING_GAP_SP.format(jaw, direction), expected_gaps[jaw - 1], 0.1)
 
+    def _test_WHEN_sizes_at_moderator_and_sample_changed_THEN_centres_of_all_jaws_unchanged(self, direction):
+        # Set up jaws initially to have "custom" centre.
+        centre = 12.34
+
+        for jaw in range(1, self.get_num_of_jaws() + 1):
+            self.ca.set_pv_value(UNDERLYING_CENT_SP.format(jaw, direction), centre)
+
+        # Now change size at sample + moderator
+        self.ca.set_pv_value("{}:{}GAP:SP".format(self.get_sample_pv(), direction), 11.111)
+        self.ca.set_pv_value(MOD_GAP.format(direction), 22.222)
+
+        # Assert that centres are unchanged
+        for jaw in range(1, self.get_num_of_jaws() + 1):
+            self.ca.assert_that_pv_is_number(UNDERLYING_CENT_SP.format(jaw, direction), centre, 0.001)
+
     def _test_WHEN_sample_gap_set_THEN_other_jaws_as_expected(self, direction, sample_gap, expected):
         self.ca.set_pv_value(self.get_sample_pv() + ":{}GAP:SP".format(direction), sample_gap)
         for i, exp in enumerate(expected):
