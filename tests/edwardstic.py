@@ -64,11 +64,30 @@ class EdwardsTICTests(unittest.TestCase):
         self.ca.assert_that_pv_is("TURBO:STBY", "No")
 
     @parameterized.expand([
+        ("stopped", "Stopped", ChannelAccess.Alarms.NONE),
+        ("starting_delay", "Starting Delay", ChannelAccess.Alarms.NONE),
+        ("accelerating", "Accelerating", ChannelAccess.Alarms.NONE),
+        ("running", "Running", ChannelAccess.Alarms.NONE),
+        ("stopping_short_delay", "Stopping Short Delay", ChannelAccess.Alarms.NONE),
+        ("stopping_normal_delay", "Stopping Normal Delay", ChannelAccess.Alarms.NONE),
+        ("fault_braking", "Fault Breaking", ChannelAccess.Alarms.MAJOR),
+        ("braking", "Braking", ChannelAccess.Alarms.NONE),
+    ])
+    def test_GIVEN_turbo_status_WHEN_turbo_status_read_THEN_turbo_status_read_back(self, turbo_status, IOC_status_label, expected_alarm):
+        # GIVEN
+        self._lewis.backdoor_run_function_on_device("set_turbo_pump_state", arguments=(turbo_status, ))
+
+        # WHEN
+        self.ca.assert_that_pv_is("TURBO:STA", IOC_status_label)
+        self.ca.assert_that_pv_alarm_is("TURBO:STA", expected_alarm)
+
+
+    @parameterized.expand([
         [key, value] for key, value in PRI_SEVERITIES.items()
     ])
     def test_GIVEN_turbo_status_with_priority_WHEN_turbo_status_read_THEN_turbo_status_priority_is_read_back(self, priority_state, expected_alarm):
         # GIVEN
-        self._lewis.backdoor_run_function_on_device("set_turbo_priority", arguments=(priority_state,))
+        self._lewis.backdoor_run_function_on_device("set_turbo_priority", arguments=(priority_state, ))
 
         # THEN
         self.ca.assert_that_pv_is("TURBO:STA:PRI", priority_state)
