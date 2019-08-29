@@ -90,14 +90,13 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.set_pv_value("START:SP", 1)
 
+        # Give the device some time running in a good state
         sleep(10)
-        # Setting an incorrect component on the device will result in the state machine attempting
+        # Sabotage! - Setting an incorrect component on the device will result in the state machine attempting
         # to rerun the pump and reset components.
         self._lewis.backdoor_set_on_device("component_A", 33)
 
-        sleep(30)
-
-        self.ca.assert_that_pv_is("STATUS", expected_value)
+        self.ca.assert_that_pv_is("STATUS", expected_value, timeout=30)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_running_timed_THEN_retry_run_and_updates_component_in_correct_mode(self):
@@ -108,14 +107,13 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:RUN:SP", 100)
         self.ca.set_pv_value("PUMP_FOR_TIME:SP", 1)
 
+        # Give the device some time running in a good state
         sleep(10)
-        # Setting an incorrect component on the device will result in the state machine attempting
+        # Sabotage! - Setting an incorrect component on the device will result in the state machine attempting
         # to rerun the pump and reset components.
         self._lewis.backdoor_set_on_device("component_A", 33)
 
-        sleep(30)
-
-        self.ca.assert_that_pv_is("STATUS", expected_value)
+        self.ca.assert_that_pv_is("STATUS", expected_value, timeout=30)
 
     @skip_if_recsim("Flowrate device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_flowrate_THEN_flowrate_setpoint_is_correct(self):
@@ -309,9 +307,7 @@ class Jsco4180Tests(unittest.TestCase):
     def test_GIVEN_command_seq_that_would_crash_pump_WHEN_command_seq_called_THEN_pump_crashes(self):
         self.ca.set_pv_value("_TEST_CRASH.PROC", 1)
 
-        sleep(30)
-
-        self.ca.assert_that_pv_alarm_is("COMP:A", ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is("COMP:A", ChannelAccess.Alarms.INVALID, timeout=30)
 
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_pump_running_WHEN_set_file_number_command_called_THEN_program_is_busy_error(self):
