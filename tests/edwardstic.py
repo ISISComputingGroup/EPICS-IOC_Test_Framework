@@ -66,13 +66,28 @@ class EdwardsTICTests(unittest.TestCase):
     @parameterized.expand([
         [key, value] for key, value in PRI_SEVERITIES.items()
     ])
-    def test_GIVEN_turbo_status_with_alert_WHEN_turbo_status_read_THEN_turbo_status_alert_is_read_back(self, priority_state, expected_alarm):
-        print(priority_state, expected_alarm)
+    def test_GIVEN_turbo_status_with_priority_WHEN_turbo_status_read_THEN_turbo_status_priority_is_read_back(self, priority_state, expected_alarm):
         # GIVEN
         self._lewis.backdoor_run_function_on_device("set_turbo_priority", arguments=(priority_state,))
 
         # THEN
         self.ca.assert_that_pv_is("TURBO:STA:PRI", priority_state)
+        self.ca.assert_that_pv_alarm_is("TURBO:STA:PRI", expected_alarm)
+
+    @parameterized.expand([
+        (0, ChannelAccess.Alarms.NONE),
+        (1, ChannelAccess.Alarms.MINOR),
+        (-1, ChannelAccess.Alarms.MAJOR),
+        (48, ChannelAccess.Alarms.MAJOR)
+    ])
+    def test_GIVEN_turbo_status_with_alert_WHEN_turbo_status_read_THEN_turbo_status_alert_is_read_back(self, alert_state, expected_alarm):
+        # GIVEN
+        self._lewis.backdoor_run_function_on_device("set_turbo_alert", arguments=(alert_state,))
+
+        # THEN
+        self.ca.assert_that_pv_is("TURBO:STA:ALERT", alert_state)
+        self.ca.assert_that_pv_alarm_is("TURBO:STA:ALERT", expected_alarm)
+
 
     @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
