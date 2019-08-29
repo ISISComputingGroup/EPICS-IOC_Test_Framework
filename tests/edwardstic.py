@@ -23,12 +23,20 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM, ]
 
 
+PRI_SEVERITIES = {"OK": ChannelAccess.Alarms.NONE,
+                  "Warning": ChannelAccess.Alarms.MINOR,
+                  "Alarm": ChannelAccess.Alarms.MAJOR,
+                  }
+
+
 class EdwardsTICTests(unittest.TestCase):
     """
     Tests for the Edwards Turbo Instrument Controller (TIC) IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("edwardstic", DEVICE_PREFIX)
+
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device("is_connected", True)
 
@@ -54,6 +62,17 @@ class EdwardsTICTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is("TURBO:STBY", "No")
+
+    @parameterized.expand([
+        [key, value] for key, value in PRI_SEVERITIES.items()
+    ])
+    def test_GIVEN_turbo_status_with_alert_WHEN_turbo_status_read_THEN_turbo_status_alert_is_read_back(self, priority_state, expected_alarm):
+        print(priority_state, expected_alarm)
+        # GIVEN
+        self._lewis.backdoor_run_function_on_device("set_turbo_priority", arguments=(priority_state,))
+
+        # THEN
+        self.ca.assert_that_pv_is("TURBO:STA:PRI", priority_state)
 
     @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
