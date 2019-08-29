@@ -24,6 +24,9 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM]
 
 
+ERROR_STATE_HARDWARE_FAULT = 4
+ERROR_STATE_NO_ERROR = 2
+
 
 class Jsco4180Tests(unittest.TestCase):
     """
@@ -75,11 +78,9 @@ class Jsco4180Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("component_B", 10)
         self._lewis.backdoor_set_on_device("component_C", 14)
 
-        sleep(30)
-
-        self.ca.assert_that_pv_is("COMP:A", expected_value_A)
-        self.ca.assert_that_pv_is("COMP:B", expected_value_B)
-        self.ca.assert_that_pv_is("COMP:C", expected_value_C)
+        self.ca.assert_that_pv_is("COMP:A", expected_value_A, timeout=30)
+        self.ca.assert_that_pv_is("COMP:B", expected_value_B, timeout=30)
+        self.ca.assert_that_pv_is("COMP:C", expected_value_C, timeout=30)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_running_continuous_THEN_retry_run_and_updates_component_in_correct_mode(self):
@@ -130,16 +131,13 @@ class Jsco4180Tests(unittest.TestCase):
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_maximum_pressure_limit_THEN_maximum_pressure_limit_is_correct(self):
         expected_value = 200
-        self.ca.set_pv_value("PRESSURE:MAX:SP", expected_value)
-
-        self.ca.assert_that_pv_is("PRESSURE:MAX", expected_value)
+        self.ca.assert_setting_setpoint_sets_readback(expected_value, "PRESSURE:MAX")
 
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_minimum_pressure_limit_THEN_minimum_pressure_limit_is_correct(self):
         expected_value = 100
         self.ca.set_pv_value("PRESSURE:MIN:SP", expected_value)
-
-        self.ca.assert_that_pv_is("PRESSURE:MIN", expected_value)
+        self.ca.assert_setting_setpoint_sets_readback(expected_value, "PRESSURE:MIN")
 
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_continuous_pump_set_THEN_pump_on(self):
@@ -197,17 +195,18 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("ERROR", expected_value)
 
+
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
-    def test_GIVEN_ioc_in_error_state_WHEN_get_error_THEN_error_returned(self):
+    def test_GIVEN_ioc_in_hardware_error_state_WHEN_get_error_THEN_hardware_error_returned(self):
         expected_value = "Hardware error"
-        self._lewis.backdoor_set_on_device("error", 4)
+        self._lewis.backdoor_set_on_device("error", ERROR_STATE_HARDWARE_FAULT)
 
         self.ca.assert_that_pv_is("ERROR", expected_value)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_ioc_in_error_state_WHEN_reset_error_THEN_error_reset(self):
         expected_value = "No error"
-        self._lewis.backdoor_set_on_device("error", 2)
+        self._lewis.backdoor_set_on_device("error", ERROR_STATE_NO_ERROR)
         self.ca.set_pv_value("ERROR:SP", "Reset")
 
         self.ca.assert_that_pv_is("ERROR", expected_value)
@@ -215,7 +214,7 @@ class Jsco4180Tests(unittest.TestCase):
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_ioc_in_error_state_WHEN_reset_error_THEN_error_reset(self):
         expected_value = "No error"
-        self._lewis.backdoor_set_on_device("error", 4)
+        self._lewis.backdoor_set_on_device("error", ERROR_STATE_HARDWARE_FAULT)
 
         self.ca.assert_that_pv_is("ERROR", expected_value)
 
@@ -236,24 +235,24 @@ class Jsco4180Tests(unittest.TestCase):
     def test_GIVEN_timed_pump_WHEN_set_constant_pump_THEN_state_updated_to_constant_pump(self):
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
-        self.ca.set_pv_value("PUMP_FOR_TIME:SP.PROC", 1)
+        self.ca.process_pv("PUMP_FOR_TIME:SP")
         expected_value = "Pumping"
         self.ca.assert_that_pv_is("STATUS", expected_value)
 
-        self.ca.set_pv_value("START:SP", 1)
+        self.ca.process_pv("START:SP")
         expected_value = "Pumping"
         self.ca.assert_that_pv_is("STATUS", expected_value)
 
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_constant_pump_WHEN_set_timed_pump_THEN_state_updated_to_timed_pump(self):
-        self.ca.set_pv_value("START:SP", 1)
         expected_value = "Pumping"
+
+        self.ca.process_pv("START:SP")
         self.ca.assert_that_pv_is("STATUS", expected_value)
 
         # Set a run time for a timed run
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
-        self.ca.set_pv_value("PUMP_FOR_TIME:SP", 1)
-        expected_value = "Pumping"
+        self.ca.process_pv("PUMP_FOR_TIME:SP")
         self.ca.assert_that_pv_is("STATUS", expected_value)
 
     def test_GIVEN_calc_mode_is_time_WHEN_setting_time_THEN_time_and_volume_are_correctly_set(self):
