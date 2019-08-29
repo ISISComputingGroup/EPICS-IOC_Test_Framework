@@ -55,3 +55,7 @@ class JawsManagerTests(JawsManagerBase, unittest.TestCase):
     @parameterized.expand(["V", "H"])
     def test_WHEN_centre_is_changed_THEN_centres_of_all_jaws_follow_and_gaps_unchanged(self, direction):
         self._test_WHEN_centre_is_changed_THEN_centres_of_all_jaws_follow_and_gaps_unchanged(direction)
+
+    @parameterized.expand(["V", "H"])
+    def test_WHEN_sizes_at_moderator_and_sample_changed_THEN_centres_of_all_jaws_unchanged(self, direction):
+        self._test_WHEN_sizes_at_moderator_and_sample_changed_THEN_centres_of_all_jaws_unchanged(direction)
