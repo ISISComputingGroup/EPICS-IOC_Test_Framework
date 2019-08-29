@@ -101,7 +101,7 @@ class Jsco4180Tests(unittest.TestCase):
         expected_value = 1.000
         self.ca.set_pv_value("FLOWRATE:SP", expected_value)
 
-        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_value)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_value, timeout=5)
 
         self.ca.set_pv_value("TIME:RUN:SP", 100)
         self.ca.set_pv_value("START:SP", "Start")
@@ -234,46 +234,6 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:RUN:SP", 10000)
         self.ca.process_pv("PUMP_FOR_TIME:SP")
         self.ca.assert_that_pv_is("STATUS", expected_value)
-
-    def test_GIVEN_calc_mode_is_time_WHEN_setting_time_THEN_time_and_volume_are_correctly_set(self):
-        expected_time = 600
-        expected_volume = self.ca.get_pv_value("TIME:VOL:SP")
-        self.ca.set_pv_value("TIME:CALC:SP", "Time")
-
-        self.ca.set_pv_value("TIME:RUN:SP", expected_time)
-
-        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
-        self.ca.assert_that_pv_is_not("TIME:VOL:SP", expected_volume)
-
-    def test_GIVEN_calc_mode_is_time_WHEN_setting_volume_THEN_set_is_ignored(self):
-        expected_time = self.ca.get_pv_value("TIME:RUN:SP")
-        expected_volume = self.ca.get_pv_value("TIME:VOL:SP")
-        self.ca.set_pv_value("TIME:CALC:SP", "Time")
-
-        self.ca.set_pv_value("TIME:VOL:SP", expected_volume * 10)
-
-        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
-        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
-
-    def test_GIVEN_calc_mode_is_volume_WHEN_setting_volume_THEN_time_and_volume_are_correctly_set(self):
-        expected_time = self.ca.get_pv_value("TIME:RUN:SP")
-        expected_volume = 0.1
-        self.ca.set_pv_value("TIME:CALC:SP", "Volume")
-
-        self.ca.set_pv_value("TIME:VOL:SP", expected_volume)
-
-        self.ca.assert_that_pv_is_not("TIME:RUN:SP", expected_time)
-        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
-
-    def test_GIVEN_calc_mode_is_volume_WHEN_setting_time_THEN_set_is_ignored(self):
-        expected_time = self.ca.get_pv_value("TIME:RUN:SP")
-        expected_volume = self.ca.get_pv_value("TIME:VOL:SP")
-        self.ca.set_pv_value("TIME:CALC:SP", "Volume")
-
-        self.ca.set_pv_value("TIME:RUN:SP", expected_time * 10)
-
-        self.ca.assert_that_pv_is("TIME:RUN:SP", expected_time)
-        self.ca.assert_that_pv_is("TIME:VOL:SP", expected_volume)
 
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_input_incorrect_WHEN_set_flowrate_THEN_trouble_message_returned(self):
