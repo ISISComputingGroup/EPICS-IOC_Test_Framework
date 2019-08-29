@@ -1,4 +1,7 @@
 import unittest
+import six
+
+from abc import ABCMeta, abstractmethod
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -27,6 +30,52 @@ PRI_SEVERITIES = {"OK": ChannelAccess.Alarms.NONE,
                   "Warning": ChannelAccess.Alarms.MINOR,
                   "Alarm": ChannelAccess.Alarms.MAJOR,
                   }
+
+
+@six.add_metaclass(ABCMeta)
+class EdwardsTICBase(object):
+    @abstractmethod
+    def get_base_PV(self):
+        pass
+
+    @abstractmethod
+    def get_alert_function(self):
+        pass
+
+    @abstractmethod
+    def get_priority_function(self):
+        pass
+
+    def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("edwardstic", DEVICE_PREFIX)
+
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self._lewis.backdoor_set_on_device("is_connected", True)
+
+    @parameterized.expand([
+        (0, ChannelAccess.Alarms.NONE),
+        (1, ChannelAccess.Alarms.MINOR),
+        (-1, ChannelAccess.Alarms.MAJOR),
+        (48, ChannelAccess.Alarms.MAJOR)
+    ])
+    def test_GIVEN_turbo_status_with_alert_WHEN_turbo_status_read_THEN_turbo_status_alert_is_read_back(self, alert_state, expected_alarm):
+        # GIVEN
+        self._lewis.backdoor_run_function_on_device(self.get_alert_function(), arguments=(alert_state,))
+
+        # THEN
+        self.ca.assert_that_pv_is("{}:ALERT".format(self.get_base_PV()), alert_state)
+        self.ca.assert_that_pv_alarm_is("{}:ALERT".format(self.get_base_PV()), expected_alarm)
+
+    @parameterized.expand([
+        [key, value] for key, value in PRI_SEVERITIES.items()
+    ])
+    def test_GIVEN_turbo_status_with_priority_WHEN_turbo_status_read_THEN_turbo_status_priority_is_read_back(self, priority_state, expected_alarm):
+        # GIVEN
+        self._lewis.backdoor_run_function_on_device(self.get_priority_function(), arguments=(priority_state, ))
+
+        # THEN
+        self.ca.assert_that_pv_is("{}:PRI".format(self.get_base_PV()), priority_state)
+        self.ca.assert_that_pv_alarm_is("{}:PRI".format(self.get_base_PV()), expected_alarm)
 
 
 class EdwardsTICTests(unittest.TestCase):
@@ -81,33 +130,6 @@ class EdwardsTICTests(unittest.TestCase):
         self.ca.assert_that_pv_is("TURBO:STA", IOC_status_label)
         self.ca.assert_that_pv_alarm_is("TURBO:STA", expected_alarm)
 
-
-    @parameterized.expand([
-        [key, value] for key, value in PRI_SEVERITIES.items()
-    ])
-    def test_GIVEN_turbo_status_with_priority_WHEN_turbo_status_read_THEN_turbo_status_priority_is_read_back(self, priority_state, expected_alarm):
-        # GIVEN
-        self._lewis.backdoor_run_function_on_device("set_turbo_priority", arguments=(priority_state, ))
-
-        # THEN
-        self.ca.assert_that_pv_is("TURBO:STA:PRI", priority_state)
-        self.ca.assert_that_pv_alarm_is("TURBO:STA:PRI", expected_alarm)
-
-    @parameterized.expand([
-        (0, ChannelAccess.Alarms.NONE),
-        (1, ChannelAccess.Alarms.MINOR),
-        (-1, ChannelAccess.Alarms.MAJOR),
-        (48, ChannelAccess.Alarms.MAJOR)
-    ])
-    def test_GIVEN_turbo_status_with_alert_WHEN_turbo_status_read_THEN_turbo_status_alert_is_read_back(self, alert_state, expected_alarm):
-        # GIVEN
-        self._lewis.backdoor_run_function_on_device("set_turbo_alert", arguments=(alert_state,))
-
-        # THEN
-        self.ca.assert_that_pv_is("TURBO:STA:ALERT", alert_state)
-        self.ca.assert_that_pv_alarm_is("TURBO:STA:ALERT", expected_alarm)
-
-
     @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
         ("turbo_speed", "TURBO:SPEED"),
@@ -124,3 +146,14 @@ class EdwardsTICTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is(base_pv, self.ca.Alarms.INVALID, timeout=20)
         self.ca.assert_that_pv_alarm_is("{base}:ALERT".format(base=base_pv), self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("{base}:PRI".format(base=base_pv), self.ca.Alarms.INVALID)
+
+
+class TurboStatusTests(EdwardsTICBase, unittest.TestCase):
+    def get_base_PV(self):
+        return "TURBO:STA"
+
+    def get_alert_function(self):
+        return "set_turbo_alert"
+
+    def get_priority_function(self):
+        return "set_turbo_priority"
