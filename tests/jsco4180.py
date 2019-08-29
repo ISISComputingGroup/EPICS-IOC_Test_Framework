@@ -37,27 +37,7 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("FLOWRATE", timeout=30)
         self._lewis.backdoor_run_function_on_device("reset")
-        self.resetIocRecords()
 
-    def resetIocRecords(self):
-        pass
-        # self.ca.set_pv_value("TIME", 0)
-        # self.ca.set_pv_value("TIME:CALC:SP", "Time")
-        # self.ca.set_pv_value("TIME:RUN:SP", 60)
-        # self.ca.set_pv_value("STATUS", "Off")
-        # self.ca.set_pv_value("FLOWRATE:SP", 0.010)
-        # self.ca.set_pv_value("FLOWRATE", 0.000)
-        # self.ca.set_pv_value("PRESSURE", 0)
-        # self.ca.set_pv_value("PRESSURE:MAX:SP", 400)
-        # self.ca.set_pv_value("PRESSURE:MIN:SP", 1)
-        # self.ca.set_pv_value("TIME:RUN:SP", 60)
-        # self.ca.set_pv_value("COMP:A", 100)
-        # self.ca.set_pv_value("COMP:A:SP", 100)
-        # self.ca.set_pv_value("COMP:B", 0)
-        # self.ca.set_pv_value("COMP:B:SP", 0)
-        # self.ca.set_pv_value("COMP:C", 0)
-        # self.ca.set_pv_value("COMP:C:SP", 0)
-        # self.ca.set_pv_value("COMP:D", 0)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_running_THEN_retry_run_and_updates_component(self):
