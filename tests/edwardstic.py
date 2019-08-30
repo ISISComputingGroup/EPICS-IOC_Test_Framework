@@ -18,7 +18,9 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("EDTIC"),
         "macros": {
-            "USEGAUGE1": "YES"
+            "USEGAUGE1": "YES",
+            "USEGAUGE2": "YES",
+            "USEGAUGE3": "YES"
         },
         "emulator": "edwardstic",
     },
@@ -103,6 +105,75 @@ class EdwardsTICBase(object):
         # WHEN
         self.ca.assert_that_pv_is(self.get_base_PV(), IOC_status_label)
         self.ca.assert_that_pv_alarm_is(self.get_base_PV(), expected_alarm)
+
+
+@six.add_metaclass(ABCMeta)
+class GaugeTestBase(EdwardsTICBase):
+
+    @abstractmethod
+    def get_gauge_number(self):
+        pass
+
+    def get_base_PV(self):
+        return "GAUGE{}:STA".format(self.get_gauge_number())
+
+    def get_alert_PV(self):
+        return "GAUGE{}:ALERT".format(self.get_gauge_number())
+
+    def get_priority_PV(self):
+        return "GAUGE{}:PRI".format(self.get_gauge_number())
+
+    def get_status_setter(self):
+        return "set_gauge_state"
+
+    def get_alert_function(self):
+        return "set_gauge_alert"
+
+    def get_priority_function(self):
+        return "set_gauge_priority"
+
+    def get_status_labels():
+        return [("status", "Status", ChannelAccess.Alarms.NONE),
+                ("not_connected", "Not Connected", ChannelAccess.Alarms.NONE),
+                ("connected", "Connected", ChannelAccess.Alarms.NONE),
+                ("new_id", "New ID", ChannelAccess.Alarms.NONE),
+                ("change", "Change", ChannelAccess.Alarms.NONE),
+                ("alert", "Alert", ChannelAccess.Alarms.NONE),
+                ("off", "Off", ChannelAccess.Alarms.NONE),
+                ("striking", "Striking", ChannelAccess.Alarms.NONE),
+                ("calibrating", "Calibrating", ChannelAccess.Alarms.NONE),
+                ("zeroing", "Zeroing", ChannelAccess.Alarms.NONE),
+                ("degassing", "Degassing", ChannelAccess.Alarms.NONE),
+                ("on", "On", ChannelAccess.Alarms.NONE),
+                ("inhibited", "Inhibited", ChannelAccess.Alarms.NONE)]
+
+    @parameterized.expand([
+        ("0", 0),
+        ("-1", -1),
+        ("1", 1),
+        ("1.23", 1.23),
+        ("12.3", 12.3)
+        ])
+    def test_GIVEN_gauge_pressure_WHEN_gauge_status_requested_THEN_gauge_pressure_read_back(self, _, pressure_to_test):
+        # GIVEN
+        self._lewis.backdoor_set_on_device("gauge_pressure", pressure_to_test)
+
+        # THEN
+        self.ca.assert_that_pv_is_number("GAUGE{}:P".format(self.get_gauge_number()),
+                                         pressure_to_test,
+                                         tolerance=0.1*abs(pressure_to_test))
+
+    @parameterized.expand([
+        ("Pa", "Pa"),
+        ("V", "V"),
+        ("percent", "%")
+        ])
+    def test_GIVEN_gauge_units_WHEN_gauge_status_requested_THEN_correct_units_read_back(self, unit, unit_label):
+        # GIVEN
+        self._lewis.backdoor_run_function_on_device("set_gauge_units", arguments=(unit, ))
+
+        # THEN
+        self.ca.assert_that_pv_is("GAUGE{}:UNIT".format(self.get_gauge_number()), unit_label)
 
 
 class EdwardsTICTests(unittest.TestCase):
@@ -204,59 +275,18 @@ class TurboStatusTests(EdwardsTICBase, unittest.TestCase):
                 ("braking", "Braking", ChannelAccess.Alarms.NONE)]
 
 
-class GaugeTests(EdwardsTICBase, unittest.TestCase):
-    def get_base_PV(self):
-        return "GAUGE1:STA"
 
-    def get_alert_PV(self):
-        return "GAUGE1:ALERT"
 
-    def get_priority_PV(self):
-        return "GAUGE1:PRI"
+class Gauge1Tests(GaugeTestBase, unittest.TestCase):
+    def get_gauge_number(self):
+        return 1
 
-    def get_status_setter(self):
-        return "set_gauge_state"
 
-    def get_alert_function(self):
-        return "set_gauge_alert"
+class Gauge2Tests(GaugeTestBase, unittest.TestCase):
+    def get_gauge_number(self):
+        return 2
 
-    def get_priority_function(self):
-        return "set_gauge_priority"
 
-    def get_status_labels():
-        return [("status", "Status", ChannelAccess.Alarms.NONE),
-                ("not_connected", "Not Connected", ChannelAccess.Alarms.NONE),
-                ("connected", "Connected", ChannelAccess.Alarms.NONE),
-                ("new_id", "New ID", ChannelAccess.Alarms.NONE),
-                ("change", "Change", ChannelAccess.Alarms.NONE),
-                ("alert", "Alert", ChannelAccess.Alarms.NONE),
-                ("off", "Off", ChannelAccess.Alarms.NONE),
-                ("striking", "Striking", ChannelAccess.Alarms.NONE),
-                ("calibrating", "Calibrating", ChannelAccess.Alarms.NONE),
-                ("zeroing", "Zeroing", ChannelAccess.Alarms.NONE),
-                ("degassing", "Degassing", ChannelAccess.Alarms.NONE),
-                ("on", "On", ChannelAccess.Alarms.NONE),
-                ("inhibited", "Inhibited", ChannelAccess.Alarms.NONE)]
-
-    @parameterized.expand([
-        ("1.23", 1.23)
-    ])
-    def test_GIVEN_gauge_pressure_WHEN_gauge_status_requested_THEN_gauge_pressure_read_back(self, _, pressure_to_test):
-        # GIVEN
-        #self._lewis.backdoor_run_function_on_device("set_gauge_pressure", arguments=(pressure_to_test,))
-        self._lewis.backdoor_set_on_device("gauge_pressure", pressure_to_test)
-
-        # THEN
-        self.ca.assert_that_pv_is_number("GAUGE1:P", pressure_to_test, tolerance=0.1*abs(pressure_to_test))
-
-    @parameterized.expand([
-        ("Pa", "Pa"),
-        ("V", "V"),
-        ("percent", "%")
-        ])
-    def test_GIVEN_gauge_units_WHEN_gauge_status_requested_THEN_correct_units_read_back(self, unit, unit_label):
-        # GIVEN
-        self._lewis.backdoor_run_function_on_device("set_gauge_units", arguments=(unit, ))
-
-        # THEN
-        self.ca.assert_that_pv_is("GAUGE1:UNIT", unit_label)
+class Gauge3Tests(GaugeTestBase, unittest.TestCase):
+    def get_gauge_number(self):
+        return 3
