@@ -175,6 +175,10 @@ class GaugeTestBase(EdwardsTICBase):
         # THEN
         self.ca.assert_that_pv_is("GAUGE{}:UNIT".format(self.get_gauge_number()), unit_label)
 
+    def test_THAT_gauge_visibility_PV_exists(self):
+        # The gauge visibility PV will always be YES in the tests, as they boot 'using' all of the gauges. 
+        self.ca.assert_that_pv_is("GAUGE{}VISIBLE".format(self.get_gauge_number()), "YES")
+
 
 class EdwardsTICTests(unittest.TestCase):
     """
@@ -273,8 +277,6 @@ class TurboStatusTests(EdwardsTICBase, unittest.TestCase):
                 ("stopping_normal_delay", "Stopping Normal Delay", ChannelAccess.Alarms.NONE),
                 ("fault_braking", "Fault Breaking", ChannelAccess.Alarms.MAJOR),
                 ("braking", "Braking", ChannelAccess.Alarms.NONE)]
-
-
 
 
 class Gauge1Tests(GaugeTestBase, unittest.TestCase):
