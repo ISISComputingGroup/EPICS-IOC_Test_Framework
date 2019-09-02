@@ -8,10 +8,7 @@ import subprocess
 import sys
 from time import sleep, time
 from functools import partial
-from contextlib import contextmanager
 import six
-from docutils.nodes import option
-from prompt_toolkit.keys import Key
 
 from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP
@@ -496,9 +493,10 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             self.wait = False
 
         self._process = None
-        self._log_file = open(log_filename("cmdemulator", self._device, True, self._var_dir), "w")
+        self._log_file = None
 
     def _open(self):
+        self._log_file = open(log_filename("cmdemulator", self._device, True, self._var_dir), "w")
         self._call_command_line(self.command_line.format(port=self._port))
 
     def _call_command_line(self, command_line):
@@ -538,13 +536,15 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
         try:
             self.beckhoff_root = options["beckhoff_root"]
             self.solution_path = options["solution_path"]
-            automation_tools = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools", "bin", "x64", "Release", "AutomationTools.exe")
-            plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
-            self.beckhoff_command_line = '{} "{}" '.format(automation_tools, plc_to_start)
-            self.startup_command = self.beckhoff_command_line + "activate run"
         except KeyError:
-            raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' option must be "
-                           "provided as part of the options dictionary")
+            raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and `solution_path` options must"
+                           " be provided as part of the options dictionary")
+
+        automation_tools = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools", "bin", "x64", "Release", "AutomationTools.exe")
+        plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
+        self.beckhoff_command_line = '{} "{}" '.format(automation_tools, plc_to_start)
+        self.startup_command = self.beckhoff_command_line + "activate run"
+
         options["emulator_command_line"] = self.startup_command
         options["emulator_wait_to_finish"] = True
         super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
