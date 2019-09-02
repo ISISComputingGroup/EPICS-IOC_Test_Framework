@@ -40,30 +40,56 @@ PRI_SEVERITIES = {"OK": ChannelAccess.Alarms.NONE,
 class EdwardsTICBase(object):
     @abstractmethod
     def get_base_PV(self):
+        """
+        Returns string containing a PV which is read from the device
+        """
         pass
 
     @abstractmethod
     def get_alert_PV(self):
+        """
+        Returns string containing the alert PV read through record redirection from the base PV
+        """
         pass
 
     @abstractmethod
     def get_priority_PV(self):
+        """
+        Returns string containing the priority PV read through record redirection from the base PV
+        """
         pass
 
     @abstractmethod
     def get_status_setter(self):
+        """
+        Returns string containing the name of the setter function for the base PV in the device emulator
+        """
         pass
 
     @abstractmethod
     def get_alert_function(self):
+        """
+        Returns string containing the name of the setter function for the alert in the device emulator
+        """
         pass
 
     @abstractmethod
     def get_priority_function(self):
+        """
+        Returns string containing the name of the setter function for the priority in the device emulator
+        """
         pass
 
     @abstractmethod
     def get_status_labels():
+        """
+        Returns list of tuples containing:
+        (
+            string of representation of status in device emulator,
+            string of representation of status in IOC,
+            expected alarm level for this status
+        )
+        """
         return ()
 
     def setUp(self):
@@ -102,9 +128,20 @@ class EdwardsTICBase(object):
         # GIVEN
         self._lewis.backdoor_run_function_on_device(self.get_status_setter(), arguments=(turbo_status, ))
 
-        # WHEN
+        # THEN
         self.ca.assert_that_pv_is(self.get_base_PV(), IOC_status_label)
         self.ca.assert_that_pv_alarm_is(self.get_base_PV(), expected_alarm)
+
+    def test_GIVEN_device_disconnected_WHEN_base_PV_read_THEN_alert_and_priority_PVs_read_disconnected(self):
+        # GIVEN
+        self._lewis.backdoor_set_on_device("is_connected", False)
+
+        expected_alarm = ChannelAccess.Alarms.INVALID
+
+        # THEN
+        self.ca.assert_that_pv_alarm_is(self.get_base_PV(), expected_alarm)
+        self.ca.assert_that_pv_alarm_is(self.get_alert_PV(), expected_alarm)
+        self.ca.assert_that_pv_alarm_is(self.get_priority_PV(), expected_alarm)
 
 
 @six.add_metaclass(ABCMeta)
@@ -174,6 +211,7 @@ class GaugeTestBase(EdwardsTICBase):
 
         # THEN
         self.ca.assert_that_pv_is("GAUGE{}:UNIT".format(self.get_gauge_number()), unit_label)
+        self.ca.assert_that_pv_is("GAUGE{}:P.EGU".format(self.get_gauge_number()), unit_label)
 
     def test_THAT_gauge_visibility_PV_exists(self):
         # The gauge visibility PV will always be YES in the tests, as they boot 'using' all of the gauges. 
@@ -215,23 +253,6 @@ class EdwardsTICTests(unittest.TestCase):
         self.ca.assert_that_pv_is("TURBO:STBY", "No")
 
     @parameterized.expand([
-        ("stopped", "Stopped", ChannelAccess.Alarms.NONE),
-        ("starting_delay", "Starting Delay", ChannelAccess.Alarms.NONE),
-        ("accelerating", "Accelerating", ChannelAccess.Alarms.NONE),
-        ("running", "Running", ChannelAccess.Alarms.NONE),
-        ("stopping_short_delay", "Stopping Short Delay", ChannelAccess.Alarms.NONE),
-        ("stopping_normal_delay", "Stopping Normal Delay", ChannelAccess.Alarms.NONE),
-        ("fault_braking", "Fault Breaking", ChannelAccess.Alarms.MAJOR),
-        ("braking", "Braking", ChannelAccess.Alarms.NONE),
-    ])
-    def test_GIVEN_turbo_status_WHEN_turbo_status_read_THEN_turbo_status_read_back(self, turbo_status, IOC_status_label, expected_alarm):
-        # GIVEN
-        self._lewis.backdoor_run_function_on_device("set_turbo_pump_state", arguments=(turbo_status, ))
-        # WHEN
-        self.ca.assert_that_pv_is("TURBO:STA", IOC_status_label)
-        self.ca.assert_that_pv_alarm_is("TURBO:STA", expected_alarm)
-
-    @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
         ("turbo_speed", "TURBO:SPEED"),
         ("turbo_power", "TURBO:POWER"),
@@ -239,7 +260,7 @@ class EdwardsTICTests(unittest.TestCase):
         ("turbo_standby", "TURBO:STBY"),
         ("turbo_cycle", "TURBO:CYCLE")
     ])
-    def test_GIVEN_disconnected_device_WHEN_pump_status_read_THEN_PVs_read_invalid(self, _, base_pv):
+    def test_GIVEN_disconnected_device_THEN_record_redirected_PVs_read_invalid(self, _, base_pv):
         # GIVEN
         self._lewis.backdoor_set_on_device("is_connected", False)
 
