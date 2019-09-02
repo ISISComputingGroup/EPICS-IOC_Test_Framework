@@ -232,7 +232,7 @@ class EdwardsTICTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("edwardstic", DEVICE_PREFIX)
 
-        self.ca = get_common_channel_access() #ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
+        self.ca = get_common_channel_access()
         self._lewis.backdoor_set_on_device("is_connected", True)
 
         self.ca.assert_setting_setpoint_sets_readback("No", "TURBO:STBY", set_point_pv="TURBO:SETSTBY", timeout=30)
