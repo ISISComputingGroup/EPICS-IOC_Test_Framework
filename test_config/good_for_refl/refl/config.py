@@ -25,14 +25,17 @@ def get_beamline():
     s4_comp = Component("s4", PositionAndAngle(0.0, 3.5 * SPACING, 90))
     detector = TiltingComponent("Detector", PositionAndAngle(0.0, 4*SPACING, 90))
     theta = ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2*SPACING, 90), [detector])
+    s5_comp = Component("s5", PositionAndAngle(0.0, 3.5 * SPACING, 90))
     not_in_mode = Component("NotInModeComp", PositionAndAngle(0.0, 5*SPACING, 90))
 
-    comps = [s1, theta, s3, s4_comp, detector, not_in_mode]
+    comps = [s1, theta, s3, s4_comp, s5_comp, detector, not_in_mode]
 
     # BEAMLINE PARAMETERS
     slit1_pos = TrackingPosition("S1", s1, True)
     slit3_pos = TrackingPosition("S3", s3, True)
-    slit4_pos = TrackingPosition("S4", s4_comp, True)
+    slit4_pos = TrackingPosition("S4", s4_comp, autosave=True)
+    slit5_pos = TrackingPosition("S5", s5_comp, autosave=True)
+
     theta_ang = AngleParameter("Theta", theta, True)
     detector_position = TrackingPosition("det_pos", detector, True)
     detector_angle = AngleParameter("det_ang", detector, True)
@@ -40,10 +43,10 @@ def get_beamline():
     s3_enabled = InBeamParameter("s3_enabled", s3)
     hgap_param = SlitGapParameter("S1HG", JawsGapPVWrapper("MOT:JAWS1", is_vertical=False))
 
-    params_all = [s3_enabled, slit1_pos, theta_ang, slit3_pos, slit4_pos, detector_position, detector_angle, not_in_mode_pos, hgap_param]
-    params_default = [s3_enabled, slit1_pos, theta_ang, slit3_pos, slit4_pos, detector_position, detector_angle]
-    
-    params_for_mode_testing = [slit1_pos, theta_ang, slit3_pos, slit4_pos, detector_position, s3_enabled]
+    params_all = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle, not_in_mode_pos, hgap_param, slit4_pos, slit5_pos]
+    params_default = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle, slit4_pos, slit5_pos]
+
+    params_for_mode_testing = [slit1_pos, theta_ang, slit3_pos, slit4_pos, slit5_pos, detector_position, s3_enabled]
 
     # DRIVES
     drivers = [DisplacementDriver(s1, MotorPVWrapper("MOT:MTR0101")),
@@ -52,7 +55,9 @@ def get_beamline():
                DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0104")),
                AngleDriver(detector, MotorPVWrapper("MOT:MTR0105")),
                # MTR0201-MTR0204 used for jaws1
-               DisplacementDriver(not_in_mode, MotorPVWrapper("MOT:MTR0205"))]
+               DisplacementDriver(not_in_mode, MotorPVWrapper("MOT:MTR0205")),
+               DisplacementDriver(s5_comp, MotorPVWrapper("MOT:MTR0206"),
+                                  engineering_correction=InterpolateGridDataCorrection("s4_correction.dat", theta_ang))]
 
     # MODES
     nr_inits = {}
