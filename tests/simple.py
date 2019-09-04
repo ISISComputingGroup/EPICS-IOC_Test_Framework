@@ -1,12 +1,15 @@
 import unittest
-import os
 from unittest import skip
+import os
+import subprocess
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
 from utils.ioc_launcher import IOCRegister
 from utils.testing import assert_log_messages
 from utils.test_modes import TestModes
+from genie_python.genie_cachannel_wrapper import CaChannelWrapper, CaChannelException
+from genie_python.channel_access_exceptions import ReadAccessException
 
 DEVICE_PREFIX = "SIMPLE"
 IOC_STARTED_TEXT = "epics>"
@@ -22,7 +25,6 @@ IOCS = [
         "started_text": IOC_STARTED_TEXT,
     },
 ]
-
 
 TEST_MODES = [TestModes.RECSIM, ]
 
@@ -59,3 +61,106 @@ class SimpleTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
+
+    def check_write_through_python(self, addr, recordType):
+        val_before = self.ca.get_pv_value(addr)
+        if recordType in ["STRINGIN", "STRINGOUT", "BO", "BI", "MBBI"]:
+            subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr),
+                             val_before + "1"])
+        else:
+            subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr),
+                             str(val_before + 1)])
+        if val_before == self.ca.get_pv_value(addr):
+            return False
+        else:
+            return True
+
+    def check_write_through_cmd(self, addr, recordType):
+        val_before = self.ca.get_pv_value(addr)
+        FNULL = open(os.devnull, 'w')
+        if recordType in ["STRINGIN", "STRINGOUT", "BO", "BI", "MBBI"]:
+            subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr),
+                             val_before + "1"], stdout=FNULL, stderr=subprocess.STDOUT)
+        else:
+            subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr),
+                             str(val_before + 1)], stdout=FNULL, stderr=subprocess.STDOUT)
+        if val_before == self.ca.get_pv_value(addr):
+            return False
+        else:
+            return True
+
+    def test_GIVEN_PV_with_disp_true_WHEN_written_to_through_python_THEN_nothing_changes(self):
+        fails = []
+        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
+            address = "CATEST:{}:DISP".format(recordType)
+            self.ca.assert_that_pv_exists(address)
+            if self.check_write_through_python(address, recordType):
+                fails.append(recordType.lower())
+        if fails:
+            self.fail("The following record types were written to by python with DISP true:\n" + "\n".join(fails))
+
+    def test_GIVEN_PV_with_disp_true_WHEN_written_to_through_cmd_THEN_nothing_changes(self):
+        fails = []
+        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
+            address = "CATEST:{}:DISP".format(recordType)
+            self.ca.assert_that_pv_exists(address)
+            if self.check_write_through_cmd(address, recordType):
+                fails.append(recordType.lower())
+        if fails:
+            self.fail("The following record types were written to through caput with DISP true:\n" + "\n".join(fails))
+
+    def test_GIVEN_PV_in_readonly_mode_WHEN_written_to_through_python_THEN_nothing_changes(self):
+        fails = []
+        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
+            address = "CATEST:{}:RO".format(recordType)
+            self.ca.assert_that_pv_exists(address)
+            if self.check_write_through_python(address, recordType):
+                fails.append(recordType.lower())
+        if fails:
+            self.fail(
+                "The following record types were written to through python in Readonly mode:\n" + "\n".join(fails))
+
+    def test_GIVEN_PV_in_readonly_mode_WHEN_written_to_through_cmd_THEN_nothing_changes(self):
+        fails = []
+        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
+            address = "CATEST:{}:RO".format(recordType)
+            self.ca.assert_that_pv_exists(address)
+            if self.check_write_through_cmd(address, recordType):
+                fails.append(recordType.lower())
+        if fails:
+            self.fail("The following record types were written to through caput in Readonly mode:\n" + "\n".join(fails))
+
+    def test_GIVEN_PV_in_readonly_mode_with_disp_true_WHEN_written_to_through_python_THEN_nothing_changes(self):
+        fails = []
+        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
+            address = "CATEST:{}:RODISP".format(recordType)
+            self.ca.assert_that_pv_exists(address)
+            if self.check_write_through_python(address, recordType):
+                fails.append(recordType.lower())
+        if fails:
+            self.fail("The following record types were written to through python in Readonly mode with disp true:\n" +
+                      "\n".join(fails))
+
+    def test_GIVEN_PV_in_readonly_mode_with_disp_true_WHEN_written_to_through_cmd_THEN_nothing_changes(self):
+        fails = []
+        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
+            address = "CATEST:{}:RODISP".format(recordType)
+            self.ca.assert_that_pv_exists(address)
+            if self.check_write_through_python(address, recordType):
+                fails.append(recordType.lower())
+        if fails:
+            self.fail("The following record types were written to through caput in Readonly mode with disp true:\n" +
+                      "\n".join(fails))
+
+    def test_GIVEN_PV_in_hidden_mode_WHEN_read_attempted_THEN_get_error(self):
+        fails = []
+        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
+            address = "CATEST:{}:HIDDEN".format(recordType)
+            self.ca.assert_that_pv_exists(address)
+            try:
+                self.ca.get_pv_value(address)
+                fails.append(recordType.lower())
+            except ReadAccessException:
+                continue
+        if fails:
+            self.fail("The following records could be read in hidden mode:\n" + "\n".join(fails))
