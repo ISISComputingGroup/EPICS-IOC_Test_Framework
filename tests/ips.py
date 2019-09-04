@@ -1,10 +1,12 @@
 import unittest
 from contextlib import contextmanager
 
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
+from utils.testing import get_running_lewis_and_ioc, parameterized_list
 
 
 DEVICE_PREFIX = "IPS_01"
@@ -37,6 +39,7 @@ HEATER_OFF_STATES = ["Off Mag at 0", "Off Mag at F"]
 # On a real system this is 60s but speed it up a bit for the sake of tests.
 HEATER_WAIT_TIME = 10
 
+ACTIVITY_STATES = ["Hold", "To Setpoint", "To Zero", "Clamped"]
 
 class IpsTests(unittest.TestCase):
     """
@@ -215,3 +218,11 @@ class IpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("FIELD:RATE:SP", val, tolerance=TOLERANCE)
             self.ca.assert_that_pv_is_number("FIELD:RATE", val, tolerance=TOLERANCE)
             self.ca.assert_that_pv_alarm_is("FIELD:RATE", self.ca.Alarms.NONE)
+
+    @parameterized.expand(parameterized_list(ACTIVITY_STATES))
+    def test_WHEN_activity_set_via_backdoor_to_clamped_THEN_alarm_major_ELSE_no_alarm(self, _, activity_state):
+        self._lewis.backdoor_set_on_device("backdoor_set_activity", activity_state)
+        if activity_state == "Clamped":
+            self.ca.assert_that_pv_alarm_is("ACTIVITY", "MAJOR")
+        else:
+            self.ca.assert_that_pv_alarm_is("ACTIVITY", "NO_ALARM")
