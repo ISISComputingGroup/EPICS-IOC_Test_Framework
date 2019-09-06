@@ -202,22 +202,14 @@ class GaugeTestBase(EdwardsTICBase):
         self._lewis.backdoor_set_on_device("gauge_pressure", pressure_to_test)
 
         # THEN
-        self.ca.assert_that_pv_is_number("GAUGE{}:PRESSURE".format(self.get_gauge_number()),
+        self.ca.assert_that_pv_is_number("GAUGE{}:PRESSURE:RAW".format(self.get_gauge_number()),
                                          pressure_to_test,
                                          tolerance=0.1*abs(pressure_to_test))
 
-    @parameterized.expand([
-        ("Pa", "Pa"),
-        ("V", "V"),
-        ("percent", "%")
-        ])
-    def test_GIVEN_gauge_units_WHEN_gauge_status_requested_THEN_correct_units_read_back(self, unit, unit_label):
-        # GIVEN
-        self._lewis.backdoor_run_function_on_device("set_gauge_units", arguments=(unit, ))
-
-        # THEN
-        self.ca.assert_that_pv_is("GAUGE{}:UNIT".format(self.get_gauge_number()), unit_label)
-        self.ca.assert_that_pv_is("GAUGE{}:PRESSURE.EGU".format(self.get_gauge_number()), unit_label)
+        # Gauge pressures are read back in mbar (=Pa/100)
+        self.ca.assert_that_pv_is_number("GAUGE{}:PRESSURE".format(self.get_gauge_number()),
+                                         pressure_to_test/100.0,
+                                         tolerance=0.1*abs(pressure_to_test)/100.0)
 
     def test_THAT_gauge_visibility_PV_exists(self):
         # The gauge visibility PV will always be YES in the tests, as they boot 'using' all of the gauges. 
