@@ -37,25 +37,21 @@ class CP2800StatusTests(unittest.TestCase):
                  (1000001, self.ca.Alarms.MAJOR),
                  ]
         for test in tests:
-            self.ca.set_pv_value("SIM:ELAPSED", test[0])
-            self.ca.assert_that_pv_alarm_is("ELAPSED", test[1], 10)
+            elapsed_time, expected_alarm = test
+            self.ca.set_pv_value("SIM:ELAPSED", elapsed_time)
+            self.ca.assert_that_pv_alarm_is("ELAPSED", expected_alarm, 10)
 
-    def test_GIVEN_compressor_state_on_THEN_readback_correct(self):
-        self.ca.set_pv_value("SIM:POWER", 1)
-        self.ca.assert_that_pv_is("POWER", "On")
-
-    def test_GIVEN_compressor_state_off_THEN_readback_correct(self):
-        self.ca.set_pv_value("SIM:POWER", 0)
-        self.ca.assert_that_pv_is("POWER", "Off")
+    def test_GIVEN_compressor_state_on_or_off_THEN_readback_correct(self):
+        states = [(1, "On"), (0, "Off")]
+        for state in states:
+            send_val, expected_response = state
+            self.ca.set_pv_value("SIM:POWER", send_val)
+            self.ca.assert_that_pv_is("POWER", expected_response)
 
     def test_GIVEN_error_value_THEN_readback_correct(self):
         self.ca.set_pv_value("SIM:ERR", 1)
-        self.ca.assert_that_pv_is("ERR", 1, 10)
-
-    def test_GIVEN_positive_error_value_THEN_alarm_correct(self):
-        self.ca.set_pv_value("SIM:ERR", 1)
-        self.ca.assert_that_pv_alarm_is("ERR", self.ca.Alarms.MINOR, 10)
+        self.ca.assert_that_pv_is("ERR", 1, timeout=10)
 
     def test_GIVEN_negative_error_value_THEN_alarm_correct(self):
         self.ca.set_pv_value("SIM:ERR", -1)
-        self.ca.assert_that_pv_alarm_is("ERR", self.ca.Alarms.MAJOR, 10)
+        self.ca.assert_that_pv_alarm_is("ERR", self.ca.Alarms.MAJOR, timeout=10)
