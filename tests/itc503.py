@@ -5,7 +5,8 @@ import itertools
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim, parameterized_list
+from parameterized import parameterized
 
 DEVICE_PREFIX = "ITC503_01"
 
@@ -38,6 +39,15 @@ CTRL_MODE_ALARMS = {"Locked": ChannelAccess.Alarms.NONE,
                     "Remote only": ChannelAccess.Alarms.NONE,
                     "Local only": ChannelAccess.Alarms.MAJOR,
                     "Local and remote": ChannelAccess.Alarms.NONE}
+
+# Build a list contain all the PVs that set a command and a set value
+# product creates a cartesian product list of the two lists given
+ALL_CONTROL_COMMANDS_LIST_OF_LISTS = [itertools.product(["P", "I", "D", "GASFLOW", "TEMP", "HEATERP"], TEST_VALUES),
+                                      itertools.product(["MODE:HTR", "MODE:GAS"], MODES),
+                                      itertools.product(["CTRLCHANNEL"], CHANNELS),
+                                      itertools.product(["AUTOPID"], ["OFF", "ON"])]
+
+ALL_CONTROL_COMMANDS = [command for command_list in ALL_CONTROL_COMMANDS_LIST_OF_LISTS for command in command_list]
 
 
 class Itc503Tests(unittest.TestCase):
@@ -126,3 +136,12 @@ class Itc503Tests(unittest.TestCase):
 
             # Emulator responds with heater p == heater v. Test that heater p is also reading.
             self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
+
+    def test_WHEN_control_command_sent_THEN_remote_unlocked_set(self):
+        self.ca.set_pv_value("CTRL", "Locked")
+        for (control_pv, set_value) in ALL_CONTROL_COMMANDS:
+            self.ca.set_pv_value("{}:SP".format(control_pv), set_value)
+            self.ca.assert_that_pv_is("CTRL", "Local and remote")
+            self.ca.set_pv_value("CTRL", "Locked")
+
+

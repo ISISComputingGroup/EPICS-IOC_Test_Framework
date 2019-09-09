@@ -1,7 +1,6 @@
 import unittest
 from contextlib import contextmanager
-
-from parameterized import parameterized
+import itertools
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -41,6 +40,17 @@ HEATER_WAIT_TIME = 10
 
 ACTIVITY_STATES = ["Hold", "To Setpoint", "To Zero", "Clamped"]
 
+# Generate all the control commands to test that remote and unlocked is set for
+# Chain flattens the list
+CONTROL_COMMANDS_WITH_VALUES = [("FIELD", 0.1), ("FIELD:RATE", 0.1), ("SWEEPMODE:PARAMS", "Tesla Fast")]
+for activity_state in ACTIVITY_STATES:
+    CONTROL_COMMANDS_WITH_VALUES.append(("ACTIVITY", activity_state))
+for heater_off_state in HEATER_OFF_STATES:
+    CONTROL_COMMANDS_WITH_VALUES.append(("HEATER:STATUS", heater_off_state))
+
+CONTROL_COMMANDS_WITHOUT_VALUES = ["SET:COMMSRES"]
+
+
 class IpsTests(unittest.TestCase):
     """
     Tests for the Ips IOC.
@@ -67,8 +77,10 @@ class IpsTests(unittest.TestCase):
 
         self.ca.set_pv_value("FIELD:RATE:SP", 10)
 
+        self.ca.process_pv("FIELD:SP")
+
         # Wait for statemachine to reach "at field" state before every test.
-        self.ca.assert_that_pv_is_one_of("STATEMACHINE", ["At field", "Initial state"])
+        self.ca.assert_that_pv_is("STATEMACHINE", "At field")
 
     def tearDown(self):
         # Wait for statemachine to reach "at field" state after every test.
@@ -219,10 +231,20 @@ class IpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("FIELD:RATE", val, tolerance=TOLERANCE)
             self.ca.assert_that_pv_alarm_is("FIELD:RATE", self.ca.Alarms.NONE)
 
-    @parameterized.expand(parameterized_list(ACTIVITY_STATES))
-    def test_WHEN_activity_set_via_backdoor_to_clamped_THEN_alarm_major_ELSE_no_alarm(self, _, activity_state):
-        self._lewis.backdoor_set_on_device("backdoor_set_activity", activity_state)
-        if activity_state == "Clamped":
-            self.ca.assert_that_pv_alarm_is("ACTIVITY", "MAJOR")
-        else:
-            self.ca.assert_that_pv_alarm_is("ACTIVITY", "NO_ALARM")
+    def test_WHEN_activity_set_via_backdoor_to_clamped_THEN_alarm_major_ELSE_no_alarm(self):
+        for activity_state in ACTIVITY_STATES:
+            self.ca.set_pv_value("ACTIVITY", activity_state)
+            if activity_state == "Clamped":
+                self.ca.assert_that_pv_alarm_is("ACTIVITY", "MAJOR")
+            else:
+                self.ca.assert_that_pv_alarm_is("ACTIVITY", "NO_ALARM")
+
+    def test_WHEN_control_command_sent_THEN_remote_unlocked_set(self):
+        self.ca.set_pv_value("CONTROL", "Local & Locked")
+        for (control_pv, set_value) in CONTROL_COMMANDS_WITH_VALUES:
+            self.ca.set_pv_value(control_pv, set_value)
+            self.ca.assert_that_pv_is("CONTROL", "Remote & Unlocked")
+            self.ca.set_pv_value("CONTROL", "Local & Locked")
+        for control_pv in CONTROL_COMMANDS_WITHOUT_VALUES:
+            self.ca.process_pv(control_pv)
+            self.ca.assert_that_pv_is("CONTROL", "Remote & Unlocked")
