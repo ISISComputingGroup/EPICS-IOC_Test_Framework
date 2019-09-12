@@ -70,6 +70,13 @@ By default the framework searches for tests inside `.\tests\`. If you wish to sp
 
 >`python run_tests.py -tp C:\my_ioc_tests` will run tests in the `my_ioc_tests` folder.
 
+### Run test but Ask before starting the tests but after the IOC and emmulator are running
+
+It is sometimes useful to attach a debugger to the test using this option means that the framework will ask to run tests before it starts the setup for the test.
+This gives you time to attach a debugger. It also allows you an easy way to set up the system with emmulator and ioc attached to each other for unscripted testing.
+
+>  `python run_tests.py -a will ask if you want to run test before it runs them.
+
 ## Troubleshooting 
 
 If all tests are failing then it is likely that the PV prefix is incorrect.
