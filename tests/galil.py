@@ -9,8 +9,6 @@ from parameterized import parameterized
 
 MTR_01 = "GALIL_01"
 
-
-# Tests will fail if JAWS support module is not up to date and built
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config"))
 
 IOCS = [
