@@ -137,11 +137,10 @@ class Itc503Tests(unittest.TestCase):
             # Emulator responds with heater p == heater v. Test that heater p is also reading.
             self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
 
+    @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_control_command_sent_THEN_remote_unlocked_set(self):
         self.ca.set_pv_value("CTRL", "Locked")
         for (control_pv, set_value) in ALL_CONTROL_COMMANDS:
             self.ca.set_pv_value("{}:SP".format(control_pv), set_value)
             self.ca.assert_that_pv_is("CTRL", "Local and remote")
             self.ca.set_pv_value("CTRL", "Locked")
-
-
