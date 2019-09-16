@@ -141,7 +141,7 @@ class JawsTests(unittest.TestCase):
         enabled_val = 0
         for mtr in self.UNDERLYING_MTRS:
             mtr_status_pv = "{}_{}".format(mtr, key)
-            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), enabled_val)
+            self.ca.set_pv_value(mtr_status_pv, enabled_val)
 
         jaws_status_readback_pv = "{}:{}".format(JAWS_BASE_PV, key.upper())
         actual = self.ca.get_pv_value(jaws_status_readback_pv)
@@ -154,7 +154,7 @@ class JawsTests(unittest.TestCase):
         disabled_val = 1
         for mtr in self.UNDERLYING_MTRS:
             mtr_status_pv = "{}_{}".format(mtr, key)
-            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), disabled_val)
+            self.ca.set_pv_value(mtr_status_pv, disabled_val)
 
         jaws_status_readback_pv = "{}:{}".format(JAWS_BASE_PV, key.upper())
         actual = self.ca.get_pv_value(jaws_status_readback_pv)
@@ -168,10 +168,10 @@ class JawsTests(unittest.TestCase):
         enabled_val = 1
         for mtr in self.UNDERLYING_MTRS[:2]:
             mtr_status_pv = "{}_{}".format(mtr, key)
-            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), enabled_val)
+            self.ca.set_pv_value(mtr_status_pv, enabled_val)
         for mtr in self.UNDERLYING_MTRS[2:]:
             mtr_status_pv = "{}_{}".format(mtr, key)
-            self.ca.set_pv_value(mtr_status_pv.format(JAWS_BASE_PV), disabled_val)
+            self.ca.set_pv_value(mtr_status_pv, disabled_val)
 
         jaws_status_readback_pv = "{}:{}".format(JAWS_BASE_PV, key.upper())
         actual = self.ca.get_pv_value(jaws_status_readback_pv)
