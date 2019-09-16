@@ -6,6 +6,7 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
 from parameterized import parameterized
+from collections import OrderedDict
 
 MTR_01 = "GALIL_01"
 
@@ -43,12 +44,12 @@ class JawsTests(unittest.TestCase):
     MTR_SOUTH = "MOT:MTR0102"
     MTR_EAST = "MOT:MTR0103"
     MTR_WEST = "MOT:MTR0104"
-    UNDERLYING_MTRS = [MTR_NORTH, MTR_SOUTH, MTR_EAST, MTR_WEST]
+    UNDERLYING_MTRS = OrderedDict([("N", MTR_NORTH), ("S", MTR_SOUTH), ("E", MTR_EAST), ("W",  MTR_WEST)])
 
     def setUp(self):
         self._ioc = IOCRegister.get_running("jaws")
         self.ca = ChannelAccess(default_timeout=30)
-        for mtr in self.UNDERLYING_MTRS:
+        for mtr in self.UNDERLYING_MTRS.values():
             self.ca.set_pv_value("{}.VMAX".format(mtr), 100)
             self.ca.set_pv_value("{}.VELO".format(mtr), 100)
 
@@ -139,7 +140,7 @@ class JawsTests(unittest.TestCase):
                            ("able", "Enable")])
     def test_GIVEN_all_jaws_have_state_set_THEN_overall_state_is_set(self, key, expected):
         enabled_val = 0
-        for mtr in self.UNDERLYING_MTRS:
+        for mtr in self.UNDERLYING_MTRS.values():
             mtr_status_pv = "{}_{}".format(mtr, key)
             self.ca.set_pv_value(mtr_status_pv, enabled_val)
 
@@ -152,7 +153,7 @@ class JawsTests(unittest.TestCase):
                            ("able", "Disable")])
     def test_GIVEN_no_jaws_have_state_set_THEN_overall_state_is_not_set(self, key, expected):
         disabled_val = 1
-        for mtr in self.UNDERLYING_MTRS:
+        for mtr in self.UNDERLYING_MTRS.values():
             mtr_status_pv = "{}_{}".format(mtr, key)
             self.ca.set_pv_value(mtr_status_pv, disabled_val)
 
@@ -166,10 +167,10 @@ class JawsTests(unittest.TestCase):
     def test_GIVEN_some_jaws_have_state_set_THEN_overall_state_is_unknown(self, key, expected):
         disabled_val = 0
         enabled_val = 1
-        for mtr in self.UNDERLYING_MTRS[:2]:
+        for mtr in self.UNDERLYING_MTRS.values()[:2]:
             mtr_status_pv = "{}_{}".format(mtr, key)
             self.ca.set_pv_value(mtr_status_pv, enabled_val)
-        for mtr in self.UNDERLYING_MTRS[2:]:
+        for mtr in self.UNDERLYING_MTRS.values()[2:]:
             mtr_status_pv = "{}_{}".format(mtr, key)
             self.ca.set_pv_value(mtr_status_pv, disabled_val)
 
