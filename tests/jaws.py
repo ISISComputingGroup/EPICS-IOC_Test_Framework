@@ -178,3 +178,16 @@ class JawsTests(unittest.TestCase):
         actual = self.ca.get_pv_value(jaws_status_readback_pv)
 
         self.assertEqual(expected, actual)
+
+    @parameterized.expand(parameterized_list(DIRECTIONS))
+    def test_GIVEN_underlying_mtr_ADEL_value_THEN_jaws_ADEL_field_mirrored(self, _, direction):
+        motor_adel_pv = "{}.ADEL".format(self.UNDERLYING_MTRS[direction])
+        jaw_adel_pv = "{}:{}.ADEL".format(JAWS_BASE_PV, direction)
+
+        self.ca.set_pv_value(motor_adel_pv, 0.0)
+        self.ca.assert_that_pv_is(motor_adel_pv, 0.0)
+
+        self.ca.set_pv_value(motor_adel_pv, 12.3)
+        self.ca.assert_that_pv_is(motor_adel_pv, 12.3)
+        self.ca.assert_that_pv_is(jaw_adel_pv, 12.3)
+        self.ca.set_pv_value(motor_adel_pv, 12.3)
