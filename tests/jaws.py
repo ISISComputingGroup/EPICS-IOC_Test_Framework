@@ -44,7 +44,10 @@ class JawsTests(unittest.TestCase):
     MTR_SOUTH = "MOT:MTR0102"
     MTR_WEST = "MOT:MTR0103"
     MTR_EAST = "MOT:MTR0104"
-    UNDERLYING_MTRS = OrderedDict([("N", MTR_NORTH), ("S", MTR_SOUTH), ("E", MTR_EAST), ("W",  MTR_WEST)])
+    UNDERLYING_MTRS = OrderedDict([("N", MTR_NORTH),
+                                   ("S", MTR_SOUTH),
+                                   ("E", MTR_EAST),
+                                   ("W",  MTR_WEST)])
 
     def setUp(self):
         self._ioc = IOCRegister.get_running("jaws")
@@ -59,45 +62,13 @@ class JawsTests(unittest.TestCase):
         self.ca.set_pv_value("MOT:JAWS1:HGAP:SP", 0)
         self.ca.set_pv_value("MOT:JAWS1:VGAP:SP", 0)
 
-    def test_GIVEN_ioc_started_THEN_underlying_mtr_north_fields_can_be_read(self):
-        underlying_mtr = self.MTR_NORTH
-        direction_key = "JN"
+
+    @parameterized.expand(parameterized_list(DIRECTIONS))
+    def test_GIVEN_ioc_started_THEN_underlying_mtr_fields_can_be_read(self, _, direction):
+        underlying_mtr = self.UNDERLYING_MTRS[direction]
 
         expected = self.ca.get_pv_value("{}.VELO".format(underlying_mtr))
-        jaw_blade_pv = "{}:{}".format(JAWS_BASE_PV, direction_key)
-
-        actual = self.ca.get_pv_value("{}:MTR.VELO".format(jaw_blade_pv))
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_ioc_started_THEN_underlying_mtr_south_fields_can_be_read(self):
-        underlying_mtr = self.MTR_SOUTH
-        direction_key = "JS"
-
-        expected = self.ca.get_pv_value("{}.VELO".format(underlying_mtr))
-        jaw_blade_pv = "{}:{}".format(JAWS_BASE_PV, direction_key)
-
-        actual = self.ca.get_pv_value("{}:MTR.VELO".format(jaw_blade_pv))
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_ioc_started_THEN_underlying_mtr_east_fields_can_be_read(self):
-        underlying_mtr = self.MTR_EAST
-        direction_key = "JE"
-
-        expected = self.ca.get_pv_value("{}.VELO".format(underlying_mtr))
-        jaw_blade_pv = "{}:{}".format(JAWS_BASE_PV, direction_key)
-
-        actual = self.ca.get_pv_value("{}:MTR.VELO".format(jaw_blade_pv))
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_ioc_started_THEN_underlying_mtr_west_fields_can_be_read(self):
-        underlying_mtr = self.MTR_WEST
-        direction_key = "JW"
-
-        expected = self.ca.get_pv_value("{}.VELO".format(underlying_mtr))
-        jaw_blade_pv = "{}:{}".format(JAWS_BASE_PV, direction_key)
+        jaw_blade_pv = "{}:J{}".format(JAWS_BASE_PV, direction)
 
         actual = self.ca.get_pv_value("{}:MTR.VELO".format(jaw_blade_pv))
 
@@ -195,21 +166,16 @@ class JawsTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number(motor_adel_pv, test_value)
             self.ca.assert_that_pv_is_number(jaw_adel_pv, test_value)
 
-
-    def test_GIVEN_underlying_mtr_adel_THEN_jaws_centre_and_gap_adel_mirrored(self):
-        north_motor_pv = "{}.ADEL".format(self.MTR_NORTH)
-        east_motor_pv = "{}.ADEL".format(self.MTR_EAST)
+    @parameterized.expand([("V", MTR_NORTH),
+                           ("H", MTR_EAST)])
+    def test_GIVEN_underlying_mtr_adel_THEN_jaws_centre_and_gap_adel_mirrored(self, axis, underlying_mtr):
+        motor_pv = "{}.ADEL".format(underlying_mtr)
 
         test_values = [1e-4, 1.2, 12.3]
         for test_value in test_values:
-            # Gaps and centre ADELs are set by North (Vertical) and East (Horizontal) motors 
-            self.ca.set_pv_value(north_motor_pv, test_value)
-            self.ca.set_pv_value(east_motor_pv, test_value)
+            self.ca.set_pv_value(motor_pv, test_value)
 
-            self.ca.assert_that_pv_is_number(north_motor_pv, test_value)
+            self.ca.assert_that_pv_is_number(motor_pv, test_value)
 
-            self.ca.assert_that_pv_is_number("{}:VCENT.ADEL".format(JAWS_BASE_PV), test_value)
-            self.ca.assert_that_pv_is_number("{}:VGAP.ADEL".format(JAWS_BASE_PV), test_value)
-
-            self.ca.assert_that_pv_is_number("{}:HCENT.ADEL".format(JAWS_BASE_PV), test_value)
-            self.ca.assert_that_pv_is_number("{}:HGAP.ADEL".format(JAWS_BASE_PV), test_value)
+            self.ca.assert_that_pv_is_number("{}:{}CENT.ADEL".format(JAWS_BASE_PV, axis), test_value)
+            self.ca.assert_that_pv_is_number("{}:{}GAP.ADEL".format(JAWS_BASE_PV, axis), test_value)
