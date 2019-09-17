@@ -180,7 +180,7 @@ class JawsTests(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     @parameterized.expand(parameterized_list(DIRECTIONS))
-    def test_GIVEN_underlying_mtr_ADEL_value_THEN_jaws_ADEL_field_mirrored(self, _, direction):
+    def test_GIVEN_underlying_mtr_adel_value_THEN_jaws_ADEL_field_mirrored(self, _, direction):
         motor_adel_pv = "{}.ADEL".format(self.UNDERLYING_MTRS[direction])
         jaw_adel_pv = "{}:J{}.ADEL".format(JAWS_BASE_PV, direction)
 
@@ -194,3 +194,22 @@ class JawsTests(unittest.TestCase):
 
             self.ca.assert_that_pv_is_number(motor_adel_pv, test_value)
             self.ca.assert_that_pv_is_number(jaw_adel_pv, test_value)
+
+
+    def test_GIVEN_underlying_mtr_adel_THEN_jaws_centre_and_gap_adel_mirrored(self):
+        north_motor_pv = "{}.ADEL".format(self.MTR_NORTH)
+        east_motor_pv = "{}.ADEL".format(self.MTR_EAST)
+
+        test_values = [1e-4, 1.2, 12.3]
+        for test_value in test_values:
+            # Gaps and centre ADELs are set by North (Vertical) and East (Horizontal) motors 
+            self.ca.set_pv_value(north_motor_pv, test_value)
+            self.ca.set_pv_value(east_motor_pv, test_value)
+
+            self.ca.assert_that_pv_is_number(north_motor_pv, test_value)
+
+            self.ca.assert_that_pv_is_number("{}:VCENT.ADEL".format(JAWS_BASE_PV), test_value)
+            self.ca.assert_that_pv_is_number("{}:VGAP.ADEL".format(JAWS_BASE_PV), test_value)
+
+            self.ca.assert_that_pv_is_number("{}:HCENT.ADEL".format(JAWS_BASE_PV), test_value)
+            self.ca.assert_that_pv_is_number("{}:HGAP.ADEL".format(JAWS_BASE_PV), test_value)
