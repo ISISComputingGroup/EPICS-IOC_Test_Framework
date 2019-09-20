@@ -24,7 +24,7 @@ pipeline {
     stage("Install latest IBEX") {
       steps {
         bat """
-            if EXIST "ibexutils" rmdir /s /q ibex_utils
+            if EXIST "ibex_utils" rmdir /s /q ibex_utils
             git clone https://github.com/ISISComputingGroup/ibex_utils.git ibex_utils
             call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat CLEAN EPICS7
             """
