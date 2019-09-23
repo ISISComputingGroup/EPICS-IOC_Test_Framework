@@ -1,6 +1,6 @@
 import unittest
-from time import sleep
 
+from enum import Enum
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
@@ -8,15 +8,14 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
-
 DEVICE_PREFIX = "LINMOT_01"
 DEVICE_NAME = "linmot"
 
 # Motor record limits
 MTR_LOW_LIMIT_DEFAULT = 0
 MTR_HIGH_LIMIT_DEFAULT = 50
-MTR_LOW_LIMIT = "MTR0101.LLM"
-MTR_HIGH_LIMIT = "MTR0101.HLM"
+MTR_LOW_LIMIT = "MTR0101.DLLM"
+MTR_HIGH_LIMIT = "MTR0101.DHLM"
 
 # Motor record process variables
 MTR_READBACK = "MTR0101.RBV"
@@ -92,7 +91,7 @@ class LinmotTests(unittest.TestCase):
     @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
     def test_GIVEN_start_up_WHEN_get_motor_warn_status_THEN_it_is_correct(self):
         expected_value = "256"
-        device_value = self._lewis.backdoor_get_from_device("motor_warn_status")
+        device_value = self._lewis.backdoor_get_from_device("motor_warn_status_int")
         self.assertEqual(device_value, expected_value)
 
     @parameterized.expand([('Value 1', 0.1), ('Value 2', 0.6), ('Value 3', 2.2)])
@@ -115,47 +114,6 @@ class LinmotTests(unittest.TestCase):
         target_position = MTR_HIGH_LIMIT_DEFAULT
         self.ca_linmot.set_pv_value(MTR_VELOCITY, 0.05)  # Slow axis so it cant reach target before stop sent
         self.ca_linmot.set_pv_value(MTR_SETPOINT, target_position)
-        self._lewis.assert_that_emulator_value_is(STATE, STATE_MOVING)
         self.ca_linmot.set_pv_value(MTR_STOP, 1)
 
-        self._lewis.assert_that_emulator_value_is(STATE, STATE_STOPPED)
-
-    @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
-    def test_GIVEN_invalid_target_position_WHEN_outside_hard_limits_THEN_change_to_error_state(self):
-        target_value = -1
-        self.ca_linmot.set_pv_value(MTR_LOW_LIMIT, -5)
-        self.ca_linmot.set_pv_value(MTR_SETPOINT, target_value)
-        self._lewis.assert_that_emulator_value_is(STATE, STATE_ERROR)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        self.ca_linmot.assert_that_pv_is(MTR_DMOV, 1)
