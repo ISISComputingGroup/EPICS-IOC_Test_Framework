@@ -1,6 +1,5 @@
 import unittest
 
-from enum import Enum
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
