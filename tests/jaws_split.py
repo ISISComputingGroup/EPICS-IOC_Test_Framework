@@ -1,4 +1,5 @@
 import os
+from collections import OrderedDict
 
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -44,5 +45,9 @@ SplitJawsTests.MTR_SOUTH = mtr_south
 SplitJawsTests.MTR_EAST = mtr_east
 SplitJawsTests.MTR_WEST = mtr_west
 SplitJawsTests.UNDERLYING_MTRS = [mtr_north, mtr_south, mtr_east, mtr_west]
+SplitJawsTests.UNDERLYING_MTRS = OrderedDict([("N", mtr_north),
+                                   ("S", mtr_south),
+                                   ("E", mtr_east),
+                                   ("W",  mtr_west)])
 
 __all__ = ["SplitJawsTests"]
