@@ -129,6 +129,28 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
     return all(test_result is True for test_result in test_results)
 
 
+def prompt_user_to_run_tests(test_names):
+    """
+    Utility function to ask the user whether to begin the tests
+
+    Args:
+        test_names: List of IOC test names to be run
+
+    Returns:
+        None
+
+    """
+    print("Run tests? [Y/N]: {}".format(test_names))
+    while True:
+        answer = six.moves.input()
+        if answer == "" or answer.upper()[0] not in ["N", "Y"]:
+            print("Answer must be Y or N")
+        elif answer.upper()[0] == "N":
+            print("Not running tests, emulator and IOC only. Ctrl+c to quit.")
+        elif answer.upper()[0] == "Y":
+            return
+
+
 def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
     Runs dotted unit tests.
@@ -154,16 +176,7 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
 
     with modified_environment(**settings), device_launchers:
         if ask_before_running_tests:
-            print("Run tests? [Y/N]: {}".format(test_names))
-            while True:
-                answer = six.moves.input()
-                if answer == "" or answer.upper()[0] not in ["N", "Y"]:
-                    print("Answer must be Y and N")
-                elif answer.upper()[0] == "N":
-                    print("Not running tests")
-                    return
-                elif answer.upper()[0] == "Y":
-                    break
+            prompt_user_to_run_tests(test_names)
 
         runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
 
@@ -206,9 +219,9 @@ if __name__ == '__main__':
                         Default is in the tests folder of this repo""")
     parser.add_argument('-f', '--failfast', action='store_true',
                         help="""Determines if the rest of tests are skipped after the first failure""")
-    parser.add_argument('-a', '--ask_before_running', action='store_true',
-                        help="""Ask if test should be run after emmualtor and ioc started, to allow you to connect 
-                        debugger etc""")
+    parser.add_argument('-a', '--ask-before-running', action='store_true',
+                        help="""Pauses after starting emulator and ioc. Allows you to use booted
+                        emulator/IOC or attach debugger for tests""")
 
     arguments = parser.parse_args()
 
