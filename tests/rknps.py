@@ -69,35 +69,29 @@ INTERLOCKS = ("TRANS",
 TRIPPED_OK = {True: "Tripped", False: "OK"}
 
 
-class RknpsTests(unittest.TestCase):
+class RknpsTests(DanfysikCommon, unittest.TestCase):
     """
     Tests for the RIKEN Multidrop Danfysik Power Supplies.
     """
 
-    # Runs before every test.
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rknps", PREFIX)
         self.ca = ChannelAccess(device_prefix=PREFIX, default_timeout=60)
         self._lewis.backdoor_set_on_device("connected", True)
+
+        self.current_readback_factor = 1000
 
         self.id_prefixes = [ID + ":" for ID in IDS]
 
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_exists("{}ADDRESS".format(id_prefix), timeout=30)
 
-    def _pv_alarms_when_disconnected(self, pv):
-        """
-        Helper method to check PV alarm when device is disconnected
-        Args:
-            pv (Str): name of the pv to check
-        """
-        for IDN in IDS:
-            self.ca.assert_that_pv_alarm_is_not("{0}:{1}".format(IDN, pv), ChannelAccess.Alarms.INVALID, 30)
-
+    def disconnect_device(self):
+        """RIKEN PSU emulator disconnects slightly differently"""
         self._lewis.backdoor_set_on_device("connected", False)
 
-        for IDN in IDS:
-            self.ca.assert_that_pv_alarm_is("{0}:{1}".format(IDN, pv), ChannelAccess.Alarms.INVALID, 30)
+    def set_voltage(self, voltage):
+        self._lewis.backdoor_set_on_device("set_all_volt_values", voltage)
 
     def _activate_interlocks(self):
         """
@@ -136,42 +130,6 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:CURR".format(IDN), 0)
             self.ca.assert_that_pv_is("{0}:VOLT".format(IDN), 0)
 
-    @skip_if_recsim("In rec sim this test fails as there is no link between the status and power")
-    def test_GIVEN_emulator_in_use_WHEN_power_is_turned_on_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback(1, "{0}:POWER".format(IDN),
-                                                          "{0}:POWER:SP".format(IDN), "On")
-
-    @skip_if_recsim("In rec sim this test fails as there is no link between the status and power")
-    def test_GIVEN_emulator_in_use_WHEN_power_is_turned_off_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback(0, "{0}:POWER".format(IDN),
-                                                          "{0}:POWER:SP".format(IDN), "Off")
-
-    def test_WHEN_polarity_is_positive_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback(0, "{0}:POL".format(IDN),
-                                                          "{0}:POL:SP".format(IDN), "+")
-
-    def test_WHEN_polarity_is_negative_THEN_value_is_as_expected(self):
-        for IDN in IDS:
-            self.ca.assert_setting_setpoint_sets_readback(1, "{0}:POL".format(IDN),
-                                                          "{0}:POL:SP".format(IDN), "-")
-
-    @skip_if_recsim("In rec sim this test fails as it requires a lewis backdoor command")
-    def test_GIVEN_emulator_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
-        expected_value = 22
-        self._lewis.backdoor_set_on_device("set_all_volt_values", expected_value)
-        for IDN in IDS:
-            self.ca.assert_that_pv_is("{0}:VOLT".format(IDN), expected_value)
-
-    @skip_if_devsim("In dev sim this test fails as the simulated records are not used")
-    def test_GIVEN_emulator_not_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
-        expected_value = 12
-        for IDN in IDS:
-            self.ca.set_pv_value("{0}:SIM:VOLT".format(IDN), expected_value)
-            self.ca.assert_that_pv_is("{0}:VOLT".format(IDN), expected_value)
-
     @skip_if_recsim("In rec sim this test fails as the changes are not propagated to all appropriate PVs")
     def test_GIVEN_a_positive_value_and_emulator_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
         expected_value = 480
@@ -189,16 +147,6 @@ class RknpsTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{0}:CURR".format(IDN), expected_value)
             self.ca.assert_that_pv_is("{0}:RA".format(IDN), abs(expected_value))
             self.ca.assert_that_pv_is("{0}:POL".format(IDN), "-")
-
-    @skip_if_devsim("In dev sim this test fails as the emulator "
-                    "handles the difference in values between write and read")
-    def test_GIVEN_a_positive_value_and_emulator_not_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
-        set_value = 480
-        return_value = set_value*1000
-        for IDN in IDS:
-            self.ca.set_pv_value("{0}:CURR:SP".format(IDN), set_value)
-            self.ca.assert_that_pv_is("{0}:CURR".format(IDN), return_value)
-            self.ca.assert_that_pv_is("{0}:RA".format(IDN), return_value)
 
     @skip_if_devsim("In dev sim this test fails as the emulator "
                     "handles the difference in values between write and read")
@@ -229,14 +177,6 @@ class RknpsTests(unittest.TestCase):
             self.ca.set_pv_value("RB4:POWER:SP", powered_on)
             self.ca.assert_that_pv_is("RB4:BANNER",
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
-
-    @skip_if_recsim("Cannot test connection in recsim")
-    def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
-        self._pv_alarms_when_disconnected("CURR")
-
-    @skip_if_recsim("Cannot test connection in recsim")
-    def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
-        self._pv_alarms_when_disconnected("VOLT")
 
     @parameterized.expand(INTERLOCKS)
     @skip_if_recsim("Test requires emulator to change interlock state")
