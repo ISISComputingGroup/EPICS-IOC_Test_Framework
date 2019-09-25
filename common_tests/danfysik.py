@@ -16,6 +16,8 @@ POWER_STATES = ["Off", "On"]
 TEST_CURRENTS = [1.4, 47, 10000]
 TEST_VOLTAGES = TEST_CURRENTS
 
+TRIPPED_OK = {True: "Tripped", False: "OK"}
+
 
 class DanfysikBase(object):
     """
@@ -115,7 +117,7 @@ class DanfysikCommon(DanfysikBase):
 
     def test_GIVEN_no_interlocks_active_WHEN_getting_overall_interlock_status_THEN_it_is_ok(self):
         for id_prefix in self.id_prefixes:
-            self.ca.assert_that_pv_is("{}ILK".format(id_prefix), "OK")
+            self.ca.assert_that_pv_is("{}ILK".format(id_prefix), TRIPPED_OK[True])
 
     @skip_if_recsim("In rec sim this test fails as recsim does not set any of the related values "
                     "which are set by the emulator")
