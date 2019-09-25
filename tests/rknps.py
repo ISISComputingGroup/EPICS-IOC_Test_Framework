@@ -121,15 +121,6 @@ class RknpsTests(DanfysikCommon, unittest.TestCase):
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:ILK".format(IDN), "OK")
 
-    @skip_if_recsim("In rec sim this test fails as recsim does not set any of the related values "
-                    "which are set by the emulator")
-    def test_WHEN_reset_is_sent_THEN_readbacks_and_power_are_off(self):
-        for IDN in IDS:
-            self.ca.set_pv_value("{0}:RESET".format(IDN), 1)
-            self.ca.assert_that_pv_is("{0}:POWER".format(IDN), "Off")
-            self.ca.assert_that_pv_is("{0}:CURR".format(IDN), 0)
-            self.ca.assert_that_pv_is("{0}:VOLT".format(IDN), 0)
-
     @skip_if_recsim("In rec sim this test fails as the changes are not propagated to all appropriate PVs")
     def test_GIVEN_a_positive_value_and_emulator_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
         expected_value = 480

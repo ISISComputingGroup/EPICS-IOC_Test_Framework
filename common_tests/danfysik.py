@@ -26,7 +26,7 @@ class DanfysikBase(object):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
-        self._lewis.backdoor_run_function_on_device("reset")
+        self._lewis.backdoor_run_function_on_device("reinitialise")
         self._lewis.backdoor_set_on_device("comms_initialized", True)
 
         # Used for daisy chained Danfysiks, default is a single Danfysik so we don't need an id
@@ -116,3 +116,13 @@ class DanfysikCommon(DanfysikBase):
     def test_GIVEN_no_interlocks_active_WHEN_getting_overall_interlock_status_THEN_it_is_ok(self):
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_is("{}ILK".format(id_prefix), "OK")
+
+    @skip_if_recsim("In rec sim this test fails as recsim does not set any of the related values "
+                    "which are set by the emulator")
+    def test_WHEN_reset_is_sent_THEN_readbacks_and_power_are_off(self):
+        for id_prefix in self.id_prefixes:
+            self.ca.set_pv_value("{}CURR:SP".format(id_prefix), 5)
+            self.ca.set_pv_value("{}RESET".format(id_prefix), 1)
+            self.ca.assert_that_pv_is("{}POWER".format(id_prefix), "Off")
+            self.ca.assert_that_pv_is("{}CURR".format(id_prefix), 0)
+            self.ca.assert_that_pv_is("{}VOLT".format(id_prefix), 0)
