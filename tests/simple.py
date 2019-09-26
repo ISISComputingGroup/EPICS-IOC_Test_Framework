@@ -1,12 +1,14 @@
 import unittest
-from unittest import skip
 import os
 import subprocess
+
+import itertools
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
 from utils.ioc_launcher import IOCRegister
-from utils.testing import assert_log_messages
+from utils.testing import parameterized_list
 from utils.test_modes import TestModes
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, CaChannelException
 from genie_python.channel_access_exceptions import ReadAccessException
@@ -25,6 +27,9 @@ IOCS = [
         "started_text": IOC_STARTED_TEXT,
     },
 ]
+PROTECTION_TYPES = ["RO", "DISP", "RODISP", ]
+RECORD_TYPES = ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT", ]
+protectionDict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1", }
 
 TEST_MODES = [TestModes.RECSIM, ]
 
@@ -44,6 +49,7 @@ class SimpleTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
         self.set_auto_restart_to_true()
+        self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
     def set_auto_restart_to_true(self):
         if not self._ioc.autorestart:
@@ -62,8 +68,9 @@ class SimpleTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
-
-    def test_GIVEN_PV_write_protection_WHEN_written_to_through_python_THEN_nothing_changes(self):
+    @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    def test_GIVEN_PV_write_protection_WHEN_written_to_through_python_THEN_nothing_changes(
+            self, _, protection, record):
 
         def check_write_through_python(addr, record_type):
             val_before = self.ca.get_pv_value(addr)
@@ -81,20 +88,14 @@ class SimpleTests(unittest.TestCase):
             else:
                 return True
 
-        fails = []
-        for protection in ["RO", "DISP", "RODISP"]:
-            for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
-                address = "CATEST:{}:{}".format(recordType, protection)
-                self.ca.assert_that_pv_exists(address)
-                if check_write_through_python(address, recordType):
-                    fails.append([recordType, protection])
-        if fails:
-            protectionDict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1"}
-            failMsgs = ["{} {}".format(fail[0].lower(), protectionDict[fail[1]]) for fail in fails]
-            self.fail("Could (wrongly) use python to write to protected using pvs with the following types and settings"
-                      ":\n" + "\n".join(failMsgs))
+        address = "CATEST:{}:{}".format(record, protection)
+        self.ca.assert_that_pv_exists(address)
+        if check_write_through_python(address, record):
+            self.fail("Could (wrongly) use python to write to {} pvs {}".format(record, protectionDict[protection]))
 
-    def test_GIVEN_PV_on_READONLY_mode_or_with_disp_true_WHEN_written_to_through_cmd_THEN_nothing_changes(self):
+    @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    def test_GIVEN_PV_readonly_or_with_disp_true_WHEN_written_to_through_cmd_THEN_nothing_changes(
+            self, _, protection, record):
 
         def check_write_through_cmd(addr):
             val_before = self.ca.get_pv_value(addr)
@@ -107,79 +108,59 @@ class SimpleTests(unittest.TestCase):
             else:
                 return True
 
-        fails = []
-        for protection in ["RO", "DISP", "RODISP"]:
-            for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
-                address = "CATEST:{}:{}".format(recordType, protection)
-                self.ca.assert_that_pv_exists(address)
-                if check_write_through_cmd(address):
-                    fails.append([recordType, protection])
-        if fails:
-            protectionDict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1"}
-            failMsgs = ["{} {}".format(fail[0].lower(), protectionDict[fail[1]]) for fail in fails]
-            self.fail("Could (wrongly) use cmd to write to protected using pvs with the following types and settings"
-                      ":\n" + "\n".join(failMsgs))
+        address = "CATEST:{}:{}".format(record, protection)
+        self.ca.assert_that_pv_exists(address)
+        if check_write_through_cmd(address):
+            self.fail("Could (wrongly) use cmd to write to {} pvs {}".format(record, protectionDict[protection]))
 
-    def test_GIVEN_PV_in_hidden_mode_WHEN_read_attempted_THEN_get_error(self):
-        fails = []
-        for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
-            address = "CATEST:{}:HIDDEN".format(recordType)
-            self.ca.assert_that_pv_exists(address)
-            try:
-                self.ca.get_pv_value(address)
-                fails.append(recordType.lower())
-            except ReadAccessException:
-                continue
-        if fails:
-            self.fail("The following records could be read in hidden mode:\n" + "\n".join(fails))
+    @parameterized.expand(parameterized_list(RECORD_TYPES))
+    def test_GIVEN_PV_in_hidden_mode_WHEN_read_attempted_THEN_get_error(self, _, record):
+        address = "CATEST:{}:HIDDEN".format(record)
+        self.ca.assert_that_pv_exists(address)
+        try:
+            self.ca.get_pv_value(address)
+            self.fail("{} pv could be read in hidden mode".format(record))
+        except ReadAccessException:
+            pass
 
-    def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_linked_to_THEN_link_successful(self):
-        fails = []
-        for protection in ["RO", "DISP", "RODISP"]:
-            for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
-                address = "CATEST:{}:{}".format(recordType, protection)
-                addressOut = "CATEST:{}:{}:OUT".format(recordType, protection)
-                self.ca.assert_that_pv_exists(address)
-                val_before = self.ca.get_pv_value(address)
-                new_val = 0 if val_before == "1" or val_before == "ON" else 1
-                FNULL = open(os.devnull, 'w')
-                subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addressOut),
-                                 str(new_val)], stdout=FNULL, stderr=subprocess.STDOUT)
-                if val_before == self.ca.get_pv_value(address):
-                    fails.append([recordType, protection])
-        if fails:
-            protectionDict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1"}
-            failMsgs = ["{} {}".format(fail[0].lower(), protectionDict[fail[1]]) for fail in fails]
-            self.fail("OUT field failed to forward value to pvs with the following types and settings:\n" + "\n".join(
-                failMsgs))
+    @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_linked_to_THEN_link_successful(
+            self, _, protection, record):
+        address = "CATEST:{}:{}".format(record, protection)
+        addressOut = "CATEST:{}:{}:OUT".format(record, protection)
+        self.ca.assert_that_pv_exists(address)
+        val_before = self.ca.get_pv_value(address)
+        new_val = 0 if val_before == "1" or val_before == "ON" else 1
+        FNULL = open(os.devnull, 'w')
+        subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addressOut),
+                         str(new_val)], stdout=FNULL, stderr=subprocess.STDOUT)
+        if val_before == self.ca.get_pv_value(address):
+            self.fail("OUT field failed to forward value to {} pvs {}".format(record, protectionDict[protection]))
 
-    def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_told_to_process_by_python_THEN_nothing_happens(self):
+    @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_python_THEN_nothing_happens(
+            self, _, protection, record):
 
-        def check_write_through_python(addr, record_type):
+        def check_write_through_python(addr):
             chan = CaChannelWrapper.get_chan("{}{}:{}.PROC".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr))
             try:
                 chan.putw("1")
             except CaChannelException:
                 pass
-            if self.ca.get_pv_value(addr + ":PROC") == "1": # starts off as 0, goes to 1 when processed (fail)
+            if self.ca.get_pv_value(addr + ":PROC") == "1":  # starts off as 0, goes to 1 when processed (fail)
                 return True
             else:
                 return False
 
-        fails = []
-        for protection in ["RO", "DISP", "RODISP"]:
-            for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
-                address = "CATEST:{}:{}".format(recordType, protection)
-                self.ca.assert_that_pv_exists(address)
-                if check_write_through_python(address, recordType):
-                    fails.append([recordType, protection])
-        if fails:
-            protectionDict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1"}
-            failMsgs = ["{} {}".format(fail[0].lower(), protectionDict[fail[1]]) for fail in fails]
-            self.fail("Could (wrongly) use python to process protected records using pvs with the following types and "
-                      "settings:\n" + "\n".join(failMsgs))
+        address = "CATEST:{}:{}".format(record, protection)
+        self.ca.assert_that_pv_exists(address)
+        if check_write_through_python(address):
+            self.fail("Could (wrongly) use python to process protected pvs using {} pvs {}".format(
+                record, protectionDict[protection]))
 
-    def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_told_to_process_by_cmd_THEN_nothing_changes(self):
+    @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_cmd_THEN_nothing_changes(
+            self, _, protection, record):
 
         def check_write_through_cmd(addr):
             FNULL = open(os.devnull, 'w')
@@ -189,16 +170,9 @@ class SimpleTests(unittest.TestCase):
                 return True
             else:
                 return False
-
-        fails = []
-        for protection in ["RO", "DISP", "RODISP"]:
-            for recordType in ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT"]:
-                address = "CATEST:{}:{}".format(recordType, protection)
-                self.ca.assert_that_pv_exists(address)
-                if check_write_through_cmd(address):
-                    fails.append([recordType, protection])
-        if fails:
-            protectionDict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1"}
-            failMsgs = ["{} {}".format(fail[0].lower(), protectionDict[fail[1]]) for fail in fails]
-            self.fail("Could (wrongly) use cmd to process protected records using pvs with the following types and "
-                      "settings:\n" + "\n".join(failMsgs))
+            
+        address = "CATEST:{}:{}".format(record, protection)
+        self.ca.assert_that_pv_exists(address)
+        if check_write_through_cmd(address):
+            self.fail("Could (wrongly) use cmd to process protected pvs using {} pvs {}".format(
+                record, protectionDict[protection]))
