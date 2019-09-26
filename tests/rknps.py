@@ -5,7 +5,7 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list, get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
 
-from common_tests.danfysik import DanfysikCommon, TRIPPED_OK
+from common_tests.danfysik import DanfysikCommon, HAS_TRIPPED
 
 from parameterized import parameterized
 
@@ -111,13 +111,13 @@ class RknpsTests(DanfysikCommon, unittest.TestCase):
     def test_WHEN_interlocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
         for IDN in IDS:
-            self.ca.assert_that_pv_is("{0}:ILK".format(IDN), TRIPPED_OK[False])
+            self.ca.assert_that_pv_is("{0}:ILK".format(IDN), HAS_TRIPPED[True])
 
     @skip_if_recsim("Interlock statuses now depend on emulator")
     def test_WHEN_interlocks_are_inactive_THEN_ilk_is_not_Interlocked(self):
         self._disable_interlocks()
         for IDN in IDS:
-            self.ca.assert_that_pv_is("{0}:ILK".format(IDN), TRIPPED_OK[True])
+            self.ca.assert_that_pv_is("{0}:ILK".format(IDN), HAS_TRIPPED[False])
 
     @skip_if_recsim("In rec sim this test fails as the changes are not propagated to all appropriate PVs")
     def test_GIVEN_a_positive_value_and_emulator_in_use_WHEN_current_is_set_THEN_values_are_as_expected(self):
@@ -170,7 +170,7 @@ class RknpsTests(DanfysikCommon, unittest.TestCase):
     @parameterized.expand(INTERLOCKS)
     @skip_if_recsim("Test requires emulator to change interlock state")
     def test_GIVEN_interlock_status_WHEN_read_all_status_THEN_status_is_as_expected(self, interlock):
-        for boolean_value, expected_value in TRIPPED_OK.items():
+        for boolean_value, expected_value in HAS_TRIPPED.items():
             for IDN, ADDR in zip(IDS, PSU_ADDRESSES):
                 # GIVEN
                 self._lewis.backdoor_run_function_on_device("set_{0}".format(interlock), (boolean_value, ADDR))
