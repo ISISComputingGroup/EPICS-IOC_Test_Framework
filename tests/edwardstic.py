@@ -42,6 +42,7 @@ def get_common_channel_access():
     """
     return ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
 
+
 @six.add_metaclass(ABCMeta)
 class EdwardsTICBase(object):
     @abstractmethod
@@ -87,7 +88,7 @@ class EdwardsTICBase(object):
         pass
 
     @abstractmethod
-    def get_status_labels():
+    def get_status_labels(self):
         """
         Returns list of tuples containing:
         (
@@ -129,14 +130,14 @@ class EdwardsTICBase(object):
         self.ca.assert_that_pv_is(self.get_priority_PV(), priority_state)
         self.ca.assert_that_pv_alarm_is(self.get_priority_PV(), expected_alarm)
 
-    @parameterized.expand(get_status_labels())
-    def test_GIVEN_turbo_status_WHEN_turbo_status_read_THEN_turbo_status_read_back(self, turbo_status, IOC_status_label, expected_alarm):
-        # GIVEN
-        self._lewis.backdoor_run_function_on_device(self.get_status_setter(), arguments=(turbo_status, ))
+    def test_GIVEN_turbo_status_WHEN_turbo_status_read_THEN_turbo_status_read_back(self):
+        for turbo_status, IOC_status_label, expected_alarm in self.get_status_labels():
+            # GIVEN
+            self._lewis.backdoor_run_function_on_device(self.get_status_setter(), arguments=(turbo_status, ))
 
-        # THEN
-        self.ca.assert_that_pv_is(self.get_base_PV(), IOC_status_label)
-        self.ca.assert_that_pv_alarm_is(self.get_base_PV(), expected_alarm)
+            # THEN
+            self.ca.assert_that_pv_is(self.get_base_PV(), IOC_status_label)
+            self.ca.assert_that_pv_alarm_is(self.get_base_PV(), expected_alarm)
 
     def test_GIVEN_device_disconnected_WHEN_base_PV_read_THEN_alert_and_priority_PVs_read_disconnected(self):
         # GIVEN
@@ -175,9 +176,8 @@ class GaugeTestBase(EdwardsTICBase):
     def get_priority_function(self):
         return "set_gauge_priority"
 
-    def get_status_labels():
-        return [("status", "Status", ChannelAccess.Alarms.NONE),
-                ("not_connected", "Not Connected", ChannelAccess.Alarms.NONE),
+    def get_status_labels(self):
+        return [("not_connected", "Not Connected", ChannelAccess.Alarms.NONE),
                 ("connected", "Connected", ChannelAccess.Alarms.NONE),
                 ("new_id", "New ID", ChannelAccess.Alarms.NONE),
                 ("change", "Change", ChannelAccess.Alarms.NONE),
@@ -287,7 +287,7 @@ class TurboStatusTests(EdwardsTICBase, unittest.TestCase):
     def get_priority_function(self):
         return "set_turbo_priority"
 
-    def get_status_labels():
+    def get_status_labels(self):
         return [("stopped", "Stopped", ChannelAccess.Alarms.NONE),
                 ("starting_delay", "Starting Delay", ChannelAccess.Alarms.NONE),
                 ("accelerating", "Accelerating", ChannelAccess.Alarms.NONE),
