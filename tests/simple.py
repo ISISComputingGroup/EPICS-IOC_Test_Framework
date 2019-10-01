@@ -37,6 +37,12 @@ TEST_MODES = [TestModes.RECSIM, ]
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 300
 
 
+def write_through_cmd(address, new_val):
+    null_file = open(os.devnull, 'w')
+    subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, address),
+                     str(new_val)], stdout=null_file, stderr=subprocess.STDOUT)
+
+
 class SimpleTests(unittest.TestCase):
     """
     Tests for the Simple IOC
@@ -49,7 +55,6 @@ class SimpleTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
         self.set_auto_restart_to_true()
-        self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
     def set_auto_restart_to_true(self):
         if not self._ioc.autorestart:
@@ -68,13 +73,20 @@ class SimpleTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
+    def get_toggle_value(self, address):
+        """
+        Gets the value of the PV and the value that will toggle it
+        :return: Tuple of value before and value to toggle
+        """
+        val_before = self.ca.get_pv_value(address)
+        return val_before, 0 if val_before == "1" or val_before == "ON" else 1
+
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
     def test_GIVEN_PV_write_protection_WHEN_written_to_through_python_THEN_nothing_changes(
             self, _, protection, record):
 
         def check_write_through_python(addr, record_type):
-            val_before = self.ca.get_pv_value(addr)
-            new_val = 0 if val_before == "1" or val_before == "ON" else 1
+            val_before, new_val = self.get_toggle_value(addr)
             chan = CaChannelWrapper.get_chan("{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr))
             try:
                 if record_type in ["STRINGIN", "STRINGOUT"]:
@@ -83,10 +95,7 @@ class SimpleTests(unittest.TestCase):
                     chan.putw(new_val)
             except CaChannelException:
                 pass
-            if val_before == self.ca.get_pv_value(addr):
-                return False
-            else:
-                return True
+            return val_before != self.ca.get_pv_value(addr)
 
         address = "CATEST:{}:{}".format(record, protection)
         self.ca.assert_that_pv_exists(address)
@@ -98,15 +107,9 @@ class SimpleTests(unittest.TestCase):
             self, _, protection, record):
 
         def check_write_through_cmd(addr):
-            val_before = self.ca.get_pv_value(addr)
-            new_val = 0 if val_before == "1" or val_before == "ON" else 1
-            FNULL = open(os.devnull, 'w')
-            subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr),
-                             str(new_val)], stdout=FNULL, stderr=subprocess.STDOUT)
-            if val_before == self.ca.get_pv_value(addr):
-                return False
-            else:
-                return True
+            val_before, new_val = self.get_toggle_value(addr)
+            write_through_cmd(addr, new_val)
+            return val_before != self.ca.get_pv_value(addr)
 
         address = "CATEST:{}:{}".format(record, protection)
         self.ca.assert_that_pv_exists(address)
@@ -127,13 +130,10 @@ class SimpleTests(unittest.TestCase):
     def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_linked_to_THEN_link_successful(
             self, _, protection, record):
         address = "CATEST:{}:{}".format(record, protection)
-        addressOut = "CATEST:{}:{}:OUT".format(record, protection)
+        address_out = "{}:OUT".format(address)
         self.ca.assert_that_pv_exists(address)
-        val_before = self.ca.get_pv_value(address)
-        new_val = 0 if val_before == "1" or val_before == "ON" else 1
-        FNULL = open(os.devnull, 'w')
-        subprocess.call(['caput', "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addressOut),
-                         str(new_val)], stdout=FNULL, stderr=subprocess.STDOUT)
+        val_before, new_val = self.get_toggle_value(address)
+        write_through_cmd(address_out, new_val)
         if val_before == self.ca.get_pv_value(address):
             self.fail("OUT field failed to forward value to {} pvs {}".format(record, protectionDict[protection]))
 
@@ -147,10 +147,7 @@ class SimpleTests(unittest.TestCase):
                 chan.putw("1")
             except CaChannelException:
                 pass
-            if self.ca.get_pv_value(addr + ":PROC") == "1":  # starts off as 0, goes to 1 when processed (fail)
-                return True
-            else:
-                return False
+            return self.ca.get_pv_value(addr + ":PROC") == "1"  # starts off as 0, goes to 1 when processed (fail)
 
         address = "CATEST:{}:{}".format(record, protection)
         self.ca.assert_that_pv_exists(address)
@@ -163,13 +160,8 @@ class SimpleTests(unittest.TestCase):
             self, _, protection, record):
 
         def check_write_through_cmd(addr):
-            FNULL = open(os.devnull, 'w')
-            subprocess.call(['caput', "{}{}:{}.PROC".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, addr),
-                             "1"], stdout=FNULL, stderr=subprocess.STDOUT)
-            if self.ca.get_pv_value(addr + ":PROC") == "1":  # starts off as 0, goes to 1 when processed (fail)
-                return True
-            else:
-                return False
+            write_through_cmd(addr, "1")
+            return self.ca.get_pv_value(addr + ":PROC") == "1"  # starts off as 0, goes to 1 when processed (fail)
             
         address = "CATEST:{}:{}".format(record, protection)
         self.ca.assert_that_pv_exists(address)
