@@ -2,8 +2,8 @@ import unittest
 
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "CRYOSMS_01"
 EMULATOR_NAME = "HFMAGPSU"
@@ -40,4 +40,4 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.set_pv_value("OUTPUTMODE:SP", new_outputmode)
 
         # THEN
-        self.ca.assert_that_pv_is("OUTPUTMODE:SP", new_outputmode)
+        self.ca.assert_that_pv_is("OUTPUTMODE:SP", new_outputmode, timeout=10)
