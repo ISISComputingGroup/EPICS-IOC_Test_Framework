@@ -29,7 +29,7 @@ IOCS = [
 ]
 PROTECTION_TYPES = ["RO", "DISP", "RODISP", ]
 RECORD_TYPES = ["AO", "AI", "BO", "BI", "MBBO", "MBBI", "STRINGIN", "STRINGOUT", "CALC", "CALCOUT", ]
-protectionDict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1", }
+protection_dict = {"RO": "in READONLY ASG", "DISP": "with DISP=1", "RODISP": "in READONLY ASG with DISP=1", }
 
 TEST_MODES = [TestModes.RECSIM, ]
 
@@ -100,7 +100,7 @@ class SimpleTests(unittest.TestCase):
         address = "CATEST:{}:{}".format(record, protection)
         self.ca.assert_that_pv_exists(address)
         if check_write_through_python(address, record):
-            self.fail("Could (wrongly) use python to write to {} pvs {}".format(record, protectionDict[protection]))
+            self.fail("Could (wrongly) use python to write to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
     def test_GIVEN_PV_readonly_or_with_disp_true_WHEN_written_to_through_cmd_THEN_nothing_changes(
@@ -114,7 +114,7 @@ class SimpleTests(unittest.TestCase):
         address = "CATEST:{}:{}".format(record, protection)
         self.ca.assert_that_pv_exists(address)
         if check_write_through_cmd(address):
-            self.fail("Could (wrongly) use cmd to write to {} pvs {}".format(record, protectionDict[protection]))
+            self.fail("Could (wrongly) use cmd to write to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(RECORD_TYPES))
     def test_GIVEN_PV_in_hidden_mode_WHEN_read_attempted_THEN_get_error(self, _, record):
@@ -135,7 +135,7 @@ class SimpleTests(unittest.TestCase):
         val_before, new_val = self.get_toggle_value(address)
         write_through_cmd(address_out, new_val)
         if val_before == self.ca.get_pv_value(address):
-            self.fail("OUT field failed to forward value to {} pvs {}".format(record, protectionDict[protection]))
+            self.fail("OUT field failed to forward value to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
     def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_python_THEN_nothing_happens(
@@ -153,7 +153,7 @@ class SimpleTests(unittest.TestCase):
         self.ca.assert_that_pv_exists(address)
         if check_write_through_python(address):
             self.fail("Could (wrongly) use python to process protected pvs using {} pvs {}".format(
-                record, protectionDict[protection]))
+                record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
     def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_cmd_THEN_nothing_changes(
@@ -167,4 +167,4 @@ class SimpleTests(unittest.TestCase):
         self.ca.assert_that_pv_exists(address)
         if check_write_through_cmd(address):
             self.fail("Could (wrongly) use cmd to process protected pvs using {} pvs {}".format(
-                record, protectionDict[protection]))
+                record, protection_dict[protection]))
