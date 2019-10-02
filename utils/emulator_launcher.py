@@ -371,11 +371,14 @@ class LewisLauncher(EmulatorLauncher):
         self._logFile = open(self._log_filename(), "w")
         self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
 
+        env = {str(k): str(v) for k, v in os.environ.items()}
+        env[str("EPICS_CA_ADDR_LIST")] = str("127.255.255.255")
+
         self._process = subprocess.Popen(lewis_command_line,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._logFile,
                                          stderr=subprocess.STDOUT,
-                                         env={str('EPICS_CA_ADDR_LIST'): str("127.255.255.255")})
+                                         env=env)
         self._connected = True
 
     def _log_filename(self):

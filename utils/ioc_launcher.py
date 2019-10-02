@@ -1,4 +1,7 @@
 from __future__ import unicode_literals, print_function, absolute_import, division
+
+from utils.thread_locals import threadlocals
+
 """
 Code that launches an IOC/application under test
 """
@@ -214,6 +217,7 @@ class ProcServLauncher(BaseLauncher):
         settings[str("IOCSH_SHOWWIN")] = str("H")
         settings[str("LOGTIME")] = date.today().strftime(str("%Y%m%d"))
         settings[str('EPICS_CA_ADDR_LIST')] = str("127.255.255.255")
+        settings[str('MYPVPREFIX')] = str(threadlocals.pv_prefix)
 
         return settings
 
@@ -452,15 +456,12 @@ class IocLauncher(BaseLauncher):
 
             settings = self._set_environment_vars()
 
-            for k, v in settings.items():
-                if (k.__class__ != str or v.__class__ != str):
-                    print("{}: {} - {}, {}".format(k, v, k.__class__.__name__, v.__class__.__name__))
-
             # create macros
             full_dir = os.path.join(self._var_dir, "tmp")
             if not os.path.exists(full_dir):
                 os.makedirs(full_dir)
             with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
+                f.write('epicsEnvSet("MYPVPREFIX", "{}")\n'.format(threadlocals.pv_prefix))
                 for macro, value in self.macros.items():
                     f.write('epicsEnvSet("{macro}", "{value}")\n'
                             .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))

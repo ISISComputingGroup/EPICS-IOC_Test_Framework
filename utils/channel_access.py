@@ -11,6 +11,7 @@ from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConne
 from functools import partial
 
 from utils.formatters import format_value
+from utils.thread_locals import threadlocals
 
 try:
     # Python 3
@@ -87,7 +88,7 @@ class ChannelAccess(object):
         except Exception as e:
             print("Unable to disable CA errors: ", e)
 
-        self.prefix = os.environ["testing_prefix"]
+        self.prefix = threadlocals.pv_prefix
         self._default_timeout = default_timeout
         if not self.prefix.endswith(':'):
             self.prefix += ':'

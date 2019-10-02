@@ -1,4 +1,7 @@
 from __future__ import unicode_literals, print_function, division, absolute_import
+
+import uuid
+
 """
 Run the tests.
 """
@@ -27,6 +30,8 @@ from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 
 from concurrent.futures import ThreadPoolExecutor
+
+from utils.thread_locals import threadlocals
 
 
 OUTPUT_LOCK = threading.RLock()
@@ -69,8 +74,6 @@ def make_device_launchers_from_module(test_module, mode):
             raise ValueError("IOC entry must have a 'name' attribute which should give the IOC name")
         if "directory" not in ioc:
             raise ValueError("IOC entry must have a 'directory' attribute which should give the path to the IOC")
-
-    print("Testing module {} in {} mode.".format(test_module.__name__, TestModes.name(mode)))
 
     device_launchers = []
     for ioc in iocs:
@@ -127,13 +130,13 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
 
     test_results = []
 
-    with ThreadPoolExecutor() as threadpool:
+    clean_environment()
 
+    with ThreadPoolExecutor() as threadpool:
         for mode in modes:
             modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
             for module in modules_to_be_tested_in_current_mode:
-                clean_environment()
                 device_launchers = make_device_launchers_from_module(module.file, mode)
                 test_results.append(
                     threadpool.submit(run_tests, arguments.prefix, module.tests,
@@ -188,11 +191,13 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
             status - True if all tests pass and false otherwise.
             output - any output from the unittest framework
     """
-    os.environ["testing_prefix"] = prefix
+
+    # Generate a random PV prefix to use for these tests. Keeps multiple instances of the same IOC from conflicting.
+    threadlocals.pv_prefix = "ST:{}:".format(str(uuid.uuid4())[0:8])
 
     test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
 
-    with device_launchers, io.StringIO() if six.PY3 else io.BytesIO() as output_stream:
+    with device_launchers, io.BytesIO() if six.PY2 else io.StringIO as output_stream:
         if ask_before_running_tests:
             prompt_user_to_run_tests(test_names)
 
@@ -200,8 +205,11 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
 
         test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
         result = runner.run(test_suite).wasSuccessful()
-        output = output_stream.read()
-    return result, output
+
+        output_stream.write(str("\nNote: this test suite used the PV prefix '{}'\n\n".format(threadlocals.pv_prefix)))
+
+        output = output_stream.getvalue()
+        return result, output
 
 
 if __name__ == '__main__':
