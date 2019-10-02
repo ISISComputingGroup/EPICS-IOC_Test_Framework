@@ -65,7 +65,7 @@ def _reset_readings(ca):
 
 
 def _clear_errors(ca, lewis):
-    if IOCRegister.uses_rec_sim:
+    if IOCRegister.is_using_recsim:
         ca.set_pv_value("SIM:ERROR:RAW", [str(0), "No error"])
     else:
         lewis.backdoor_run_function_on_device("clear_error")
@@ -141,7 +141,7 @@ class InitTests(unittest.TestCase):
 class SingleShotTests(unittest.TestCase):
 
     def _simulate_readings(self, channel, value, unit):
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             simulated_reading = ["{:.7E}{}".format(value, unit), "{0:02d}INTCHAN".format(channel)]
             self.ca.set_pv_value("READINGS", simulated_reading)
         else:
@@ -236,7 +236,7 @@ class ScanningSetupTests(unittest.TestCase):
 class ScanningTests(unittest.TestCase):
 
     def _simulate_readings(self, values, channels, unit):
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             simulated_readings = []
             for value, channel in zip(values, channels):
                 simulated_readings.extend(["{:.7E}{}".format(value, unit), "{0:02d}INTCHAN".format(channel)])
@@ -294,7 +294,7 @@ class ScanningTests(unittest.TestCase):
 class ErrorTests(unittest.TestCase):
 
     def _simulate_error(self, error_code, error_message):
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             self.ca.set_pv_value("SIM:ERROR:RAW", [str(error_code), error_message])
         else:
             self._lewis.backdoor_run_function_on_device("set_error_via_the_backdoor",

@@ -72,7 +72,7 @@ class GemorcTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=DEFAULT_TIMEOUT)
         self.ca.assert_that_pv_exists("ID", timeout=30)
         self.reset_ioc()
-        if not IOCRegister.uses_rec_sim:
+        if not IOCRegister.is_using_recsim:
             self.reset_emulator()
             self.check_init_state(False, False, True, False)
             self.ca.assert_that_pv_is_number("CYCLES", 0)

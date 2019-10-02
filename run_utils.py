@@ -19,24 +19,6 @@ def package_contents(package_name):
                 if module.endswith('.py') and not module.startswith("__init__")])
 
 
-@contextmanager
-def modified_environment(**kwargs):
-    """
-    Modifies the environment variables as required then returns them to their original state.
-
-    :param kwargs: the settings to apply
-    """
-    # Copying old values
-    old_env = {name: os.environ.get(name, '') for name in kwargs.keys()}
-
-    # Apply new settings and then yield
-    os.environ.update(kwargs)
-    yield
-
-    # Restore old values
-    os.environ.update(old_env)
-
-
 class ModuleTests(object):
     """
     Object which contains information about tests in a module to be run.

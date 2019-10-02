@@ -69,7 +69,7 @@ class InstronStressRigTests(unittest.TestCase):
 
         # Can't use lewis backdoor commands in recsim
         # All of the below commands apply to devsim only.
-        if not IOCRegister.uses_rec_sim:
+        if not IOCRegister.is_using_recsim:
             # Reinitialize the emulator state
             self._lewis.backdoor_command(["device", "reset"])
 

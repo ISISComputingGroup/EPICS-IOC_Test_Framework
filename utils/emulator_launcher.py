@@ -6,6 +6,7 @@ import os
 import subprocess
 
 import sys
+import threading
 from time import sleep, time
 from functools import partial
 import six
@@ -24,7 +25,8 @@ class EmulatorRegister(object):
     """
 
     # Static dictionary of running emulators
-    RunningEmulators = {}
+    RunningEmulators = threading.local()
+    RunningEmulators.emulators = {}
 
     @classmethod
     def get_running(cls, name):
@@ -34,7 +36,10 @@ class EmulatorRegister(object):
         :param name: name of the lewis emulator to grab
         :return: lewis launcher
         """
-        return cls.RunningEmulators.get(name)
+        try:
+            return cls.RunningEmulators.emulators.get(name)
+        except AttributeError:
+            return None
 
     @classmethod
     def add_emulator(cls, name, emulator):
@@ -44,7 +49,11 @@ class EmulatorRegister(object):
         :param name: name of the emmulator
         :param emulator: the emmulator launcher
         """
-        cls.RunningEmulators[name] = emulator
+        try:
+            cls.RunningEmulators.emulators[name] = emulator
+        except AttributeError:
+            # Catches the first use of this class by any given thread.
+            cls.RunningEmulators.emulators = {name: emulator}
 
     @classmethod
     def remove_emulator(cls, name):
@@ -53,7 +62,7 @@ class EmulatorRegister(object):
 
         :param name: name of the emmulator
         """
-        del cls.RunningEmulators[name]
+        del cls.RunningEmulators.emulators[name]
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -364,7 +373,8 @@ class LewisLauncher(EmulatorLauncher):
         self._process = subprocess.Popen(lewis_command_line,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._logFile,
-                                         stderr=subprocess.STDOUT)
+                                         stderr=subprocess.STDOUT,
+                                         env={'EPICS_CA_ADDR_LIST': "127.255.255.255"})
         self._connected = True
 
     def _log_filename(self):

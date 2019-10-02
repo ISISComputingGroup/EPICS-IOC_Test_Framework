@@ -36,7 +36,7 @@ class Mk3chopperTests(unittest.TestCase):
 
     def test_WHEN_ioc_is_in_remote_mode_THEN_it_has_no_alarm(self):
         # In RECSIM, switch to remote explicitly. DEVSIM can only have remote mode so no switch needed
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             # Bug in CA channel. Reports invalid alarm severity if you set enum directly
             self.ca.set_pv_value("SIM:{}.VAL".format(self.COMP_MODE_PV), 1)
         self.ca.assert_that_pv_is(self.COMP_MODE_PV, self.REMOTE)

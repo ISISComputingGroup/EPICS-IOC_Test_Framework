@@ -108,7 +108,7 @@ class RknpsTests(unittest.TestCase):
         """
         Deactivate both interlocks in the emulator.
         """
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             for IDN in IDS:
                 self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), CLEAR_STATUS)
         else:

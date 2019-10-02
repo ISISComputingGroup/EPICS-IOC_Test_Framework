@@ -58,11 +58,11 @@ class FermichopperBase(object):
         self.ca.assert_that_pv_is_number("DELAY:SP:RBV", 0)
         self.ca.assert_that_pv_is_number("GATEWIDTH", 0)
 
-        if not IOCRegister.uses_rec_sim:
+        if not IOCRegister.is_using_recsim:
             self._lewis.backdoor_run_function_on_device("reset")
 
     def is_device_broken(self):
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             return False  # In recsim, assume device is always ok
         else:
             return self._lewis.backdoor_get_from_device("is_broken") != "False"
@@ -238,7 +238,7 @@ class FermichopperBase(object):
 
     @contextmanager
     def _lie_about(self, lie):
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             raise IOError("Can't use lewis backdoor in recsim!")
 
         self._lewis.backdoor_set_on_device("is_lying_about_{}".format(lie), True)

@@ -84,7 +84,7 @@ class Sm300Tests(unittest.TestCase):
             axis: axis to set position on
 
         """
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             resolution = self.ca.get_pv_value("{}.MRES".format(MTRPV[axis]))
             self.ca.set_pv_value(MTRPV[axis], starting_pos * resolution)
         self._lewis.backdoor_set_on_device(axis + "_axis_rbv", starting_pos)

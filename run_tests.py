@@ -12,14 +12,16 @@ import six
 import xmlrunner
 import glob
 
-from run_utils import package_contents, modified_environment
+from run_utils import package_contents
 from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher
-from utils.ioc_launcher import IocLauncher, EPICS_TOP
+from utils.ioc_launcher import IocLauncher
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
+
+from concurrent.futures import ThreadPoolExecutor
 
 
 def clean_environment():
@@ -117,16 +119,19 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
 
     test_results = []
 
-    for mode in modes:
-        modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
+    with ThreadPoolExecutor() as threadpool:
 
-        for module in modules_to_be_tested_in_current_mode:
-            clean_environment()
-            device_launchers = make_device_launchers_from_module(module.file, mode)
-            test_results.append(
-                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers), failfast, ask_before_running_tests))
+        for mode in modes:
+            modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
-    return all(test_result is True for test_result in test_results)
+            for module in modules_to_be_tested_in_current_mode:
+                clean_environment()
+                device_launchers = make_device_launchers_from_module(module.file, mode)
+                test_results.append(
+                    threadpool.submit(run_tests, arguments.prefix, module.tests,
+                                      device_collection_launcher(device_launchers), failfast, ask_before_running_tests))
+
+    return all(test_result.result() is True for test_result in test_results)
 
 
 def prompt_user_to_run_tests(test_names):
@@ -167,14 +172,9 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
     """
     os.environ["testing_prefix"] = prefix
 
-    # Need to set epics address list to local broadcast otherwise channel access won't work
-    settings = {
-        'EPICS_CA_ADDR_LIST': "127.255.255.255"
-    }
-
     test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
 
-    with modified_environment(**settings), device_launchers:
+    with device_launchers:
         if ask_before_running_tests:
             prompt_user_to_run_tests(test_names)
 

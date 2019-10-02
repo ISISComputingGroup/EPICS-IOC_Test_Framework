@@ -3,6 +3,8 @@ Code that launches an IOC/application under test
 """
 import subprocess
 import os
+import threading
+
 import psutil
 from time import sleep
 from abc import ABCMeta
@@ -73,9 +75,7 @@ class IOCRegister(object):
     """
 
     # Static dictionary of running iocs
-    RunningIOCs = {}
-
-    uses_rec_sim = False
+    thread_local = threading.local()
 
     @classmethod
     def get_running(cls, ioc_name):
@@ -85,7 +85,7 @@ class IOCRegister(object):
         :param ioc_name: name of the ioc emulator to grab
         :return: ioc launcher
         """
-        return cls.RunningIOCs.get(ioc_name)
+        return cls.thread_local.iocs.get(ioc_name)
 
     @classmethod
     def add_ioc(cls, name, ioc):
@@ -96,7 +96,18 @@ class IOCRegister(object):
         :param ioc: the ioc launcher
         :return:
         """
-        cls.RunningIOCs[name] = ioc
+        try:
+            cls.thread_local.iocs[name] = ioc
+        except AttributeError:
+            # Catches the first use of this class by any given thread.
+            cls.thread_local.iocs = {name: ioc}
+
+    @classmethod
+    def is_using_recsim(cls):
+        try:
+            return cls.thread_local.uses_rec_sim
+        except AttributeError:
+            return False
 
 
 @six.add_metaclass(ABCMeta)
@@ -201,6 +212,7 @@ class ProcServLauncher(BaseLauncher):
         settings["IOCCYGLOGROOT"] = self.to_cygwin_address(settings["IOCLOGROOT"])
         settings["IOCSH_SHOWWIN"] = "H"
         settings["LOGTIME"] = date.today().strftime("%Y%m%d")
+        settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
 
         return settings
 
@@ -390,7 +402,7 @@ class IocLauncher(BaseLauncher):
 
         self.use_rec_sim = test_mode == TestModes.RECSIM
 
-        IOCRegister.uses_rec_sim = self.use_rec_sim
+        IOCRegister.thread_local.uses_rec_sim = self.use_rec_sim
         self._process = None
         self.log_file_manager = None
 

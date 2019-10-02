@@ -101,7 +101,7 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_value_is_unchanged("TEMP", 5)
 
     def _set_setpoint_and_current_temperature(self, temperature):
-        if IOCRegister.uses_rec_sim:
+        if IOCRegister.is_using_recsim:
             self.ca.set_pv_value("SIM:TEMP:SP", temperature)
             self.ca.assert_that_pv_is("SIM:TEMP", temperature)
             self.ca.assert_that_pv_is("SIM:TEMP:SP", temperature)

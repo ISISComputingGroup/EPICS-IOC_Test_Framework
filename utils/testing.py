@@ -114,7 +114,7 @@ def _skip_if_condition(condition, reason):
 
     This is similar to unittest's @skipIf decorator, but this one determines it's condition at runtime as opposed to
     class load time. This is necessary because otherwise the decorators don't properly pick up changes in
-    IOCRegister.uses_rec_sim
+    IOCRegister.is_using_recsim
 
     Args:
         condition (func): The condition on which to skip the test. Should be callable.
@@ -131,10 +131,10 @@ def _skip_if_condition(condition, reason):
 
 
 """Decorator to skip tests if running in recsim."""
-skip_if_recsim = functools.partial(_skip_if_condition, lambda: IOCRegister.uses_rec_sim)
+skip_if_recsim = functools.partial(_skip_if_condition, lambda: IOCRegister.is_using_recsim)
 
 """Decorator to skip tests if running in devsim"""
-skip_if_devsim = functools.partial(_skip_if_condition, lambda: not IOCRegister.uses_rec_sim)
+skip_if_devsim = functools.partial(_skip_if_condition, lambda: not IOCRegister.is_using_recsim)
 
 
 def add_method(method):

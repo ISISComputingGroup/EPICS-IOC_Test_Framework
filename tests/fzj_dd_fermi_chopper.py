@@ -91,7 +91,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-        if not IOCRegister.uses_rec_sim:
+        if not IOCRegister.is_using_recsim:
             self._lewis.backdoor_set_on_device("chopper_name", chopper_name)
             self._lewis.backdoor_command(["device", "reset"])
 
