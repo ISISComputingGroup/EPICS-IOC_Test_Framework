@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, print_function, absolute_import, division
 """
 Code that launches an IOC/application under test
 """
@@ -199,20 +200,20 @@ class ProcServLauncher(BaseLauncher):
         self.autorestart = True
 
     def _set_environment_vars(self):
-        settings = os.environ.copy()
+        settings = {str(k): str(v) for k, v in os.environ.items()}
 
         # Set the port
-        settings['EMULATOR_PORT'] = str(self.port)
+        settings[str('EMULATOR_PORT')] = str(self.port)
 
-        settings["CYGWIN"] = "nodosfilewarning"
-        settings["MYDIRPROCSV"] = os.path.join(EPICS_TOP, "iocstartup")
-        settings["EPICS_CAS_INTF_ADDR_LIST"] = "127.0.0.1"
-        settings["EPICS_CAS_BEACON_ADDR_LIST"] = "127.255.255.255"
-        settings["IOCLOGROOT"] = os.path.join("C:", "Instrument", "var", "logs", "ioc")
-        settings["IOCCYGLOGROOT"] = self.to_cygwin_address(settings["IOCLOGROOT"])
-        settings["IOCSH_SHOWWIN"] = "H"
-        settings["LOGTIME"] = date.today().strftime("%Y%m%d")
-        settings['EPICS_CA_ADDR_LIST'] = "127.255.255.255"
+        settings[str("CYGWIN")] = str("nodosfilewarning")
+        settings[str("MYDIRPROCSV")] = str(os.path.join(EPICS_TOP, "iocstartup"))
+        settings[str("EPICS_CAS_INTF_ADDR_LIST")] = str("127.0.0.1")
+        settings[str("EPICS_CAS_BEACON_ADDR_LIST")] = str("127.255.255.255")
+        settings[str("IOCLOGROOT")] = str(os.path.join("C:", "Instrument", "var", "logs", "ioc"))
+        settings[str("IOCCYGLOGROOT")] = str(self.to_cygwin_address(settings["IOCLOGROOT"]))
+        settings[str("IOCSH_SHOWWIN")] = str("H")
+        settings[str("LOGTIME")] = date.today().strftime(str("%Y%m%d"))
+        settings[str('EPICS_CA_ADDR_LIST')] = str("127.255.255.255")
 
         return settings
 
@@ -410,21 +411,21 @@ class IocLauncher(BaseLauncher):
         return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
 
     def _set_environment_vars(self):
-        settings = os.environ.copy()
+        settings = {str(k): str(v) for k, v in os.environ.items()}
         if self.use_rec_sim:
             # Using record simulation
-            settings['TESTDEVSIM'] = ''
-            settings['TESTRECSIM'] = 'yes'
+            settings[str('TESTDEVSIM')] = str('')
+            settings[str('TESTRECSIM')] = str('yes')
         else:
             # Not using record simulation
-            settings['TESTDEVSIM'] = 'yes'
-            settings['TESTRECSIM'] = ''
+            settings[str('TESTDEVSIM')] = str('yes')
+            settings[str('TESTRECSIM')] = str('')
 
         # Set the port
-        settings['EMULATOR_PORT'] = str(self.port)
+        settings[str('EMULATOR_PORT')] = str(self.port)
 
         for env_name, setting in self._extra_environment_vars.items():
-            settings[env_name] = setting
+            settings[str(env_name)] = str(setting)
         return settings
 
     def _command_line(self):
@@ -451,6 +452,10 @@ class IocLauncher(BaseLauncher):
 
             settings = self._set_environment_vars()
 
+            for k, v in settings.items():
+                if (k.__class__ != str or v.__class__ != str):
+                    print("{}: {} - {}, {}".format(k, v, k.__class__.__name__, v.__class__.__name__))
+
             # create macros
             full_dir = os.path.join(self._var_dir, "tmp")
             if not os.path.exists(full_dir):
@@ -468,7 +473,8 @@ class IocLauncher(BaseLauncher):
             # Make sure to revert before checking code in
             self._process = subprocess.Popen(ioc_run_commandline, creationflags=subprocess.CREATE_NEW_CONSOLE,
                                              cwd=self._directory, stdin=subprocess.PIPE,
-                                             stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT, env=settings)
+                                             stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT,
+                                             env=settings)
 
             # Write a return so that an epics terminal will appear after boot
             self._process.stdin.write("\n")

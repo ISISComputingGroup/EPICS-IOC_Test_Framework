@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, print_function, absolute_import, division
 """
 Lewis emulator interface classes.
 """
@@ -374,7 +375,7 @@ class LewisLauncher(EmulatorLauncher):
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._logFile,
                                          stderr=subprocess.STDOUT,
-                                         env={'EPICS_CA_ADDR_LIST': "127.255.255.255"})
+                                         env={str('EPICS_CA_ADDR_LIST'): str("127.255.255.255")})
         self._connected = True
 
     def _log_filename(self):

@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, print_function, division, absolute_import
 """
 Run the tests.
 """
@@ -5,12 +6,16 @@ Run the tests.
 import argparse
 import os
 import sys
+import threading
+
+import concurrent
 import traceback
 import unittest
 
 import six
 import xmlrunner
 import glob
+import io
 
 from run_utils import package_contents
 from run_utils import ModuleTests
@@ -22,6 +27,9 @@ from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 
 from concurrent.futures import ThreadPoolExecutor
+
+
+OUTPUT_LOCK = threading.RLock()
 
 
 def clean_environment():
@@ -131,7 +139,15 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
                     threadpool.submit(run_tests, arguments.prefix, module.tests,
                                       device_collection_launcher(device_launchers), failfast, ask_before_running_tests))
 
-    return all(test_result.result() is True for test_result in test_results)
+        results = []
+
+        for future in concurrent.futures.as_completed(test_results):
+            result, output = future.result()
+            with OUTPUT_LOCK:
+                print(output)
+            results.append(result)
+
+    return all(result is True for result in results)
 
 
 def prompt_user_to_run_tests(test_names):
@@ -168,22 +184,24 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
         ask_before_running_tests: ask whether to run the tests before running them
 
     Returns:
-        bool: True if all tests pass and false otherwise.
+        tuple(bool, str):
+            status - True if all tests pass and false otherwise.
+            output - any output from the unittest framework
     """
     os.environ["testing_prefix"] = prefix
 
     test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
 
-    with device_launchers:
+    with device_launchers, io.StringIO() if six.PY3 else io.BytesIO() as output_stream:
         if ask_before_running_tests:
             prompt_user_to_run_tests(test_names)
 
-        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
+        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=output_stream, failfast=failfast_switch)
 
         test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
         result = runner.run(test_suite).wasSuccessful()
-
-    return result
+        output = output_stream.read()
+    return result, output
 
 
 if __name__ == '__main__':
