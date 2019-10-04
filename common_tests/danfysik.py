@@ -1,6 +1,6 @@
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc
+from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, skip_if_condition
 from utils.ioc_launcher import IOCRegister
 
 # Device prefix
@@ -106,6 +106,7 @@ class DanfysikCommon(DanfysikBase):
             self.ca.assert_that_pv_is("{}VOLT".format(id_prefix), expected_value)
 
     @skip_if_recsim("Recsim is unable to simulate comms being uninitialized")
+    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "Unintialised comms not implemented in RKNPS")
     def test_GIVEN_power_supply_comms_become_uninitialized_THEN_ioc_recovers(self):
         try:
             for volt in TEST_VOLTAGES:

@@ -101,19 +101,15 @@ class RknpsTests(DanfysikCommon, unittest.TestCase):
         """
         Deactivate both interlocks in the emulator.
         """
-        if IOCRegister.uses_rec_sim:
-            for IDN in IDS:
-                self._ioc.set_simulated_value("{}:SIM:STATUS".format(IDN), CLEAR_STATUS)
-        else:
-            self._lewis.backdoor_set_on_device("set_all_interlocks", False)
+        self._lewis.backdoor_set_on_device("set_all_interlocks", False)
 
-    @skip_if_recsim("Interlock statuses now depend on emulator")
+    @skip_if_recsim("Interlock statuses depend on emulator")
     def test_WHEN_interlocks_are_active_THEN_ilk_is_Interlocked(self):
         self._activate_interlocks()
         for IDN in IDS:
             self.ca.assert_that_pv_is("{0}:ILK".format(IDN), HAS_TRIPPED[True])
 
-    @skip_if_recsim("Interlock statuses now depend on emulator")
+    @skip_if_recsim("Interlock statuses depend on emulator")
     def test_WHEN_interlocks_are_inactive_THEN_ilk_is_not_Interlocked(self):
         self._deactivate_interlocks()
         for IDN in IDS:
@@ -172,7 +168,6 @@ class RknpsTests(DanfysikCommon, unittest.TestCase):
     def test_GIVEN_interlock_status_WHEN_read_all_status_THEN_status_is_as_expected(self, interlock):
         for boolean_value, expected_value in HAS_TRIPPED.items():
             for IDN, ADDR in zip(IDS, PSU_ADDRESSES):
-                print("Setting interlock to {}".format(expected_value))
                 # GIVEN
                 self._lewis.backdoor_run_function_on_device("set_{0}".format(interlock), (boolean_value, ADDR))
 
