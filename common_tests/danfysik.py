@@ -55,6 +55,10 @@ class DanfysikCommon(DanfysikBase):
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=10)
 
+    def _deactivate_interlocks(self):
+        # Most danfysiks have interlocks deactivated on startup anyway
+        pass
+
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("VOLT")
@@ -116,6 +120,7 @@ class DanfysikCommon(DanfysikBase):
             self._lewis.backdoor_set_on_device("comms_initialized", True)
 
     def test_GIVEN_no_interlocks_active_WHEN_getting_overall_interlock_status_THEN_it_is_ok(self):
+        self._deactivate_interlocks()
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_is("{}ILK".format(id_prefix), HAS_TRIPPED[False])
 
