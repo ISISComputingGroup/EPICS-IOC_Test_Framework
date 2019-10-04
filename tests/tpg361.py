@@ -1,9 +1,8 @@
 import unittest
 
-from common_tests.tpgx6x import TpgBase, ErrorFlags, ErrorStrings
+from common_tests.tpgx6x import TpgBase
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from parameterized import parameterized
 
 
 DEVICE_PREFIX = "TPG36X_01"
