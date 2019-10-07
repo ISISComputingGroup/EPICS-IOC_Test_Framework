@@ -197,9 +197,8 @@ def unstable_test(max_retries=2, error_class=AssertionError):
             try:
                 return func(self, *args, **kwargs)  # Initial attempt to run the test "normally"
             except error_class:
-                retries = 1
                 last_error = None
-                while retries <= max_retries:
+                for _ in range(max_retries):
                     try:
                         self.setUp()  # Need to rerun setup
                         return func(self, *args, **kwargs)
