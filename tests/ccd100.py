@@ -4,7 +4,7 @@ from time import sleep
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import get_running_lewis_and_ioc, assert_log_messages, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, assert_log_messages, skip_if_recsim, unstable_test
 from parameterized import parameterized
 
 # Device prefix
@@ -95,6 +95,7 @@ class CCD100LogTests(unittest.TestCase):
         with assert_log_messages(self._ioc, self.NUM_OF_PVS*1):
             self._set_error_state(False)
 
+    @unstable_test()
     @skip_if_recsim("Cannot check log messages in rec sim")
     def test_GIVEN_in_error_WHEN_error_string_changed_THEN_three_log_message_per_pv_logged_in_five_secs(self):
         self._lewis.backdoor_set_on_device("out_error", "OLD_ERROR")

@@ -125,7 +125,7 @@ def _skip_if_condition(condition, reason):
         def wrapper(*args, **kwargs):
             if condition():
                 raise unittest.SkipTest(reason)
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         return wrapper
     return decorator
 
@@ -180,3 +180,34 @@ def parameterized_list(cases):
             return_list.append(test_case + (case,))
 
     return return_list
+
+
+def unstable_test(max_retries=2, error_class=AssertionError):
+    """
+    Decorator which will retry a test on failure. This decorator should not be required on most tests and should not
+    be included as standard when writing a test.
+
+    Args:
+        max_retries: the max number of times to run the test before actually throwing an error (defaults to 2 retries)
+        error_class: the class of error to retry under (defaults to AssertionError)
+    """
+    def decorator(func):
+        @six.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)  # Initial attempt to run the test "normally"
+            except error_class:
+                retries = 1
+                last_error = None
+                while retries <= max_retries:
+                    try:
+                        self.setUp()  # Need to rerun setup
+                        return func(self, *args, **kwargs)
+                    except error_class as e:
+                        last_error = e
+                    finally:
+                        self.tearDown()  # Rerun tearDown regardless of success or not
+                else:
+                    raise last_error
+        return wrapper
+    return decorator
