@@ -7,6 +7,8 @@ import os
 import sys
 import traceback
 import unittest
+
+import six
 import xmlrunner
 import glob
 
@@ -90,13 +92,14 @@ def make_device_launchers_from_module(test_module, mode):
     return device_launchers
 
 
-def load_and_run_tests(test_names, failfast):
+def load_and_run_tests(test_names, failfast, ask_before_running_tests):
     """
     Loads and runs the dotted unit tests to be run.
 
     Args:
         test_names: List of dotted unit tests to run.
         failfast: Determines if tests abort after first failure.
+        ask_before_running_tests: ask whether to run the tests before running them
 
     Returns:
         boolean: True if all tests pass and false otherwise.
@@ -121,12 +124,34 @@ def load_and_run_tests(test_names, failfast):
             clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
             test_results.append(
-                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers), failfast))
+                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers), failfast, ask_before_running_tests))
 
     return all(test_result is True for test_result in test_results)
 
 
-def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
+def prompt_user_to_run_tests(test_names):
+    """
+    Utility function to ask the user whether to begin the tests
+
+    Args:
+        test_names: List of IOC test names to be run
+
+    Returns:
+        None
+
+    """
+    print("Run tests? [Y/N]: {}".format(test_names))
+    while True:
+        answer = six.moves.input()
+        if answer == "" or answer.upper()[0] not in ["N", "Y"]:
+            print("Answer must be Y or N")
+        elif answer.upper()[0] == "N":
+            print("Not running tests, emulator and IOC only. Ctrl+c to quit.")
+        elif answer.upper()[0] == "Y":
+            return
+
+
+def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
     Runs dotted unit tests.
 
@@ -135,6 +160,7 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
         tests_to_run: List of dotted unit tests to be run.
         device_launchers: Context manager that launches the necessary iocs and associated emulators.
         failfast_switch: Determines if test suit aborts after first failure.
+        ask_before_running_tests: ask whether to run the tests before running them
 
     Returns:
         bool: True if all tests pass and false otherwise.
@@ -149,6 +175,8 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch):
     test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
 
     with modified_environment(**settings), device_launchers:
+        if ask_before_running_tests:
+            prompt_user_to_run_tests(test_names)
 
         runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
 
@@ -191,6 +219,9 @@ if __name__ == '__main__':
                         Default is in the tests folder of this repo""")
     parser.add_argument('-f', '--failfast', action='store_true',
                         help="""Determines if the rest of tests are skipped after the first failure""")
+    parser.add_argument('-a', '--ask-before-running', action='store_true',
+                        help="""Pauses after starting emulator and ioc. Allows you to use booted
+                        emulator/IOC or attach debugger for tests""")
 
     arguments = parser.parse_args()
 
@@ -220,9 +251,10 @@ if __name__ == '__main__':
 
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
     failfast = arguments.failfast
+    ask_before_running_tests = arguments.ask_before_running
 
     try:
-        success = load_and_run_tests(tests, failfast)
+        success = load_and_run_tests(tests, failfast, ask_before_running_tests)
     except Exception as e:
         print("---\n---\n---\nAn Error occurred loading the tests: ")
         traceback.print_exc()
