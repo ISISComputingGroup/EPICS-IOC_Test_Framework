@@ -45,6 +45,7 @@ IOCS = [
             "CHAIN1_ID4": ID4,
             "CHAIN1_ADR4": ADR4,
         },
+        "pv_for_existence": "{}:DISABLE".format(ID1),
         "emulator": "rknps",
     },
 ]
