@@ -40,4 +40,4 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.set_pv_value("OUTPUTMODE:SP", new_outputmode)
 
         # THEN
-        self.ca.assert_that_pv_is("OUTPUTMODE:SP", new_outputmode, timeout=10)
+        self.ca.assert_that_pv_is("OUTPUTMODE", new_outputmode, timeout=10)
