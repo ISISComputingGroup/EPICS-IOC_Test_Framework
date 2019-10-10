@@ -242,11 +242,11 @@ if __name__ == '__main__':
     var_dir = var_dir.replace('/', '\\')
 
     if arguments.prefix is None:
-        print("Cannot run without instrument prefix")
+        print("Cannot run without instrument prefix, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
     if arguments.emulator_path is None:
-        print("Cannot run without emulator path")
+        print("Cannot run without emulator path, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
