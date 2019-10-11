@@ -108,7 +108,7 @@ def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=No
     return _AssertLogContext(ioc.log_file_manager, number_of_messages, in_time, must_contain)
 
 
-def _skip_if_condition(condition, reason):
+def skip_if_condition(condition, reason):
     """
     Decorator to skip tests given a particular condition.
 
@@ -131,10 +131,10 @@ def _skip_if_condition(condition, reason):
 
 
 """Decorator to skip tests if running in recsim."""
-skip_if_recsim = functools.partial(_skip_if_condition, lambda: IOCRegister.uses_rec_sim)
+skip_if_recsim = functools.partial(skip_if_condition, lambda: IOCRegister.uses_rec_sim)
 
 """Decorator to skip tests if running in devsim"""
-skip_if_devsim = functools.partial(_skip_if_condition, lambda: not IOCRegister.uses_rec_sim)
+skip_if_devsim = functools.partial(skip_if_condition, lambda: not IOCRegister.uses_rec_sim)
 
 
 def add_method(method):
