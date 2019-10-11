@@ -3,7 +3,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
 
 # Prefix for addressing PVs on this device
 PREFIX = "SPRLG_01"
@@ -131,6 +131,7 @@ class SuperlogicsTests(unittest.TestCase):
         self.ca.assert_that_pv_is(pv_name, expected_version)
         self.ca.assert_that_pv_alarm_is(pv_name, self.ca.Alarms.NONE)
 
+    @unstable_test()
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_address_02_disconnected_WHEN_read_values_THEN_error_state(self):
         address = "02"

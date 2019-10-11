@@ -6,7 +6,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import parameterized_list, get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
+from utils.testing import parameterized_list, get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim, unstable_test
 
 from parameterized import parameterized
 
@@ -230,10 +230,12 @@ class RknpsTests(unittest.TestCase):
                                       "on; beam to ports 3,4" if powered_on else "off; ports 3,4 safe")
 
     @skip_if_recsim("Cannot test connection in recsim")
+    @unstable_test()
     def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("CURR")
 
     @skip_if_recsim("Cannot test connection in recsim")
+    @unstable_test()
     def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
         self._pv_alarms_when_disconnected("VOLT")
 
