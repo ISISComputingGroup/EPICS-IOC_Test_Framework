@@ -552,5 +552,5 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
             options["emulator_wait_to_finish"] = True
             super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
         else:
-            print sys.stderr.write("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
-                                   " {} \n".format(automation_tools_dir))
+            raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
+                          " {} \n".format(automation_tools_dir))
