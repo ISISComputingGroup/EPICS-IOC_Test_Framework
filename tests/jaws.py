@@ -35,21 +35,13 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM]
 
 
-class JawsTests(unittest.TestCase):
-
+class JawsTestsBase(object):
     """
-    Tests for vertical jaws
+    Base class for jaws tests
     """
-    MTR_NORTH = "MOT:MTR0101"
-    MTR_SOUTH = "MOT:MTR0102"
-    MTR_WEST = "MOT:MTR0103"
-    MTR_EAST = "MOT:MTR0104"
-    UNDERLYING_MTRS = OrderedDict([("N", MTR_NORTH),
-                                   ("S", MTR_SOUTH),
-                                   ("E", MTR_EAST),
-                                   ("W",  MTR_WEST)])
 
     def setUp(self):
+        self.setup_jaws()
         self._ioc = IOCRegister.get_running("jaws")
         self.ca = ChannelAccess(default_timeout=30)
         for mtr in self.UNDERLYING_MTRS.values():
@@ -166,9 +158,10 @@ class JawsTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number(motor_adel_pv, test_value)
             self.ca.assert_that_pv_is_number(jaw_adel_pv, test_value)
 
-    @parameterized.expand([("V", MTR_NORTH),
-                           ("H", MTR_EAST)])
-    def test_GIVEN_underlying_mtr_adel_THEN_jaws_centre_and_gap_adel_mirrored(self, axis, underlying_mtr):
+    @parameterized.expand([("V", "N"),
+                           ("H", "E")])
+    def test_GIVEN_underlying_mtr_adel_THEN_jaws_centre_and_gap_adel_mirrored(self, axis, underlying_mtr_direction):
+        underlying_mtr = self.UNDERLYING_MTRS[underlying_mtr_direction]
         motor_pv = "{}.ADEL".format(underlying_mtr)
 
         test_values = [1e-4, 1.2, 12.3]
@@ -179,3 +172,19 @@ class JawsTests(unittest.TestCase):
 
             self.ca.assert_that_pv_is_number("{}:{}CENT.ADEL".format(JAWS_BASE_PV, axis), test_value)
             self.ca.assert_that_pv_is_number("{}:{}GAP.ADEL".format(JAWS_BASE_PV, axis), test_value)
+
+
+class JawsTests(JawsTestsBase, unittest.TestCase):
+    """
+    Tests for vertical jaws
+    """
+
+    def setup_jaws(self):
+        self.MTR_NORTH = "MOT:MTR0101"
+        self.MTR_SOUTH = "MOT:MTR0102"
+        self.MTR_WEST = "MOT:MTR0103"
+        self.MTR_EAST = "MOT:MTR0104"
+        self.UNDERLYING_MTRS = OrderedDict([("N", self.MTR_NORTH),
+                                            ("S", self.MTR_SOUTH),
+                                            ("E", self.MTR_EAST),
+                                            ("W", self.MTR_WEST)])
