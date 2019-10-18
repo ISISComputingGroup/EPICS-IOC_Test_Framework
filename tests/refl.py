@@ -454,3 +454,22 @@ class ReflTests(unittest.TestCase):
         # when the movement finishes it should still be the same
         self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0103.VELO", MEDIUM_VELOCITY)
+
+    def test_GIVEN_motors_not_at_zero_WHEN_define_motor_position_to_THEN_motor_position_is_changed_without_move(self):
+        offset = 10
+        new_position = 2
+        self.ca.set_pv_value("PARAM:DET_POS:SP", offset)
+        self.ca.assert_that_pv_is_number("PARAM:DET_POS", offset, tolerance=MOTOR_TOLERANCE, timeout=30)
+        self.ca_galil.assert_that_pv_is("MOT:MTR0104.DMOV", 1, timeout=30)
+
+        self.ca.set_pv_value("PARAM:DET_POS:DEFINE_POSITION_AS", new_position)
+
+        # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
+        # is very quick
+        self.ca_galil.assert_that_pv_is("MOT:MTR0104.DMOV", 1, timeout=1)
+        self.ca_galil.assert_that_pv_is("MOT:MTR0104.RBV", new_position)
+        self.ca_galil.assert_that_pv_is("MOT:MTR0104.SP", new_position)
+
+        self.ca.set_pv_value("PARAM:DETECTOR:RBV", new_position)
+        self.ca.set_pv_value("PARAM:DETECTOR:SP", new_position)
+        self.ca.set_pv_value("PARAM:DETECTOR:SP_NO_MOVE", new_position)
