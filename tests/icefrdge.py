@@ -33,7 +33,10 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def test_WHEN_setpoint_THEN_set_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1, "TEMP:SP:RBV", "TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(1, "AUTO:TEMP:SP:RBV", "AUTO:TEMP:SP")
 
     def test_WHEN_setpoint_THEN_temperature_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1, "TEMP", "TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(1, "AUTO:TEMP", "AUTO:TEMP:SP")
+
+    def test_WHEN_manual_setpoint_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(1, "MANUAL:TEMP:SP:RBV", "MANUAL:TEMP:SP")
