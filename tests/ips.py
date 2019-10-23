@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, parameterized_list
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, unstable_test
 from parameterized import parameterized
 
 
@@ -234,6 +234,7 @@ class IpsTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("FIELD:RATE", self.ca.Alarms.NONE)
 
     @parameterized.expand(activity_state for activity_state in parameterized_list(ACTIVITY_STATES))
+    @unstable_test()
     def test_WHEN_activity_set_via_backdoor_to_clamped_THEN_alarm_major_ELSE_no_alarm(self, _, activity_state):
         self.ca.set_pv_value("ACTIVITY", activity_state)
         if activity_state == "Clamped":
