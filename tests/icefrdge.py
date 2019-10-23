@@ -40,3 +40,6 @@ class IceFridgeTests(unittest.TestCase):
 
     def test_WHEN_manual_setpoint_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1, "MANUAL:TEMP:SP:RBV", "MANUAL:TEMP:SP")
+
+    def test_WHEN_manual_setpoint_THEN_temperature_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(1, "MANUAL:TEMP", "MANUAL:TEMP:SP")
