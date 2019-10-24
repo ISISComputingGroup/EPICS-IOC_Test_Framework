@@ -50,3 +50,6 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_VTI_temp_set_backdoor_THEN_ioc_read_correctly(self, _, temp_num):
         self._lewis.backdoor_set_on_device("vti_temp{}".format(temp_num), 3.6)
         self.ca.assert_that_pv_is_number("VTI:TEMP{}".format(temp_num), 3.6, 0.001)
+
+    def test_WHEN_loop1_setpoint_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:TSET:SP", "VTI:LOOP1:TSET")
