@@ -3,8 +3,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
-
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 DEVICE_PREFIX = "ICEFRDGE_01"
 
@@ -43,3 +42,8 @@ class IceFridgeTests(unittest.TestCase):
 
     def test_WHEN_manual_setpoint_THEN_temperature_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1, "MANUAL:TEMP", "MANUAL:TEMP:SP")
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_VTI_temp_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("vti_temp1", 3.6)
+        self.ca.assert_that_pv_is_number("VTI:TEMP1", 3.6, 0.001)
