@@ -18,9 +18,9 @@ IOCS = [
     },
 ]
 
-
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
+VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
 class IceFridgeTests(unittest.TestCase):
     """
@@ -45,7 +45,7 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_manual_setpoint_THEN_temperature_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1, "MANUAL:TEMP", "MANUAL:TEMP:SP")
 
-    @parameterized.expand(parameterized_list([1, 2, 3, 4]))
+    @parameterized.expand(parameterized_list(VTI_TEMP_SUFFIXES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_VTI_temp_set_backdoor_THEN_ioc_read_correctly(self, _, temp_num):
         self._lewis.backdoor_set_on_device("vti_temp{}".format(temp_num), 3.6)
