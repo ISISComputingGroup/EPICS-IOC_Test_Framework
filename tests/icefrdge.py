@@ -22,6 +22,7 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
+
 class IceFridgeTests(unittest.TestCase):
     """
     Tests for the IceFrdge IOC.
@@ -51,5 +52,8 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("vti_temp{}".format(temp_num), 3.6)
         self.ca.assert_that_pv_is_number("VTI:TEMP{}".format(temp_num), 3.6, 0.001)
 
-    def test_WHEN_loop1_setpoint_THEN_readback_identical(self):
+    def test_WHEN_vti_loop1_setpoint_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:TSET", "VTI:LOOP1:TSET:SP")
+
+    def test_WHEN_vti_loop2_setpoint_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP2:TSET", "VTI:LOOP2:TSET:SP")
