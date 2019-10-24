@@ -55,5 +55,11 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_vti_loop1_setpoint_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:TSET", "VTI:LOOP1:TSET:SP")
 
+    def test_WHEN_vti_loop1_proportional_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:P", "VTI:LOOP1:P:SP")
+
     def test_WHEN_vti_loop2_setpoint_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP2:TSET", "VTI:LOOP2:TSET:SP")
+
+    def test_WHEN_vti_loop2_proportional_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP2:P", "VTI:LOOP2:P:SP")
