@@ -81,3 +81,8 @@ class IceFridgeTests(unittest.TestCase):
 
     def test_WHEN_vti_loop2_ramp_rate_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:RAMPRATE", "VTI:LOOP2:RAMPRATE:SP")
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_Lakeshore_MC_Cernox_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("lakeshore_mc_cernox", 1.6)
+        self.ca.assert_that_pv_is_number("LS:MC:CERNOX", 1.6, 0.001)
