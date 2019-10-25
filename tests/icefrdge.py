@@ -80,4 +80,4 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:D", "VTI:LOOP2:D:SP")
 
     def test_WHEN_vti_loop2_ramp_rate_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP2:RAMPRATE", "VTI:LOOP2:RAMPRATE:SP")
+        self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:RAMPRATE", "VTI:LOOP2:RAMPRATE:SP")
