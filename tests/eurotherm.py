@@ -27,7 +27,14 @@ IOCS = [
         "directory": get_default_ioc_dir("EUROTHRM"),
         "macros": {
             "ADDR": ADDRESS,
-            "ADDR_1": ADDR_1
+            "ADDR_1": ADDR_1,
+            "ADDR_2": "",
+            "ADDR_3": "",
+            "ADDR_4": "",
+            "ADDR_5": "",
+            "ADDR_6": "",
+            "ADDR_7": "",
+            "ADDR_8": ""
         },
         "emulator": EMULATOR_DEVICE,
     },
@@ -244,11 +251,6 @@ class EurothermTests(unittest.TestCase):
             self._assert_units("C")
             self.ca.assert_that_pv_is("RATE.EGU", "C/min")
 
-    @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('LOWLIM', ChannelAccess.Alarms.INVALID)
-
     @parameterized.expand([
         ("under_range_calc_pv_is_under_range",  NONE_TXT_CALIBRATION_MIN_TEMPERATURE - 5.0, 1.0),
         ("under_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MIN_TEMPERATURE + 200, 0.0),
@@ -313,3 +315,9 @@ class EurothermTests(unittest.TestCase):
         # Assert
         self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
         self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
+
+    @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
+    @skip_if_recsim("Can not test disconnection in rec sim")
+    def test_WHEN_disconnected_THEN_in_alarm(self, field):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is(field, ChannelAccess.Alarms.INVALID)
