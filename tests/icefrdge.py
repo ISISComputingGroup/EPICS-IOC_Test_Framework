@@ -91,3 +91,8 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_MC_RuO_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("lakeshore_mc_ruo", 1.7)
         self.ca.assert_that_pv_is_number("LS:MC:RUO", 1.7, 0.001)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_Lakeshore_still_temp_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("lakeshore_still_temp", 1.8)
+        self.ca.assert_that_pv_is_number("LS:STILL:TEMP", 1.8, 0.001)
