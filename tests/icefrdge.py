@@ -88,6 +88,6 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("LS:MC:CERNOX", 1.6, 0.001)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_Lakeshore_MC_Cernox_set_backdoor_THEN_ioc_read_correctly(self):
+    def test_WHEN_Lakeshore_MC_RuO_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("lakeshore_mc_ruo", 1.7)
         self.ca.assert_that_pv_is_number("LS:MC:RUO", 1.7, 0.001)
