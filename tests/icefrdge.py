@@ -34,7 +34,7 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_device_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_WHEN_auto_setpoint_THEN_set_readback_identical(self):
+    def test_WHEN_auto_setpoint_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1, "AUTO:TEMP:SP:RBV", "AUTO:TEMP:SP")
 
     def test_WHEN_auto_setpoint_THEN_temperature_identical(self):
@@ -96,3 +96,16 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_still_temp_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("lakeshore_still_temp", 1.8)
         self.ca.assert_that_pv_is_number("LS:STILL:TEMP", 1.8, 0.001)
+
+    def test_WHEN_Lakeshore_MC_setpoint_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(1.9, "LS:MC:TEMP", "LS:MC:TEMP:SP")
+
+    def test_WHEN_Lakeshore_MC_setpoint_is_zero_THEN_scan_correct(self):
+        self.ca.set_pv_value("LS:MC:TEMP:SP", 0)
+        self._lewis.assert_that_emulator_value_is("lakeshore_mc_temp_setpoint_scan", 1, 15)
+        self._lewis.assert_that_emulator_value_is("lakeshore_mc_temp_setpoint_cmode", 4, 15)
+
+    def test_WHEN_Lakeshore_MC_setpoint_is_larger_than_zero_THEN_scan_correct(self):
+        self.ca.set_pv_value("LS:MC:TEMP:SP", 4)
+        self._lewis.assert_that_emulator_value_is("lakeshore_mc_temp_setpoint_scan", 0, 15)
+        self._lewis.assert_that_emulator_value_is("lakeshore_mc_temp_setpoint_cmode", 1, 15)

@@ -171,7 +171,8 @@ class EmulatorLauncher(object):
 
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None):
         """
-        Assert that the pv has the expected value or that it becomes the expected value within the timeout.
+        Assert that the emulator property has the expected value or that it becomes the expected value within the
+        timeout.
 
         Args:
             emulator_property (string): emulator property to check
