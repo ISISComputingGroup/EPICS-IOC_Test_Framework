@@ -318,6 +318,6 @@ class EurothermTests(unittest.TestCase):
 
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
     @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_WHEN_disconnected_THEN_in_alarm(self, field):
+    def test_WHEN_disconnected_THEN_in_alarm(self, record):
         self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is(field, ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID)
