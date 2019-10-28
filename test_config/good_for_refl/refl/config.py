@@ -42,8 +42,11 @@ def get_beamline():
     not_in_mode_pos = TrackingPosition("notinmode", not_in_mode, True)
     s3_enabled = InBeamParameter("s3_enabled", s3)
     hgap_param = SlitGapParameter("S1HG", JawsGapPVWrapper("MOT:JAWS1", is_vertical=False))
+    hcentre_param = SlitGapParameter("S1HC", JawsCentrePVWrapper("MOT:JAWS1", is_vertical=False))
+    vgap_param = SlitGapParameter("S1VG", JawsGapPVWrapper("MOT:JAWS1", is_vertical=True))
+    vcentre_param = SlitGapParameter("S1VC", JawsCentrePVWrapper("MOT:JAWS1", is_vertical=True))
 
-    params_all = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle, not_in_mode_pos, hgap_param, slit4_pos, slit5_pos]
+    params_all = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle, not_in_mode_pos, hgap_param, vgap_param, hcentre_param, vcentre_param, slit4_pos, slit5_pos]
     params_default = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle, slit4_pos, slit5_pos]
 
     params_for_mode_testing = [slit1_pos, theta_ang, slit3_pos, slit4_pos, slit5_pos, detector_position, s3_enabled]

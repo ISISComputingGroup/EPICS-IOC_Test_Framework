@@ -484,3 +484,74 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PARAM:THETA:SP", 0)
         self.ca.assert_that_pv_is("PARAM:THETA:SP:RBV", 0)
 
+    def test_GIVEN_jaws_not_at_zero_WHEN_define_motor_position_for_jaw_gaps_THEN_jaws_position_are_changed_without_move(self):
+        param_name = "S1VG"
+        jaw_motors = ["MTR0201", "MTR0202"]
+        initial_gap = 1.0
+        initial_centre = 2.0
+        new_gap = 4.0
+        expected_pos = {"MTR0201": new_gap/2.0 - initial_centre,
+                        "MTR0202": new_gap/2.0 + initial_centre}
+        self.ca.assert_setting_setpoint_sets_readback(initial_gap, "PARAM:S1VG", expected_alarm=None, timeout=30)
+        self.ca.assert_setting_setpoint_sets_readback(initial_centre, "PARAM:S1VC", expected_alarm=None, timeout=30)
+        for motor_name in jaw_motors:
+            self.ca_galil.set_pv_value("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.set_pv_value("{}.OFF".format(motor_name), 0)
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
+
+        self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_gap)
+
+        # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
+        # is very quick
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+
+        for motor_name in jaw_motors:
+            # jaws are open to half the gap
+            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
+            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.assert_that_pv_is_number("{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE)
+
+        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_gap)
+        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_gap)
+        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_gap)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+
+    def test_GIVEN_jaws_not_at_zero_WHEN_define_motor_position_for_jaw_centres_THEN_jaws_position_are_changed_without_move(self):
+        param_name = "S1HC"
+        jaw_motors = ["MTR0203", "MTR0204"]
+        initial_gap = 1.0
+        initial_centre = 2.0
+        new_centre = 4.0
+        expected_pos = {"MTR0203": initial_gap/2.0 + new_centre,
+                        "MTR0204": initial_gap/2.0 - new_centre}
+        self.ca.assert_setting_setpoint_sets_readback(initial_gap, "PARAM:S1HG", expected_alarm=None, timeout=30)
+        self.ca.assert_setting_setpoint_sets_readback(initial_centre, "PARAM:S1HC", expected_alarm=None, timeout=30)
+        for motor_name in jaw_motors:
+            self.ca_galil.set_pv_value("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.set_pv_value("{}.OFF".format(motor_name), 0)
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
+
+        self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_centre)
+
+        # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
+        # is very quick
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+
+        for motor_name in jaw_motors:
+            # jaws are open to half the gap
+            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
+            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.assert_that_pv_is_number("{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE)
+
+        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_centre)
+        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_centre)
+        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_centre)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
