@@ -102,12 +102,10 @@ class IceFridgeTests(unittest.TestCase):
 
     def test_WHEN_Lakeshore_MC_setpoint_is_zero_THEN_scan_correct(self):
         self.ca.set_pv_value("LS:MC:TEMP:SP", 0)
-        self._lewis.assert_that_emulator_value_is("lakeshore_scan_num1", "6", 15)
-        self._lewis.assert_that_emulator_value_is("lakeshore_scan_num2", "1", 15)
-        self._lewis.assert_that_emulator_value_is("lakeshore_mc_temp_setpoint_cmode", "4", 15)
+        self._lewis.assert_that_emulator_value_is("lakeshore_scan", "1", 15)
+        self._lewis.assert_that_emulator_value_is("lakeshore_cmode", "4", 15)
 
     def test_WHEN_Lakeshore_MC_setpoint_is_larger_than_zero_THEN_scan_correct(self):
         self.ca.set_pv_value("LS:MC:TEMP:SP", 4)
-        self._lewis.assert_that_emulator_value_is("lakeshore_scan_num1", "6", 15)
-        self._lewis.assert_that_emulator_value_is("lakeshore_scan_num2", "0", 15)
-        self._lewis.assert_that_emulator_value_is("lakeshore_mc_temp_setpoint_cmode", "1", 15)
+        self._lewis.assert_that_emulator_value_is("lakeshore_scan", "0", 15)
+        self._lewis.assert_that_emulator_value_is("lakeshore_cmode", "1", 15)
