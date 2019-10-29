@@ -100,11 +100,13 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_MC_setpoint_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1.9, "LS:MC:TEMP", "LS:MC:TEMP:SP")
 
+    @skip_if_recsim("Lewis assertion not working in recsim")
     def test_WHEN_Lakeshore_MC_setpoint_is_zero_THEN_scan_correct(self):
         self.ca.set_pv_value("LS:MC:TEMP:SP", 0)
         self._lewis.assert_that_emulator_value_is("lakeshore_scan", "1", 15)
         self._lewis.assert_that_emulator_value_is("lakeshore_cmode", "4", 15)
 
+    @skip_if_recsim("Lewis assertion not working in recsim")
     def test_WHEN_Lakeshore_MC_setpoint_is_larger_than_zero_THEN_scan_correct(self):
         self.ca.set_pv_value("LS:MC:TEMP:SP", 4)
         self._lewis.assert_that_emulator_value_is("lakeshore_scan", "0", 15)
