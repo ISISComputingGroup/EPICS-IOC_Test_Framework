@@ -176,7 +176,8 @@ class EmulatorLauncher(object):
 
         Args:
             emulator_property (string): emulator property to check
-            expected_value: expected value
+            expected_value: expected value. Return value from the emulator will always be a string, so your exptected
+            value should also be a string.
             timeout (float): if it hasn't changed within this time raise assertion error
             message (string): Extra message to print
         Raises:
