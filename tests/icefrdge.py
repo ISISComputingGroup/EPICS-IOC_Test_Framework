@@ -1,3 +1,4 @@
+import itertools
 import unittest
 
 from parameterized import parameterized
@@ -21,6 +22,10 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
+
+VTI_LOOPS = [1, 2]
+
+VTI_LOOP_TEST_INPUTS = [0, 0.001, 0.333, 273]
 
 
 class IceFridgeTests(unittest.TestCase):
@@ -52,35 +57,30 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("vti_temp{}".format(temp_num), 3.6)
         self.ca.assert_that_pv_is_number("VTI:TEMP{}".format(temp_num), 3.6, 0.001)
 
-    def test_WHEN_vti_loop1_setpoint_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:TSET", "VTI:LOOP1:TSET:SP")
+    @parameterized.expand(parameterized_list(itertools.product(VTI_LOOPS, VTI_LOOP_TEST_INPUTS)))
+    def test_WHEN_vti_loop_setpoint_THEN_readback_identical(self, _, loop_num, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, "VTI:LOOP{}:TSET".format(loop_num),
+                                                      "VTI:LOOP{}:TSET:SP".format(loop_num))
 
-    def test_WHEN_vti_loop1_proportional_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:P", "VTI:LOOP1:P:SP")
+    @parameterized.expand(parameterized_list(itertools.product(VTI_LOOPS, VTI_LOOP_TEST_INPUTS)))
+    def test_WHEN_vti_loop_proportional_THEN_readback_identical(self, _, loop_num, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, "VTI:LOOP{}:P".format(loop_num),
+                                                      "VTI:LOOP{}:P:SP".format(loop_num))
 
-    def test_WHEN_vti_loop1_integral_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:I", "VTI:LOOP1:I:SP")
+    @parameterized.expand(parameterized_list(itertools.product(VTI_LOOPS, VTI_LOOP_TEST_INPUTS)))
+    def test_WHEN_vti_loop_integral_THEN_readback_identical(self, _, loop_num, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, "VTI:LOOP{}:I".format(loop_num),
+                                                      "VTI:LOOP{}:I:SP".format(loop_num))
 
-    def test_WHEN_vti_loop1_derivative_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:D", "VTI:LOOP1:D:SP")
+    @parameterized.expand(parameterized_list(itertools.product(VTI_LOOPS, VTI_LOOP_TEST_INPUTS)))
+    def test_WHEN_vti_loop_derivative_THEN_readback_identical(self, _, loop_num, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, "VTI:LOOP{}:D".format(loop_num),
+                                                      "VTI:LOOP{}:D:SP".format(loop_num))
 
-    def test_WHEN_vti_loop1_ramp_rate_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(3.6, "VTI:LOOP1:RAMPRATE", "VTI:LOOP1:RAMPRATE:SP")
-
-    def test_WHEN_vti_loop2_setpoint_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:TSET", "VTI:LOOP2:TSET:SP")
-
-    def test_WHEN_vti_loop2_proportional_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:P", "VTI:LOOP2:P:SP")
-
-    def test_WHEN_vti_loop2_integral_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:I", "VTI:LOOP2:I:SP")
-
-    def test_WHEN_vti_loop2_derivative_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:D", "VTI:LOOP2:D:SP")
-
-    def test_WHEN_vti_loop2_ramp_rate_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2, "VTI:LOOP2:RAMPRATE", "VTI:LOOP2:RAMPRATE:SP")
+    @parameterized.expand(parameterized_list(itertools.product(VTI_LOOPS, VTI_LOOP_TEST_INPUTS)))
+    def test_WHEN_vti_loop_ramp_rate_THEN_readback_identical(self, _, loop_num, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, "VTI:LOOP{}:RAMPRATE".format(loop_num),
+                                                      "VTI:LOOP{}:RAMPRATE:SP".format(loop_num))
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_Lakeshore_MC_Cernox_set_backdoor_THEN_ioc_read_correctly(self):
