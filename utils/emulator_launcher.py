@@ -176,7 +176,7 @@ class EmulatorLauncher(object):
 
         Args:
             emulator_property (string): emulator property to check
-            expected_value: expected value
+            expected_value: expected value. Emulator backdoor always returns a string, so the value should be a string.
             timeout (float): if it hasn't changed within this time raise assertion error
             message (string): Extra message to print
         Raises:
@@ -193,7 +193,7 @@ class EmulatorLauncher(object):
     def assert_that_emulator_value_causes_func_to_return_true(
             self, emulator_property, func, timeout=None, msg=None):
         """
-        Check that a emulator property satisfies a given function within some timeout.
+        Check that an emulator property satisfies a given function within some timeout.
 
         Args:
             emulator_property (string): emulator property to check
@@ -264,7 +264,8 @@ class EmulatorLauncher(object):
 
             Args:
                  emulator_property (string): Name of the numerical emulator property.
-                 min_value (float): Minimum value (inclusive).
+                 min_value (float): Minimum value (inclusive).Emulator backdoor always returns a string, so the value
+                 should be a string.
                  timeout: if it hasn't changed within this time raise assertion error
             Raises:
                  AssertionError: if value does not become requested value
