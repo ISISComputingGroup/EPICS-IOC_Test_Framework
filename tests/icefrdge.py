@@ -19,7 +19,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -40,16 +40,16 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def test_WHEN_auto_setpoint_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1, "AUTO:TEMP:SP:RBV", "AUTO:TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(0.1, "AUTO:TEMP:SP:RBV", "AUTO:TEMP:SP")
 
     def test_WHEN_auto_setpoint_THEN_temperature_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1, "AUTO:TEMP", "AUTO:TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(0.2, "AUTO:TEMP", "AUTO:TEMP:SP")
 
     def test_WHEN_manual_setpoint_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1, "MANUAL:TEMP:SP:RBV", "MANUAL:TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(0.3, "MANUAL:TEMP:SP:RBV", "MANUAL:TEMP:SP")
 
     def test_WHEN_manual_setpoint_THEN_temperature_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1, "MANUAL:TEMP", "MANUAL:TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(0.4, "MANUAL:TEMP", "MANUAL:TEMP:SP")
 
     @parameterized.expand(parameterized_list(VTI_TEMP_SUFFIXES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -84,21 +84,21 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_Lakeshore_MC_Cernox_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("lakeshore_mc_cernox", 1.6)
-        self.ca.assert_that_pv_is_number("LS:MC:CERNOX", 1.6, 0.001)
+        self._lewis.backdoor_set_on_device("lakeshore_mc_cernox", 0.5)
+        self.ca.assert_that_pv_is_number("LS:MC:CERNOX", 0.5, 0.001)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_Lakeshore_MC_RuO_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("lakeshore_mc_ruo", 1.7)
-        self.ca.assert_that_pv_is_number("LS:MC:RUO", 1.7, 0.001)
+        self._lewis.backdoor_set_on_device("lakeshore_mc_ruo", 0.6)
+        self.ca.assert_that_pv_is_number("LS:MC:RUO", 0.6, 0.001)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_Lakeshore_still_temp_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("lakeshore_still_temp", 1.8)
-        self.ca.assert_that_pv_is_number("LS:STILL:TEMP", 1.8, 0.001)
+        self._lewis.backdoor_set_on_device("lakeshore_still_temp", 0.7)
+        self.ca.assert_that_pv_is_number("LS:STILL:TEMP", 0.7, 0.001)
 
     def test_WHEN_Lakeshore_MC_setpoint_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1.9, "LS:MC:TEMP", "LS:MC:TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(0.8, "LS:MC:TEMP", "LS:MC:TEMP:SP")
 
     @skip_if_recsim("Lewis assertion not working in recsim")
     def test_WHEN_Lakeshore_MC_setpoint_is_zero_THEN_scan_correct(self):
@@ -113,10 +113,12 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.assert_that_emulator_value_is("lakeshore_cmode", "1", 15)
 
     def test_WHEN_Lakeshore_MC_proportional_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2.1, "LS:MC:P", "LS:MC:P:SP")
+        self.ca.assert_setting_setpoint_sets_readback(0.9, "LS:MC:P", "LS:MC:P:SP")
 
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_Lakeshore_MC_integral_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2.2, "LS:MC:I", "LS:MC:I:SP")
+        self.ca.assert_setting_setpoint_sets_readback(1.1, "LS:MC:I", "LS:MC:I:SP")
 
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_Lakeshore_MC_derivative_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(2.3, "LS:MC:D", "LS:MC:D:SP")
+        self.ca.assert_setting_setpoint_sets_readback(1.2, "LS:MC:D", "LS:MC:D:SP")
