@@ -9,6 +9,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
+from utils.testing import ManagerMode
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
@@ -98,6 +99,7 @@ class ReflTests(unittest.TestCase):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT")
         self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS")
+        self.ca_no_prefix = ChannelAccess()
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("PARAM:S1:SP", 0)
         self.ca.set_pv_value("PARAM:S3:SP", 0)
@@ -294,10 +296,11 @@ class ReflTests(unittest.TestCase):
         expected_gap_in_refl = 0.2
         expected_change_to_gap = 1.0
 
-        time.sleep(5)
-        self.ca.assert_setting_setpoint_sets_readback(readback_pv="PARAM:S1HG", value=expected_gap_in_refl, expected_alarm=None)
+        self.ca.set_pv_value("PARAM:S1HG:SP", expected_gap_in_refl)
+        self.ca.assert_that_pv_is_number("PARAM:S1HG", expected_gap_in_refl, timeout=15, tolerance=MOTOR_TOLERANCE)
 
-        self.ca_galil.assert_setting_setpoint_sets_readback(readback_pv="JAWS1:HGAP", value=expected_change_to_gap)
+        self.ca_galil.set_pv_value("JAWS1:HGAP:SP", expected_change_to_gap)
+        self.ca_galil.assert_that_pv_is_number("JAWS1:HGAP", expected_change_to_gap, timeout=15, tolerance=MOTOR_TOLERANCE)
 
         self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
         self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)
@@ -465,7 +468,8 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("PARAM:{}".format(param_name), offset, tolerance=MOTOR_TOLERANCE, timeout=30)
         self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=30)
 
-        self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_position)
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_position)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
@@ -500,7 +504,8 @@ class ReflTests(unittest.TestCase):
         for motor_name in jaw_motors:
             self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
 
-        self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_gap)
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_gap)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
@@ -536,7 +541,8 @@ class ReflTests(unittest.TestCase):
         for motor_name in jaw_motors:
             self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
 
-        self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_centre)
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_centre)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
@@ -555,3 +561,16 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_centre)
         self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_centre)
         self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+
+    def test_GIVEN_theta_THEN_define_position_as_does_not_exist(self):
+        param_name = "THETA"
+        self.ca.assert_that_pv_exists("PARAM:{}".format(param_name))
+        self.ca.assert_that_pv_does_not_exist("PARAM:{}:DEFINE_POSITION_AS".format(param_name))
+
+    def test_GIVEN_parameter_not_in_manager_mode_WHEN_define_position_THEN_position_is_not_defined(self):
+        new_position = 10
+
+        param_pv = "PARAM:{}:DEFINE_POSITION_AS".format("DET_POS")
+        self.assertRaises(IOError, self.ca.set_pv_value, param_pv, new_position)
+
+        self.ca.assert_that_pv_is_not(param_pv, new_position)

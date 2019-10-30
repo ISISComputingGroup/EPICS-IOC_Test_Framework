@@ -276,7 +276,7 @@ class ChannelAccess(object):
         self.process_pv(pv)
         return self.assert_that_pv_is(pv, expected_value, timeout=None, msg=None)
 
-    def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
+    def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=None):
         """
         Assert that the pv does not have a particular value and optionally it does not become that value within the
         timeout.
