@@ -19,7 +19,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -111,3 +111,6 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.set_pv_value("LS:MC:TEMP:SP", 4)
         self._lewis.assert_that_emulator_value_is("lakeshore_scan", "0", 15)
         self._lewis.assert_that_emulator_value_is("lakeshore_cmode", "1", 15)
+
+    def test_WHEN_Lakeshore_MC_PIDs_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(2.1, "LS:MC:P", "LS:MC:P:SP")
