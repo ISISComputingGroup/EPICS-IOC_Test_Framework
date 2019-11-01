@@ -3,7 +3,7 @@ import unittest
 from utils.ioc_launcher import get_default_ioc_dir
 import os
 from parameterized.parameterized import parameterized
-from utils.testing import parameterized_list
+from utils.testing import parameterized_list, unstable_test
 from common_tests.jaws_manager_utils import JawsManagerBase, MOD_GAP
 
 # IP address of device
@@ -48,6 +48,7 @@ class JawsManagerTests(JawsManagerBase, unittest.TestCase):
         (10, 5, [9, 7.5]),
         (20, 5, [17, 12.5]),
     ]))
+    @unstable_test()
     def test_WHEN_sample_gap_set_THEN_other_jaws_as_expected(self, _, mod_gap, sample_gap, expected):
         self.ca.set_pv_value(MOD_GAP.format("V"), mod_gap)
         self._test_WHEN_sample_gap_set_THEN_other_jaws_as_expected("V", sample_gap, expected)

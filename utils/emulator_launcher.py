@@ -540,12 +540,17 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
             raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and `solution_path` options must"
                            " be provided as part of the options dictionary")
 
-        automation_tools = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools", "bin", "x64", "Release", "AutomationTools.exe")
-        plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
-        self.beckhoff_command_line = '{} "{}" '.format(automation_tools, plc_to_start)
-        self.startup_command = self.beckhoff_command_line + "activate run"
+        automation_tools_dir = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools")
+        automation_tools_binary = os.path.join(automation_tools_dir, "bin", "x64", "Release", "AutomationTools.exe")
 
-        options["emulator_command_line"] = self.startup_command
-        options["emulator_wait_to_finish"] = True
-        super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
+        if os.path.exists(automation_tools_binary):
+            plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
+            self.beckhoff_command_line = '{} "{}" '.format(automation_tools_binary, plc_to_start)
+            self.startup_command = self.beckhoff_command_line + "activate run"
 
+            options["emulator_command_line"] = self.startup_command
+            options["emulator_wait_to_finish"] = True
+            super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
+        else:
+            raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
+                          " {} \n".format(automation_tools_dir))
