@@ -19,7 +19,7 @@ IOCS = [
             "MAX_VOLT": 9.9,
             "WRITE_UNIT": "Amps",
             "DISPLAY_UNIT": "Gauss",
-            "RAMP_FILE": "C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\testramp\\test.txt",
+            "RAMP_FILE": "C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\test.txt",
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.01,
             "ALLOW_PERSIST": "No",
