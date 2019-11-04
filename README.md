@@ -70,6 +70,13 @@ By default the framework searches for tests inside `.\tests\`. If you wish to sp
 
 >`python run_tests.py -tp C:\my_ioc_tests` will run tests in the `my_ioc_tests` folder.
 
+### Run test but Ask before starting the tests but after the IOC and emmulator are running
+
+It is sometimes useful to attach a debugger to the test using this option means that the framework will ask to run tests before it starts the setup for the test.
+This gives you time to attach a debugger. It also allows you an easy way to set up the system with emmulator and ioc attached to each other for unscripted testing.
+
+>  `python run_tests.py -a will ask if you want to run test before it runs them.
+
 ## Troubleshooting 
 
 If all tests are failing then it is likely that the PV prefix is incorrect.
@@ -223,6 +230,9 @@ A number of custom assert statements are available in the test framework:
       ```
 * `assert_that_pv_monitor_is_number`
   * Checks that a PV has issued a monitor for a pv and that it is a number, within a specified tolerance. Used in a similar way to `assert_that_pv_monitor_is`
+
+* `assert_that_emulator_value_is`
+  * Checks that an emulator property has the expected value or that it becomes the expected value within the timeout.
 
 If you find yourself needing other assert functions, please add them!
 

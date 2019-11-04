@@ -7,7 +7,7 @@ import six
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, assert_log_messages
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, assert_log_messages, unstable_test
 
 
 class ErrorStrings(object):
@@ -283,6 +283,7 @@ class FermichopperBase(object):
             # Some time later the driver should resend the setpoint which causes the device to behave properly again:
             self.ca.assert_that_pv_is_number("GATEWIDTH", test_value, tolerance=tolerance)
 
+    @unstable_test()
     @skip_if_recsim("Device breakage not simulated in RECSIM")
     def test_GIVEN_setpoint_is_already_at_600Hz_WHEN_setting_setpoint_to_600Hz_THEN_device_does_not_break(self):
 

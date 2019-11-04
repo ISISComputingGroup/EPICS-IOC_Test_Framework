@@ -5,7 +5,8 @@ import itertools
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
+from parameterized import parameterized
 
 DEVICE_PREFIX = "ITC503_01"
 
@@ -39,6 +40,15 @@ CTRL_MODE_ALARMS = {"Locked": ChannelAccess.Alarms.NONE,
                     "Local only": ChannelAccess.Alarms.MAJOR,
                     "Local and remote": ChannelAccess.Alarms.NONE}
 
+# Build a list contain all the PVs that set a command and a set value
+# product creates a cartesian product list of the two lists given
+ALL_CONTROL_COMMANDS_LIST_OF_LISTS = [itertools.product(["P", "I", "D", "GASFLOW", "TEMP", "HEATERP"], TEST_VALUES),
+                                      itertools.product(["MODE:HTR", "MODE:GAS"], MODES),
+                                      itertools.product(["CTRLCHANNEL"], CHANNELS),
+                                      itertools.product(["AUTOPID"], ["OFF", "ON"])]
+
+ALL_CONTROL_COMMANDS = [command for command_list in ALL_CONTROL_COMMANDS_LIST_OF_LISTS for command in command_list]
+
 
 class Itc503Tests(unittest.TestCase):
     """
@@ -69,41 +79,41 @@ class Itc503Tests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    def test_WHEN_setting_pid_settings_THEN_can_be_read_back(self):
-        for pv, value in itertools.product(["P", "I", "D"], TEST_VALUES):
-            self.ca.set_pv_value("{}:SP".format(pv), value)
-            self.ca.assert_that_pv_is_number(pv, value, tolerance=0.1)  # Only comes back to 1dp
+    @parameterized.expand((pv, val) for pv, val in itertools.product(["P", "I", "D"], TEST_VALUES))
+    def test_WHEN_setting_pid_settings_THEN_can_be_read_back(self, pv, val):
+        self.ca.set_pv_value("{}:SP".format(pv), val)
+        self.ca.assert_that_pv_is_number(pv, val, tolerance=0.1)  # Only comes back to 1dp
 
-    def test_WHEN_setting_flows_THEN_can_be_read_back(self):
-        for value in TEST_VALUES:
-            self.ca.set_pv_value("GASFLOW:SP", value)
-            self.ca.assert_that_pv_is_number("GASFLOW", value, tolerance=0.1)  # Only comes back to 1dp
+    @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
+    def test_WHEN_setting_flows_THEN_can_be_read_back(self, _, val):
+        self.ca.set_pv_value("GASFLOW:SP", val)
+        self.ca.assert_that_pv_is_number("GASFLOW", val, tolerance=0.1)  # Only comes back to 1dp
 
-    def test_WHEN_setting_gas_flow_control_mode_THEN_can_be_read_back(self):
-        for mode in MODES:
-            self.ca.assert_setting_setpoint_sets_readback(mode, "MODE:GAS")
+    @parameterized.expand(mode for mode in parameterized_list(MODES))
+    def test_WHEN_setting_gas_flow_control_mode_THEN_can_be_read_back(self, _, mode):
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE:GAS")
 
-    def test_WHEN_setting_heater_flow_control_mode_THEN_can_be_read_back(self):
-        for mode in MODES:
-            self.ca.assert_setting_setpoint_sets_readback(mode, "MODE:HTR")
+    @parameterized.expand(mode for mode in parameterized_list(MODES))
+    def test_WHEN_setting_heater_flow_control_mode_THEN_can_be_read_back(self, _, mode):
+        self.ca.assert_setting_setpoint_sets_readback(mode, "MODE:HTR")
 
-    def test_WHEN_temperature_is_set_THEN_temperature_and_setpoint_readbacks_update_to_new_value(self):
-        for value in TEST_VALUES:
-            self.ca.set_pv_value("TEMP:SP", value)
-            self.ca.assert_that_pv_is_number("TEMP:SP:RBV", value, tolerance=0.1)
-            self.ca.assert_that_pv_is_number("TEMP:1", value, tolerance=0.1)
-            self.ca.assert_that_pv_is_number("TEMP:2", value, tolerance=0.1)
-            self.ca.assert_that_pv_is_number("TEMP:3", value, tolerance=0.1)
+    @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
+    def test_WHEN_temperature_is_set_THEN_temperature_and_setpoint_readbacks_update_to_new_value(self, _, val):
+        self.ca.set_pv_value("TEMP:SP", val)
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", val, tolerance=0.1)
+        self.ca.assert_that_pv_is_number("TEMP:1", val, tolerance=0.1)
+        self.ca.assert_that_pv_is_number("TEMP:2", val, tolerance=0.1)
+        self.ca.assert_that_pv_is_number("TEMP:3", val, tolerance=0.1)
 
+    @parameterized.expand(chan for chan in parameterized_list(CHANNELS))
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
-    def test_WHEN_control_channel_is_set_THEN_control_channel_can_be_read_back(self):
-        for chan in CHANNELS:
-            self.ca.assert_setting_setpoint_sets_readback(chan, "CTRLCHANNEL")
+    def test_WHEN_control_channel_is_set_THEN_control_channel_can_be_read_back(self, _, chan):
+        self.ca.assert_setting_setpoint_sets_readback(chan, "CTRLCHANNEL")
 
+    @parameterized.expand(mode for mode in CTRL_MODE_ALARMS)
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
-    def test_WHEN_setting_control_mode_THEN_can_be_read_back(self):
-        for mode in ("Locked", "Remote only", "Local only", "Local and remote"):
-            self.ca.assert_setting_setpoint_sets_readback(mode, "CTRL", expected_alarm=CTRL_MODE_ALARMS[mode])
+    def test_WHEN_setting_control_mode_THEN_can_be_read_back(self, mode):
+        self.ca.assert_setting_setpoint_sets_readback(mode, "CTRL", expected_alarm=CTRL_MODE_ALARMS[mode])
 
     @skip_if_recsim("Backdoor does not exist in recsim")
     def test_WHEN_sweeping_mode_is_set_via_backdoor_THEN_it_updates_in_the_ioc(self):
@@ -113,16 +123,24 @@ class Itc503Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("sweeping", True)
         self.ca.assert_that_pv_is("SWEEPING", "Sweeping")
 
+    @parameterized.expand(state for state in ("ON", "OFF"))
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
-    def test_WHEN_setting_autopid_THEN_readback_reflects_setting_just_sent(self):
-        for state in ("ON", "OFF"):
-            self.ca.assert_setting_setpoint_sets_readback(state, "AUTOPID")
+    def test_WHEN_setting_autopid_THEN_readback_reflects_setting_just_sent(self, state):
+        self.ca.assert_setting_setpoint_sets_readback(state, "AUTOPID")
 
+    @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
     @skip_if_recsim("Backdoor does not exist in recsim")
-    def test_WHEN_heater_voltage_is_set_THEN_heater_voltage_updates(self):
-        for val in TEST_VALUES:
-            self.ca.set_pv_value("HEATERP:SP", val)
-            self.ca.assert_that_pv_is_number("HEATERP", val, tolerance=0.1)
+    def test_WHEN_heater_voltage_is_set_THEN_heater_voltage_updates(self, _, val):
+        self.ca.set_pv_value("HEATERP:SP", val)
+        self.ca.assert_that_pv_is_number("HEATERP", val, tolerance=0.1)
 
-            # Emulator responds with heater p == heater v. Test that heater p is also reading.
-            self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
+        # Emulator responds with heater p == heater v. Test that heater p is also reading.
+        self.ca.assert_that_pv_is_number("HEATERV", val, tolerance=0.1)
+
+    @parameterized.expand(control_command for control_command in parameterized_list(ALL_CONTROL_COMMANDS))
+    @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
+    def test_WHEN_control_command_sent_THEN_remote_unlocked_set(self, _, control_pv, set_value):
+        self.ca.set_pv_value("CTRL", "Locked")
+        self.ca.set_pv_value("{}:SP".format(control_pv), set_value)
+        self.ca.assert_that_pv_is("CTRL", "Local and remote")
+        self.ca.set_pv_value("CTRL", "Locked")

@@ -2,7 +2,7 @@ import os
 import unittest
 import time
 from contextlib import contextmanager
-from math import tan, radians
+from math import tan, radians, cos
 
 from parameterized import parameterized
 
@@ -66,7 +66,12 @@ IOCS = [
             "ICPVARDIR": test_config_path,
         }
     },
-
+    {
+        "name": "INSTETC",
+        "directory": get_default_ioc_dir("INSTETC"),
+        "custom_prefix": "CS",
+        "pv_for_existence": "MANAGER",
+    },
 
 ]
 
@@ -78,6 +83,9 @@ SPACING = 2
 
 # This is the position if s3 is out of the beam relative to straight through beam
 OUT_POSITION = -5
+
+# Rough tolerance of the motors
+MOTOR_TOLERANCE = 0.001
 
 
 class ReflTests(unittest.TestCase):
@@ -125,8 +133,8 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_read_back_MTR_and_setpoints_moves_to_given_value(self):
         expected_value = 3.0
 
-        self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
-        self.ca.assert_that_pv_is("PARAM:S1:SP_NO_MOVE", expected_value)
+        self.ca.set_pv_value("PARAM:S1:SP_NO_ACTION", expected_value)
+        self.ca.assert_that_pv_is("PARAM:S1:SP_NO_ACTION", expected_value)
         self.ca.set_pv_value("BL:MOVE", 1)
 
         self.ca.assert_that_pv_is("PARAM:S1:SP:RBV", expected_value)
@@ -137,7 +145,7 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_monitors_updated(self):
         expected_value = 3.0
 
-        self.ca.set_pv_value("PARAM:S1:SP_NO_MOVE", expected_value)
+        self.ca.set_pv_value("PARAM:S1:SP_NO_ACTION", expected_value)
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca.assert_that_pv_monitor_is("PARAM:S1", expected_value)
 
@@ -180,7 +188,7 @@ class ReflTests(unittest.TestCase):
         expected_value = "OUT"
 
         with self.ca.assert_that_pv_monitor_is("PARAM:S3_ENABLED", expected_value):
-            self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_MOVE", expected_value)
+            self.ca.set_pv_value("PARAM:S3_ENABLED:SP_NO_ACTION", expected_value)
             self.ca.set_pv_value("BL:MOVE", 1)
 
         self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION)
@@ -245,7 +253,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
         self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
 
-        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=15)
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=30)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
 
     def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_motor_retains_new_value_after_move_completed(self):
@@ -257,7 +265,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
         self.ca_galil.set_pv_value("MTR0102.VELO", expected)
 
-        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=10)
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=30)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
 
     def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
@@ -342,11 +350,36 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_value_is_changing("PARAM:S3", wait=2)
         self.ca.assert_that_pv_is("PARAM:S3:RBV:AT_SP", "NO")
 
+    def test_GIVEN_engineering_correction_WHEN_move_THEN_move_includes_engineering_correction(self):
+        theta = 2
+        self.ca.set_pv_value("PARAM:THETA:SP", theta)
+        self.ca.set_pv_value("PARAM:S5:SP", 0)
+
+        self.ca.assert_that_pv_is("COR:MOT:MTR0206.DESC",
+                                  "Interpolated from file s4_correction.dat on MOT:MTR0206 for s5")
+        self.ca.assert_that_pv_is("COR:MOT:MTR0206", theta/10.0)  # s4 correction is a 1/10 of theta
+
+        # soon after movement starts and before movement stops the velocity should be the same
+        distance_from_sample_to_s4 = (3.5 - 2.0) * 2
+        expected_position = distance_from_sample_to_s4 * tan(radians(theta * 2)) + theta / 10.0
+        self.ca_galil.assert_that_pv_is_number("MTR0206.RBV", expected_position, tolerance=MOTOR_TOLERANCE, timeout=30)
+        self.ca.assert_that_pv_is_number("PARAM:S5", 0, tolerance=MOTOR_TOLERANCE, timeout=10)
+
+    def test_GIVEN_param_not_in_mode_and_sp_changed_WHEN_performing_beamline_move_THEN_sp_is_applied(self):
+        expected = 1.0
+        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_ACTION", expected)
+
+        self.ca.set_pv_value("BL:MOVE", 1, wait=True)
+
+        self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
+        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", expected)
+        self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", expected)
+
     def test_GIVEN_param_not_in_mode_and_sp_changed_WHEN_performing_individual_move_THEN_sp_is_applied(self):
         expected = 1.0
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_MOVE", expected)
+        self.ca.set_pv_value("PARAM:NOTINMODE:SP_NO_ACTION", expected)
 
-        self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
+        self.ca.set_pv_value("PARAM:NOTINMODE:ACTION", 1, wait=True)
 
         self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP:RBV", expected)
@@ -387,7 +420,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE", motor_pos)
 
-        self.ca.set_pv_value("PARAM:NOTINMODE:MOVE", 1, wait=True)
+        self.ca.set_pv_value("PARAM:NOTINMODE:ACTION", 1, wait=True)
 
         self.ca_galil.assert_that_pv_is("MTR0205.DMOV", 1, timeout=10)
         self.ca.assert_that_pv_is_number("PARAM:NOTINMODE:SP", param_sp)

@@ -101,3 +101,8 @@ NULL
 # VS Code files
 .vscode/
 settings.json
+
+# unneeded config
+test_config/good_for_refl/refl/velocity.txt
+test_config/good_for_refl/refl/params.txt
+test_config/refl_init/refl/velocity.txt

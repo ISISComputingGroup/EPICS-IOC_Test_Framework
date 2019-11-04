@@ -3,8 +3,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
 
 DEVICE_PREFIX = "LKSH218_04"
 
@@ -93,6 +92,7 @@ class Lksh218Tests(unittest.TestCase):
         self.ca.process_pv("SENSORALL")
         self.ca.assert_that_pv_alarm_is("SENSORALL", ChannelAccess.Alarms.INVALID)
 
+    @unstable_test()
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMPALL(self):
         self._lewis.backdoor_set_on_device("connected", False)
