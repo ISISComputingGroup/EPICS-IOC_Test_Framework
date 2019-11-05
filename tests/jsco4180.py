@@ -27,6 +27,9 @@ TEST_MODES = [TestModes.DEVSIM]
 ERROR_STATE_HARDWARE_FAULT = 4
 ERROR_STATE_NO_ERROR = 2
 
+required_pvs = ["COMP:A:SP", "COMP:B:SP", "COMP:C:SP", "START:SP", "STATUS", "FLOWRATE:SP", "TIME:RUN:SP",
+                "PRESSURE:MIN:SP", "PRESSURE:MAX:SP", "ERROR:SP", "ERROR:STR", "PUMP_FOR_TIME:SP"]
+
 
 class Jsco4180Tests(unittest.TestCase):
     """
@@ -35,9 +38,9 @@ class Jsco4180Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        self.ca.assert_that_pv_exists("FLOWRATE", timeout=30)
+        for pv in required_pvs:
+            self.ca.assert_that_pv_exists(pv, timeout=30)
         self._lewis.backdoor_run_function_on_device("reset")
-
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_running_THEN_retry_run_and_updates_component(self):
@@ -255,4 +258,24 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("FILE:SP", 0)
 
         self.ca.assert_that_pv_is("ERROR:STR", expected_value)
+
+    @parameterized.expand([("low_set_time", 100, 1, 1),
+                           ("high_set_time", 1000, 10, 1),
+                           ("non_standard_set_time", 456, 5, 1)])
+    @skip_if_recsim("Lewis device logic not supported in RECSIM")
+    def test_GIVEN_pump_for_volume_WHEN_pumping_THEN_device_is_pumping_set_volume(self, _, time, volume, flowrate):
+        # Set a target pump time a target pump volume. When we start a pump set volume run, then the remaining
+        # time should be related to the target volume, and not the target time (that would be used for a pump for time).
+        set_time = time
+        set_volume = volume
+        set_flowrate = flowrate
+        expected_time = set_volume * set_flowrate * 60  # flow rate units = mL/min, so convert to seconds
+
+        self.ca.set_pv_value("TIME:RUN:SP", set_time)
+        self.ca.set_pv_value("TIME:VOL:SP", set_volume)
+        self.ca.set_pv_value("FLOWRATE:SP", set_flowrate)
+
+        self.ca.process_pv("PUMP_SET_VOLUME:SP")
+
+        self.ca.assert_that_pv_is_within_range("TIME:REMAINING", min_value=expected_time-20, max_value=expected_time+20)
 
