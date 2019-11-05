@@ -621,6 +621,9 @@ class InstronStressRigTests(unittest.TestCase):
         expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
         assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
 
+        for i in range(len(conversion_factors)):
+            self.assertNotEqual(0, conversion_factors[i], "Factor {} was zero".format(i))
+
         # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for device_channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel)

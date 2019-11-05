@@ -123,8 +123,13 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
         for module in modules_to_be_tested_in_current_mode:
             clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
-            test_results.append(
-                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers), failfast, ask_before_running_tests))
+            try:
+                test_results.append(
+                    run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers),
+                              failfast, ask_before_running_tests))
+            except Exception:
+                print("Error while attempting to load test suite: {}".format(traceback.format_exc()))
+                test_results.append(False)  # Fail the tests which threw an exception, but keep running other tests.
 
     return all(test_result is True for test_result in test_results)
 

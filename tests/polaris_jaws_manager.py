@@ -4,7 +4,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from genie_python.genie_cachannel_wrapper import WriteAccessException
 import os
 from parameterized.parameterized import parameterized
-from utils.testing import parameterized_list, ManagerMode
+from utils.testing import parameterized_list, ManagerMode, unstable_test
 from common_tests.jaws_manager_utils import JawsManagerBase, UNDERLYING_GAP_SP
 # IP address of device
 from utils.test_modes import TestModes
@@ -108,6 +108,7 @@ class PolarisJawsManagerTests(JawsManagerBase, unittest.TestCase):
             self.ca.assert_that_pv_is_number(underlying_jaw, 10)
 
     @parameterized.expand(["V", "H"])
+    @unstable_test()
     def test_GIVEN_jaw_5_readback_changed_WHEN_set_pv_called_THEN_underlying_jaw_5_changes(self, direction):
         underlying_jaw = UNDERLYING_GAP_SP.format(5, direction)
         self.ca.set_pv_value(SAMPLE_SP.format(direction), 10)
