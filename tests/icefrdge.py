@@ -126,6 +126,7 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_MC_heater_range_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback("316 uA", "LS:MC:HTR:RANGE", "LS:MC:HTR:RANGE:SP")
 
+    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_lakeshore_MC_heater_range_invalid_setpoint_THEN_pv_in_alarm(self):
         self._lewis.backdoor_set_on_device("lakeshore_mc_heater_range", 9)
         self.ca.assert_that_pv_alarm_is("LS:MC:HTR:RANGE", self.ca.Alarms.INVALID, timeout=15)
