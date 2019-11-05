@@ -1,4 +1,5 @@
 import unittest
+from time import sleep
 
 from parameterized import parameterized
 
@@ -72,14 +73,14 @@ class LinmotTests(unittest.TestCase):
             self.ca_linmot.set_pv_value(MTR_HIGH_LIMIT, MTR_HIGH_LIMIT_DEFAULT)
 
     @parameterized.expand([('Low limit', MTR_LOW_LIMIT_DEFAULT), ('Normal value', 12.56), ('High limit', MTR_HIGH_LIMIT_DEFAULT)])
-    @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
     def test_GIVEN_motor_destination_WHEN_motor_given_destination_THEN_move_to_correct_place(self, _, target_position):
         self.ca_linmot.set_pv_value(MTR_SETPOINT, target_position)
 
         self.ca_linmot.assert_that_pv_is(MTR_READBACK, target_position)
 
-    @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
     def test_GIVEN_velocity_WHEN_started_up_THEN_velocity_is_correct(self):
+        # Driver converts the input velocity units mm (from the motor record) into a value the device uses.
+        # See SET_VELOCITY in the devLinMot.cc driver for more information
         target_velocity_value = "0.2"
         expected_value = "104"
         self.ca_linmot.set_pv_value(MTR_VELOCITY, target_velocity_value)
@@ -87,7 +88,6 @@ class LinmotTests(unittest.TestCase):
 
         self._lewis.assert_that_emulator_value_is("velocity", expected_value, timeout=5)
 
-    @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
     def test_GIVEN_start_up_WHEN_get_motor_warn_status_THEN_it_is_correct(self):
         expected_value = "256"
         device_value = self._lewis.backdoor_get_from_device("motor_warn_status_int")
@@ -98,17 +98,15 @@ class LinmotTests(unittest.TestCase):
         self.ca_linmot.set_pv_value(MTR_ACCELERATION, target_acceleration)
         self.ca_linmot.assert_that_pv_is(MTR_ACCELERATION, target_acceleration)
 
-    @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
     def test_GIVEN_new_position_WHEN_moving_THEN_DMOVE_status_updated(self):
         expected_value = 0
+        self.ca_linmot.set_pv_value(MTR_VELOCITY, 0.05)  # Slow axis so it cant reach target before stop sent
         self.ca_linmot.set_pv_value(MTR_SETPOINT, MTR_HIGH_LIMIT_DEFAULT)
         self.ca_linmot.assert_that_pv_is(MTR_DMOV, expected_value)
 
-    @skip_if_recsim("Lewis backdoor not available in RECSIM mode")
     def test_GIVEN_starting_up_WHEN_stopped_THEN_device_is_in_stopped_state(self):
         self._lewis.assert_that_emulator_value_is(STATE, STATE_STOPPED)
 
-    @skip_if_recsim("Lewis backdoor is not available in RECSIM")
     def test_GIVEN_position_change_WHEN_move_finished_THEN_device_in_stopped_state(self):
         target_position = MTR_HIGH_LIMIT_DEFAULT
         self.ca_linmot.set_pv_value(MTR_VELOCITY, 0.05)  # Slow axis so it cant reach target before stop sent
@@ -116,3 +114,10 @@ class LinmotTests(unittest.TestCase):
         self.ca_linmot.set_pv_value(MTR_STOP, 1)
 
         self.ca_linmot.assert_that_pv_is(MTR_DMOV, 1)
+
+    def test_GIVEN_device_disconnected_WHEN_read_THEN_pv_shows_disconnect(self):
+        target_position = MTR_HIGH_LIMIT_DEFAULT
+        self._lewis.backdoor_set_on_device("connected", False)
+        sleep(30)
+        self.ca_linmot.set_pv_value(MTR_SETPOINT, target_position)
+        self.ca_linmot.assert_that_pv_is(MTR_READBACK, self.ca.Alarms.MAJOR)
