@@ -34,7 +34,7 @@ class _MonitorAssertion:
     """
     def __init__(self, channel_access, pv):
         """
-        Initilise.
+        Initialise.
         Args:
             channel_access: channel_access to set up monitor
             pv: name of pv to monitor

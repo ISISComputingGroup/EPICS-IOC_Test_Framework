@@ -3,7 +3,7 @@ import unittest
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
 
-from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME
+from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED
 from utils.testing import skip_if_recsim
 
 
@@ -58,8 +58,8 @@ class Danfysik8800Tests(DanfysikCommon, unittest.TestCase):
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_interlocks_set_to_active_via_backdoor_THEN_interlock_pvs_update(self):
         for ilk_name, ilk_pv in INTERLOCKS.items():
-            self.ca.assert_that_pv_is(ilk_pv, "OK")
+            self.ca.assert_that_pv_is(ilk_pv, HAS_TRIPPED[False])
             self._lewis.backdoor_command(["device", "enable_interlock", ilk_name])
-            self.ca.assert_that_pv_is(ilk_pv, "Interlock")
+            self.ca.assert_that_pv_is(ilk_pv, HAS_TRIPPED[True])
             self._lewis.backdoor_command(["device", "disable_interlock", ilk_name])
-            self.ca.assert_that_pv_is(ilk_pv, "OK")
+            self.ca.assert_that_pv_is(ilk_pv, HAS_TRIPPED[False])

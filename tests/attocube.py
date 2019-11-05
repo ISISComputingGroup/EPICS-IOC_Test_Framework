@@ -4,7 +4,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
-from time import sleep
+
 
 DEVICE_PREFIX = "ATTOCUBE_01"
 EMULATOR = "attocube_anc350"
@@ -39,13 +39,33 @@ class AttocubeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device('connected', True)
         self.ca.assert_that_pv_exists(MOTOR_RBV)
 
+    @unittest.skip("Fix in https://github.com/ISISComputingGroup/IBEX/issues/4841")
     def test_WHEN_moved_to_position_THEN_position_reached(self):
-        position_setpoint = 10
+        position_setpoint = 20
         self.ca.set_pv_value(MOTOR_PV, position_setpoint)
         self.ca.assert_that_pv_value_is_increasing(MOTOR_RBV, 1)
-        self.ca.assert_that_pv_is_number(MOTOR_RBV, position_setpoint, timeout=10)
+        self.ca.assert_that_pv_is_number(MOTOR_RBV, position_setpoint, timeout=20)
 
-    @unittest.skipIf(True, 'This should work but comms alarms seem to be somewhat broken see #4618')
+    @unittest.skip("Fix in https://github.com/ISISComputingGroup/IBEX/issues/4841")
     def test_GIVEN_device_not_connected_THEN_pv_in_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is(MOTOR_PV, ChannelAccess.Alarms.INVALID, timeout=60)
+        self.ca.assert_that_pv_alarm_is(MOTOR_PV, ChannelAccess.Alarms.INVALID, timeout=30)
+        self._lewis.backdoor_set_on_device('connected', True)
+
+    @unittest.skip("Fix in https://github.com/ISISComputingGroup/IBEX/issues/4841")
+    def test_GIVEN_device_not_connected_WHEN_motor_val_set_THEN_pv_returns_to_alarm(self):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is(MOTOR_PV, ChannelAccess.Alarms.INVALID, timeout=10)
+        position_setpoint = 5
+        self.ca.set_pv_value(MOTOR_PV, position_setpoint)
+        self.ca.assert_that_pv_alarm_is(MOTOR_PV, ChannelAccess.Alarms.INVALID, timeout=30)
+        self._lewis.backdoor_set_on_device('connected', True)
+
+    def test_GIVEN_axis_not_on_WHEN_motor_moved_THEN_axis_turned_on_and_moves(self):
+        self._lewis.backdoor_set_on_device('axis_on', False)
+        position_setpoint = 5
+        self.ca.set_pv_value(MOTOR_PV, position_setpoint)
+        self.ca.assert_that_pv_value_is_increasing(MOTOR_RBV, 1)
+        self.ca.assert_that_pv_is_number(MOTOR_RBV, position_setpoint, timeout=20)
+
+        self.assertTrue(self._lewis.backdoor_get_from_device('axis_on'))

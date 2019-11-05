@@ -24,7 +24,10 @@ pipeline {
     stage("Install latest IBEX") {
       steps {
         bat """
+            if EXIST "ibex_utils" rmdir /s /q ibex_utils
+            git clone https://github.com/ISISComputingGroup/ibex_utils.git ibex_utils
             call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat
+            rmdir /s /q ibex_utils
             """
       }
     }
@@ -52,5 +55,6 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr:'5', daysToKeepStr: '7'))
     timeout(time: 600, unit: 'MINUTES')
     disableConcurrentBuilds()
+    timestamps()
   }
 }

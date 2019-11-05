@@ -108,7 +108,7 @@ def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=No
     return _AssertLogContext(ioc.log_file_manager, number_of_messages, in_time, must_contain)
 
 
-def _skip_if_condition(condition, reason):
+def skip_if_condition(condition, reason):
     """
     Decorator to skip tests given a particular condition.
 
@@ -125,16 +125,16 @@ def _skip_if_condition(condition, reason):
         def wrapper(*args, **kwargs):
             if condition():
                 raise unittest.SkipTest(reason)
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         return wrapper
     return decorator
 
 
 """Decorator to skip tests if running in recsim."""
-skip_if_recsim = functools.partial(_skip_if_condition, lambda: IOCRegister.uses_rec_sim)
+skip_if_recsim = functools.partial(skip_if_condition, lambda: IOCRegister.uses_rec_sim)
 
 """Decorator to skip tests if running in devsim"""
-skip_if_devsim = functools.partial(_skip_if_condition, lambda: not IOCRegister.uses_rec_sim)
+skip_if_devsim = functools.partial(skip_if_condition, lambda: not IOCRegister.uses_rec_sim)
 
 
 def add_method(method):
@@ -180,3 +180,33 @@ def parameterized_list(cases):
             return_list.append(test_case + (case,))
 
     return return_list
+
+
+def unstable_test(max_retries=2, error_class=AssertionError):
+    """
+    Decorator which will retry a test on failure. This decorator should not be required on most tests and should not
+    be included as standard when writing a test.
+
+    Args:
+        max_retries: the max number of times to run the test before actually throwing an error (defaults to 2 retries)
+        error_class: the class of error to retry under (defaults to AssertionError)
+    """
+    def decorator(func):
+        @six.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)  # Initial attempt to run the test "normally"
+            except error_class:
+                last_error = None
+                for _ in range(max_retries):
+                    try:
+                        self.setUp()  # Need to rerun setup
+                        return func(self, *args, **kwargs)
+                    except error_class as e:
+                        last_error = e
+                    finally:
+                        self.tearDown()  # Rerun tearDown regardless of success or not
+                else:
+                    raise last_error
+        return wrapper
+    return decorator
