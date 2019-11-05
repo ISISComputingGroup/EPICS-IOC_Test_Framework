@@ -46,28 +46,28 @@ class KeylkgTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MODE", expected_value)
 
     @parameterized.expand([('low limit', -99.9999), ('test_value_1', -2.3122), ('test_value_2', 12.3423), ('high limit', 99.9999)])
-    def test_GIVE_running_ioc_WHEN_set_output1_offset_THEN_output1_offset_updated(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output1_offset_THEN_output1_offset_updated(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
         self.ca.assert_that_pv_is_number("OFFSET:OUTPUT:1", expected_value, tolerance=0.001)
 
     @parameterized.expand([('exceeds low limit', -100.0000), ('exceeds high limit', 100.000)])
-    def test_GIVE_running_ioc_WHEN_set_output1_offset_outside_of_limits_THEN_output1_offset_within_limits(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output1_offset_outside_of_limits_THEN_output1_offset_within_limits(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
         self.ca.assert_that_pv_is_within_range("OFFSET:OUTPUT:1", -99.9999, 99.9999)
 
     @parameterized.expand([('low limit', -99.9999), ('test_value_1', -2.3122), ('test_value_2', 12.3423), ('high limit', 99.9999)])
-    def test_GIVE_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:2:SP", expected_value)
 
         self.ca.assert_that_pv_is_number("OFFSET:OUTPUT:2", expected_value, tolerance=0.001)
 
     @parameterized.expand([('exceeds low limit', -100.0000), ('exceeds high limit', 100.000)])
-    def test_GIVE_running_ioc_WHEN_set_output2_offset_outside_of_limits_THEN_output2_offset_within_limits(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output2_offset_outside_of_limits_THEN_output2_offset_within_limits(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
