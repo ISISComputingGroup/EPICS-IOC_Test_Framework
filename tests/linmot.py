@@ -114,10 +114,3 @@ class LinmotTests(unittest.TestCase):
         self.ca_linmot.set_pv_value(MTR_STOP, 1)
 
         self.ca_linmot.assert_that_pv_is(MTR_DMOV, 1)
-
-    def test_GIVEN_device_disconnected_WHEN_read_THEN_pv_shows_disconnect(self):
-        target_position = MTR_HIGH_LIMIT_DEFAULT
-        self._lewis.backdoor_set_on_device("connected", False)
-        sleep(30)
-        self.ca_linmot.set_pv_value(MTR_SETPOINT, target_position)
-        self.ca_linmot.assert_that_pv_is(MTR_READBACK, self.ca.Alarms.MAJOR)
