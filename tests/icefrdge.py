@@ -31,6 +31,7 @@ LS_MC_HTR_RANGE_VALUES = ["Off", "31.6 uA", "100 uA", "316 uA", "1.00 mA", "3.16
 
 LS_MC_HTR_INVALID_NUMBERS = [-3, -1, 4.5, 9, 14]
 
+
 class IceFridgeTests(unittest.TestCase):
     """
     Tests for the IceFrdge IOC.
@@ -135,3 +136,8 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_lakeshore_MC_heater_range_invalid_setpoint_THEN_pv_in_alarm(self, _, invalid_num):
         self._lewis.backdoor_set_on_device("lakeshore_mc_heater_range", invalid_num)
         self.ca.assert_that_pv_alarm_is("LS:MC:HTR:RANGE", self.ca.Alarms.INVALID, timeout=15)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_Lakeshore_MC_heater_percentage_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("lakeshore_mc_heater_percentage", 50)
+        self.ca.assert_that_pv_is_number("LS:MC:HTR:PERCENT", 50, 0.001)
