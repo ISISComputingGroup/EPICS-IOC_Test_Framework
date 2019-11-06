@@ -29,6 +29,8 @@ VTI_LOOP_TEST_INPUTS = [0, 0.001, 0.333, 273]
 
 LS_MC_HTR_RANGE_VALUES = ["Off", "31.6 uA", "100 uA", "316 uA", "1.00 mA", "3.16 mA", "10 mA", "31.6 mA", "100 mA"]
 
+LS_MC_HTR_INVALID_NUMBERS = [-3, -1, 4.5, 9, 14]
+
 class IceFridgeTests(unittest.TestCase):
     """
     Tests for the IceFrdge IOC.
@@ -128,7 +130,7 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_MC_heater_range_THEN_readback_identical(self, _, heater_range):
         self.ca.assert_setting_setpoint_sets_readback(heater_range, "LS:MC:HTR:RANGE", "LS:MC:HTR:RANGE:SP")
 
-    @parameterized.expand(parameterized_list([-3, -1, 4.5, 9, 14]))
+    @parameterized.expand(parameterized_list(LS_MC_HTR_INVALID_NUMBERS))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_lakeshore_MC_heater_range_invalid_setpoint_THEN_pv_in_alarm(self, _, invalid_num):
         self._lewis.backdoor_set_on_device("lakeshore_mc_heater_range", invalid_num)
