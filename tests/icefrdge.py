@@ -27,6 +27,7 @@ VTI_LOOPS = [1, 2]
 
 VTI_LOOP_TEST_INPUTS = [0, 0.001, 0.333, 273]
 
+LS_MC_HTR_RANGE_VALUES = ["Off", "31.6 uA", "100 uA", "316 uA", "1.00 mA", "3.16 mA", "10 mA", "31.6 mA", "100 mA"]
 
 class IceFridgeTests(unittest.TestCase):
     """
@@ -123,8 +124,9 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_MC_derivative_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1.2, "LS:MC:D", "LS:MC:D:SP")
 
-    def test_WHEN_Lakeshore_MC_heater_range_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback("316 uA", "LS:MC:HTR:RANGE", "LS:MC:HTR:RANGE:SP")
+    @parameterized.expand(parameterized_list(LS_MC_HTR_RANGE_VALUES))
+    def test_WHEN_Lakeshore_MC_heater_range_THEN_readback_identical(self, _, heater_range):
+        self.ca.assert_setting_setpoint_sets_readback(heater_range, "LS:MC:HTR:RANGE", "LS:MC:HTR:RANGE:SP")
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_lakeshore_MC_heater_range_invalid_setpoint_THEN_pv_in_alarm(self):
