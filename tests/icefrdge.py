@@ -29,12 +29,14 @@ VTI_LOOP_TEST_INPUTS = [0, 0.001, 0.333, 273]
 
 LS_MC_HTR_RANGE_VALUES = ["Off", "31.6 uA", "100 uA", "316 uA", "1.00 mA", "3.16 mA", "10 mA", "31.6 mA", "100 mA"]
 
-LS_MC_HTR_INVALID_NUMBERS = [-3, -1, 4.5, 9, 14]
+LS_MC_HTR_RANGE_INVALID_VALUES = [-3, -1, 4.5, 9, 14]
 
 LS_VOLTAGE_RANGE_VALUES = ["2.00 uV", "6.32 uV", "20 uV", "63.2 uV", "200 uV", "632 uV", "2.00 mV", "6.32 mV",
                            "20.0 mV", "63.2 mV", "200 mV", "632 mV"]
 
 LS_VOLTAGE_CHANNELS = [5, 6]
+
+LS_VOLTAGE_RANGE_INVALID_VALUES = [-3, 0, 6.1, 13, 17]
 
 
 class IceFridgeTests(unittest.TestCase):
@@ -136,10 +138,10 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_MC_heater_range_THEN_readback_identical(self, _, heater_range):
         self.ca.assert_setting_setpoint_sets_readback(heater_range, "LS:MC:HTR:RANGE", "LS:MC:HTR:RANGE:SP")
 
-    @parameterized.expand(parameterized_list(LS_MC_HTR_INVALID_NUMBERS))
+    @parameterized.expand(parameterized_list(LS_MC_HTR_RANGE_INVALID_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_lakeshore_MC_heater_range_invalid_setpoint_THEN_pv_in_alarm(self, _, invalid_num):
-        self._lewis.backdoor_set_on_device("lakeshore_mc_heater_range", invalid_num)
+    def test_WHEN_lakeshore_MC_heater_range_invalid_setpoint_THEN_pv_in_alarm(self, _, invalid_range):
+        self._lewis.backdoor_set_on_device("lakeshore_mc_heater_range", invalid_range)
         self.ca.assert_that_pv_alarm_is("LS:MC:HTR:RANGE", self.ca.Alarms.INVALID, timeout=15)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -156,3 +158,10 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_voltage_range_ch5_THEN_readback_identical(self, _, voltage_channel, voltage_value):
         self.ca.assert_setting_setpoint_sets_readback(voltage_value, "LS:VLTG:RANGE:CH{}".format(voltage_channel),
                                                       "LS:VLTG:RANGE:SP")
+
+    @parameterized.expand(parameterized_list(itertools.product(LS_VOLTAGE_CHANNELS, LS_VOLTAGE_RANGE_INVALID_VALUES)))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_Lakeshore_voltage_range_invalid_setpoint_THEN_pv_in_alarm(self, _, voltage_channel, invalid_range):
+        self._lewis.backdoor_set_on_device("lakeshore_exc_voltage_range_ch{}".format(voltage_channel), invalid_range)
+        self.ca.assert_that_pv_alarm_is("LS:VLTG:RANGE:CH{}".format(voltage_channel), self.ca.Alarms.INVALID,
+                                        timeout=15)
