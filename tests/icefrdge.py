@@ -146,3 +146,9 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Lakeshore_MC_still_output_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("lakeshore_still_output", 1.3)
         self.ca.assert_that_pv_is_number("LS:STILL", 1.3, 0.001)
+
+    def test_WHEN_Lakeshore_voltage_range_ch5_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("2.00 uV", "LS:VLTG:RANGE:CH5", "LS:VLTG:RANGE:SP")
+
+    def test_WHEN_Lakeshore_voltage_range_ch6_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("2.00 uV", "LS:VLTG:RANGE:CH6", "LS:VLTG:RANGE:SP")
