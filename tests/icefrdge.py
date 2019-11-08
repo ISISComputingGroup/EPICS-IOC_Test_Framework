@@ -31,6 +31,9 @@ LS_MC_HTR_RANGE_VALUES = ["Off", "31.6 uA", "100 uA", "316 uA", "1.00 mA", "3.16
 
 LS_MC_HTR_INVALID_NUMBERS = [-3, -1, 4.5, 9, 14]
 
+LS_VOLTAGE_RANGE_VALUES = ["2.00 uV", "6.32 uV", "20 uV", "63.2 uV", "200 uV", "632 uV", "2.00 mV", "6.32 mV",
+                           "20.0 mV", "63.2 mV", "200 mV", "632 mV"]
+
 
 class IceFridgeTests(unittest.TestCase):
     """
@@ -147,8 +150,10 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("lakeshore_still_output", 1.3)
         self.ca.assert_that_pv_is_number("LS:STILL", 1.3, 0.001)
 
-    def test_WHEN_Lakeshore_voltage_range_ch5_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback("2.00 uV", "LS:VLTG:RANGE:CH5", "LS:VLTG:RANGE:SP")
+    @parameterized.expand(parameterized_list(LS_VOLTAGE_RANGE_VALUES))
+    def test_WHEN_Lakeshore_voltage_range_ch5_THEN_readback_identical(self, _, voltage_value):
+        self.ca.assert_setting_setpoint_sets_readback(voltage_value, "LS:VLTG:RANGE:CH5", "LS:VLTG:RANGE:SP")
 
-    def test_WHEN_Lakeshore_voltage_range_ch6_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback("2.00 uV", "LS:VLTG:RANGE:CH6", "LS:VLTG:RANGE:SP")
+    @parameterized.expand(parameterized_list(LS_VOLTAGE_RANGE_VALUES))
+    def test_WHEN_Lakeshore_voltage_range_ch6_THEN_readback_identical(self, _, voltage_value):
+        self.ca.assert_setting_setpoint_sets_readback(voltage_value, "LS:VLTG:RANGE:CH6", "LS:VLTG:RANGE:SP")
