@@ -38,6 +38,8 @@ LS_VOLTAGE_CHANNELS = [5, 6]
 
 LS_VOLTAGE_RANGE_INVALID_VALUES = [-3, 0, 6.1, 13, 17]
 
+MIMIC_PRESSURE_SUFFIXES = [1, 2, 3, 4]
+
 
 class IceFridgeTests(unittest.TestCase):
     """
@@ -165,3 +167,9 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("lakeshore_exc_voltage_range_ch{}".format(voltage_channel), invalid_range)
         self.ca.assert_that_pv_alarm_is("LS:VLTG:RANGE:CH{}".format(voltage_channel), self.ca.Alarms.INVALID,
                                         timeout=15)
+
+    @parameterized.expand(parameterized_list(MIMIC_PRESSURE_SUFFIXES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_Mimic_pressure_set_backdoor_THEN_ioc_read_correctly(self, _, pressure_num):
+        self._lewis.backdoor_set_on_device("mimic_pressure{}".format(pressure_num), 1.4)
+        self.ca.assert_that_pv_is_number("MIMIC:PRESSURE{}".format(pressure_num), 1.4, 0.001)
