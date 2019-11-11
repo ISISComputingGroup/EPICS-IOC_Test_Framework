@@ -4,7 +4,7 @@ import unittest
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
@@ -36,7 +36,7 @@ LS_VOLTAGE_RANGE_VALUES = ["2.00 uV", "6.32 uV", "20 uV", "63.2 uV", "200 uV", "
 
 LS_VOLTAGE_CHANNELS = [5, 6]
 
-LS_VOLTAGE_RANGE_INVALID_VALUES = [-3, 0, 6.1, 13, 17]
+LS_VOLTAGE_RANGE_INVALID_VALUES = [-3, 0, 6.3, 13, 17]
 
 MIMIC_PRESSURE_SUFFIXES = [1, 2, 3, 4]
 
@@ -48,6 +48,9 @@ class IceFridgeTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+
+        if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_run_function_on_device("reset")
 
     def test_WHEN_device_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -143,6 +146,8 @@ class IceFridgeTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(LS_MC_HTR_RANGE_INVALID_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_lakeshore_MC_heater_range_invalid_setpoint_THEN_pv_in_alarm(self, _, invalid_range):
+        self.ca.assert_that_pv_alarm_is("LS:MC:HTR:RANGE", self.ca.Alarms.NONE, timeout=15)
+
         self._lewis.backdoor_set_on_device("lakeshore_mc_heater_range", invalid_range)
         self.ca.assert_that_pv_alarm_is("LS:MC:HTR:RANGE", self.ca.Alarms.INVALID, timeout=15)
 
@@ -157,13 +162,16 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("LS:STILL", 1.3, 0.001)
 
     @parameterized.expand(parameterized_list(itertools.product(LS_VOLTAGE_CHANNELS, LS_VOLTAGE_RANGE_VALUES)))
-    def test_WHEN_Lakeshore_voltage_range_ch5_THEN_readback_identical(self, _, voltage_channel, voltage_value):
+    def test_WHEN_Lakeshore_voltage_range_THEN_readback_identical(self, _, voltage_channel, voltage_value):
         self.ca.assert_setting_setpoint_sets_readback(voltage_value, "LS:VLTG:RANGE:CH{}".format(voltage_channel),
                                                       "LS:VLTG:RANGE:SP")
 
     @parameterized.expand(parameterized_list(itertools.product(LS_VOLTAGE_CHANNELS, LS_VOLTAGE_RANGE_INVALID_VALUES)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_Lakeshore_voltage_range_invalid_setpoint_THEN_pv_in_alarm(self, _, voltage_channel, invalid_range):
+        self.ca.assert_that_pv_alarm_is("LS:VLTG:RANGE:CH{}".format(voltage_channel), self.ca.Alarms.NONE,
+                                        timeout=15)
+
         self._lewis.backdoor_set_on_device("lakeshore_exc_voltage_range_ch{}".format(voltage_channel), invalid_range)
         self.ca.assert_that_pv_alarm_is("LS:VLTG:RANGE:CH{}".format(voltage_channel), self.ca.Alarms.INVALID,
                                         timeout=15)
@@ -171,5 +179,5 @@ class IceFridgeTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(MIMIC_PRESSURE_SUFFIXES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_Mimic_pressure_set_backdoor_THEN_ioc_read_correctly(self, _, pressure_num):
-        self._lewis.backdoor_set_on_device("mimic_pressure{}".format(pressure_num), 1.4)
+        self._lewis.backdoor_run_function_on_device("set_mimic_pressure", (pressure_num, 1.4))
         self.ca.assert_that_pv_is_number("MIMIC:PRESSURE{}".format(pressure_num), 1.4, 0.001)
