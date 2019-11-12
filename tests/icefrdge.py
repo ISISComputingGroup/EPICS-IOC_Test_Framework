@@ -40,6 +40,8 @@ LS_VOLTAGE_RANGE_INVALID_VALUES = [-3, 0, 6.3, 13, 17]
 
 MIMIC_PRESSURE_SUFFIXES = [1, 2, 3, 4]
 
+MIMIC_VALVE_NUMBERS = [(i + 1) for i in range(10)]
+
 
 class IceFridgeTests(unittest.TestCase):
     """
@@ -182,7 +184,8 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_mimic_pressure", (pressure_num, 1.4))
         self.ca.assert_that_pv_is_number("MIMIC:PRESSURE{}".format(pressure_num), 1.4, 0.001)
 
-    @parameterized.expand(parameterized_list([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
+    @parameterized.expand(parameterized_list(MIMIC_VALVE_NUMBERS))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_Mimic_valve_status_THEN_readback_identical(self, _, valve_num):
         self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:V{}".format(valve_num),
                                                       "MIMIC:V{}:SP".format(valve_num))
