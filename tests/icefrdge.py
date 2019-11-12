@@ -19,7 +19,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -183,6 +183,6 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("MIMIC:PRESSURE{}".format(pressure_num), 1.4, 0.001)
 
     @parameterized.expand(parameterized_list([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
-    def test_WHEN_Mimic_valve_status_THEN_readback_identical(self, _, pressure_num):
-        self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:V{}".format(pressure_num),
-                                                      "MIMIC:V{}:SP".format(pressure_num))
+    def test_WHEN_Mimic_valve_status_THEN_readback_identical(self, _, valve_num):
+        self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:V{}".format(valve_num),
+                                                      "MIMIC:V{}:SP".format(valve_num))
