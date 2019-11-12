@@ -189,3 +189,13 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Mimic_valve_status_THEN_readback_identical(self, _, valve_num):
         self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:V{}".format(valve_num),
                                                       "MIMIC:V{}:SP".format(valve_num))
+
+    @parameterized.expand(parameterized_list([1, 2, 4]))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_Mimic_proportional_valve_THEN_readback_identical(self, _, proportional_valve_num):
+        self.ca.assert_setting_setpoint_sets_readback(1.5, "MIMIC:PV{}".format(proportional_valve_num),
+                                                      "MIMIC:PV{}:SP".format(proportional_valve_num))
+
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_Mimic_needle_valve_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback(1.6, "MIMIC:NV", "MIMIC:NV:SP")
