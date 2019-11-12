@@ -1,5 +1,6 @@
 import unittest
 
+from parameterized import parameterized
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -12,12 +13,12 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("CRYOSMS"),
-        "emulator" : EMULATOR_NAME,
+        "emulator": EMULATOR_NAME,
     },
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 class CryoSMSTests(unittest.TestCase):
@@ -27,14 +28,6 @@ class CryoSMSTests(unittest.TestCase):
 
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
-    def test_GIVEN_outputmode_sp_correct_WHEN_outputmode_sp_written_to_THEN_outputmode_changes(self):
-        # GIVEN
-        current_outputmode = self.ca.get_pv_value("OUTPUTMODE")
-        self.ca.assert_that_pv_is("OUTPUTMODE:SP", current_outputmode, timeout=30)
-
-        # WHEN
-        new_outputmode = "AMPS" if current_outputmode == "TESLA" else "TESLA"
-        self.ca.set_pv_value("OUTPUTMODE:SP", new_outputmode)
-
-        # THEN
-        self.ca.assert_that_pv_is("OUTPUTMODE", new_outputmode, timeout=10)
+    @parameterized.expand(["TESLA", "AMPS"])
+    def test_GIVEN_outputmode_sp_correct_WHEN_outputmode_sp_written_to_THEN_outputmode_changes(self, units):
+        self.ca.assert_setting_setpoint_sets_readback(units, "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
