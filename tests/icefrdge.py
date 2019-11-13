@@ -227,3 +227,8 @@ class IceFridgeTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback("CLOSED", "MIMIC:SV{}".format(solenoid_valve_num),
                                                       "MIMIC:SV{}:SP".format(solenoid_valve_num))
+
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_Mimic_1K_stage_THEN_readback_identical(self):
+        self._lewis.backdoor_set_on_device("mimic_1K_stage", 1.7)
+        self.ca.assert_that_pv_is_number("MIMIC:1K", 1.7, 0.001)
