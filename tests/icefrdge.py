@@ -192,7 +192,7 @@ class IceFridgeTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(MIMIC_VALVE_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
-    def test_WHEN_Mimic_valve_status_vlosed_THEN_readback_identical(self, _, valve_num):
+    def test_WHEN_Mimic_valve_status_closed_THEN_readback_identical(self, _, valve_num):
         self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:V{}".format(valve_num),
                                                       "MIMIC:V{}:SP".format(valve_num))
 
