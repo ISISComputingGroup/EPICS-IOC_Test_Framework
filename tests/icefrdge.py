@@ -208,3 +208,9 @@ class IceFridgeTests(unittest.TestCase):
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_Mimic_needle_valve_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1.6, "MIMIC:NV", "MIMIC:NV:SP")
+
+    @parameterized.expand(parameterized_list([1, 2]))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_Mimic_solenoid_valve_THEN_readback_identical(self, _, solenoid_valve_num):
+        self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:SV{}".format(solenoid_valve_num),
+                                                      "MIMIC:SV{}:SP".format(solenoid_valve_num))
