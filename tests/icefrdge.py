@@ -42,6 +42,10 @@ MIMIC_PRESSURE_SUFFIXES = [1, 2, 3, 4]
 
 MIMIC_VALVE_NUMBERS = [(i + 1) for i in range(10)]
 
+MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2, 4]
+
+MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2]
+
 
 class IceFridgeTests(unittest.TestCase):
     """
@@ -199,7 +203,7 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("CLOSED", "MIMIC:V{}".format(valve_num),
                                                       "MIMIC:V{}:SP".format(valve_num))
 
-    @parameterized.expand(parameterized_list([1, 2, 4]))
+    @parameterized.expand(parameterized_list(MIMIC_SOLENOID_VALVES_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_Mimic_proportional_valve_THEN_readback_identical(self, _, proportional_valve_num):
         self.ca.assert_setting_setpoint_sets_readback(1.5, "MIMIC:PV{}".format(proportional_valve_num),
@@ -209,8 +213,17 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_Mimic_needle_valve_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1.6, "MIMIC:NV", "MIMIC:NV:SP")
 
-    @parameterized.expand(parameterized_list([1, 2]))
+    @parameterized.expand(parameterized_list(MIMIC_SOLENOID_VALVES_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
-    def test_WHEN_Mimic_solenoid_valve_THEN_readback_identical(self, _, solenoid_valve_num):
+    def test_WHEN_Mimic_solenoid_valve_open_THEN_readback_identical(self, _, solenoid_valve_num):
         self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:SV{}".format(solenoid_valve_num),
+                                                      "MIMIC:SV{}:SP".format(solenoid_valve_num))
+
+    @parameterized.expand(parameterized_list(MIMIC_SOLENOID_VALVES_NUMBERS))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_Mimic_solenoid_valve_close_THEN_readback_identical(self, _, solenoid_valve_num):
+        self.ca.assert_setting_setpoint_sets_readback("OPEN", "MIMIC:SV{}".format(solenoid_valve_num),
+                                                      "MIMIC:SV{}:SP".format(solenoid_valve_num))
+
+        self.ca.assert_setting_setpoint_sets_readback("CLOSED", "MIMIC:SV{}".format(solenoid_valve_num),
                                                       "MIMIC:SV{}:SP".format(solenoid_valve_num))
