@@ -19,7 +19,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -229,6 +229,18 @@ class IceFridgeTests(unittest.TestCase):
                                                       "MIMIC:SV{}:SP".format(solenoid_valve_num))
 
     @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_Mimic_1K_stage_THEN_readback_identical(self):
+    def test_WHEN_Mimic_1K_stage_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("mimic_1K_stage", 1.7)
         self.ca.assert_that_pv_is_number("MIMIC:1K", 1.7, 0.001)
+
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_Mimic_MC_Temperature_small_THEN_readback_identical(self):
+        self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 0.12)
+        self._lewis.backdoor_set_on_device("mixing_chamber_temp", 0.050)
+        self.ca.assert_that_pv_is_number("MC:USER", 0.12, 0.001)
+
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_Mimic_MC_Temperature_big_THEN_readback_identical(self):
+        self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 0.12)
+        self._lewis.backdoor_set_on_device("mixing_chamber_temp", 0.051)
+        self.ca.assert_that_pv_is_number("MC:USER", 0.051, 0.001)
