@@ -4,7 +4,7 @@ from parameterized import parameterized
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import get_running_lewis_and_ioc
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 DEVICE_PREFIX = "CRYOSMS_01"
 EMULATOR_NAME = "cryogenic_sms"
@@ -48,6 +48,7 @@ class CryoSMSTests(unittest.TestCase):
 
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
+    @skip_if_recsim
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
         expectedValues = {"OUTPUT:SP": 0,
                           "OUTPUT": 0,
