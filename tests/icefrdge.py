@@ -19,7 +19,8 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+#TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -46,6 +47,8 @@ MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2, 4]
 
 MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2]
 
+TEST_ALARM_STATUS_PVS = []
+
 
 class IceFridgeTests(unittest.TestCase):
     """
@@ -57,21 +60,10 @@ class IceFridgeTests(unittest.TestCase):
 
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
+            self._lewis.backdoor_set_on_device("connected", True)
 
     def test_WHEN_device_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
-
-    def test_WHEN_auto_setpoint_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(0.1, "AUTO:TEMP:SP:RBV", "AUTO:TEMP:SP")
-
-    def test_WHEN_auto_setpoint_THEN_temperature_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(0.2, "AUTO:TEMP", "AUTO:TEMP:SP")
-
-    def test_WHEN_manual_setpoint_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(0.3, "MANUAL:TEMP:SP:RBV", "MANUAL:TEMP:SP")
-
-    def test_WHEN_manual_setpoint_THEN_temperature_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(0.4, "MANUAL:TEMP", "MANUAL:TEMP:SP")
 
     @parameterized.expand(parameterized_list(VTI_TEMP_SUFFIXES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -246,3 +238,11 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 1.8)
         self._lewis.backdoor_set_on_device("mixing_chamber_temp", large_temp)
         self.ca.assert_that_pv_is_number("MC:USER", large_temp, 0.001)
+
+    def test_WHEN_ioc_disconnected_THEN_all_pvs_in_alarm(self):
+        pv = "MIMIC:PV1"
+        self._lewis.backdoor_set_on_device("connected", False)
+
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+
+
