@@ -48,7 +48,7 @@ class CryoSMSTests(unittest.TestCase):
 
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
-    @skip_if_recsim
+    @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
         expectedValues = {"OUTPUT:SP": 0,
                           "OUTPUT": 0,
