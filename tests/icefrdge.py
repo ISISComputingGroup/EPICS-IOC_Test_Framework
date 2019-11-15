@@ -19,8 +19,7 @@ IOCS = [
     },
 ]
 
-#TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -47,7 +46,15 @@ MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2, 4]
 
 MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2]
 
-TEST_ALARM_STATUS_PVS = []
+TEST_ALARM_STATUS_PVS = ["VTI:TEMP1", "VTI:TEMP2", "VTI:TEMP3", "VTI:TEMP4", "VTI:LOOP1:TSET", "VTI:LOOP2:TSET",
+                         "VTI:LOOP1:P", "VTI:LOOP2:P", "VTI:LOOP1:I", "VTI:LOOP2:I", "VTI:LOOP1:D", "VTI:LOOP2:D",
+                         "VTI:LOOP1:RAMPRATE", "VTI:LOOP2:RAMPRATE", "LS:MC:CERNOX", "LS:MC:RUO",
+                         "LS:STILL:TEMP", "LS:MC:TEMP", "LS:MC:P", "LS:MC:I", "LS:MC:D", "LS:MC:HTR:RANGE",
+                         "LS:MC:HTR:PERCENT", "LS:STILL", "LS:VLTG:RANGE:CH5", "LS:VLTG:RANGE:CH6", "MIMIC:PRESSURE1",
+                         "MIMIC:PRESSURE2", "MIMIC:PRESSURE3", "MIMIC:PRESSURE4", "MIMIC:V1", "MIMIC:V2", "MIMIC:V3",
+                         "MIMIC:V4", "MIMIC:V5", "MIMIC:V6", "MIMIC:V7", "MIMIC:V8", "MIMIC:V9", "MIMIC:V10",
+                         "MIMIC:SV1", "MIMIC:SV2", "MIMIC:PV1", "MIMIC:PV2", "MIMIC:PV4", "MIMIC:NV", "MIMIC:1K",
+                         "MC:USER"]
 
 
 class IceFridgeTests(unittest.TestCase):
@@ -56,7 +63,7 @@ class IceFridgeTests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=25)
 
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
@@ -239,10 +246,11 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("mixing_chamber_temp", large_temp)
         self.ca.assert_that_pv_is_number("MC:USER", large_temp, 0.001)
 
+    @skip_if_recsim("testing lack of connection to device makes no sense in recsim")
     def test_WHEN_ioc_disconnected_THEN_all_pvs_in_alarm(self):
-        pv = "MIMIC:PV1"
         self._lewis.backdoor_set_on_device("connected", False)
 
-        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+        for pv in TEST_ALARM_STATUS_PVS:
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
 
 
