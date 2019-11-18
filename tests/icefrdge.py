@@ -274,4 +274,18 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MIMIC:SKIP:SP.DISP", '0')
         self.ca.assert_that_pv_is("MIMIC:STOP:SP.DISP", '0')
 
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_skip_THEN_skipped(self):
+        self._lewis.assert_that_emulator_value_is("skipped", "False", 15)
+        self.ca.set_pv_value("MIMIC:SKIP:SP", "SKIP0")
+
+        self._lewis.assert_that_emulator_value_is("skipped", "True", 15)
+
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_stop_THEN_stopped(self):
+        self._lewis.assert_that_emulator_value_is("stopped", "False", 15)
+        self.ca.set_pv_value("MIMIC:STOP:SP", "STOP0")
+        self.ca.assert_that_pv_is("MIMIC:STOP:SP", "STOP0")
+        self._lewis.assert_that_emulator_value_is("stopped", "True", 15)
+
 
