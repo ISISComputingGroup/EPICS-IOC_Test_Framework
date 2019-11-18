@@ -19,7 +19,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -252,5 +252,26 @@ class IceFridgeTests(unittest.TestCase):
 
         for pv in TEST_ALARM_STATUS_PVS:
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+
+    def test_WHEN_Mimic_mode_manual_THEN_buttons_disabled(self):
+        self.ca.set_pv_value("MIMIC:MODE:SP", "MANUAL")
+
+        self.ca.assert_that_pv_is("MIMIC:START:SP.DISP", '1')
+        self.ca.assert_that_pv_is("MIMIC:SKIP:SP.DISP", '1')
+        self.ca.assert_that_pv_is("MIMIC:STOP:SP.DISP", '1')
+
+    def test_WHEN_Mimic_mode_automatic_THEN_buttons_disabled(self):
+        self.ca.set_pv_value("MIMIC:MODE:SP", "AUTOMATIC")
+
+        self.ca.assert_that_pv_is("MIMIC:START:SP.DISP", '1')
+        self.ca.assert_that_pv_is("MIMIC:SKIP:SP.DISP", '1')
+        self.ca.assert_that_pv_is("MIMIC:STOP:SP.DISP", '1')
+
+    def test_WHEN_Mimic_mode_semi_automatic_THEN_buttons_enabled(self):
+        self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
+
+        self.ca.assert_that_pv_is("MIMIC:START:SP.DISP", '0')
+        self.ca.assert_that_pv_is("MIMIC:SKIP:SP.DISP", '0')
+        self.ca.assert_that_pv_is("MIMIC:STOP:SP.DISP", '0')
 
 
