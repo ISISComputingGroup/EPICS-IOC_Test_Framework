@@ -10,6 +10,8 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
 from utils.testing import ManagerMode
+from utils.testing import unstable_test
+
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
@@ -202,6 +204,7 @@ class ReflTests(unittest.TestCase):
              self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
                 self.ca.set_pv_value("BL:MODE:SP", expected_value)
 
+    @unstable_test()
     def test_GIVEN_new_parameter_setpoint_WHEN_triggering_move_THEN_SP_is_only_set_on_motor_when_difference_above_motor_resolution(self):
         target_mres = 0.001
         pos_above_res = 0.01
