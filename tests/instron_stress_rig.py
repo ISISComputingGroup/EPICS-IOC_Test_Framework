@@ -618,6 +618,10 @@ class InstronStressRigTests(unittest.TestCase):
             float(self.ca.get_pv_value("STRESS:SCALE"))/float(self.ca.get_pv_value("STRESS:AREA")),
             float(self.ca.get_pv_value("STRAIN:SCALE"))*100000*float(self.ca.get_pv_value("STRAIN:LENGTH"))
         ]
+
+        for i in range(len(conversion_factors)):
+            self.assertNotEqual(0, conversion_factors[i], "Factor {} was zero".format(i))
+
         expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
         assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
 
