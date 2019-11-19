@@ -229,6 +229,17 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0104.VELO", expected)
 
+    def test_GIVEN_motor_velocity_altered_by_move_WHEN_moving_THEN_velocity_altered(self):
+        # Given a known initial velocity, confirm that on a move the velocity has changed for the axes
+        self.set_up_velocity_tests(INITIAL_VELOCITY)
+
+        self.ca.set_pv_value("PARAM:THETA:SP", 15)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=10)
+        self.ca_galil.assert_that_pv_is_not("MTR0102.VELO", INITIAL_VELOCITY)
+        self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 0, timeout=10)
+        self.ca_galil.assert_that_pv_is_not("MTR0104.VELO", INITIAL_VELOCITY)
+
     def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_interrupted_THEN_velocity_reverted_to_original_value(self):
         expected = INITIAL_VELOCITY
         final_position = SPACING
@@ -258,14 +269,18 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=30)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
 
-    def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_motor_retains_new_value_after_move_completed(self):
+    def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_velocity_reverted_to_value_before_modified_velocity(self):
+        # The by-design behaviour (but maybe not expected by the user) is that if a velocity is sent during a move
+        # then we ignore this and restore the cached value we had for the currently issued move.
         initial = INITIAL_VELOCITY
-        expected = INITIAL_VELOCITY / 2.0
+        altered = INITIAL_VELOCITY + 5
+        expected = INITIAL_VELOCITY
         self.set_up_velocity_tests(initial)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
-        self.ca_galil.set_pv_value("MTR0102.VELO", expected)
+
+        self.ca_galil.set_pv_value("MTR0102.VELO", altered)
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=30)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
