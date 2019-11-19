@@ -54,7 +54,7 @@ TEST_ALARM_STATUS_PVS = ["VTI:TEMP1", "VTI:TEMP2", "VTI:TEMP3", "VTI:TEMP4", "VT
                          "MIMIC:PRESSURE2", "MIMIC:PRESSURE3", "MIMIC:PRESSURE4", "MIMIC:V1", "MIMIC:V2", "MIMIC:V3",
                          "MIMIC:V4", "MIMIC:V5", "MIMIC:V6", "MIMIC:V7", "MIMIC:V8", "MIMIC:V9", "MIMIC:V10",
                          "MIMIC:SV1", "MIMIC:SV2", "MIMIC:PV1", "MIMIC:PV2", "MIMIC:PV4", "MIMIC:NV", "MIMIC:1K",
-                         "MC:USER", "MIMIC:MODE:SP", "MIMIC:START:SP", "MIMIC:SKIP:SP", "MIMIC:STOP:SP"]
+                         "MC:USER"]
 
 
 class IceFridgeTests(unittest.TestCase):
@@ -248,6 +248,9 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("testing lack of connection to device makes no sense in recsim")
     def test_WHEN_ioc_disconnected_THEN_all_pvs_in_alarm(self):
+        for pv in TEST_ALARM_STATUS_PVS:
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+
         self._lewis.backdoor_set_on_device("connected", False)
 
         for pv in TEST_ALARM_STATUS_PVS:
