@@ -297,4 +297,71 @@ class IceFridgeTests(unittest.TestCase):
 
         self._lewis.assert_that_emulator_value_is("stopped", "True", 15)
 
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_sequence_condense_THEN_condense(self):
+        self._lewis.assert_that_emulator_value_is("condense", "False", 15)
 
+        self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
+        self.ca.set_pv_value("MIMIC:SEQUENCE:SP", "Condense")
+        # does not matter what value the pv is set to, only that it processes
+        self.ca.set_pv_value("MIMIC:START:SP", "ENABLED")
+
+        self._lewis.assert_that_emulator_value_is("condense", "True", 15)
+
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_sequence_circulate_THEN_circulate(self):
+        self._lewis.assert_that_emulator_value_is("circulate", "False", 15)
+
+        self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
+        self.ca.set_pv_value("MIMIC:SEQUENCE:SP", "Circulate")
+        # does not matter what value the pv is set to, only that it processes
+        self.ca.set_pv_value("MIMIC:START:SP", "ENABLED")
+
+        self._lewis.assert_that_emulator_value_is("circulate", "True", 15)
+
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_sequence_condense_and_circulate_THEN_condense_and_circulate(self):
+        self._lewis.assert_that_emulator_value_is("condense", "False", 15)
+        self._lewis.assert_that_emulator_value_is("circulate", "False", 15)
+
+        self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
+        self.ca.set_pv_value("MIMIC:SEQUENCE:SP", "Condense & Circulate")
+        # does not matter what value the pv is set to, only that it processes
+        self.ca.set_pv_value("MIMIC:START:SP", "ENABLED")
+
+        self._lewis.assert_that_emulator_value_is("condense", "True", 15)
+        self._lewis.assert_that_emulator_value_is("circulate", "True", 15)
+
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_sequence_temp_control_THEN_temp_control(self):
+        self._lewis.assert_that_emulator_value_is("temp_control", "0", 15)
+
+        self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
+        self.ca.set_pv_value("MIMIC:SEQUENCE:SP", "Temperature Control")
+        self.ca.set_pv_value("MIMIC:SEQUENCE:TEMP:SP", 2.3)
+        # does not matter what value the pv is set to, only that it processes
+        self.ca.set_pv_value("MIMIC:START:SP", "ENABLED")
+
+        self._lewis.assert_that_emulator_value_is("temp_control", "2.3", 15)
+
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_sequence_make_safe_THEN_make_safe(self):
+        self._lewis.assert_that_emulator_value_is("make_safe", "False", 15)
+
+        self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
+        self.ca.set_pv_value("MIMIC:SEQUENCE:SP", "Make Safe")
+        # does not matter what value the pv is set to, only that it processes
+        self.ca.set_pv_value("MIMIC:START:SP", "ENABLED")
+
+        self._lewis.assert_that_emulator_value_is("make_safe", "True", 15)
+
+    @skip_if_recsim("Lewis assertion not working in recsim")
+    def test_WHEN_mimic_sequence_warm_up_THEN_warm_up(self):
+        self._lewis.assert_that_emulator_value_is("warm_up", "False", 15)
+
+        self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
+        self.ca.set_pv_value("MIMIC:SEQUENCE:SP", "Warm Up")
+        # does not matter what value the pv is set to, only that it processes
+        self.ca.set_pv_value("MIMIC:START:SP", "ENABLED")
+
+        self._lewis.assert_that_emulator_value_is("warm_up", "True", 15)
