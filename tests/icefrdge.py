@@ -365,3 +365,8 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.set_pv_value("MIMIC:START:SP", "ENABLED")
 
         self._lewis.assert_that_emulator_value_is("warm_up", "True", 15)
+
+    @skip_if_recsim("Lewis backdoor not working in recsim")
+    def test_WHEN_mimic_info_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("mimic_info", "RBMK reactors do not explode!")
+        self.ca.assert_that_pv_is("MIMIC:INFO", "RBMK reactors do not explode!")
