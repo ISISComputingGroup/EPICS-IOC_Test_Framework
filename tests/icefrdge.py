@@ -333,7 +333,7 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.assert_that_emulator_value_is("circulate", "True", 15)
 
     @skip_if_recsim("Lewis assertion not working in recsim")
-    def test_WHEN_mimic_sequence_temp_control_THEN_temp_control(self):
+    def test_WHEN_mimic_sequence_temp_control_THEN_set_temp_control(self):
         self._lewis.assert_that_emulator_value_is("temp_control", "0", 15)
 
         self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
