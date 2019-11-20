@@ -54,7 +54,7 @@ TEST_ALARM_STATUS_PVS = ["VTI:TEMP1", "VTI:TEMP2", "VTI:TEMP3", "VTI:TEMP4", "VT
                          "MIMIC:PRESSURE2", "MIMIC:PRESSURE3", "MIMIC:PRESSURE4", "MIMIC:V1", "MIMIC:V2", "MIMIC:V3",
                          "MIMIC:V4", "MIMIC:V5", "MIMIC:V6", "MIMIC:V7", "MIMIC:V8", "MIMIC:V9", "MIMIC:V10",
                          "MIMIC:SV1", "MIMIC:SV2", "MIMIC:PV1", "MIMIC:PV2", "MIMIC:PV4", "MIMIC:NV", "MIMIC:1K",
-                         "MC:USER"]
+                         "MC:USER", "MIMIC:INFO"]
 
 
 class IceFridgeTests(unittest.TestCase):
