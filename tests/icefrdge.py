@@ -19,7 +19,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
@@ -184,8 +184,8 @@ class IceFridgeTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(MIMIC_PRESSURE_SUFFIXES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_pressure_set_backdoor_THEN_ioc_read_correctly(self, _, pressure_num):
-        self._lewis.backdoor_run_function_on_device("set_mimic_pressure", (pressure_num, 1.4))
-        self.ca.assert_that_pv_is_number("MIMIC:PRESSURE{}".format(pressure_num), 1.4, 0.001)
+        self._lewis.backdoor_run_function_on_device("set_pressure", (pressure_num, 1.4))
+        self.ca.assert_that_pv_is_number("PRESSURE{}".format(pressure_num), 1.4, 0.001)
 
     @parameterized.expand(parameterized_list(MIMIC_VALVE_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
@@ -229,7 +229,7 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_1K_stage_temp_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("mimic_1K_stage", 1.7)
+        self._lewis.backdoor_set_on_device("temp_1K_stage", 1.7)
         self.ca.assert_that_pv_is_number("1K:TEMP", 1.7, 0.001)
 
     @parameterized.expand(parameterized_list([0.050, 0.049, 0.027]))
@@ -256,21 +256,21 @@ class IceFridgeTests(unittest.TestCase):
         for pv in TEST_ALARM_STATUS_PVS:
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
 
-    def test_WHEN_Mimic_mode_manual_THEN_buttons_disabled(self):
+    def test_WHEN_mimic_mode_manual_THEN_buttons_disabled(self):
         self.ca.set_pv_value("MIMIC:MODE:SP", "MANUAL")
 
         self.ca.assert_that_pv_is("MIMIC:START:SP.DISP", '1')
         self.ca.assert_that_pv_is("MIMIC:SKIP:SP.DISP", '1')
         self.ca.assert_that_pv_is("MIMIC:STOP:SP.DISP", '1')
 
-    def test_WHEN_Mimic_mode_automatic_THEN_buttons_disabled(self):
+    def test_WHEN_mimic_mode_automatic_THEN_buttons_disabled(self):
         self.ca.set_pv_value("MIMIC:MODE:SP", "AUTOMATIC")
 
         self.ca.assert_that_pv_is("MIMIC:START:SP.DISP", '1')
         self.ca.assert_that_pv_is("MIMIC:SKIP:SP.DISP", '1')
         self.ca.assert_that_pv_is("MIMIC:STOP:SP.DISP", '1')
 
-    def test_WHEN_Mimic_mode_semi_automatic_THEN_buttons_enabled(self):
+    def test_WHEN_mimic_mode_semi_automatic_THEN_buttons_enabled(self):
         self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
 
         self.ca.assert_that_pv_is("MIMIC:START:SP.DISP", '0')
