@@ -484,7 +484,6 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PARAM:DET_ANG.STAT", no_alarm_code)
         self.ca.assert_that_pv_is("PARAM:DET_ANG.SEVR", no_alarm_code)
 
-
     def test_GIVEN_motor_axis_is_displacement_WHEN_motor_alarm_status_is_updated_THEN_alarms_propagate_to_correct_parameters_on_component(self):
         expected_severity_code = "MINOR"
         expected_status_code = "HIGH"
