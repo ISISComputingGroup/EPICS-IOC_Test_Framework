@@ -17,6 +17,10 @@ MTR_HIGH_LIMIT_DEFAULT = 50
 MTR_LOW_LIMIT = "MTR0101.DLLM"
 MTR_HIGH_LIMIT = "MTR0101.DHLM"
 
+# Motor movement defaults
+MTR_VELOCITY_DEFAULT = 0.5
+MTR_ACCELERATION_DEFAULT = 0.5
+
 # Motor record process variables
 MTR_READBACK = "MTR0101.RBV"
 MTR_SETPOINT = "MTR0101.VAL"
@@ -58,6 +62,7 @@ class LinmotTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("reset")
         self.ca_linmot.assert_that_pv_exists(MTR_READBACK)
         self.check_and_reset_motor_record_limits()
+        self.check_and_reset_motor_record_movement_defaults()
 
     def check_and_reset_motor_record_limits(self):
         """
@@ -71,6 +76,22 @@ class LinmotTests(unittest.TestCase):
         high_limit_value = self.ca_linmot.get_pv_value(MTR_HIGH_LIMIT)
         if high_limit_value != MTR_HIGH_LIMIT_DEFAULT:
             self.ca_linmot.set_pv_value(MTR_HIGH_LIMIT, MTR_HIGH_LIMIT_DEFAULT)
+
+    def check_and_reset_motor_record_movement_defaults(self):
+        """
+        Checks and resets the linmot motor record movement defaults that we expect
+        """
+        current_motor_speed = self.ca_linmot.get_pv_value(MTR_VELOCITY)
+        if current_motor_speed != MTR_VELOCITY_DEFAULT:
+            self.ca_linmot.set_pv_value(MTR_VELOCITY, MTR_VELOCITY_DEFAULT)
+
+        current_motor_acceleration = self.ca_linmot.get_pv_value(MTR_ACCELERATION)
+        if current_motor_acceleration != MTR_ACCELERATION_DEFAULT:
+            self.ca_linmot.set_pv_value(MTR_ACCELERATION, MTR_ACCELERATION_DEFAULT)
+
+        current_setpoint = self.ca_linmot.get_pv_value(MTR_SETPOINT)
+        if current_setpoint != MTR_LOW_LIMIT_DEFAULT:
+            self.ca_linmot.set_pv_value(MTR_SETPOINT, MTR_LOW_LIMIT_DEFAULT)
 
     @parameterized.expand([('Low limit', MTR_LOW_LIMIT_DEFAULT), ('Normal value', 12.56), ('High limit', MTR_HIGH_LIMIT_DEFAULT)])
     def test_GIVEN_motor_destination_WHEN_motor_given_destination_THEN_move_to_correct_place(self, _, target_position):
@@ -100,7 +121,7 @@ class LinmotTests(unittest.TestCase):
 
     def test_GIVEN_new_position_WHEN_moving_THEN_DMOVE_status_updated(self):
         expected_value = 0
-        self.ca_linmot.set_pv_value(MTR_VELOCITY, 0.05)  # Slow axis so it cant reach target before stop sent
+        self.ca_linmot.set_pv_value(MTR_VELOCITY, 0.01)  # Slow axis so it cant reach target before stop sent
         self.ca_linmot.set_pv_value(MTR_SETPOINT, MTR_HIGH_LIMIT_DEFAULT)
         self.ca_linmot.assert_that_pv_is(MTR_DMOV, expected_value)
 
