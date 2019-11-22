@@ -19,7 +19,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 VTI_TEMP_SUFFIXES = [1, 2, 3, 4]
 
