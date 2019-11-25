@@ -22,6 +22,11 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
-    def test_GIVEN_X_field_strength_THEN_field_strength_read_back(self):
+    @parameterized.expand([
+        ("X", "L"),
+        ("Y", "T"),
+        ("Z", "V"),
+    ])
+    def test_GIVEN_X_field_strength_THEN_field_strength_read_back(self, hw_axis, user_axis):
         field_strength = 12.3
-        self.ca.assert_setting_setpoint_sets_readback(field_strength, "DAQ:X:_RAW", "SIM:DAQ:X")
+        self.ca.assert_setting_setpoint_sets_readback(field_strength, user_axis, "SIM:DAQ:{}".format(hw_axis))
