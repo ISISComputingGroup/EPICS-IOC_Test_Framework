@@ -54,7 +54,8 @@ TEST_ALARM_STATUS_PVS = ["VTI:TEMP1", "VTI:TEMP2", "VTI:TEMP3", "VTI:TEMP4", "VT
                          "PRESSURE2", "PRESSURE3", "PRESSURE4", "VALVE1", "VALVE2", "VALVE3",
                          "VALVE4", "VALVE5", "VALVE6", "VALVE7", "VALVE8", "VALVE9", "VALVE10",
                          "SOLENOID_VALVE1", "SOLENOID_VALVE2", "PROPORTIONAL_VALVE1", "PROPORTIONAL_VALVE2",
-                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:USER", "MIMIC:INFO", "MIMIC:NVMODE"]
+                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:USER", "MIMIC:INFO", "NVMODE", "1K:PUMP",
+                         "HE3:PUMP", "ROOTS"]
 
 
 class IceFridgeTests(unittest.TestCase):
@@ -383,6 +384,8 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("OFF", "1K:PUMP", "1K:PUMP:SP")
 
     def test_WHEN_1K_pump_on_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("OFF", "1K:PUMP", "1K:PUMP:SP")
+
         self.ca.assert_setting_setpoint_sets_readback("ON", "1K:PUMP", "1K:PUMP:SP")
 
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
@@ -391,6 +394,8 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_He3_pump_on_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("OFF", "HE3:PUMP", "HE3:PUMP:SP")
+
         self.ca.assert_setting_setpoint_sets_readback("ON", "HE3:PUMP", "HE3:PUMP:SP")
 
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
@@ -399,4 +404,6 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_roots_pump_on_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("OFF", "ROOTS", "ROOTS:SP")
+
         self.ca.assert_setting_setpoint_sets_readback("ON",  "ROOTS", "ROOTS:SP")
