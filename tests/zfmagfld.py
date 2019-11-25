@@ -1,4 +1,5 @@
 import unittest
+import itertools
 
 from parameterized import parameterized
 from utils.test_modes import TestModes
@@ -9,12 +10,27 @@ DEVICE_PREFIX = "ZFMAGFLD_01"
 
 TEST_MODES = [TestModes.RECSIM]
 
+OFFSET = 1.1
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("ZFMAGFLD"),
+        "macros": {
+                   "OFFSET_X": OFFSET,
+                   "OFFSET_Y": OFFSET,
+                   "OFFSET_Z": OFFSET
+                   }
     },
 ]
+
+AXES = [("X", "L"),
+        ("Y", "T"),
+        ("Z", "V")]
+
+USER_AXES = ["L", "T", "V"]
+
+FIELD_STRENGTHS = [0.0, 1.1, 12.3, -1.1, -12.3]
 
 
 class ZeroFieldMagFieldTests(unittest.TestCase):
@@ -22,11 +38,9 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
-    @parameterized.expand([
-        ("X", "L"),
-        ("Y", "T"),
-        ("Z", "V"),
-    ])
-    def test_GIVEN_X_field_strength_THEN_field_strength_read_back(self, hw_axis, user_axis):
-        field_strength = 12.3
-        self.ca.assert_setting_setpoint_sets_readback(field_strength, user_axis, "SIM:DAQ:{}".format(hw_axis))
+    @parameterized.expand(itertools.product(AXES, FIELD_STRENGTHS))
+    def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, axis, field_strength):
+        hw_axis, user_axis = axis
+        self.ca.assert_setting_setpoint_sets_readback(field_strength, "{}:OFFSET".format(hw_axis),
+                                                      "SIM:DAQ:{}".format(hw_axis),
+                                                      expected_value=field_strength-OFFSET)
