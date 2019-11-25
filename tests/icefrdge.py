@@ -372,9 +372,31 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MIMIC:INFO", "RBMK reactors do not explode!")
 
     def test_WHEN_nv_mode_setpoint_manual_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback("MANUAL", "MIMIC:NVMODE", "MIMIC:NVMODE:SP")
+        self.ca.assert_setting_setpoint_sets_readback("MANUAL", "NVMODE", "NVMODE:SP")
 
     def test_WHEN_nv_mode_setpoint_auto_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback("MANUAL", "MIMIC:NVMODE", "MIMIC:NVMODE:SP")
+        self.ca.assert_setting_setpoint_sets_readback("MANUAL", "NVMODE", "NVMODE:SP")
 
-        self.ca.assert_setting_setpoint_sets_readback("AUTO", "MIMIC:NVMODE", "MIMIC:NVMODE:SP")
+        self.ca.assert_setting_setpoint_sets_readback("AUTO", "NVMODE", "NVMODE:SP")
+
+    def test_WHEN_1K_pump_off_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("OFF", "1K:PUMP", "1K:PUMP:SP")
+
+    def test_WHEN_1K_pump_on_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("ON", "1K:PUMP", "1K:PUMP:SP")
+
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_He3_pump_off_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("OFF", "HE3:PUMP", "HE3:PUMP:SP")
+
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_He3_pump_on_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("ON", "HE3:PUMP", "HE3:PUMP:SP")
+
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_roots_pump_off_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("OFF", "ROOTS", "ROOTS:SP")
+
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_roots_pump_on_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("ON",  "ROOTS", "ROOTS:SP")
