@@ -38,6 +38,6 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
     @parameterized.expand(itertools.product(AXES.keys(), FIELD_STRENGTHS))
     def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, hw_axis, field_strength):
-        self.ca.assert_setting_setpoint_sets_readback(field_strength, "{}:OFFSET".format(hw_axis),
+        self.ca.assert_setting_setpoint_sets_readback(field_strength, "{}:APPLYOFFSET".format(hw_axis),
                                                       "SIM:DAQ:{}".format(hw_axis),
                                                       expected_value=field_strength-OFFSET)
