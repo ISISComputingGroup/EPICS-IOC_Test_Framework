@@ -191,7 +191,7 @@ def parameterized_list(cases):
     return return_list
 
 
-def unstable_test(max_retries=2, error_class=AssertionError):
+def unstable_test(max_retries=2, error_class=AssertionError, wait_between_runs=0):
     """
     Decorator which will retry a test on failure. This decorator should not be required on most tests and should not
     be included as standard when writing a test.
@@ -199,6 +199,7 @@ def unstable_test(max_retries=2, error_class=AssertionError):
     Args:
         max_retries: the max number of times to run the test before actually throwing an error (defaults to 2 retries)
         error_class: the class of error to retry under (defaults to AssertionError)
+        wait_between_runs: number of seconds to wait between each failed attempt at running the test
     """
     def decorator(func):
         @six.wraps(func)
@@ -208,6 +209,7 @@ def unstable_test(max_retries=2, error_class=AssertionError):
             except error_class:
                 last_error = None
                 for _ in range(max_retries):
+                    sleep(wait_between_runs)
                     try:
                         self.setUp()  # Need to rerun setup
                         return func(self, *args, **kwargs)
