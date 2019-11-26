@@ -42,7 +42,7 @@ MIMIC_PRESSURE_SUFFIXES = [1, 2, 3, 4]
 
 MIMIC_VALVE_NUMBERS = [(i + 1) for i in range(10)]
 
-MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2, 4]
+MIMIC_PROPORTIONAL_VALVES_NUMBERS = [1, 2, 4]
 
 MIMIC_SOLENOID_VALVES_NUMBERS = [1, 2]
 
@@ -203,7 +203,7 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("CLOSED", "VALVE{}".format(valve_num),
                                                       "VALVE{}:SP".format(valve_num))
 
-    @parameterized.expand(parameterized_list(MIMIC_SOLENOID_VALVES_NUMBERS))
+    @parameterized.expand(parameterized_list(MIMIC_PROPORTIONAL_VALVES_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_proportional_valve_THEN_readback_identical(self, _, proportional_valve_num):
         self.ca.assert_setting_setpoint_sets_readback(1.5, "PROPORTIONAL_VALVE{}".format(proportional_valve_num),
