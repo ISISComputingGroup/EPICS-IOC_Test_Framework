@@ -76,7 +76,7 @@ class IceFridgeTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(VTI_TEMP_SUFFIXES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_VTI_temp_set_backdoor_THEN_ioc_read_correctly(self, _, temp_num):
-        self._lewis.backdoor_set_on_device("vti_temp{}".format(temp_num), 3.6)
+        self._lewis.backdoor_run_function_on_device("set_cryo_temp", (temp_num, 3.6))
         self.ca.assert_that_pv_is_number("VTI:TEMP{}".format(temp_num), 3.6, 0.001)
 
     @parameterized.expand(parameterized_list(itertools.product(VTI_LOOPS, VTI_LOOP_TEST_INPUTS)))
