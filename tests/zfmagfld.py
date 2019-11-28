@@ -43,6 +43,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
     def write_offset(self, value_to_set):
         """ Writes the same offset to all three components"""
         for axis in AXES.keys():
+            print('Set {} to {}'.format("{}:OFFSET".format(axis), value_to_set))
             self.ca.set_pv_value("{}:OFFSET".format(axis), value_to_set)
 
     @parameterized.expand(itertools.product(AXES.keys(), FIELD_STRENGTHS))
@@ -68,7 +69,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         for value, hw_axis in zip(offset_corrected_field, AXES.keys()):
             self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(hw_axis), value, tolerance=0.1*abs(value))
 
-    @parameterized.expand(['X', 'Y', 'Z'])#AXES.keys())
+    @parameterized.expand(['X', 'Y', 'Z'])
     def test_GIVEN_sensor_matrix_with_only_one_nonzero_column_THEN_corrected_field_has_component_in_correct_dimension(self, hw_axis):
         print('\n'+hw_axis)
         input_field = {"X": 1.1,
@@ -79,20 +80,16 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             print('setting {} to {}'.format(component, input_field[component]))
             self.ca.set_pv_value("SIM:DAQ:{}".format(component), input_field[component])
 
-            import time
-            time.sleep(1.5)
-            print(self.ca.get_pv_value('{}:APPLYOFFSET'.format(component)))
-
         # GIVEN
         sensor_matrix = np.zeros((3, 3))
 
         # Set one non-diagnoal element to 1
         if hw_axis == "X":
-            sensor_matrix[:, 0] = 1
+            sensor_matrix[0, :] = 1
         elif hw_axis == "Y":
-            sensor_matrix[:, 1] = 1
+            sensor_matrix[1, :] = 1
         elif hw_axis == "Z":
-            sensor_matrix[:, 2] = 1
+            sensor_matrix[2, :] = 1
 
         import pprint
         pprint.pprint(sensor_matrix)
@@ -108,8 +105,54 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         # THEN
         for component in AXES.keys():
             if component == hw_axis:
-                expected_value = sum(input_field.values())#input_field[hw_axis]
+                expected_value = sum(input_field.values())
             else:
                 expected_value = 0
 
             self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(component), expected_value)
+
+    def test_GIVEN_measured_data_WHEN_corrections_applied_THEN_field_magnitude_read_back(self):
+        # GIVEN
+        input_field = {"X": 2.2,
+                       "Y": 3.3,
+                       "Z": 4.4}
+
+        for component in AXES.keys():
+            self.ca.set_pv_value("SIM:DAQ:{}".format(component), input_field[component])
+
+        self.write_offset(OFFSET)
+
+        sensor_matrix = np.array([-1.17e-1, 7.36e-2, -2e-1, -3.41e-1, -2.15e-1, -3e-1, -2.3e-1, -4e-2, 1e-1], order='C').reshape(3, 3, order='C')
+        #sensor_matrix = np.array([1,1,1,0,0,0,0,0,0], order='C').reshape(3, 3, order='C')
+
+        import pprint
+        pprint.pprint(sensor_matrix)
+
+        for i in range(3):
+            for j in range(3):
+                print('setting {} to {}'.format(SENSOR_MATRIX_PVS.format(row=i+1, column=j+1), sensor_matrix[i, j]))
+                self.ca.set_pv_value(SENSOR_MATRIX_PVS.format(row=i+1, column=j+1), sensor_matrix[i, j], wait=False)
+                print('AFDS', self.ca.get_pv_value('{}:APPLYOFFSET.B'.format(component)))
+
+
+        offset_data = {}
+
+        value = 0.0
+        iocval = {}
+        for axis in AXES.keys():
+            offset_data[axis] = input_field[axis] - OFFSET
+
+            component = self.ca.get_pv_value("{}:CORRECTEDFIELD".format(axis))
+            iocval[axis] = component
+            print('{} from ioc is {}'.format(axis, component))
+            value += component * component
+
+        print(np.sqrt(value))
+
+        expected_fields = np.matmul(sensor_matrix, np.array([input_field['X']-OFFSET, input_field['Y']-OFFSET, input_field['Z']-OFFSET]))
+
+        print(expected_fields)
+
+        expected_magnitude = np.linalg.norm(expected_fields)
+
+        self.ca.assert_that_pv_is_number("FIELDSTRENGTH", expected_magnitude, tolerance=0.1*expected_magnitude)
