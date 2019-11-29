@@ -120,7 +120,7 @@ class Jsco4180Tests(unittest.TestCase):
 
         # 1. set invalid flowrate setpoint (FLOWRATE:SP)
         self.ca.set_pv_value("FLOWRATE:SP", expected_sp_value)
-        self.ca.assert_that_pv_is("FLOWRATE:SP", expected_sp_value, timeout=5)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_sp_value, timeout=5)
 
         # 2. set valid hardware flowrate (FLOWRATE:SP:RBV) via backdoor command
         self._lewis.backdoor_set_on_device("flowrate_rbv", expected_rbv_value)
@@ -142,7 +142,7 @@ class Jsco4180Tests(unittest.TestCase):
 
         # 1. set invalid flowrate setpoint (FLOWRATE:SP)
         self.ca.set_pv_value("FLOWRATE:SP", expected_sp_value)
-        self.ca.assert_that_pv_is("FLOWRATE:SP", expected_sp_value, timeout=5)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_sp_value, timeout=5)
 
         # 2. set valid hardware flowrate (FLOWRATE:SP:RBV) via backdoor command
         self._lewis.backdoor_set_on_device("flowrate_rbv", expected_rbv_value)
@@ -155,13 +155,27 @@ class Jsco4180Tests(unittest.TestCase):
         # 4. check calculated volume is based on flowrate setpoint readback (:SP:RBV rather than :SP)
         self.ca.assert_that_pv_is("TIME:RUN:CALCVOL", expected_volume_value)
 
-    # TODO:
-    # @skip_if_recsim("LeWIS backdoor not supported in RECSIM")
-    # def test_GIVEN_an_ioc_WHEN_set_flowrate_and_pump_to_start_THEN_ioc_uses_rbv_for_calculation_of_remaining_time(self):
-    # 1. set flowrate
-    # 2. immediately set pump to run
-    # 3. read remaining time and/or volume
-    # 4. check calculation based on valid flowrate value
+    # test to check that the IOC updates the flowrate RBV quickly enough
+    # for the remaining volume calculation to be valid.  simulates operation of a script.
+    def test_GIVEN_an_ioc_WHEN_set_flowrate_and_immediately_set_pump_to_start_THEN_ioc_updates_rbv_for_calculation_of_remaining_volume(self):
+        expected_sp_value = 2.000
+        script_sp_value = 3.000
+        pump_for_time = 120
+
+        # 1. initialize flowrate
+        self.ca.set_pv_value("FLOWRATE:SP", expected_sp_value)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_sp_value, timeout=5)
+
+        # 2. set new flowrate and immediately set pump to run, to simulate script
+        self.ca.set_pv_value("FLOWRATE:SP", script_sp_value)
+        self.ca.set_pv_value("TIME:RUN:SP", pump_for_time)
+        self.ca.set_pv_value("START:SP", "Start")
+
+        # 3. calculate remaining volume
+        expected_volume_value = (pump_for_time * self.ca.get_pv_value("FLOWRATE:SP:RBV")) / 60
+
+        # 4. check ioc calculation is as expected
+        self.ca.assert_that_pv_is("TIME:RUN:CALCVOL", expected_volume_value)
 
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_maximum_pressure_limit_THEN_maximum_pressure_limit_is_correct(self):
