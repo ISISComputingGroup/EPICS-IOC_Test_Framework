@@ -16,12 +16,7 @@ OFFSET = 1.1
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("ZFMAGFLD"),
-        "macros": {
-                   "OFFSET_X": OFFSET,
-                   "OFFSET_Y": OFFSET,
-                   "OFFSET_Z": OFFSET
-                   }
+        "directory": get_default_ioc_dir("ZFMAGFLD")
     },
 ]
 
@@ -183,6 +178,25 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
             self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(component), expected_value)
 
+    def test_GIVEN_test_input_field_strengths_WHEN_corrections_applied_THEN_corrected_fields_agree_with_labview(self):
+        # GIVEN
+        input_field = {"X": 11.1,
+                       "Y": 22.2,
+                       "Z": 33.3}
+
+        self.write_simulated_field_values(input_field)
+
+        # WHEN
+        self.ca.process_pv("TAKEDATA")
+
+        # THEN
+        labview_result = {"X": -6.6,
+                          "Y": -19.0,
+                          "Z": -0.2}
+
+        for component in AXES.keys():
+            self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(component), labview_result[component])
+
     def test_GIVEN_measured_data_WHEN_corrections_applied_THEN_field_magnitude_read_back(self):
         # GIVEN
         input_field = {"X": 2.2,
@@ -203,3 +217,21 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         expected_magnitude = np.linalg.norm(expected_field_vals)
 
         self.ca.assert_that_pv_is_number("FIELDSTRENGTH", expected_magnitude, tolerance=0.1*expected_magnitude)
+
+    def test_WHEN_takedata_alias_processed_THEN_all_magnetometer_axes_read_and_processed(self):
+        # GIVEN
+        test_field = {"X": 1.1,
+                      "Y": 2.2,
+                      "Z": 3.3}
+
+        for component in AXES.keys():
+            self.ca.assert_that_pv_is_not_number("DAQ:{}:_RAW".format(component), test_field[component])
+
+        # WHEN
+        self.ca.process_pv("TAKEDATA")
+
+        # THEN
+        for component in AXES.keys():
+            self.ca.assert_that_pv_is_number("DAQ:{}:_RAW".format(component),
+                                             test_field[component],
+                                             tolerance=0.1*test_field[component])
