@@ -285,13 +285,16 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("MEASURED:{}".format(component),
                                              test_field[component]*factor)
 
-    def test_GIVEN_measured_field_too_high_THEN_overload_pv_reads_true(self):
+    @parameterized.expand(parameterized_list(AXES.keys()))
+    def test_GIVEN_measured_field_too_high_THEN_overload_pv_reads_true(self, _, axis):
         # GIVEN
         test_field = {
             "X": 1.1,
-            "Y": self.ca.get_pv_value("RANGE") * 4.5 + 1.0,
+            "Y": 1.1,
             "Z": 1.1
         }
+
+        test_field[axis] = self.ca.get_pv_value("RANGE") * 4.5 + 1.0
 
         # WHEN
         self.write_simulated_field_values(test_field)
