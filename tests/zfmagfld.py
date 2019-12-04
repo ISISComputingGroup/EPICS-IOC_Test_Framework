@@ -286,7 +286,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
                                              test_field[component]*factor)
 
     @parameterized.expand(parameterized_list(AXES.keys()))
-    def test_GIVEN_measured_field_too_high_THEN_overload_pv_reads_true(self, _, axis):
+    def test_GIVEN_measured_field_too_high_THEN_overload_pv_reads_true_and_is_in_alarm(self, _, axis):
         # GIVEN
         test_field = {
             "X": 1.1,
@@ -302,8 +302,9 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("OVERLOAD", 1)
+        self.ca.assert_that_pv_alarm_is("OVERLOAD", self.ca.Alarms.MAJOR)
 
-    def test_GIVEN_measured_field_in_range_THEN_overload_pv_reads_false(self):
+    def test_GIVEN_measured_field_in_range_THEN_overload_pv_reads_false_and_not_in_alarm(self):
         # GIVEN
         test_value = self.ca.get_pv_value("RANGE") * 4.5 - 1.0
 
@@ -319,3 +320,4 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("OVERLOAD", 0)
+        self.ca.assert_that_pv_alarm_is("OVERLOAD", self.ca.Alarms.NONE)
