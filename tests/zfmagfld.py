@@ -302,3 +302,20 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_is_number("OVERLOAD", 1)
+
+    def test_GIVEN_measured_field_in_range_THEN_overload_pv_reads_false(self):
+        # GIVEN
+        test_value = self.ca.get_pv_value("RANGE") * 4.5 - 1.0
+
+        test_field = {
+            "X": test_value,
+            "Y": test_value,
+            "Z": test_value
+        }
+
+        # WHEN
+        self.write_simulated_field_values(test_field)
+        self.ca.process_pv("TAKEDATA")
+
+        # THEN
+        self.ca.assert_that_pv_is_number("OVERLOAD", 0)
