@@ -2,6 +2,7 @@ import unittest
 import itertools
 
 from parameterized import parameterized
+from utils.testing import parameterized_list
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -35,6 +36,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.write_offset(0)
+        self.ca.set_pv_value("RANGE", 1.0)
 
     def write_offset(self, offset):
         """
@@ -123,8 +125,8 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         return corrected_field_vals
 
-    @parameterized.expand(itertools.product(AXES.keys(), FIELD_STRENGTHS))
-    def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, hw_axis, field_strength):
+    @parameterized.expand(parameterized_list(itertools.product(AXES.keys(), FIELD_STRENGTHS)))
+    def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, _, hw_axis, field_strength):
         # GIVEN
         self.write_offset(OFFSET)
 
@@ -155,8 +157,8 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
                                              expected_value,
                                              tolerance=0.1*abs(expected_value))
 
-    @parameterized.expand(['X', 'Y', 'Z'])
-    def test_GIVEN_sensor_matrix_with_only_one_nonzero_row_THEN_corrected_field_has_component_in_correct_dimension(self, hw_axis):
+    @parameterized.expand(parameterized_list(['X', 'Y', 'Z']))
+    def test_GIVEN_sensor_matrix_with_only_one_nonzero_row_THEN_corrected_field_has_component_in_correct_dimension(self, _, hw_axis):
 
         input_field = {"X": 1.1,
                        "Y": 2.2,
@@ -264,3 +266,21 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("DAQ:{}:_RAW".format(component),
                                              test_field[component],
                                              tolerance=0.1*test_field[component])
+
+    @parameterized.expand(parameterized_list(FIELD_STRENGTHS))
+    def test_GIVEN_magnetometer_scaling_factor_WHEN_data_read_THEN_inputs_scaled_by_factor(self, _, factor):
+        # GIVEN
+        self.ca.set_pv_value("RANGE", factor)
+
+        test_field = {"X": 1.1,
+                      "Y": 2.2,
+                      "Z": 3.3}
+
+        self.write_simulated_field_values(test_field)
+
+        self.ca.process_pv("TAKEDATA")
+
+        # THEN
+        for component in AXES.keys():
+            self.ca.assert_that_pv_is_number("MEASURED:{}".format(component),
+                                             test_field[component]*factor)
