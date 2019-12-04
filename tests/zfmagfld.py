@@ -11,7 +11,7 @@ DEVICE_PREFIX = "ZFMAGFLD_01"
 
 TEST_MODES = [TestModes.RECSIM]
 
-OFFSET = 1.1
+OFFSET = 1.3
 
 IOCS = [
     {
@@ -128,23 +128,32 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         # GIVEN
         self.write_offset(OFFSET)
 
+        self.ca.set_pv_value("SIM:DAQ:{}".format(hw_axis), field_strength)
+
+        # WHEN
+        self.ca.process_pv("TAKEDATA")
+
         # THEN
-        self.ca.assert_setting_setpoint_sets_readback(field_strength, "{}:APPLYOFFSET".format(hw_axis),
-                                                      "SIM:DAQ:{}".format(hw_axis),
-                                                      expected_value=field_strength-OFFSET)
+        self.ca.assert_that_pv_is_number("{}:APPLYOFFSET".format(hw_axis), field_strength-OFFSET)
 
     def test_GIVEN_offset_corrected_field_WHEN_sensor_matrix_is_identity_THEN_input_field_returned_by_matrix_multiplier(self):
-        offset_corrected_field = [1.1, 2.2, 3.3]
+        offset_corrected_field = {"X": 1.1,
+                                  "Y": 2.2,
+                                  "Z": 3.3}
+
         # GIVEN
-        for value, hw_axis in zip(offset_corrected_field, AXES.keys()):
-            self.ca.set_pv_value("SIM:DAQ:{}".format(hw_axis), value)
+        self.write_simulated_field_values(offset_corrected_field)
 
         # WHEN
         self.write_sensor_matrix(np.identity(3))
+        self.ca.process_pv("TAKEDATA")
 
         # THEN
-        for value, hw_axis in zip(offset_corrected_field, AXES.keys()):
-            self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(hw_axis), value, tolerance=0.1*abs(value))
+        for hw_axis in AXES.keys():
+            expected_value = offset_corrected_field[hw_axis]
+            self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(hw_axis),
+                                             expected_value,
+                                             tolerance=0.1*abs(expected_value))
 
     @parameterized.expand(['X', 'Y', 'Z'])
     def test_GIVEN_sensor_matrix_with_only_one_nonzero_row_THEN_corrected_field_has_component_in_correct_dimension(self, hw_axis):
@@ -168,6 +177,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         # WHEN
         self.write_sensor_matrix(sensor_matrix)
+        self.ca.process_pv("TAKEDATA")
 
         # THEN
         for component in AXES.keys():
@@ -184,18 +194,32 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
                        "Y": 22.2,
                        "Z": 33.3}
 
+        input_offsets = {"X": -8.19e-1,
+                         "Y": 3.45e-1,
+                         "Z": -6.7e-1}
+
+        sensor_matrix = np.array([-1.17e-1, 7.36e-2, -2e-1,
+                                  -3.41e-1, -2.15e-1, -3e-1,
+                                  -2.3e-1, -4e-2, 1e-1]).reshape(3, 3)
+
         self.write_simulated_field_values(input_field)
+        self.write_sensor_matrix(sensor_matrix)
+
+        for axis in input_offsets.keys():
+            self.ca.set_pv_value("{}:OFFSET".format(axis), input_offsets[axis])
 
         # WHEN
         self.ca.process_pv("TAKEDATA")
 
         # THEN
-        labview_result = {"X": -6.6,
-                          "Y": -19.0,
-                          "Z": -0.2}
+        labview_result = {"X": -6.58,
+                          "Y": -18.9542,
+                          "Z": -0.21857}
 
         for component in AXES.keys():
-            self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(component), labview_result[component])
+            self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(component),
+                                             labview_result[component],
+                                             tolerance=1e-4)
 
     def test_GIVEN_measured_data_WHEN_corrections_applied_THEN_field_magnitude_read_back(self):
         # GIVEN
@@ -211,18 +235,23 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.write_offset(OFFSET)
         self.write_sensor_matrix(sensor_matrix)
 
+        # WHEN
+        self.ca.process_pv("TAKEDATA")
+
         # THEN
         expected_field_vals = self.apply_offset_and_matrix_multiplication(input_field, OFFSET, sensor_matrix)
 
         expected_magnitude = np.linalg.norm(expected_field_vals)
 
-        self.ca.assert_that_pv_is_number("FIELDSTRENGTH", expected_magnitude, tolerance=0.1*expected_magnitude)
+        self.ca.assert_that_pv_is_number("FIELDSTRENGTH", expected_magnitude, tolerance=0.1*expected_magnitude, timeout=30)
 
     def test_WHEN_takedata_alias_processed_THEN_all_magnetometer_axes_read_and_processed(self):
         # GIVEN
         test_field = {"X": 1.1,
                       "Y": 2.2,
                       "Z": 3.3}
+
+        self.write_simulated_field_values(test_field)
 
         for component in AXES.keys():
             self.ca.assert_that_pv_is_not_number("DAQ:{}:_RAW".format(component), test_field[component])
