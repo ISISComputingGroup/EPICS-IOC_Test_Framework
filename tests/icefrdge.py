@@ -229,6 +229,18 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_needle_valve_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1.6, "NEEDLE_VALVE", "NEEDLE_VALVE:SP")
 
+    @parameterized.expand(parameterized_list([0.001, 2]))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_needle_valve_not_0_THEN_calc_is_one(self, _, test_value):
+        self.ca.set_pv_value("NEEDLE_VALVE:SP", test_value)
+        self.ca.assert_that_pv_is("NEEDLE_VALVE:_CALC", 1)
+
+    @parameterized.expand(parameterized_list([0, -0.01, -2]))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_needle_valve_0_THEN_calc_is_zero(self, _, test_value):
+        self.ca.set_pv_value("NEEDLE_VALVE:SP", test_value)
+        self.ca.assert_that_pv_is("NEEDLE_VALVE:_CALC", 0)
+
     @parameterized.expand(parameterized_list(MIMIC_SOLENOID_VALVES_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_solenoid_valve_open_THEN_readback_identical(self, _, solenoid_valve_num):
