@@ -209,6 +209,22 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(1.5, "PROPORTIONAL_VALVE{}".format(proportional_valve_num),
                                                       "PROPORTIONAL_VALVE{}:SP".format(proportional_valve_num))
 
+    @parameterized.expand(parameterized_list(itertools.product(MIMIC_PROPORTIONAL_VALVES_NUMBERS, [0.001, 2])))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_proportional_valve_not_0_THEN_calc_is_one(self, _, proportional_valve_num, test_value):
+        self.ca.set_pv_value("PROPORTIONAL_VALVE{}:SP".format(proportional_valve_num), test_value)
+
+        self.ca.assert_that_pv_is("PROPORTIONAL_VALVE{}:_CALC".format(proportional_valve_num), 1)
+
+    @parameterized.expand(parameterized_list(itertools.product(MIMIC_PROPORTIONAL_VALVES_NUMBERS, [0, -0.01, -2])))
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_proportional_valve_0_THEN_calc_is_zero(self, _, proportional_valve_num, test_value):
+        self.ca.set_pv_value("PROPORTIONAL_VALVE{}:SP".format(proportional_valve_num), 1)
+        self.ca.assert_that_pv_is("PROPORTIONAL_VALVE{}:_CALC".format(proportional_valve_num), 1)
+
+        self.ca.set_pv_value("PROPORTIONAL_VALVE{}:SP".format(proportional_valve_num), test_value)
+        self.ca.assert_that_pv_is("PROPORTIONAL_VALVE{}:_CALC".format(proportional_valve_num), 0)
+
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_needle_valve_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(1.6, "NEEDLE_VALVE", "NEEDLE_VALVE:SP")
