@@ -125,6 +125,13 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         return corrected_field_vals
 
+    def get_overload_range_value(self):
+        """
+        Returns the maximum value an input field can have before the magnetometer is overloaded
+        """
+
+        return self.ca.get_pv_value("RANGE") * 4.5
+
     @parameterized.expand(parameterized_list(itertools.product(AXES.keys(), FIELD_STRENGTHS)))
     def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, _, hw_axis, field_strength):
         # GIVEN
@@ -306,7 +313,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
     def test_GIVEN_measured_field_in_range_THEN_overload_pv_reads_false_and_not_in_alarm(self):
         # GIVEN
-        test_value = self.ca.get_pv_value("RANGE") * 4.5 - 1.0
+        test_value = self.get_overload_range_value() - 1.0
 
         test_field = {
             "X": test_value,
@@ -321,3 +328,18 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is_number("OVERLOAD", 0)
         self.ca.assert_that_pv_alarm_is("OVERLOAD", self.ca.Alarms.NONE)
+
+    def test_GIVEN_field_overloaded_THEN_field_strength_PV_in_major_alarm(self):
+        # GIVEN
+        overload_value = self.get_overload_range_value() + 1.0
+
+        test_field = {
+            "X": overload_value,
+            "Y": overload_value,
+            "Z": overload_value
+        }
+
+        self.write_simulated_field_values(test_field)
+
+        # THEN
+        self.ca.assert_that_pv_alarm_is("FIELDSTRENGTH", self.ca.Alarms.MAJOR)
