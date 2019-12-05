@@ -341,5 +341,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         self.write_simulated_field_values(test_field)
 
+        self.ca.process_pv("TAKEDATA")
+
         # THEN
         self.ca.assert_that_pv_alarm_is("FIELDSTRENGTH", self.ca.Alarms.MAJOR)
