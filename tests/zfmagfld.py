@@ -36,7 +36,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.write_offset(0)
-        self.ca.set_pv_value("RANGE", 1.0)
+        self.ca.set_pv_value("RANGE", 1.0, sleep_after_set=0.0)
 
     def write_offset(self, offset):
         """
@@ -49,7 +49,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         """
         for axis in AXES.keys():
-            self.ca.set_pv_value("{}:OFFSET".format(axis), offset)
+            self.ca.set_pv_value("{}:OFFSET".format(axis), offset, sleep_after_set=0.0)
 
     def write_sensor_matrix(self, sensor_matrix):
         """
@@ -65,7 +65,8 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         for i in range(SENSOR_MATRIX_SIZE):
             for j in range(SENSOR_MATRIX_SIZE):
-                self.ca.set_pv_value(SENSOR_MATRIX_PVS.format(row=i+1, column=j+1), sensor_matrix[i, j])
+                self.ca.set_pv_value(SENSOR_MATRIX_PVS.format(row=i+1, column=j+1),
+                                     sensor_matrix[i, j], sleep_after_set=0.0)
 
     def apply_offset_to_field(self, simulated_field, offset):
         """
@@ -84,6 +85,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         for axis in AXES.keys():
             offset_applied_field[axis] = simulated_field[axis] - offset
 
+
         return offset_applied_field
 
     def write_simulated_field_values(self, simulated_field):
@@ -99,7 +101,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         """
 
         for component in AXES.keys():
-            self.ca.set_pv_value("SIM:DAQ:{}".format(component), simulated_field[component])
+            self.ca.set_pv_value("SIM:DAQ:{}".format(component), simulated_field[component], sleep_after_set=0.0)
 
     def apply_offset_and_matrix_multiplication(self, simulated_field, offset, sensor_matrix):
         """
@@ -137,7 +139,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         # GIVEN
         self.write_offset(OFFSET)
 
-        self.ca.set_pv_value("SIM:DAQ:{}".format(hw_axis), field_strength)
+        self.ca.set_pv_value("SIM:DAQ:{}".format(hw_axis), field_strength, sleep_after_set=0.0)
 
         # WHEN
         self.ca.process_pv("TAKEDATA")
@@ -163,6 +165,8 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("{}:CORRECTEDFIELD".format(hw_axis),
                                              expected_value,
                                              tolerance=0.1*abs(expected_value))
+
+            self.ca.assert_that_pv_alarm_is("{}:CORRECTEDFIELD".format(hw_axis), self.ca.Alarms.NONE)
 
     @parameterized.expand(parameterized_list(['X', 'Y', 'Z']))
     def test_GIVEN_sensor_matrix_with_only_one_nonzero_row_THEN_corrected_field_has_component_in_correct_dimension(self, _, hw_axis):
@@ -215,7 +219,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.write_sensor_matrix(sensor_matrix)
 
         for axis in input_offsets.keys():
-            self.ca.set_pv_value("{}:OFFSET".format(axis), input_offsets[axis])
+            self.ca.set_pv_value("{}:OFFSET".format(axis), input_offsets[axis], sleep_after_set=0.0)
 
         # WHEN
         self.ca.process_pv("TAKEDATA")
@@ -277,7 +281,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(FIELD_STRENGTHS))
     def test_GIVEN_magnetometer_scaling_factor_WHEN_data_read_THEN_inputs_scaled_by_factor(self, _, factor):
         # GIVEN
-        self.ca.set_pv_value("RANGE", factor)
+        self.ca.set_pv_value("RANGE", factor, sleep_after_set=0.0)
 
         test_field = {"X": 1.1,
                       "Y": 2.2,
@@ -329,7 +333,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("OVERLOAD", 0)
         self.ca.assert_that_pv_alarm_is("OVERLOAD", self.ca.Alarms.NONE)
 
-    def test_GIVEN_field_overloaded_THEN_field_strength_PV_in_major_alarm(self):
+    def test_GIVEN_field_overloaded_THEN_output_PVs_in_major_alarm(self):
         # GIVEN
         overload_value = self.get_overload_range_value() + 1.0
 
@@ -345,3 +349,5 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_alarm_is("FIELDSTRENGTH", self.ca.Alarms.MAJOR)
+        for axis in AXES.keys():
+            self.ca.assert_that_pv_alarm_is("{}:CORRECTEDFIELD".format(axis), self.ca.Alarms.MAJOR)
