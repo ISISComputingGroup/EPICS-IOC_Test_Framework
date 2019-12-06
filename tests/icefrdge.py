@@ -362,7 +362,7 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.assert_that_emulator_value_is("circulate", "True", 15)
 
     @skip_if_recsim("Lewis assertion not working in recsim")
-    def test_WHEN_mimic_sequence_temp_control_THEN_set_temp_control(self):
+    def test_WHEN_mimic_sequence_temp_control_THEN_readback_identical(self):
         self._lewis.assert_that_emulator_value_is("temp_control", "0", 15)
 
         self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
@@ -371,7 +371,7 @@ class IceFridgeTests(unittest.TestCase):
         # does not matter what value the pv is set to, only that it processes
         self.ca.set_pv_value("MIMIC:START:SP", "START")
 
-        self._lewis.assert_that_emulator_value_is("temp_control", "2.3", 15)
+        self.ca.assert_that_pv_is("MIMIC:SEQUENCE:TEMP", 2.3)
 
     @skip_if_recsim("Lewis assertion not working in recsim")
     def test_WHEN_mimic_sequence_make_safe_THEN_make_safe(self):
