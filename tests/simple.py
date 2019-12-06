@@ -52,7 +52,11 @@ class SimpleTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.assertIsNotNone(self._ioc)
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
+
+        # Some of the ca test PVs seem to take a while to appear on build server.
+        for protection, record in itertools.product(PROTECTION_TYPES, RECORD_TYPES):
+            self.ca.assert_that_pv_exists("CATEST:{}:{}".format(record, protection), timeout=120)
 
         self.set_auto_restart_to_true()
 

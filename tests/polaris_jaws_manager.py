@@ -8,6 +8,7 @@ from utils.testing import parameterized_list, ManagerMode, unstable_test
 from common_tests.jaws_manager_utils import JawsManagerBase, UNDERLYING_GAP_SP
 # IP address of device
 from utils.test_modes import TestModes
+from time import sleep
 
 GALIL_ADDR = "128.0.0.0"
 
@@ -51,8 +52,17 @@ class PolarisJawsManagerTests(JawsManagerBase, unittest.TestCase):
     def setUp(self):
         super(PolarisJawsManagerTests, self).setUp()
         with ManagerMode(self.ca):
-            [self.ca.set_pv_value(TOP_LEVEL_JAW_5_GAP.format(direction), 0) for direction in ["V", "H"]]
-            self.ca.set_pv_value(SET_JAW_5, 1)
+            # Use a retry loop here in case the IOC has not connected to the manager mode PV yet
+            for _ in range(10):
+                try:
+                    [self.ca.set_pv_value(TOP_LEVEL_JAW_5_GAP.format(direction), 0) for direction in ["V", "H"]]
+                    self.ca.set_pv_value(SET_JAW_5, 1)
+                except WriteAccessException:
+                    sleep(5)
+                else:
+                    break
+            else:
+                raise WriteAccessException("Unable to write to jaws 5 in setup after 10 attempts")
 
     def get_sample_pv(self):
         return "POLJAWSET"
@@ -93,6 +103,7 @@ class PolarisJawsManagerTests(JawsManagerBase, unittest.TestCase):
         self.ca.assert_that_pv_is_not_number(TOP_LEVEL_JAW_5_GAP.format(direction), 0, 5)  # Readback has changed
 
     @parameterized.expand(["V", "H"])
+    @unstable_test(error_class=(AssertionError, WriteAccessException), wait_between_runs=10)
     def test_WHEN_jaw_5_set_directly_THEN_underlying_jaw_5_not_changed(self, direction):
         underlying_jaw = UNDERLYING_GAP_SP.format(5, direction)
         with ManagerMode(self.ca):
@@ -100,6 +111,7 @@ class PolarisJawsManagerTests(JawsManagerBase, unittest.TestCase):
             self.ca.assert_that_pv_is_number(underlying_jaw, 0)
 
     @parameterized.expand(["V", "H"])
+    @unstable_test(error_class=(AssertionError, WriteAccessException), wait_between_runs=10)
     def test_GIVEN_jaw_5_set_directly_WHEN_set_pv_called_THEN_underlying_jaw_5_changes(self, direction):
         underlying_jaw = UNDERLYING_GAP_SP.format(5, direction)
         with ManagerMode(self.ca):
@@ -108,7 +120,7 @@ class PolarisJawsManagerTests(JawsManagerBase, unittest.TestCase):
             self.ca.assert_that_pv_is_number(underlying_jaw, 10)
 
     @parameterized.expand(["V", "H"])
-    @unstable_test()
+    @unstable_test(error_class=(AssertionError, WriteAccessException), wait_between_runs=10)
     def test_GIVEN_jaw_5_readback_changed_WHEN_set_pv_called_THEN_underlying_jaw_5_changes(self, direction):
         underlying_jaw = UNDERLYING_GAP_SP.format(5, direction)
         self.ca.set_pv_value(SAMPLE_SP.format(direction), 10)
