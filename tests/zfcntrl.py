@@ -74,6 +74,7 @@ class ZeroFieldTests(unittest.TestCase):
         self.ca.set_pv_value("TOLERANCE", 1, sleep_after_set=0)
 
         self._set_simulated_fields(0, 0, 0, overload=False, set_setpoints=True)
+        self.ca.set_pv_value("AUTOFEEDBACK", "Manual", sleep_after_set=0)
         self._assert_stable(True)
         self._assert_status(Statuses.NO_ERROR)
 
