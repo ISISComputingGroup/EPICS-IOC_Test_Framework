@@ -392,7 +392,7 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor not working in recsim")
     def test_WHEN_state_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("state", "It's disgraceful, really!")
+        self._lewis.backdoor_set_on_device("state", "It\\'s disgraceful, really!")
         self.ca.assert_that_pv_is("STATE", "It's disgraceful, really!")
 
     def test_WHEN_nv_mode_setpoint_manual_THEN_readback_identical(self):
