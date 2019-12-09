@@ -54,8 +54,8 @@ TEST_ALARM_STATUS_PVS = ["VTI:TEMP1", "VTI:TEMP2", "VTI:TEMP3", "VTI:TEMP4", "VT
                          "PRESSURE2", "PRESSURE3", "PRESSURE4", "VALVE1", "VALVE2", "VALVE3",
                          "VALVE4", "VALVE5", "VALVE6", "VALVE7", "VALVE8", "VALVE9", "VALVE10",
                          "SOLENOID_VALVE1", "SOLENOID_VALVE2", "PROPORTIONAL_VALVE1", "PROPORTIONAL_VALVE2",
-                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:USER", "MIMIC:INFO", "STATE", "NVMODE",
-                         "1K:PUMP", "HE3:PUMP", "ROOTS"]
+                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:USER", "MIMIC:SEQUENCE:TEMP",
+                         "MIMIC:INFO", "STATE", "NVMODE", "1K:PUMP", "HE3:PUMP", "ROOTS"]
 
 
 class IceFridgeTests(unittest.TestCase):
@@ -275,16 +275,6 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("mixing_chamber_temp", large_temp)
         self.ca.assert_that_pv_is_number("MC:USER", large_temp, 0.001)
 
-    @skip_if_recsim("testing lack of connection to device makes no sense in recsim")
-    def test_WHEN_ioc_disconnected_THEN_all_pvs_in_alarm(self):
-        for pv in TEST_ALARM_STATUS_PVS:
-            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
-
-        self._lewis.backdoor_set_on_device("connected", False)
-
-        for pv in TEST_ALARM_STATUS_PVS:
-            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
-
     def test_WHEN_mimic_mode_manual_THEN_buttons_disabled(self):
         self.ca.set_pv_value("MIMIC:MODE:SP", "MANUAL")
 
@@ -440,3 +430,13 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("OFF", "ROOTS", "ROOTS:SP")
 
         self.ca.assert_setting_setpoint_sets_readback("ON",  "ROOTS", "ROOTS:SP")
+
+    @skip_if_recsim("testing lack of connection to device makes no sense in recsim")
+    def test_WHEN_ioc_disconnected_THEN_all_pvs_in_alarm(self):
+        for pv in TEST_ALARM_STATUS_PVS:
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+
+        self._lewis.backdoor_set_on_device("connected", False)
+
+        for pv in TEST_ALARM_STATUS_PVS:
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
