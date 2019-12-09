@@ -54,8 +54,8 @@ TEST_ALARM_STATUS_PVS = ["VTI:TEMP1", "VTI:TEMP2", "VTI:TEMP3", "VTI:TEMP4", "VT
                          "PRESSURE2", "PRESSURE3", "PRESSURE4", "VALVE1", "VALVE2", "VALVE3",
                          "VALVE4", "VALVE5", "VALVE6", "VALVE7", "VALVE8", "VALVE9", "VALVE10",
                          "SOLENOID_VALVE1", "SOLENOID_VALVE2", "PROPORTIONAL_VALVE1", "PROPORTIONAL_VALVE2",
-                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:USER", "MIMIC:INFO", "NVMODE", "1K:PUMP",
-                         "HE3:PUMP", "ROOTS"]
+                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:USER", "MIMIC:INFO", "STATE", "NVMODE",
+                         "1K:PUMP", "HE3:PUMP", "ROOTS"]
 
 
 class IceFridgeTests(unittest.TestCase):
@@ -399,6 +399,11 @@ class IceFridgeTests(unittest.TestCase):
     def test_WHEN_mimic_info_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("mimic_info", "RBMK reactors do not explode!")
         self.ca.assert_that_pv_is("MIMIC:INFO", "RBMK reactors do not explode!")
+
+    @skip_if_recsim("Lewis backdoor not working in recsim")
+    def test_WHEN_state_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("state", "Delusional!")
+        self.ca.assert_that_pv_is("STATE", "Delusional!")
 
     def test_WHEN_nv_mode_setpoint_manual_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback("MANUAL", "NVMODE", "NVMODE:SP")
