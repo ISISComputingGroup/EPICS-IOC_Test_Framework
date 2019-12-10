@@ -134,6 +134,16 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.assert_that_emulator_value_is("lakeshore_scan", "0", 15)
         self._lewis.assert_that_emulator_value_is("lakeshore_cmode", "1", 15)
 
+    def test_WHEN_Lakeshore_MC_setpoint_negative_THEN_readback_zero(self):
+        self.ca.set_pv_value("LS:MC:TEMP:SP", -1)
+
+        self.ca.assert_that_pv_is("LS:MC:TEMP", 0)
+
+    def test_WHEN_Lakeshore_MC_setpoint_over_limit_THEN_readback_at_limit(self):
+        self.ca.set_pv_value("LS:MC:TEMP:SP", 301)
+
+        self.ca.assert_that_pv_is("LS:MC:TEMP", 300)
+
     def test_WHEN_Lakeshore_MC_proportional_THEN_readback_identical(self):
         self.ca.assert_setting_setpoint_sets_readback(0.9, "LS:MC:P", "LS:MC:P:SP")
 
