@@ -14,6 +14,7 @@ ZF_DEVICE_PREFIX = "ZFCNTRL_01"
 X_KEPCO_DEVICE_PREFIX = "KEPCO_01"
 Y_KEPCO_DEVICE_PREFIX = "KEPCO_02"
 Z_KEPCO_DEVICE_PREFIX = "KEPCO_03"
+MAGNETOMETER_DEVICE_PREFIX = "ZFMAGFLD_01"
 
 
 DEFAULT_LOW_OUTPUT_LIMIT = -100
@@ -36,19 +37,35 @@ IOCS = [
             "PSU_X": r"$(MYPVPREFIX){}:CURRENT".format(X_KEPCO_DEVICE_PREFIX),
             "PSU_Y": r"$(MYPVPREFIX){}:CURRENT".format(Y_KEPCO_DEVICE_PREFIX),
             "PSU_Z": r"$(MYPVPREFIX){}:CURRENT".format(Z_KEPCO_DEVICE_PREFIX),
+
+            "MAGNETOMETER_TRIGGER": r"$(MYPVPREFIX){}:TAKEDATA".format(MAGNETOMETER_DEVICE_PREFIX),
+            "MAGNETOMETER_X": r"$(MYPVPREFIX){}:X:CORRECTEDFIELD".format(MAGNETOMETER_DEVICE_PREFIX),
+            "MAGNETOMETER_Y": r"$(MYPVPREFIX){}:Y:CORRECTEDFIELD".format(MAGNETOMETER_DEVICE_PREFIX),
+            "MAGNETOMETER_Z": r"$(MYPVPREFIX){}:Z:CORRECTEDFIELD".format(MAGNETOMETER_DEVICE_PREFIX),
+            "MAGNETOMETER_OVERLOAD": r"$(MYPVPREFIX){}:OVERLOAD".format(MAGNETOMETER_DEVICE_PREFIX),
         }
     },
     {
-        "name": "KEPCO_01",
+        "name": X_KEPCO_DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KEPCO", iocnum=1),
     },
     {
-        "name": "KEPCO_02",
+        "name": Y_KEPCO_DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KEPCO", iocnum=2),
     },
     {
-        "name": "KEPCO_03",
+        "name": Z_KEPCO_DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KEPCO", iocnum=3),
+    },
+    {
+        "name": MAGNETOMETER_DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("ZFMAGFLD"),
+        "macros": {
+            "OFFSET_X": 0,
+            "OFFSET_Y": 0,
+            "OFFSET_Z": 0,
+            "SQNCR": r"$(MYPVPREFIX){}:INPUTS_UPDATED.PROC CA".format(ZF_DEVICE_PREFIX),
+        }
     },
 ]
 
@@ -65,6 +82,7 @@ class Statuses(object):
     NO_ERROR = ("No error", ChannelAccess.Alarms.NONE)
     MAGNETOMETER_READ_ERROR = ("Magnetometer read error", ChannelAccess.Alarms.MAJOR)
     MAGNETOMETER_OVERLOAD = ("Magnetometer overloaded", ChannelAccess.Alarms.MAJOR)
+    MAGNETOMETER_DATA_INVALID = ("Magnetometer data invalid", ChannelAccess.Alarms.MAJOR)
     PSU_INVALID = ("Power supply invalid", ChannelAccess.Alarms.MAJOR)
     PSU_ON_LIMITS = ("Power supply on limits", ChannelAccess.Alarms.MAJOR)
 
@@ -82,9 +100,11 @@ class ZeroFieldTests(unittest.TestCase):
             wait_for_update (bool): whether to wait for the statemachine to pick up the new readings
         """
         for axis in FIELD_AXES:
-            self.ca.set_pv_value("SIM:MAGNETOMETER:{}".format(axis), fields[axis], sleep_after_set=0)
+            self.magnetometer_ca.set_pv_value("SIM:DAQ:{}".format(axis), fields[axis], sleep_after_set=0)
 
-        self.ca.set_pv_value("SIM:MAGNETOMETER:OVERLOAD", "Out of range" if overload else "In range", sleep_after_set=0)
+        # Just overwrite the calculation to return a constant as we are not interested in testing the
+        # overload logic here.
+        self.magnetometer_ca.set_pv_value("OVERLOAD.CALC", "1" if overload else "0", sleep_after_set=0)
 
         if wait_for_update:
             for axis in FIELD_AXES:
@@ -153,16 +173,17 @@ class ZeroFieldTests(unittest.TestCase):
 
     @contextlib.contextmanager
     def _simulate_disconnected_magnetometer(self):
-        self.ca.set_pv_value("SIM:MAGNETOMETER_DISCONNECTED", 1, sleep_after_set=0)
+        self.magnetometer_ca.set_pv_value("DISABLE", 1, sleep_after_set=0)
         try:
             yield
         finally:
-            self.ca.set_pv_value("SIM:MAGNETOMETER_DISCONNECTED", 0, sleep_after_set=0)
+            self.magnetometer_ca.set_pv_value("DISABLE", 0, sleep_after_set=0)
 
     def setUp(self):
         _, self._ioc = get_running_lewis_and_ioc(None, ZF_DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=ZF_DEVICE_PREFIX, default_timeout=20)
+        self.magnetometer_ca = ChannelAccess(device_prefix=MAGNETOMETER_DEVICE_PREFIX, default_timeout=20)
 
         self.x_psu_ca = ChannelAccess(default_timeout=30, device_prefix=X_KEPCO_DEVICE_PREFIX)
         self.y_psu_ca = ChannelAccess(default_timeout=30, device_prefix=X_KEPCO_DEVICE_PREFIX)
@@ -176,6 +197,12 @@ class ZeroFieldTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("DISABLE")
         self.ca.set_pv_value("TOLERANCE", STABILITY_TOLERANCE, sleep_after_set=0)
         self._set_autofeedback(False)
+
+        # Set the magnetometer calibration matrix to the 3x3 identity matrix
+        for matrix_x in range(1, 3+1):
+            for matrix_y in range(1, 3+1):
+                self.magnetometer_ca.set_pv_value("SENSORMATRIX:{}{}".format(matrix_x, matrix_y),
+                                                  1 if matrix_x == matrix_y else 0, sleep_after_set=0)
 
         mock_fields = {"X": 0, "Y": 0, "Z": 0}
         self._set_simulated_measured_fields(mock_fields, overload=False)
