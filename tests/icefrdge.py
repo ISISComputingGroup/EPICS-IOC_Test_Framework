@@ -259,10 +259,9 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.set_pv_value("NEEDLE_VALVE:SP", test_value)
         self.ca.assert_that_pv_is("NEEDLE_VALVE:_CALC", 1)
 
-    @parameterized.expand(parameterized_list([0, -0.01, -2]))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
-    def test_WHEN_needle_valve_0_THEN_calc_is_zero(self, _, test_value):
-        self.ca.set_pv_value("NEEDLE_VALVE:SP", test_value)
+    def test_WHEN_needle_valve_0_THEN_calc_is_zero(self):
+        self.ca.set_pv_value("NEEDLE_VALVE:SP", 0)
         self.ca.assert_that_pv_is("NEEDLE_VALVE:_CALC", 0)
 
     @parameterized.expand(parameterized_list(MIMIC_SOLENOID_VALVES_NUMBERS))
