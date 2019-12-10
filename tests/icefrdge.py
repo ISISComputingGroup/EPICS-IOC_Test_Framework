@@ -226,13 +226,13 @@ class IceFridgeTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PROPORTIONAL_VALVE{}:_CALC".format(proportional_valve_num), 1)
 
-    @parameterized.expand(parameterized_list(itertools.product(MIMIC_PROPORTIONAL_VALVES_NUMBERS, [0, -0.01, -2])))
+    @parameterized.expand(parameterized_list(MIMIC_PROPORTIONAL_VALVES_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
-    def test_WHEN_proportional_valve_0_THEN_calc_is_zero(self, _, proportional_valve_num, test_value):
+    def test_WHEN_proportional_valve_0_THEN_calc_is_zero(self, _, proportional_valve_num):
         self.ca.set_pv_value("PROPORTIONAL_VALVE{}:SP".format(proportional_valve_num), 1)
         self.ca.assert_that_pv_is("PROPORTIONAL_VALVE{}:_CALC".format(proportional_valve_num), 1)
 
-        self.ca.set_pv_value("PROPORTIONAL_VALVE{}:SP".format(proportional_valve_num), test_value)
+        self.ca.set_pv_value("PROPORTIONAL_VALVE{}:SP".format(proportional_valve_num), 0)
         self.ca.assert_that_pv_is("PROPORTIONAL_VALVE{}:_CALC".format(proportional_valve_num), 0)
 
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
