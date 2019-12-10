@@ -264,6 +264,18 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.set_pv_value("NEEDLE_VALVE:SP", 0)
         self.ca.assert_that_pv_is("NEEDLE_VALVE:_CALC", 0)
 
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_needle_valve_sp_negative_THEN_readback_zero(self):
+        self.ca.set_pv_value("NEEDLE_VALVE:SP", -1)
+
+        self.ca.assert_that_pv_is("NEEDLE_VALVE", 0)
+
+    @skip_if_recsim("pv updated when other pv processes, has no scan field")
+    def test_WHEN_needle_valve_sp_over_limit_THEN_readback_at_limit(self):
+        self.ca.set_pv_value("NEEDLE_VALVE:SP", 101)
+
+        self.ca.assert_that_pv_is("NEEDLE_VALVE", 100)
+
     @parameterized.expand(parameterized_list(MIMIC_SOLENOID_VALVES_NUMBERS))
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_solenoid_valve_open_THEN_readback_identical(self, _, solenoid_valve_num):
