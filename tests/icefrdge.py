@@ -439,6 +439,8 @@ class IceFridgeTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("AUTO", "NVMODE", "NVMODE:SP")
 
     def test_WHEN_1K_pump_off_THEN_readback_identical(self):
+        self.ca.assert_setting_setpoint_sets_readback("ON", "1K:PUMP", "1K:PUMP:SP")
+
         self.ca.assert_setting_setpoint_sets_readback("OFF", "1K:PUMP", "1K:PUMP:SP")
 
     def test_WHEN_1K_pump_on_THEN_readback_identical(self):
