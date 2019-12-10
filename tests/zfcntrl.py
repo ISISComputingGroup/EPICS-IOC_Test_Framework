@@ -80,7 +80,7 @@ STABILITY_TOLERANCE = 1.0
 
 class Statuses(object):
     NO_ERROR = ("No error", ChannelAccess.Alarms.NONE)
-    MAGNETOMETER_READ_ERROR = ("Magnetometer read error", ChannelAccess.Alarms.MAJOR)
+    MAGNETOMETER_READ_ERROR = ("No new magnetometer data", ChannelAccess.Alarms.MAJOR)
     MAGNETOMETER_OVERLOAD = ("Magnetometer overloaded", ChannelAccess.Alarms.MAJOR)
     MAGNETOMETER_DATA_INVALID = ("Magnetometer data invalid", ChannelAccess.Alarms.MAJOR)
     PSU_INVALID = ("Power supply invalid", ChannelAccess.Alarms.MAJOR)
@@ -179,6 +179,18 @@ class ZeroFieldTests(unittest.TestCase):
         finally:
             self.magnetometer_ca.set_pv_value("DISABLE", 0, sleep_after_set=0)
 
+    @contextlib.contextmanager
+    def _simulate_invalid_magnetometer_readings(self):
+        for axis in FIELD_AXES:
+            # 3 is the Enum value for an invalid alarm
+            self.magnetometer_ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), 3, sleep_after_set=0)
+        try:
+            yield
+        finally:
+            for axis in FIELD_AXES:
+                # 0 is the Enum value for no alarm
+                self.magnetometer_ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), 0, sleep_after_set=0)
+
     def setUp(self):
         _, self._ioc = get_running_lewis_and_ioc(None, ZF_DEVICE_PREFIX)
 
@@ -272,6 +284,19 @@ class ZeroFieldTests(unittest.TestCase):
         with self._simulate_disconnected_magnetometer():
             self._assert_stable(False)
             self._assert_status(Statuses.MAGNETOMETER_READ_ERROR)
+
+        # Now simulate recovery and assert error gets cleared correctly
+        self._assert_stable(True)
+        self._assert_status(Statuses.NO_ERROR)
+
+    def test_WHEN_magnetometer_ioc_readings_are_invalid_THEN_status_is_magnetometer_invalid(self):
+        fields = {"X": 1, "Y": 2, "Z": 3}
+        self._set_simulated_measured_fields(fields, overload=False)
+        self._set_user_setpoints(fields)
+
+        with self._simulate_invalid_magnetometer_readings():
+            self._assert_stable(False)
+            self._assert_status(Statuses.MAGNETOMETER_DATA_INVALID)
 
         # Now simulate recovery and assert error gets cleared correctly
         self._assert_stable(True)
