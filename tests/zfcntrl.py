@@ -41,22 +41,19 @@ IOCS = [
     {
         "name": "KEPCO_01",
         "directory": get_default_ioc_dir("KEPCO", iocnum=1),
-        "emulator": "kepco",
     },
     {
         "name": "KEPCO_02",
         "directory": get_default_ioc_dir("KEPCO", iocnum=2),
-        "emulator": "kepco",
     },
     {
         "name": "KEPCO_03",
         "directory": get_default_ioc_dir("KEPCO", iocnum=3),
-        "emulator": "kepco",
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM]
 
 FIELD_AXES = ["X", "Y", "Z"]
 ZERO_FIELD = {"X": 0, "Y": 0, "Z": 0}
