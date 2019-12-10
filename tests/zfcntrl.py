@@ -10,7 +10,10 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, parameterized_list
 
-DEVICE_PREFIX = "ZFCNTRL_01"
+ZF_DEVICE_PREFIX = "ZFCNTRL_01"
+X_KEPCO_DEVICE_PREFIX = "KEPCO_01"
+Y_KEPCO_DEVICE_PREFIX = "KEPCO_02"
+Z_KEPCO_DEVICE_PREFIX = "KEPCO_03"
 
 
 DEFAULT_LOW_OUTPUT_LIMIT = -100
@@ -19,7 +22,7 @@ DEFAULT_HIGH_OUTPUT_LIMIT = 100
 
 IOCS = [
     {
-        "name": DEVICE_PREFIX,
+        "name": ZF_DEVICE_PREFIX,
         "directory": get_default_ioc_dir("ZFCNTRL"),
         "started_text": "seq zero_field",
         "macros": {
@@ -29,12 +32,31 @@ IOCS = [
             "OUTPUT_Y_MAX": DEFAULT_HIGH_OUTPUT_LIMIT,
             "OUTPUT_Z_MIN": DEFAULT_LOW_OUTPUT_LIMIT,
             "OUTPUT_Z_MAX": DEFAULT_HIGH_OUTPUT_LIMIT,
+
+            "PSU_X": r"$(MYPVPREFIX){}:CURRENT".format(X_KEPCO_DEVICE_PREFIX),
+            "PSU_Y": r"$(MYPVPREFIX){}:CURRENT".format(Y_KEPCO_DEVICE_PREFIX),
+            "PSU_Z": r"$(MYPVPREFIX){}:CURRENT".format(Z_KEPCO_DEVICE_PREFIX),
         }
+    },
+    {
+        "name": "KEPCO_01",
+        "directory": get_default_ioc_dir("KEPCO", iocnum=1),
+        "emulator": "kepco",
+    },
+    {
+        "name": "KEPCO_02",
+        "directory": get_default_ioc_dir("KEPCO", iocnum=2),
+        "emulator": "kepco",
+    },
+    {
+        "name": "KEPCO_03",
+        "directory": get_default_ioc_dir("KEPCO", iocnum=3),
+        "emulator": "kepco",
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 FIELD_AXES = ["X", "Y", "Z"]
 ZERO_FIELD = {"X": 0, "Y": 0, "Z": 0}
@@ -110,7 +132,7 @@ class ZeroFieldTests(unittest.TestCase):
         self.ca.set_pv_value("P:X", px, sleep_after_set=0)
         self.ca.set_pv_value("P:Y", py, sleep_after_set=0)
         self.ca.set_pv_value("P:Z", pz, sleep_after_set=0)
-        self.ca.set_pv_value("P:FIDDLE_FACTOR", fiddle, sleep_after_set=0)
+        self.ca.set_pv_value("P:FEEDBACK", fiddle, sleep_after_set=0)
 
     def _set_output_limits(self, lower_limits, upper_limits):
         """
@@ -126,6 +148,12 @@ class ZeroFieldTests(unittest.TestCase):
             self.ca.set_pv_value("OUTPUT:{}:SP.DRVH".format(axis), upper_limits[axis], sleep_after_set=0)
             self.ca.set_pv_value("OUTPUT:{}:SP.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
 
+            self.ca.set_pv_value("OUTPUT:{}.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
+            self.ca.set_pv_value("OUTPUT:{}.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
+
+            self.ca.set_pv_value("OUTPUT:{}:SP:RBV.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
+            self.ca.set_pv_value("OUTPUT:{}:SP:RBV.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
+
     @contextlib.contextmanager
     def _simulate_disconnected_magnetometer(self):
         self.ca.set_pv_value("SIM:MAGNETOMETER_DISCONNECTED", 1, sleep_after_set=0)
@@ -135,8 +163,19 @@ class ZeroFieldTests(unittest.TestCase):
             self.ca.set_pv_value("SIM:MAGNETOMETER_DISCONNECTED", 0, sleep_after_set=0)
 
     def setUp(self):
-        _, self._ioc = get_running_lewis_and_ioc(None, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
+        _, self._ioc = get_running_lewis_and_ioc(None, ZF_DEVICE_PREFIX)
+
+        self.ca = ChannelAccess(device_prefix=ZF_DEVICE_PREFIX, default_timeout=20)
+
+        self.x_psu_ca = ChannelAccess(default_timeout=30, device_prefix=X_KEPCO_DEVICE_PREFIX)
+        self.y_psu_ca = ChannelAccess(default_timeout=30, device_prefix=X_KEPCO_DEVICE_PREFIX)
+        self.z_psu_ca = ChannelAccess(default_timeout=30, device_prefix=X_KEPCO_DEVICE_PREFIX)
+
+        for ca in (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca):
+            ca.assert_that_pv_exists("CURRENT")
+            ca.assert_that_pv_exists("CURRENT:SP")
+            ca.assert_that_pv_exists("CURRENT:SP:RBV")
+
         self.ca.assert_that_pv_exists("DISABLE")
         self.ca.set_pv_value("TOLERANCE", STABILITY_TOLERANCE, sleep_after_set=0)
         self._set_autofeedback(False)
@@ -230,18 +269,31 @@ class ZeroFieldTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list([
         # If measured field is smaller than the setpoint, we want to adjust the output upwards to compensate
-        (operator.sub, operator.gt),
+        (operator.sub, operator.gt, 1),
         # If measured field is larger than the setpoint, we want to adjust the output downwards to compensate
-        (operator.add, operator.lt),
+        (operator.add, operator.lt, 1),
+        # If measured field is smaller than the setpoint, and A/mg is negative, we want to adjust the output downwards
+        # to compensate
+        (operator.sub, operator.lt, -1),
+        # If measured field is larger than the setpoint, and A/mg is negative, we want to adjust the output upwards
+        # to compensate
+        (operator.add, operator.gt, -1),
+        # If measured field is smaller than the setpoint, and A/mg is zero, then power supply output should remain
+        # unchanged
+        (operator.sub, operator.eq, 0),
+        # If measured field is larger than the setpoint, and A/mg is zero, then power supply output should remain
+        # unchanged
+        (operator.add, operator.eq, 0),
     ]))
-    def test_GIVEN_autofeedback_WHEN_measured_field_less_than_setpoints_THEN_power_supply_outputs_increase_to_compensate(
-            self, _, measured_field_modifier, output_comparator):
+    def test_GIVEN_autofeedback_WHEN_measured_field_different_from_setpoints_THEN_power_supply_outputs_move_in_correct_direction(
+            self, _, measured_field_modifier, output_comparator, scaling_factor):
 
         fields = {"X": 5, "Y": 0, "Z": -5}
 
         adjustment_amount = 10 * STABILITY_TOLERANCE  # To ensure that it is not considered stable to start with
         measured_fields = {k: measured_field_modifier(v, adjustment_amount) for k, v in six.iteritems(fields)}
 
+        self._set_scaling_factors(scaling_factor, scaling_factor, scaling_factor, fiddle=1)
         self._set_simulated_measured_fields(measured_fields, overload=False)
         self._set_user_setpoints(fields)
         self._set_simulated_outputs({"X": 0, "Y": 0, "Z": 0}, wait_for_update=True)
