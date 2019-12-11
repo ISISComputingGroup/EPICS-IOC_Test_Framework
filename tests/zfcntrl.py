@@ -35,9 +35,9 @@ IOCS = [
             "OUTPUT_Z_MIN": DEFAULT_LOW_OUTPUT_LIMIT,
             "OUTPUT_Z_MAX": DEFAULT_HIGH_OUTPUT_LIMIT,
 
-            "PSU_X": r"$(MYPVPREFIX){}:CURRENT".format(X_KEPCO_DEVICE_PREFIX),
-            "PSU_Y": r"$(MYPVPREFIX){}:CURRENT".format(Y_KEPCO_DEVICE_PREFIX),
-            "PSU_Z": r"$(MYPVPREFIX){}:CURRENT".format(Z_KEPCO_DEVICE_PREFIX),
+            "PSU_X": r"$(MYPVPREFIX){}".format(X_KEPCO_DEVICE_PREFIX),
+            "PSU_Y": r"$(MYPVPREFIX){}".format(Y_KEPCO_DEVICE_PREFIX),
+            "PSU_Z": r"$(MYPVPREFIX){}".format(Z_KEPCO_DEVICE_PREFIX),
 
             "MAGNETOMETER_TRIGGER": r"$(MYPVPREFIX){}:TAKEDATA".format(MAGNETOMETER_DEVICE_PREFIX),
             "MAGNETOMETER_X": r"$(MYPVPREFIX){}:X:CORRECTEDFIELD".format(MAGNETOMETER_DEVICE_PREFIX),
@@ -82,10 +82,10 @@ STABILITY_TOLERANCE = 1.0
 
 class Statuses(object):
     NO_ERROR = ("No error", ChannelAccess.Alarms.NONE)
-    MAGNETOMETER_READ_ERROR = ("No new magnetometer data", ChannelAccess.Alarms.MAJOR)
+    MAGNETOMETER_READ_ERROR = ("No new magnetometer data", ChannelAccess.Alarms.INVALID)
     MAGNETOMETER_OVERLOAD = ("Magnetometer overloaded", ChannelAccess.Alarms.MAJOR)
-    MAGNETOMETER_DATA_INVALID = ("Magnetometer data invalid", ChannelAccess.Alarms.MAJOR)
-    PSU_INVALID = ("Power supply invalid", ChannelAccess.Alarms.MAJOR)
+    MAGNETOMETER_DATA_INVALID = ("Magnetometer data invalid", ChannelAccess.Alarms.INVALID)
+    PSU_INVALID = ("Power supply invalid", ChannelAccess.Alarms.INVALID)
     PSU_ON_LIMITS = ("Power supply on limits", ChannelAccess.Alarms.MAJOR)
 
 
@@ -121,20 +121,20 @@ class ZeroFieldTests(unittest.TestCase):
         for axis in FIELD_AXES:
             self.zfcntrl_ca.set_pv_value("FIELD:{}:SP".format(axis), fields[axis], sleep_after_set=0)
 
-    def _set_simulated_outputs(self, fields, wait_for_update=True):
+    def _set_simulated_power_supply_currents(self, currents, wait_for_update=True):
         """
         Args:
-            fields (dict[str, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to the
-              required fields
+            currents (dict[str, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to the
+              required currents
             wait_for_update (bool): whether to wait for the readback and setpoint readbacks to update
         """
         for axis in FIELD_AXES:
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:SP".format(axis), fields[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:CURR:SP".format(axis), currents[axis], sleep_after_set=0)
 
         if wait_for_update:
             for axis in FIELD_AXES:
-                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}".format(axis), fields[axis])
-                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:SP:RBV".format(axis), fields[axis])
+                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:CURR".format(axis), currents[axis])
+                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:CURR:SP:RBV".format(axis), currents[axis])
 
     def _assert_stable(self, stable):
         self.zfcntrl_ca.assert_that_pv_is("STABLE", "Stable" if stable else "Unstable")
@@ -163,16 +163,20 @@ class ZeroFieldTests(unittest.TestCase):
               the required output upper limits
         """
         for axis in FIELD_AXES:
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:SP.DRVL".format(axis), lower_limits[axis], sleep_after_set=0)
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:SP.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:SP.DRVH".format(axis), upper_limits[axis], sleep_after_set=0)
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:SP.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:CURR:SP.DRVL".format(axis), lower_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:CURR:SP.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:CURR:SP.DRVH".format(axis), upper_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:CURR:SP.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
 
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value(
+                "OUTPUT:{}:CURR.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value(
+                "OUTPUT:{}:CURR.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
 
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:SP:RBV.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
-            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:SP:RBV.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value(
+                "OUTPUT:{}:CURR:SP:RBV.LOLO".format(axis), lower_limits[axis], sleep_after_set=0)
+            self.zfcntrl_ca.set_pv_value(
+                "OUTPUT:{}:CURR:SP:RBV.HIHI".format(axis), upper_limits[axis], sleep_after_set=0)
 
     @contextlib.contextmanager
     def _simulate_disconnected_magnetometer(self):
@@ -203,8 +207,7 @@ class ZeroFieldTests(unittest.TestCase):
         try:
             yield
         finally:
-            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca),
-                                            ("CURRENT", "CURRENT:SP:RBV")):
+            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
                 ca.set_pv_value("{}.SIMS".format(pv), 0, sleep_after_set=0)
                 ca.assert_that_pv_alarm_is(pv, ca.Alarms.NONE)
 
@@ -240,7 +243,7 @@ class ZeroFieldTests(unittest.TestCase):
         mock_fields = {"X": 0, "Y": 0, "Z": 0}
         self._set_simulated_measured_fields(mock_fields, overload=False)
         self._set_user_setpoints(mock_fields)
-        self._set_simulated_outputs(mock_fields, wait_for_update=True)
+        self._set_simulated_power_supply_currents(mock_fields, wait_for_update=True)
         self._set_scaling_factors(1, 1, 1, 1)
         self._set_output_limits(
             lower_limits={"X": DEFAULT_LOW_OUTPUT_LIMIT, "Y": DEFAULT_LOW_OUTPUT_LIMIT, "Z": DEFAULT_LOW_OUTPUT_LIMIT},
@@ -343,13 +346,13 @@ class ZeroFieldTests(unittest.TestCase):
 
         self._set_simulated_measured_fields(fields, overload=False)
         self._set_user_setpoints(fields)
-        self._set_simulated_outputs(outputs, wait_for_update=True)
+        self._set_simulated_power_supply_currents(outputs, wait_for_update=True)
 
         self._set_autofeedback(True)
 
         for axis in FIELD_AXES:
-            self.zfcntrl_ca.assert_that_pv_is_number("OUTPUT:{}".format(axis), outputs[axis], tolerance=0.0001)
-            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("OUTPUT:{}".format(axis), wait=5)
+            self.zfcntrl_ca.assert_that_pv_is_number("OUTPUT:{}:CURR".format(axis), outputs[axis], tolerance=0.0001)
+            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("OUTPUT:{}:CURR".format(axis), wait=5)
 
     @parameterized.expand(parameterized_list([
         # If measured field is smaller than the setpoint, we want to adjust the output upwards to compensate
@@ -380,7 +383,7 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_scaling_factors(scaling_factor, scaling_factor, scaling_factor, fiddle=1)
         self._set_simulated_measured_fields(measured_fields, overload=False)
         self._set_user_setpoints(fields)
-        self._set_simulated_outputs({"X": 0, "Y": 0, "Z": 0}, wait_for_update=True)
+        self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0}, wait_for_update=True)
         self._set_output_limits(
             lower_limits={k: -999999 for k in FIELD_AXES},
             upper_limits={k: 999999 for k in FIELD_AXES}
@@ -392,7 +395,7 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_autofeedback(True)
 
         for axis in FIELD_AXES:
-            self.zfcntrl_ca.assert_that_pv_value_over_time_satisfies_comparator("OUTPUT:{}".format(axis),
+            self.zfcntrl_ca.assert_that_pv_value_over_time_satisfies_comparator("OUTPUT:{}:CURR".format(axis),
                                                                                 wait=5, comparator=output_comparator)
 
     def test_GIVEN_output_limits_too_small_for_required_field_THEN_status_error_and_alarm(self):
@@ -404,10 +407,10 @@ class ZeroFieldTests(unittest.TestCase):
         # The measured field is smaller than the setpoint, i.e. the output needs to go up to the limits
         self._set_simulated_measured_fields({"X": -1, "Y": -1, "Z": -1})
         self._set_user_setpoints(ZERO_FIELD)
-        self._set_simulated_outputs(ZERO_FIELD)
+        self._set_simulated_power_supply_currents(ZERO_FIELD)
 
         self._set_autofeedback(True)
 
         self._assert_status(Statuses.PSU_ON_LIMITS)
         for axis in FIELD_AXES:
-            self.zfcntrl_ca.assert_that_pv_alarm_is("OUTPUT:{}:SP".format(axis), self.zfcntrl_ca.Alarms.MAJOR)
+            self.zfcntrl_ca.assert_that_pv_alarm_is("OUTPUT:{}:CURR:SP".format(axis), self.zfcntrl_ca.Alarms.MAJOR)
