@@ -330,7 +330,7 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_autofeedback(True)
 
         with self._simulate_invalid_power_supply():
-            self._assert_stable(False)
+            self._assert_stable(True)  # Invalid power supplies do not mark the field as "unstable"
             self._assert_status(Statuses.PSU_INVALID)
 
         # Now simulate recovery and assert error gets cleared correctly
