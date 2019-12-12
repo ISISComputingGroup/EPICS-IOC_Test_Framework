@@ -1,6 +1,10 @@
+from __future__ import unicode_literals, division, absolute_import, print_function
+
 import contextlib
 import itertools
+import multiprocessing
 import operator
+import time
 import unittest
 
 import six
@@ -80,6 +84,36 @@ ZERO_FIELD = {"X": 0, "Y": 0, "Z": 0}
 STABILITY_TOLERANCE = 1.0
 
 
+LOOP_DELAY_MS = 100
+
+
+def _update_fields_continuously(psu_amps_at_measured_zero):
+    # Make new channel access objects so that we don't share locks with the existing ones
+    ca = {
+        "X": ChannelAccess(device_prefix=X_KEPCO_DEVICE_PREFIX),
+        "Y": ChannelAccess(device_prefix=Y_KEPCO_DEVICE_PREFIX),
+        "Z": ChannelAccess(device_prefix=Z_KEPCO_DEVICE_PREFIX),
+    }
+
+    controller_ca = ChannelAccess(device_prefix=ZF_DEVICE_PREFIX)
+    magnetometer_ca = ChannelAccess(device_prefix=MAGNETOMETER_DEVICE_PREFIX)
+
+    amps_per_mg = {
+        "X": controller_ca.get_pv_value("P:X"),
+        "Y": controller_ca.get_pv_value("P:Y"),
+        "Z": controller_ca.get_pv_value("P:Z"),
+    }
+
+    while True:
+        outputs = {axis: ca[axis].get_pv_value("CURRENT:SP:RBV") for axis in FIELD_AXES}
+
+        measured = {axis: (outputs[axis] - psu_amps_at_measured_zero[axis]) * (1.0 / amps_per_mg[axis]) for axis in
+                    FIELD_AXES}
+
+        for axis in FIELD_AXES:
+            magnetometer_ca.set_pv_value("SIM:DAQ:{}".format(axis), measured[axis], sleep_after_set=0)
+
+
 class Statuses(object):
     NO_ERROR = ("No error", ChannelAccess.Alarms.NONE)
     MAGNETOMETER_READ_ERROR = ("No new magnetometer data", ChannelAccess.Alarms.INVALID)
@@ -87,6 +121,7 @@ class Statuses(object):
     MAGNETOMETER_DATA_INVALID = ("Magnetometer data invalid", ChannelAccess.Alarms.INVALID)
     PSU_INVALID = ("Power supply invalid", ChannelAccess.Alarms.INVALID)
     PSU_ON_LIMITS = ("Power supply on limits", ChannelAccess.Alarms.MAJOR)
+    PSU_WRITE_FAILED = ("Power supply write failed", ChannelAccess.Alarms.MAJOR)
 
 
 class ZeroFieldTests(unittest.TestCase):
@@ -200,16 +235,53 @@ class ZeroFieldTests(unittest.TestCase):
 
     @contextlib.contextmanager
     def _simulate_invalid_power_supply(self):
+
         for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
             # 3 is the Enum value for an invalid alarm
             ca.set_pv_value("{}.SIMS".format(pv), 3, sleep_after_set=0)
+
+        # Use a separate loop to avoid needing to wait for a 1-second scan 6 times.
+        for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
             ca.assert_that_pv_alarm_is(pv, ca.Alarms.INVALID)
+
         try:
             yield
         finally:
             for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
                 ca.set_pv_value("{}.SIMS".format(pv), 0, sleep_after_set=0)
+
+            # Use a separate loop to avoid needing to wait for a 1-second scan 6 times.
+            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
                 ca.assert_that_pv_alarm_is(pv, ca.Alarms.NONE)
+
+    @contextlib.contextmanager
+    def _simulate_failing_power_supply_writes(self):
+        for ca in (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca):
+            ca.set_pv_value("CURRENT:SP.DISP", 1, sleep_after_set=0)
+        try:
+            yield
+        finally:
+            for ca in (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca):
+                ca.set_pv_value("CURRENT:SP.DISP", 0, sleep_after_set=0)
+
+    @contextlib.contextmanager
+    def _simulate_measured_fields_changing_with_outputs(self, psu_amps_at_measured_zero):
+        """
+        Calculates and sets simulated measured fields based on the current values of power supplies.
+
+        Args:
+            psu_amps_at_measured_zero: Dictionary containing the Amps of the power supplies when the measured field
+              corresponds to zero.
+        """
+        # Always start at zero current
+        self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0})
+
+        thread = multiprocessing.Process(target=_update_fields_continuously, args=(psu_amps_at_measured_zero,))
+        thread.start()
+        try:
+            yield
+        finally:
+            thread.terminate()
 
     def _wait_for_all_iocs_up(self):
         for ca in (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca):
@@ -234,6 +306,7 @@ class ZeroFieldTests(unittest.TestCase):
         self._wait_for_all_iocs_up()
 
         self.zfcntrl_ca.set_pv_value("TOLERANCE", STABILITY_TOLERANCE, sleep_after_set=0)
+        self.zfcntrl_ca.set_pv_value("STATEMACHINE:LOOP_DELAY", LOOP_DELAY_MS, sleep_after_set=0)
         self._set_autofeedback(False)
 
         # Set the magnetometer calibration to the 3x3 identity matrix
@@ -340,6 +413,25 @@ class ZeroFieldTests(unittest.TestCase):
         self._assert_stable(True)
         self._assert_status(Statuses.NO_ERROR)
 
+    def test_WHEN_power_supplies_writes_fail_THEN_status_is_power_supply_writes_failed(self):
+        fields = {"X": 1, "Y": 2, "Z": 3}
+        self._set_simulated_measured_fields(fields, overload=False)
+
+        # For this test we need changing fields so that we can detect that the writes failed
+        self._set_user_setpoints({k: v + 10 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
+        # ... and we also need large limits so that we see that the writes failed as opposed to a limits error
+        self._set_output_limits(
+            lower_limits={k: -999999 for k in FIELD_AXES},
+            upper_limits={k: 999999 for k in FIELD_AXES}
+        )
+        self._set_autofeedback(True)
+
+        with self._simulate_failing_power_supply_writes():
+            self._assert_status(Statuses.PSU_WRITE_FAILED)
+
+        # Now simulate recovery and assert error gets cleared correctly
+        self._assert_status(Statuses.NO_ERROR)
+
     def test_GIVEN_measured_field_and_setpoints_are_identical_THEN_setpoints_remain_unchanged(self):
         fields = {"X": 5, "Y": 10, "Z": -5}
         outputs = {"X": -1, "Y": -2, "Z": -3}
@@ -398,6 +490,9 @@ class ZeroFieldTests(unittest.TestCase):
             self.zfcntrl_ca.assert_that_pv_value_over_time_satisfies_comparator("OUTPUT:{}:CURR".format(axis),
                                                                                 wait=5, comparator=output_comparator)
 
+        # In this happy-path case, we shouldn't be hitting any long timeouts, so loop times should remain fairly quick
+        self.zfcntrl_ca.assert_that_pv_is_within_range("STATEMACHINE:LOOP_TIME", min_value=0, max_value=2*LOOP_DELAY_MS)
+
     def test_GIVEN_output_limits_too_small_for_required_field_THEN_status_error_and_alarm(self):
         self._set_output_limits(
             lower_limits={"X": -0.1, "Y": -0.1, "Z": -0.1},
@@ -414,3 +509,35 @@ class ZeroFieldTests(unittest.TestCase):
         self._assert_status(Statuses.PSU_ON_LIMITS)
         for axis in FIELD_AXES:
             self.zfcntrl_ca.assert_that_pv_alarm_is("OUTPUT:{}:CURR:SP".format(axis), self.zfcntrl_ca.Alarms.MAJOR)
+
+    @parameterized.expand(parameterized_list([
+        {"X": 45.678, "Y": 0.123, "Z": 12.345},
+        {"X": 0, "Y": 0, "Z": 0},
+        {"X": -45.678, "Y": -0.123, "Z": -12.345},
+    ]))
+    def test_GIVEN_measured_values_updating_realistically_WHEN_in_auto_mode_THEN_converges_to_correct_answer(
+            self, _, psu_amps_at_zero_field):
+        self._set_output_limits(
+            lower_limits={k: -100 for k in FIELD_AXES},
+            upper_limits={k: 100 for k in FIELD_AXES}
+        )
+        self._set_user_setpoints({"X": 0, "Y": 0, "Z": 0})
+        self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0})
+
+        # Set fiddle small to get a relatively slow response, which should theoretically be stable
+        self._set_scaling_factors(0.001, 0.001, 0.001, fiddle=0.05)
+
+        with self._simulate_measured_fields_changing_with_outputs(psu_amps_at_measured_zero=psu_amps_at_zero_field):
+
+            self._set_autofeedback(True)
+            for axis in FIELD_AXES:
+                self.zfcntrl_ca.assert_that_pv_is_number(
+                    "OUTPUT:{}:CURR:SP:RBV".format(axis), psu_amps_at_zero_field[axis],
+                    tolerance=STABILITY_TOLERANCE * 0.001, timeout=60)
+                self.zfcntrl_ca.assert_that_pv_is_number(
+                    "FIELD:{}".format(axis), 0.0, tolerance=STABILITY_TOLERANCE)
+
+            self._assert_stable(True)
+            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("STABLE", wait=20)
+            self._assert_status(Statuses.NO_ERROR)
+
