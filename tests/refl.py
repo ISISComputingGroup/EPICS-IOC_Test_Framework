@@ -26,6 +26,21 @@ GALIL_PREFIX = "GALIL_01"
 GALIL_PREFIX_JAWS = "GALIL_02"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 IOCS = [
+    # Delibrately start the REFL server first to check on waiting for motors functionality
+    {
+        "ioc_launcher_class": PythonIOCLauncher,
+        "name": DEVICE_PREFIX,
+        "directory": REFL_PATH,
+        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "started_text": "Instantiating Beamline Model",
+        "pv_for_existence": "BL:STAT",
+        "macros": {
+        },
+        "environment_vars": {
+            "ICPCONFIGROOT": test_config_path,
+            "ICPVARDIR": test_config_path,
+        }
+    },
     {
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
@@ -59,20 +74,6 @@ IOCS = [
         "inits": {
             "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
-        }
-    },
-    {
-        "ioc_launcher_class": PythonIOCLauncher,
-        "name": DEVICE_PREFIX,
-        "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
-        "started_text": "Reflectometry IOC started",
-        "pv_for_existence": "BL:STAT",
-        "macros": {
-        },
-        "environment_vars": {
-            "ICPCONFIGROOT": test_config_path,
-            "ICPVARDIR": test_config_path,
         }
     },
     {
