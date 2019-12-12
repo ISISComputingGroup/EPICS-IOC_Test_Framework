@@ -4,7 +4,6 @@ import contextlib
 import itertools
 import multiprocessing
 import operator
-import time
 import unittest
 
 import six
@@ -43,12 +42,12 @@ IOCS = [
             "PSU_Y": r"$(MYPVPREFIX){}".format(Y_KEPCO_DEVICE_PREFIX),
             "PSU_Z": r"$(MYPVPREFIX){}".format(Z_KEPCO_DEVICE_PREFIX),
 
-            "MAGNETOMETER_TRIGGER": r"$(MYPVPREFIX){}:TAKEDATA".format(MAGNETOMETER_DEVICE_PREFIX),
-            "MAGNETOMETER_X": r"$(MYPVPREFIX){}:X:CORRECTEDFIELD".format(MAGNETOMETER_DEVICE_PREFIX),
-            "MAGNETOMETER_Y": r"$(MYPVPREFIX){}:Y:CORRECTEDFIELD".format(MAGNETOMETER_DEVICE_PREFIX),
-            "MAGNETOMETER_Z": r"$(MYPVPREFIX){}:Z:CORRECTEDFIELD".format(MAGNETOMETER_DEVICE_PREFIX),
-            "MAGNETOMETER_OVERLOAD": r"$(MYPVPREFIX){}:OVERLOAD".format(MAGNETOMETER_DEVICE_PREFIX),
-            "MAGNETOMETER_MAGNITUDE": r"$(MYPVPREFIX){}:FIELDSTRENGTH".format(MAGNETOMETER_DEVICE_PREFIX),
+            "MAGNETOMETER": r"$(MYPVPREFIX){}".format(MAGNETOMETER_DEVICE_PREFIX),
+
+            "FEEDBACK": "1",
+            "AMPS_PER_MG_X": "1",
+            "AMPS_PER_MG_Y": "1",
+            "AMPS_PER_MG_Z": "1",
         }
     },
     {
@@ -82,14 +81,20 @@ FIELD_AXES = ["X", "Y", "Z"]
 ZERO_FIELD = {"X": 0, "Y": 0, "Z": 0}
 
 STABILITY_TOLERANCE = 1.0
-
-
 LOOP_DELAY_MS = 100
 
 
 def _update_fields_continuously(psu_amps_at_measured_zero):
-    # Make new channel access objects so that we don't share locks with the existing ones
-    ca = {
+    """
+    This method is run in a background process for some tests which require the measured fields to "respond" to the
+    power supply setpoints in a semi-realistic way.
+
+    It makes new channel access objects so that we don't share locks with the existing ones, as that can cause issues
+    with the update rate of this loop. In general this loop needs to be about as fast (or ideally faster) than the
+    loop speed of the IOC, so that whenever the state machine picks up new magnetometer readings they reflect the
+    latest power supply setpoints.
+    """
+    psu_ca = {
         "X": ChannelAccess(device_prefix=X_KEPCO_DEVICE_PREFIX),
         "Y": ChannelAccess(device_prefix=Y_KEPCO_DEVICE_PREFIX),
         "Z": ChannelAccess(device_prefix=Z_KEPCO_DEVICE_PREFIX),
@@ -105,7 +110,7 @@ def _update_fields_continuously(psu_amps_at_measured_zero):
     }
 
     while True:
-        outputs = {axis: ca[axis].get_pv_value("CURRENT:SP:RBV") for axis in FIELD_AXES}
+        outputs = {axis: psu_ca[axis].get_pv_value("CURRENT:SP:RBV") for axis in FIELD_AXES}
 
         measured = {axis: (outputs[axis] - psu_amps_at_measured_zero[axis]) * (1.0 / amps_per_mg[axis]) for axis in
                     FIELD_AXES}
@@ -121,7 +126,7 @@ class Statuses(object):
     MAGNETOMETER_DATA_INVALID = ("Magnetometer data invalid", ChannelAccess.Alarms.INVALID)
     PSU_INVALID = ("Power supply invalid", ChannelAccess.Alarms.INVALID)
     PSU_ON_LIMITS = ("Power supply on limits", ChannelAccess.Alarms.MAJOR)
-    PSU_WRITE_FAILED = ("Power supply write failed", ChannelAccess.Alarms.MAJOR)
+    PSU_WRITE_FAILED = ("Power supply write failed", ChannelAccess.Alarms.INVALID)
 
 
 class ZeroFieldTests(unittest.TestCase):
@@ -140,7 +145,7 @@ class ZeroFieldTests(unittest.TestCase):
             self.magnetometer_ca.set_pv_value("SIM:DAQ:{}".format(axis), fields[axis], sleep_after_set=0)
 
         # Just overwrite the calculation to return a constant as we are not interested in testing the
-        # overload logic here.
+        # overload logic in the magnetometer in these tests (that logic is tested separately).
         self.magnetometer_ca.set_pv_value("OVERLOAD.CALC", "1" if overload else "0", sleep_after_set=0)
 
         if wait_for_update:
@@ -172,10 +177,18 @@ class ZeroFieldTests(unittest.TestCase):
                 self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:CURR:SP:RBV".format(axis), currents[axis])
 
     def _assert_stable(self, stable):
+        """
+        Args:
+            stable (bool): whether the field is stable or not.
+        """
         self.zfcntrl_ca.assert_that_pv_is("STABLE", "Stable" if stable else "Unstable")
         self.zfcntrl_ca.assert_that_pv_alarm_is("STABLE", self.zfcntrl_ca.Alarms.NONE if stable else self.zfcntrl_ca.Alarms.MAJOR)
 
     def _assert_status(self, status):
+        """
+        Args:
+            status (Tuple[str, str]): the controller status and error to assert.
+        """
         name, alarm = status
         self.zfcntrl_ca.assert_that_pv_is("STATUS", name)
         self.zfcntrl_ca.assert_that_pv_alarm_is("STATUS", alarm)
@@ -184,6 +197,13 @@ class ZeroFieldTests(unittest.TestCase):
         self.zfcntrl_ca.set_pv_value("AUTOFEEDBACK", "Auto-feedback" if autofeedback else "Manual")
 
     def _set_scaling_factors(self, px, py, pz, fiddle):
+        """
+        Args:
+            px (float): Amps per mG for the X axis.
+            py (float): Amps per mG for the Y axis.
+            pz (float): Amps per mG for the Z axis.
+            fiddle (float): The feedback (sometimes called "fiddle") factor.
+        """
         self.zfcntrl_ca.set_pv_value("P:X", px, sleep_after_set=0)
         self.zfcntrl_ca.set_pv_value("P:Y", py, sleep_after_set=0)
         self.zfcntrl_ca.set_pv_value("P:Z", pz, sleep_after_set=0)
@@ -215,6 +235,9 @@ class ZeroFieldTests(unittest.TestCase):
 
     @contextlib.contextmanager
     def _simulate_disconnected_magnetometer(self):
+        """
+        While this context manager is active, the magnetometer IOC will fail to take any new readings or process any PVs
+        """
         self.magnetometer_ca.set_pv_value("DISABLE", 1, sleep_after_set=0)
         try:
             yield
@@ -223,6 +246,9 @@ class ZeroFieldTests(unittest.TestCase):
 
     @contextlib.contextmanager
     def _simulate_invalid_magnetometer_readings(self):
+        """
+        While this context manager is active, any new readings from the magnetometer will be marked as INVALID
+        """
         for axis in FIELD_AXES:
             # 3 is the Enum value for an invalid alarm
             self.magnetometer_ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), 3, sleep_after_set=0)
@@ -235,27 +261,37 @@ class ZeroFieldTests(unittest.TestCase):
 
     @contextlib.contextmanager
     def _simulate_invalid_power_supply(self):
+        """
+        While this context manager is active, the readback values from all power supplies will be marked as INVALID
+        (this simulates the device not being plugged in, for example)
+        """
+        pvs_to_make_invalid = ("CURRENT", "CURRENT:SP:RBV", "OUTPUTMODE", "OUTPUTSTATUS", "VOLTAGE", "VOLTAGE:SP:RBV")
 
-        for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
+        for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs_to_make_invalid):
             # 3 is the Enum value for an invalid alarm
             ca.set_pv_value("{}.SIMS".format(pv), 3, sleep_after_set=0)
 
         # Use a separate loop to avoid needing to wait for a 1-second scan 6 times.
-        for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
+        for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs_to_make_invalid):
             ca.assert_that_pv_alarm_is(pv, ca.Alarms.INVALID)
 
         try:
             yield
         finally:
-            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
+            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs_to_make_invalid):
                 ca.set_pv_value("{}.SIMS".format(pv), 0, sleep_after_set=0)
 
             # Use a separate loop to avoid needing to wait for a 1-second scan 6 times.
-            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), ("CURRENT", "CURRENT:SP:RBV")):
+            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs_to_make_invalid):
                 ca.assert_that_pv_alarm_is(pv, ca.Alarms.NONE)
 
     @contextlib.contextmanager
     def _simulate_failing_power_supply_writes(self):
+        """
+        While this context manager is active, any writes to the power supply PVs will be ignored. This simulates the
+        device being in local mode, for example. Note that this does not mark readbacks as invalid (for that, use
+        _simulate_invalid_power_supply instead).
+        """
         pvs = ["CURRENT:SP.DISP", "VOLTAGE:SP.DISP", "OUTPUTMODE:SP.DISP", "OUTPUTSTATUS:SP.DISP"]
 
         for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs):
@@ -269,11 +305,12 @@ class ZeroFieldTests(unittest.TestCase):
     @contextlib.contextmanager
     def _simulate_measured_fields_changing_with_outputs(self, psu_amps_at_measured_zero):
         """
-        Calculates and sets simulated measured fields based on the current values of power supplies.
+        Calculates and sets somewhat realistic simulated measured fields based on the current values of power supplies.
 
         Args:
             psu_amps_at_measured_zero: Dictionary containing the Amps of the power supplies when the measured field
-              corresponds to zero.
+              corresponds to zero. i.e. if the system is told to go to zero field, these are the power supply readings
+              it will require to get there.
         """
         # Always start at zero current
         self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0})
@@ -286,6 +323,9 @@ class ZeroFieldTests(unittest.TestCase):
             thread.terminate()
 
     def _wait_for_all_iocs_up(self):
+        """
+        Waits for the "primary" pv(s) from each ioc to be available
+        """
         for ca in (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca):
             ca.assert_that_pv_exists("CURRENT")
             ca.assert_that_pv_exists("CURRENT:SP")
