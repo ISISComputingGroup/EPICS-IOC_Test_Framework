@@ -256,13 +256,15 @@ class ZeroFieldTests(unittest.TestCase):
 
     @contextlib.contextmanager
     def _simulate_failing_power_supply_writes(self):
-        for ca in (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca):
-            ca.set_pv_value("CURRENT:SP.DISP", 1, sleep_after_set=0)
+        pvs = ["CURRENT:SP.DISP", "VOLTAGE:SP.DISP", "OUTPUTMODE:SP.DISP", "OUTPUTSTATUS:SP.DISP"]
+
+        for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs):
+            ca.set_pv_value(pv, 1, sleep_after_set=0)
         try:
             yield
         finally:
-            for ca in (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca):
-                ca.set_pv_value("CURRENT:SP.DISP", 0, sleep_after_set=0)
+            for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs):
+                ca.set_pv_value(pv, 0, sleep_after_set=0)
 
     @contextlib.contextmanager
     def _simulate_measured_fields_changing_with_outputs(self, psu_amps_at_measured_zero):
@@ -313,10 +315,9 @@ class ZeroFieldTests(unittest.TestCase):
         for x, y in itertools.product(range(1, 3+1), range(1, 3+1)):
             self.magnetometer_ca.set_pv_value("SENSORMATRIX:{}{}".format(x, y), 1 if x == y else 0, sleep_after_set=0)
 
-        mock_fields = {"X": 0, "Y": 0, "Z": 0}
-        self._set_simulated_measured_fields(mock_fields, overload=False)
-        self._set_user_setpoints(mock_fields)
-        self._set_simulated_power_supply_currents(mock_fields, wait_for_update=True)
+        self._set_simulated_measured_fields(ZERO_FIELD, overload=False)
+        self._set_user_setpoints(ZERO_FIELD)
+        self._set_simulated_power_supply_currents(ZERO_FIELD, wait_for_update=True)
         self._set_scaling_factors(1, 1, 1, 1)
         self._set_output_limits(
             lower_limits={"X": DEFAULT_LOW_OUTPUT_LIMIT, "Y": DEFAULT_LOW_OUTPUT_LIMIT, "Z": DEFAULT_LOW_OUTPUT_LIMIT},
@@ -541,3 +542,39 @@ class ZeroFieldTests(unittest.TestCase):
             self.zfcntrl_ca.assert_that_pv_value_is_unchanged("STABLE", wait=20)
             self._assert_status(Statuses.NO_ERROR)
 
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_is_off_WHEN_autofeedback_switched_on_THEN_psu_is_switched_back_on(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", "OUTPUT:{}:STATUS".format(axis))
+        self._set_autofeedback(True)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_mode_is_voltage_WHEN_autofeedback_switched_on_THEN_psu_is_switched_to_current_mode(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
+            "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR)
+        self._set_autofeedback(True)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_is_off_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", "OUTPUT:{}:STATUS".format(axis))
+        with self._simulate_failing_power_supply_writes():
+            self._set_autofeedback(True)
+            self._assert_status(Statuses.PSU_WRITE_FAILED)
+
+        # Check it can recover when writes work again
+        self._assert_status(Statuses.NO_ERROR)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_mode_is_voltage_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
+            "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR)
+
+        with self._simulate_failing_power_supply_writes():
+            self._set_autofeedback(True)
+            self._assert_status(Statuses.PSU_WRITE_FAILED)
+
+        # Check it can recover when writes work again
+        self._assert_status(Statuses.NO_ERROR)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
