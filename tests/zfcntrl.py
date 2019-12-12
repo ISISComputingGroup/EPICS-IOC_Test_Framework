@@ -151,6 +151,7 @@ class ZeroFieldTests(unittest.TestCase):
         if wait_for_update:
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_is("MAGNETOMETER:{}".format(axis), fields[axis])
+                self.zfcntrl_ca.assert_that_pv_is("MAGNETOMETER:{}:MEAS".format(axis), fields[axis])
 
     def _set_user_setpoints(self, fields):
         """
@@ -422,10 +423,16 @@ class ZeroFieldTests(unittest.TestCase):
         with self._simulate_disconnected_magnetometer():
             self._assert_stable(False)
             self._assert_status(Statuses.MAGNETOMETER_READ_ERROR)
+            for axis in FIELD_AXES:
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
 
         # Now simulate recovery and assert error gets cleared correctly
         self._assert_stable(True)
         self._assert_status(Statuses.NO_ERROR)
+        for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE)
 
     def test_WHEN_magnetometer_ioc_readings_are_invalid_THEN_status_is_magnetometer_invalid(self):
         fields = {"X": 1, "Y": 2, "Z": 3}
@@ -435,10 +442,16 @@ class ZeroFieldTests(unittest.TestCase):
         with self._simulate_invalid_magnetometer_readings():
             self._assert_stable(False)
             self._assert_status(Statuses.MAGNETOMETER_DATA_INVALID)
+            for axis in FIELD_AXES:
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
 
         # Now simulate recovery and assert error gets cleared correctly
         self._assert_stable(True)
         self._assert_status(Statuses.NO_ERROR)
+        for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE)
 
     def test_WHEN_power_supplies_are_invalid_THEN_status_is_power_supplies_invalid(self):
         fields = {"X": 1, "Y": 2, "Z": 3}
