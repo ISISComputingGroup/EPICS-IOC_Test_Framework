@@ -8,7 +8,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
 from utils.ioc_launcher import IOCRegister
-from utils.testing import parameterized_list
+from utils.testing import parameterized_list, unstable_test
 from utils.test_modes import TestModes
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, CaChannelException
 from genie_python.channel_access_exceptions import ReadAccessException
@@ -131,6 +131,7 @@ class SimpleTests(unittest.TestCase):
             pass
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_linked_to_THEN_link_successful(
             self, _, protection, record):
         address = "CATEST:{}:{}".format(record, protection)
@@ -142,6 +143,7 @@ class SimpleTests(unittest.TestCase):
             self.fail("OUT field failed to forward value to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_python_THEN_nothing_happens(
             self, _, protection, record):
 
@@ -160,6 +162,7 @@ class SimpleTests(unittest.TestCase):
                 record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_cmd_THEN_nothing_changes(
             self, _, protection, record):
 
