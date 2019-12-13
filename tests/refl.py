@@ -18,12 +18,29 @@ DEVICE_PREFIX = "REFL"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
+SOFT_LIMIT_HI = 10000
+SOFT_LIMIT_LO = -10000
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
 GALIL_PREFIX_JAWS = "GALIL_02"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 IOCS = [
+    # Delibrately start the REFL server first to check on waiting for motors functionality
+    {
+        "ioc_launcher_class": PythonIOCLauncher,
+        "name": DEVICE_PREFIX,
+        "directory": REFL_PATH,
+        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "started_text": "Instantiating Beamline Model",
+        "pv_for_existence": "BL:STAT",
+        "macros": {
+        },
+        "environment_vars": {
+            "ICPCONFIGROOT": test_config_path,
+            "ICPVARDIR": test_config_path,
+        }
+    },
     {
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
@@ -38,6 +55,10 @@ IOCS = [
             "MTR0102.VMAX": INITIAL_VELOCITY,
             "MTR0104.VMAX": INITIAL_VELOCITY,
             "MTR0105.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
+            "MTR0104.LLM": SOFT_LIMIT_LO,
+            "MTR0104.HLM": SOFT_LIMIT_HI,
+            "MTR0105.LLM": SOFT_LIMIT_LO,
+            "MTR0105.HLM": SOFT_LIMIT_HI,
         }
     },
     {
@@ -53,20 +74,6 @@ IOCS = [
         "inits": {
             "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
-        }
-    },
-    {
-        "ioc_launcher_class": PythonIOCLauncher,
-        "name": DEVICE_PREFIX,
-        "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
-        "started_text": "Reflectometry IOC started",
-        "pv_for_existence": "BL:STAT",
-        "macros": {
-        },
-        "environment_vars": {
-            "ICPCONFIGROOT": test_config_path,
-            "ICPVARDIR": test_config_path,
         }
     },
     {
@@ -475,6 +482,53 @@ class ReflTests(unittest.TestCase):
         # when the movement finishes it should still be the same
         self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0103.VELO", MEDIUM_VELOCITY)
+
+    def test_GIVEN_motor_axis_is_angle_WHEN_motor_alarm_status_is_updated_THEN_alarms_propagate_to_correct_parameters_on_component(self):
+        expected_severity_code = "MINOR"
+        expected_status_code = "HIGH"
+        no_alarm_code = "NO_ALARM"
+
+        # Setting High Limit = Low limit produces alarm on 0105 (detector angle)
+        self.ca_galil.set_pv_value("MTR0105.HLM", SOFT_LIMIT_LO)
+
+        # detector angle should be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.STAT", expected_status_code)
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.SEVR", expected_severity_code)
+        # detector offset is independent and should not be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_POS.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_POS.SEVR", no_alarm_code)
+
+        # Setting High Limit back clears alarm
+        self.ca_galil.set_pv_value("MTR0105.HLM", SOFT_LIMIT_HI)
+
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.SEVR", no_alarm_code)
+
+    def test_GIVEN_motor_axis_is_displacement_WHEN_motor_alarm_status_is_updated_THEN_alarms_propagate_to_correct_parameters_on_component(self):
+        expected_severity_code = "MINOR"
+        expected_status_code = "HIGH"
+        no_alarm_code = "NO_ALARM"
+
+        # Setting High Limit = Low limit produces alarm on 0104 (detector height)
+        self.ca_galil.set_pv_value("MTR0104.HLM", SOFT_LIMIT_LO)
+
+        # detector offset should be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_POS.STAT", expected_status_code)
+        self.ca.assert_that_pv_is("PARAM:DET_POS.SEVR", expected_severity_code)
+        # theta is derived from detector offset and should be in alarm
+        self.ca.assert_that_pv_is("PARAM:THETA.STAT", expected_status_code)
+        self.ca.assert_that_pv_is("PARAM:THETA.SEVR", expected_severity_code)
+        # detector angle is independent and should not be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.SEVR", no_alarm_code)
+
+        # Setting High Limit back clears alarm
+        self.ca_galil.set_pv_value("MTR0104.HLM", SOFT_LIMIT_HI)
+
+        self.ca.assert_that_pv_is("PARAM:DET_POS.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_POS.SEVR", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:THETA.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:THETA.SEVR", no_alarm_code)
 
     @parameterized.expand([("Variable", "DET_POS", "MTR0104"), ("Frozen", "DET_POS", "MTR0104"), ("Frozen", "DET_ANG", "MTR0105")])
     def test_GIVEN_motors_not_at_zero_WHEN_define_motor_position_to_THEN_motor_position_is_changed_without_move(self, initial_foff, param_name, motor_name):
