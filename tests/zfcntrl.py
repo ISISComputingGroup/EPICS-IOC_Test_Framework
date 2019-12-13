@@ -150,8 +150,8 @@ class ZeroFieldTests(unittest.TestCase):
 
         if wait_for_update:
             for axis in FIELD_AXES:
-                self.zfcntrl_ca.assert_that_pv_is("MAGNETOMETER:{}".format(axis), fields[axis])
-                self.zfcntrl_ca.assert_that_pv_is("MAGNETOMETER:{}:MEAS".format(axis), fields[axis])
+                self.zfcntrl_ca.assert_that_pv_is("FIELD:{}".format(axis), fields[axis])
+                self.zfcntrl_ca.assert_that_pv_is("FIELD:{}:MEAS".format(axis), fields[axis])
 
     def _set_user_setpoints(self, fields):
         """
