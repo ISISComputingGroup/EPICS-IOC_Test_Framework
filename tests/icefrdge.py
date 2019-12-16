@@ -8,12 +8,12 @@ from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
-DEVICE_PREFIX = "ICEFRDGE_01"
+DEVICE_PREFIX = "ICEFRDGE_02"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("ICEFRDGE"),
+        "directory": get_default_ioc_dir("ICEFRDGE", iocnum=2),
         "macros": {},
         "emulator": "icefrdge",
     },
@@ -388,7 +388,7 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis assertion not working in recsim")
     def test_WHEN_mimic_sequence_temp_control_THEN_readback_identical(self):
-        self._lewis.assert_that_emulator_value_is("temp_control", "False", 15)
+        self._lewis.assert_that_emulator_value_is("temp_control", "0", 15)
 
         self.ca.set_pv_value("MIMIC:MODE:SP", "SEMI AUTOMATIC")
         self.ca.set_pv_value("MIMIC:SEQUENCE:SP", "Temperature Control")
