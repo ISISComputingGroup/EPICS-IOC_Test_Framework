@@ -86,6 +86,7 @@ class SimpleTests(unittest.TestCase):
         return val_before, 0 if val_before == "1" or val_before == "ON" else 1
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_write_protection_WHEN_written_to_through_python_THEN_nothing_changes(
             self, _, protection, record):
 
@@ -107,6 +108,7 @@ class SimpleTests(unittest.TestCase):
             self.fail("Could (wrongly) use python to write to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_readonly_or_with_disp_true_WHEN_written_to_through_cmd_THEN_nothing_changes(
             self, _, protection, record):
 
@@ -121,6 +123,7 @@ class SimpleTests(unittest.TestCase):
             self.fail("Could (wrongly) use cmd to write to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(RECORD_TYPES))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_in_hidden_mode_WHEN_read_attempted_THEN_get_error(self, _, record):
         address = "CATEST:{}:HIDDEN".format(record)
         self.ca.assert_that_pv_exists(address)
