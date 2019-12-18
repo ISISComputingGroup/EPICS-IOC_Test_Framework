@@ -37,6 +37,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.write_offset(0)
         self.ca.set_pv_value("RANGE", 1.0, sleep_after_set=0.0)
+        self.write_simulated_alarm_level(self.ca.Alarms.NONE)
 
     def write_offset(self, offset):
         """
@@ -133,6 +134,16 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         """
 
         return self.ca.get_pv_value("RANGE") * 4.5
+
+    def write_simulated_alarm_level(self, level):
+        """
+        Writes to the SIML field of the DAQ data pvs. This sets the severity level of the three pvs to level.
+        Args:
+            level: Class attribute of ChannelAccess.Alarms (e.g. ca.Alarms.NONE). The severity level to set to the PV
+
+        """
+        for axis in AXES.keys():
+            self.ca.set_pv_value("DAQ:{}.SIMS".format(axis), level, sleep_after_set=0.0)
 
     @parameterized.expand(parameterized_list(itertools.product(AXES.keys(), FIELD_STRENGTHS)))
     def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, _, hw_axis, field_strength):
@@ -351,3 +362,17 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("FIELDSTRENGTH", self.ca.Alarms.MAJOR)
         for axis in AXES.keys():
             self.ca.assert_that_pv_alarm_is("CORRECTEDFIELD:{}".format(axis), self.ca.Alarms.MAJOR)
+
+    def test_GIVEN_daq_pvs_in_invalid_alarm_THEN_alarms_to_corrected_field_pvs(self):
+        # GIVEN
+        test_field = {"X": 1.1,
+                      "Y": 2.2,
+                      "Z": 3.3}
+
+        self.write_simulated_field_values(test_field)
+
+        self.write_simulated_alarm_level(self.ca.Alarms.INVALID)
+
+        # THEN
+        for axis in AXES.keys():
+            self.ca.assert_that_pv_alarm_is("FIELDSTRENGTH.SEVR", self.ca.Alarms.INVALID)
