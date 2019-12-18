@@ -193,7 +193,7 @@ class ChannelAccess(object):
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
 
-            time.sleep(0.5)
+            time.sleep(0.01)
             current_time = time.time()
 
         # last try
@@ -475,7 +475,7 @@ class ChannelAccess(object):
         if expected_value is None:
             expected_value = value
 
-        self.set_pv_value(set_point_pv, value)
+        self.set_pv_value(set_point_pv, value, sleep_after_set=0)
         self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
         if expected_alarm is not None:
             self.assert_that_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)
