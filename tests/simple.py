@@ -175,3 +175,7 @@ class SimpleTests(unittest.TestCase):
         if check_write_through_cmd(address):
             self.fail("Could (wrongly) use cmd to process protected pvs using {} pvs {}".format(
                 record, protection_dict[protection]))
+
+    def test_GIVEN_PV_WHEN_written_and_read_million_times_THEN_value_read_correctly(self):
+        for i in range(1000):
+            self.ca.assert_setting_setpoint_sets_readback(i, "LONG")
