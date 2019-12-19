@@ -59,7 +59,7 @@ class AttocubeTests(unittest.TestCase):
 
     @unittest.skip("This test is broken and is difficult to fix because the test passes consistently on dev machines, "
                    "but fails consistently on RENO. On connecting a debugger, it appears that the motor record may be "
-                   "deadlocked, however, this is hard to diagnose with only the remote tools.")
+                   "deadlocked, however, this is hard to diagnose with only the remote tools (will be fixed in #5049).")
     def test_GIVEN_device_not_connected_THEN_pv_in_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is(MOTOR_PV, ChannelAccess.Alarms.INVALID, timeout=30)
@@ -68,7 +68,7 @@ class AttocubeTests(unittest.TestCase):
 
     @unittest.skip("This test is broken and is difficult to fix because the test passes consistently on dev machines, "
                    "but fails consistently on RENO. On connecting a debugger, it appears that the motor record may be "
-                   "deadlocked, however, this is hard to diagnose with only the remote tools.")
+                   "deadlocked, however, this is hard to diagnose with only the remote tools (will be fixed in #5049).")
     def test_GIVEN_device_not_connected_WHEN_motor_val_set_THEN_pv_returns_to_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is(MOTOR_PV, ChannelAccess.Alarms.INVALID, timeout=30)
