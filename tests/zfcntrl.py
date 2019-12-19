@@ -127,6 +127,7 @@ class Statuses(object):
     PSU_INVALID = ("Power supply invalid", ChannelAccess.Alarms.INVALID)
     PSU_ON_LIMITS = ("Power supply on limits", ChannelAccess.Alarms.MAJOR)
     PSU_WRITE_FAILED = ("Power supply write failed", ChannelAccess.Alarms.INVALID)
+    INVALID_PSU_LIMITS = ("PSU high limit<low limit", ChannelAccess.Alarms.MAJOR)
 
 
 class ZeroFieldTests(unittest.TestCase):
@@ -562,7 +563,19 @@ class ZeroFieldTests(unittest.TestCase):
 
         self._assert_status(Statuses.PSU_ON_LIMITS)
         for axis in FIELD_AXES:
+            # Value should be on one of the limits
+            self.zfcntrl_ca.assert_that_pv_is_one_of("OUTPUT:{}:CURR:SP".format(axis), [-0.1, 0.1])
+            # ...and in alarm
             self.zfcntrl_ca.assert_that_pv_alarm_is("OUTPUT:{}:CURR:SP".format(axis), self.zfcntrl_ca.Alarms.MAJOR)
+
+    def test_GIVEN_limits_wrong_way_around_THEN_appropriate_error_raised(self):
+        # Set upper limits < lower limits
+        self._set_output_limits(
+            lower_limits={"X": 0.1, "Y": 0.1, "Z": 0.1},
+            upper_limits={"X": -0.1, "Y": -0.1, "Z": -0.1},
+        )
+        self._set_autofeedback(True)
+        self._assert_status(Statuses.INVALID_PSU_LIMITS)
 
     @parameterized.expand(parameterized_list([
         {"X": 45.678, "Y": 0.123, "Z": 12.345},
