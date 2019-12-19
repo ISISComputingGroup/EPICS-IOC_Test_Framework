@@ -8,7 +8,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import ProcServLauncher
 from utils.ioc_launcher import IOCRegister
-from utils.testing import parameterized_list
+from utils.testing import parameterized_list, unstable_test
 from utils.test_modes import TestModes
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, CaChannelException
 from genie_python.channel_access_exceptions import ReadAccessException
@@ -86,6 +86,7 @@ class SimpleTests(unittest.TestCase):
         return val_before, 0 if val_before == "1" or val_before == "ON" else 1
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_write_protection_WHEN_written_to_through_python_THEN_nothing_changes(
             self, _, protection, record):
 
@@ -107,6 +108,7 @@ class SimpleTests(unittest.TestCase):
             self.fail("Could (wrongly) use python to write to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_readonly_or_with_disp_true_WHEN_written_to_through_cmd_THEN_nothing_changes(
             self, _, protection, record):
 
@@ -121,6 +123,7 @@ class SimpleTests(unittest.TestCase):
             self.fail("Could (wrongly) use cmd to write to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(RECORD_TYPES))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_in_hidden_mode_WHEN_read_attempted_THEN_get_error(self, _, record):
         address = "CATEST:{}:HIDDEN".format(record)
         self.ca.assert_that_pv_exists(address)
@@ -131,6 +134,7 @@ class SimpleTests(unittest.TestCase):
             pass
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_linked_to_THEN_link_successful(
             self, _, protection, record):
         address = "CATEST:{}:{}".format(record, protection)
@@ -142,6 +146,7 @@ class SimpleTests(unittest.TestCase):
             self.fail("OUT field failed to forward value to {} pvs {}".format(record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_python_THEN_nothing_happens(
             self, _, protection, record):
 
@@ -160,6 +165,7 @@ class SimpleTests(unittest.TestCase):
                 record, protection_dict[protection]))
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_READONLY_or_with_disp_true_WHEN_told_to_process_by_cmd_THEN_nothing_changes(
             self, _, protection, record):
 
@@ -172,3 +178,7 @@ class SimpleTests(unittest.TestCase):
         if check_write_through_cmd(address):
             self.fail("Could (wrongly) use cmd to process protected pvs using {} pvs {}".format(
                 record, protection_dict[protection]))
+
+    def test_GIVEN_PV_WHEN_written_and_read_million_times_THEN_value_read_correctly(self):
+        for i in range(1000):
+            self.ca.assert_setting_setpoint_sets_readback(i, "LONG")
