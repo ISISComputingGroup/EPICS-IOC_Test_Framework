@@ -646,3 +646,16 @@ class ReflTests(unittest.TestCase):
         self.assertRaises(IOError, self.ca.set_pv_value, param_pv, new_position)
 
         self.ca.assert_that_pv_is_not(param_pv, new_position)
+
+    def test_GIVEN_value_parameter_WHEN_read_THEN_value_returned(self):
+
+        param_pv = "VALUE:TEN"
+
+        self.ca.assert_that_pv_is(param_pv, 10)
+        self.ca.assert_that_pv_is("{}.DESC".format(param_pv), "The value 10")
+
+    def test_GIVEN_bool_parameter_WHEN_read_THEN_value_returned(self):
+
+        param_pv = "VALUE:YES"
+
+        self.ca.assert_that_pv_is(param_pv, "YES")
