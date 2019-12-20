@@ -6,8 +6,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
 
 DEVICE_PREFIX = "JSCO4180_01"
 DEVICE_NAME = "jsco4180"
@@ -328,6 +327,7 @@ class Jsco4180Tests(unittest.TestCase):
     @parameterized.expand([("low_set_time", 100, 1, 1),
                            ("high_set_time", 1000, 10, 1),
                            ("non_standard_set_time", 456, 5, 1)])
+    @unstable_test(max_retries=5)
     @skip_if_recsim("Lewis device logic not supported in RECSIM")
     def test_GIVEN_pump_for_volume_WHEN_pumping_THEN_device_is_pumping_set_volume(self, _, time, volume, flowrate):
         # Set a target pump time a target pump volume. When we start a pump set volume run, then the remaining
