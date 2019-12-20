@@ -146,7 +146,7 @@ class ZeroFieldTests(unittest.TestCase):
 
         # Just overwrite the calculation to return a constant as we are not interested in testing the
         # overload logic in the magnetometer in these tests (that logic is tested separately).
-        self.magnetometer_ca.set_pv_value("OVERLOAD.CALC", "1" if overload else "0", sleep_after_set=0)
+        self.magnetometer_ca.set_pv_value("OVERLOAD:_CALC.CALC", "1" if overload else "0", sleep_after_set=0)
 
         if wait_for_update:
             for axis in FIELD_AXES:
@@ -252,13 +252,13 @@ class ZeroFieldTests(unittest.TestCase):
         """
         for axis in FIELD_AXES:
             # 3 is the Enum value for an invalid alarm
-            self.magnetometer_ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), 3, sleep_after_set=0)
+            self.magnetometer_ca.set_pv_value("DAQ:{}.SIMS".format(axis), 3, sleep_after_set=0)
         try:
             yield
         finally:
             for axis in FIELD_AXES:
                 # 0 is the Enum value for no alarm
-                self.magnetometer_ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), 0, sleep_after_set=0)
+                self.magnetometer_ca.set_pv_value("DAQ:{}.SIMS".format(axis), 0, sleep_after_set=0)
 
     @contextlib.contextmanager
     def _simulate_invalid_power_supply(self):
@@ -334,7 +334,7 @@ class ZeroFieldTests(unittest.TestCase):
 
         for axis in FIELD_AXES:
             self.zfcntrl_ca.assert_that_pv_exists("FIELD:{}".format(axis))
-            self.magnetometer_ca.assert_that_pv_exists("{}:CORRECTEDFIELD".format(axis))
+            self.magnetometer_ca.assert_that_pv_exists("CORRECTEDFIELD:{}".format(axis))
 
     def setUp(self):
         _, self._ioc = get_running_lewis_and_ioc(None, ZF_DEVICE_PREFIX)
