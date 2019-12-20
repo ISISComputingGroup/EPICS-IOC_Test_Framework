@@ -8,12 +8,12 @@ from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
-DEVICE_PREFIX = "ICEFRDGE_02"
+DEVICE_PREFIX = "ICEFRDGE_01"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("ICEFRDGE", iocnum=2),
+        "directory": get_default_ioc_dir("ICEFRDGE"),
         "macros": {},
         "emulator": "icefrdge",
     },
