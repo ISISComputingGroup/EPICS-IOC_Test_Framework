@@ -160,15 +160,19 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
     def write_simulated_alarm_level(self, level):
         """
-        Writes to the SIML field of the DAQ data pvs. This sets the severity level of the three pvs to level.
-        Waits 0.2 seconds to allow _RAW record to process (SCAN=0.1s).
+        Writes to the SIML field of the RAW data pvs. This sets the severity level of the three pvs to level.
+        Waits for the SEVR fields of the RAW data pvs to update before returning.
 
         Args:
             level: Class attribute of ChannelAccess.Alarms (e.g. ca.Alarms.NONE). The severity level to set to the PV
 
         """
         for axis in AXES.keys():
-            self.ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), level, sleep_after_set=0.2)
+            self.ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), level, sleep_after_set=0.0)
+
+        # Wait for the raw PVs to process
+        for axis in AXES.keys():
+            self.ca.assert_that_pv_alarm_is("DAQ:{}:_RAW".format(axis), level)
 
     @parameterized.expand(parameterized_list(itertools.product(AXES.keys(), FIELD_STRENGTHS)))
     def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, _, hw_axis, field_strength):
@@ -400,11 +404,11 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
                                               ChannelAccess.Alarms.MAJOR], PVS_WHICH_USE_DAQ_DATA)))
     def test_GIVEN_raw_daq_pvs_in_alarm_WHEN_PVs_processed_THEN_alarm_copied_to_downstream_pvs(self, _, alarm, pv):
         # GIVEN
-        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), self.ca.Alarms.NONE, timeout=1)
+        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), self.ca.Alarms.NONE)
 
-        self.write_simulated_alarm_level(self.ca.Alarms.INVALID)
+        self.write_simulated_alarm_level(alarm)
 
         self.ca.process_pv("TAKEDATA")
 
         # THEN
-        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), self.ca.Alarms.INVALID, timeout=1)
+        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), alarm)
