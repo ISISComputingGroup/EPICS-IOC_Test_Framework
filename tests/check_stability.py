@@ -53,6 +53,8 @@ class SimpleTests(unittest.TestCase):
         while int(self.ca.get_pv_value("STAB:_VAL_BUFF.NUSE")) < NUMBER_OF_SAMPLES:
             self.ca.process_pv("VAL")
 
+        self.ca.set_pv_value("VAL.SIMS", 0)
+
     def test_GIVEN_pv_not_changing_and_WHEN_pv_exactly_equal_to_sp_THEN_stable(self):
         test_value = 100
         self.ca.set_pv_value("VAL:SP", test_value)
@@ -102,3 +104,32 @@ class SimpleTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("STAB:HAS_RECENT_ALARM", False)
         self.ca.assert_that_pv_is("STAB:IS_STABLE", False)
+
+    def test_GIVEN_one_alarmed_value_at_end_of_buffer_THEN_unstable(self):
+        stable_value = 400
+        self.ca.set_pv_value("VAL:SP", stable_value)
+        for _ in range(NUMBER_OF_SAMPLES - 1):
+            self.ca.set_pv_value("VAL", stable_value)
+
+        self.ca.set_pv_value("VAL.SIMS", 3)
+
+        self.ca.assert_that_pv_is("STAB:HAS_RECENT_ALARM", False)
+        self.ca.assert_that_pv_is("STAB:IS_STABLE", False)
+
+    def test_GIVEN_one_alarmed_value_at_beginning_of_buffer_THEN_unstable(self):
+        stable_value = 500
+        self.ca.set_pv_value("VAL:SP", stable_value)
+        self.ca.set_pv_value("VAL", stable_value)
+        self.ca.set_pv_value("VAL.SIMS", 3)
+        self.ca.set_pv_value("VAL.SIMS", 0)
+
+        for _ in range(NUMBER_OF_SAMPLES - 2):  # -2 because setting SEVR back to zero will cause a record to process.
+            self.ca.set_pv_value("VAL", stable_value)
+
+        self.ca.assert_that_pv_is("STAB:HAS_RECENT_ALARM", False)
+        self.ca.assert_that_pv_is("STAB:IS_STABLE", False)
+
+        # Adding one more valid reading at the end of the buffer should cause the invalid value at the beginning
+        # to be forgotten, meaning it should then be considered stable
+        self.ca.set_pv_value("VAL", stable_value)
+        self.ca.assert_that_pv_is("STAB:IS_STABLE", True)
