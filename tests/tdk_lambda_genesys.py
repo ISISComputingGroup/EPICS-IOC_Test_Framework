@@ -1,3 +1,5 @@
+from __future__ import division
+
 import os
 import unittest
 
@@ -7,6 +9,9 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 from utils.ioc_launcher import EPICS_TOP
 
 
+AMPS_TO_GAUSS = 10
+
+
 IOCS = [
     {
         "name": "GENESYS_01",
@@ -14,6 +19,7 @@ IOCS = [
         "macros": {
             "ADDR1": "1",
             "PORT1": "1",
+            "AMPSTOGAUSS1": "{}".format(AMPS_TO_GAUSS),
         },
         "emulator": "tdk_lambda_genesys",
     },
@@ -94,3 +100,26 @@ class TdkLambdaGenesysTests(unittest.TestCase):
         finally:
             # If test fails, don't want it to affect other tests.
             self._lewis.backdoor_set_on_device("comms_initialized", True)
+
+    def test_GIVEN_field_THEN_able_to_read_back(self):
+        self.ca.assert_setting_setpoint_sets_readback(123, readback_pv="1:FIELD:SP:RBV", set_point_pv="1:FIELD:SP")
+
+    @skip_if_recsim("Uses LeWIS backdoor")
+    def test_GIVEN_current_THEN_able_to_field_correctly(self):
+        test_value = 0.456
+        self._lewis.backdoor_set_on_device("current", test_value)
+        self.ca.assert_that_pv_is_number("1:CURR", test_value)
+        self.ca.assert_that_pv_is_number("1:FIELD", test_value * AMPS_TO_GAUSS)
+
+    def test_GIVEN_field_set_point_is_set_THEN_current_set_point_is_scaled_appropriately(self):
+        test_value = 789
+        self.ca.set_pv_value("1:FIELD:SP", test_value)
+        self.ca.assert_that_pv_is_number("1:CURR:SP", test_value / AMPS_TO_GAUSS)
+
+    @skip_if_recsim("Uses LeWIS backdoor")
+    def test_GIVEN_current_set_point_THEN_field_set_point_RBV_is_read_correctly(self):
+        test_value = 112.5
+        self._lewis.backdoor_set_on_device("setpoint_current", test_value)
+        self.ca.assert_that_pv_is_number("1:CURR:SP:RBV", test_value)
+        self.ca.assert_that_pv_is_number("1:FIELD:SP:RBV",  test_value * AMPS_TO_GAUSS)
+
