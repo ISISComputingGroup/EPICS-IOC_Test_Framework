@@ -70,6 +70,7 @@ IOCS = [
             "OFFSET_Y": 0,
             "OFFSET_Z": 0,
             "SQNCR": r"$(MYPVPREFIX){}:INPUTS_UPDATED.PROC CA".format(ZF_DEVICE_PREFIX),
+            "RANGE": 1,
         }
     },
 ]
@@ -252,14 +253,23 @@ class ZeroFieldTests(unittest.TestCase):
         While this context manager is active, any new readings from the magnetometer will be marked as INVALID
         """
         for axis in FIELD_AXES:
-            # 3 is the Enum value for an invalid alarm
-            self.magnetometer_ca.set_pv_value("DAQ:{}.SIMS".format(axis), 3, sleep_after_set=0)
+            self.magnetometer_ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis),
+                                              self.magnetometer_ca.Alarms.INVALID,
+                                              sleep_after_set=0)
+
+        # Wait for RAW PVs to process
+        for axis in FIELD_AXES:
+            self.magnetometer_ca.assert_that_pv_alarm_is("DAQ:{}:_RAW.SEVR".format(axis), self.magnetometer_ca.Alarms.INVALID)
         try:
             yield
         finally:
             for axis in FIELD_AXES:
-                # 0 is the Enum value for no alarm
-                self.magnetometer_ca.set_pv_value("DAQ:{}.SIMS".format(axis), 0, sleep_after_set=0)
+                self.magnetometer_ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis),
+                                                  self.magnetometer_ca.Alarms.NONE, sleep_after_set=0)
+            # Wait for RAW PVs to process
+            for axis in FIELD_AXES:
+                self.magnetometer_ca.assert_that_pv_alarm_is("DAQ:{}:_RAW.SEVR".format(axis),
+                                                             self.magnetometer_ca.Alarms.NONE)
 
     @contextlib.contextmanager
     def _simulate_invalid_power_supply(self):
