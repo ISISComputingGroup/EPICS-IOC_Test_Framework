@@ -2,7 +2,6 @@
 Lewis emulator interface classes.
 """
 import abc
-import operator
 import os
 import subprocess
 
