@@ -296,19 +296,15 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("temp_1K_stage", 1.7)
         self.ca.assert_that_pv_is_number("1K:TEMP", 1.7, 0.001)
 
-    @parameterized.expand(parameterized_list([0.050, 0.049, 0.027]))
     @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_MC_Temperature_small_THEN_readback_identical(self, _, low_temp):
-        self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 1.8)
-        self._lewis.backdoor_set_on_device("mixing_chamber_temp", low_temp)
-        self.ca.assert_that_pv_is_number("MC:USER", 1.8, 0.001)
+    def test_WHEN_MC_temperature_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("mixing_chamber_temp", 1.8)
+        self.ca.assert_that_pv_is_number("MC:TEMP", 1.8, 0.001)
 
-    @parameterized.expand(parameterized_list([0.051, 0.052, 0.38]))
     @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_MC_Temperature_big_THEN_readback_identical(self, _, large_temp):
-        self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 1.8)
-        self._lewis.backdoor_set_on_device("mixing_chamber_temp", large_temp)
-        self.ca.assert_that_pv_is_number("MC:USER", large_temp, 0.001)
+    def test_WHEN_MC_resistance_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 1.9)
+        self.ca.assert_that_pv_is_number("MC:RESISTANCE", 1.9, 0.001)
 
     def test_WHEN_mimic_mode_manual_THEN_buttons_disabled(self):
         self.ca.set_pv_value("MIMIC:MODE:SP", "MANUAL")
