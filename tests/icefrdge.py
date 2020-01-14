@@ -306,6 +306,11 @@ class IceFridgeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 1.9)
         self.ca.assert_that_pv_is_number("MC:RESISTANCE", 1.9, 0.001)
 
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_MC_resistance_cal_THEN_calculation_correct(self):
+        self._lewis.backdoor_set_on_device("mixing_chamber_resistance", 1918)
+        self.ca.assert_that_pv_is_number("MC:RESISTANCE:CALC", 1.918, 0.001)
+
     def test_WHEN_mimic_mode_manual_THEN_buttons_disabled(self):
         self.ca.set_pv_value("MIMIC:MODE:SP", "MANUAL")
 
