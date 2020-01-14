@@ -54,8 +54,8 @@ TEST_ALARM_STATUS_PVS = ["VTI:TEMP1", "VTI:TEMP2", "VTI:TEMP3", "VTI:TEMP4", "VT
                          "PRESSURE2", "PRESSURE3", "PRESSURE4", "VALVE1", "VALVE2", "VALVE3",
                          "VALVE4", "VALVE5", "VALVE6", "VALVE7", "VALVE8", "VALVE9", "VALVE10",
                          "SOLENOID_VALVE1", "SOLENOID_VALVE2", "PROPORTIONAL_VALVE1", "PROPORTIONAL_VALVE2",
-                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:USER", "MIMIC:SEQUENCE:TEMP",
-                         "MIMIC:INFO", "STATE", "NVMODE", "1K:PUMP", "HE3:PUMP", "ROOTS"]
+                         "PROPORTIONAL_VALVE4", "NEEDLE_VALVE", "1K:TEMP", "MC:TEMP", "MC:RESISTANCE:CALC",
+                         "MIMIC:SEQUENCE:TEMP", "MIMIC:INFO", "STATE", "NVMODE", "1K:PUMP", "HE3:PUMP", "ROOTS"]
 
 
 class IceFridgeTests(unittest.TestCase):
