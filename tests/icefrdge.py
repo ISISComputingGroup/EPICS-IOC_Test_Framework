@@ -149,11 +149,11 @@ class IceFridgeTests(unittest.TestCase):
 
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_Lakeshore_MC_integral_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1.1, "LS:MC:I", "LS:MC:I:SP")
+        self.ca.assert_setting_setpoint_sets_readback(11, "LS:MC:I", "LS:MC:I:SP")
 
     @skip_if_recsim("pv updated when other pv processes, has no scan field")
     def test_WHEN_Lakeshore_MC_derivative_THEN_readback_identical(self):
-        self.ca.assert_setting_setpoint_sets_readback(1.2, "LS:MC:D", "LS:MC:D:SP")
+        self.ca.assert_setting_setpoint_sets_readback(12, "LS:MC:D", "LS:MC:D:SP")
 
     @parameterized.expand(parameterized_list(LS_MC_HTR_RANGE_VALUES))
     def test_WHEN_Lakeshore_MC_heater_range_THEN_readback_identical(self, _, heater_range):
