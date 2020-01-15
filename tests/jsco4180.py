@@ -108,7 +108,7 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:RUN:SP", 100)
         self.ca.set_pv_value("START:SP", "Start")
 
-        self.ca.assert_that_pv_is("FLOWRATE", expected_value)
+        self.ca.assert_that_pv_is("FLOWRATE", expected_value, timeout=5)
 
     @skip_if_recsim("LeWIS backdoor not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_flowrate_and_pump_volume_THEN_ioc_uses_rbv_for_calculation_of_remaining_time(self):
