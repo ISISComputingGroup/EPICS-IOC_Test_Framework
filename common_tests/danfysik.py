@@ -35,6 +35,7 @@ class DanfysikBase(object):
         self.id_prefixes = [""]
 
         self.current_readback_factor = 1
+        self.ca.set_pv_value("AUTOONOFF", 0)
 
 
 class DanfysikCommon(DanfysikBase):
@@ -134,3 +135,75 @@ class DanfysikCommon(DanfysikBase):
             self.ca.assert_that_pv_is("{}POWER".format(id_prefix), "Off")
             self.ca.assert_that_pv_is("{}CURR".format(id_prefix), 0)
             self.ca.assert_that_pv_is("{}VOLT".format(id_prefix), 0)
+
+    def test_GIVEN_power_on_and_zero_sp_WHEN_enabling_auto_onoff_THEN_device_is_powered_off(self):
+        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.ca.set_pv_value("POWER:SP", 1)
+        self.ca.set_pv_value("CURR:SP", 0)
+        self.ca.assert_that_pv_is("POWER:SP", "On")
+
+        self.ca.set_pv_value("AUTOONOFF", 1)
+
+        self.ca.assert_that_pv_is("POWER:SP", "Off")
+
+    def test_GIVEN_power_off_and_non_zero_sp_WHEN_enabling_auto_onoff_THEN_device_is_powered_on(self):
+        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.ca.set_pv_value("POWER:SP", 0)
+        self.ca.set_pv_value("CURR:SP", 10)
+        self.ca.assert_that_pv_is("POWER:SP", "Off")
+
+        self.ca.set_pv_value("AUTOONOFF", 1)
+
+        self.ca.assert_that_pv_is("POWER:SP", "On")
+
+    def test_GIVEN_power_off_and_zero_sp_WHEN_enabling_auto_onoff_THEN_device_remains_off(self):
+        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.ca.set_pv_value("POWER:SP", 0)
+        self.ca.set_pv_value("CURR:SP", 0)
+        self.ca.assert_that_pv_is("POWER:SP", "Off")
+
+        self.ca.set_pv_value("AUTOONOFF", 1)
+
+        self.ca.assert_that_pv_is("POWER:SP", "Off")
+
+    def test_GIVEN_power_on_and_non_zero_sp_WHEN_enabling_auto_onoff_THEN_device_remains_on(self):
+        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.ca.set_pv_value("POWER:SP", 1)
+        self.ca.set_pv_value("CURR:SP", 10)
+        self.ca.assert_that_pv_is("POWER:SP", "On")
+
+        self.ca.set_pv_value("AUTOONOFF", 1)
+
+        self.ca.assert_that_pv_is("POWER:SP", "On")
+
+    def test_GIVEN_power_on_and_auto_onoff_enabled_WHEN_setting_zero_value_THEN_device_is_powered_off(self):
+        self.ca.set_pv_value("POWER:SP", 1)
+        self.ca.set_pv_value("CURR:SP", 10)
+        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.ca.assert_that_pv_is("POWER:SP", "On")
+
+        self.ca.set_pv_value("CURR:SP", 0)
+
+        self.ca.assert_that_pv_is("POWER:SP", "Off")
+
+    def test_GIVEN_power_off_and_auto_onoff_enabled_WHEN_setting_non_zero_value_THEN_device_is_powered_on(self):
+        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.ca.set_pv_value("POWER:SP", 0)
+        self.ca.set_pv_value("CURR:SP", 0)
+        self.ca.assert_that_pv_is("POWER:SP", "Off")
+
+        self.ca.set_pv_value("CURR:SP", 10)
+
+        self.ca.assert_that_pv_is("POWER:SP", "On")
+
+    def test_GIVEN_auto_onoff_disabled_WHEN_sweep_to_zero_and_turn_off_triggered_THEN_actioned_by_enabling_auto_onoff_and_setting_sp_to_zero(self):
+        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.ca.set_pv_value("POWER:SP", 1)
+        self.ca.set_pv_value("CURR:SP", 10)
+        self.ca.assert_that_pv_is("CURR", 10)
+        self.ca.assert_that_pv_is("POWER:SP", "On")
+
+        self.ca.set_pv_value("SWEEP_OFF", 1)
+
+        self.ca.assert_that_pv_is("CURR", 0)
+        self.ca.assert_that_pv_is("POWER:SP", "Off")
