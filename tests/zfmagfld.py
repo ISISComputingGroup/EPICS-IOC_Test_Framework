@@ -25,11 +25,27 @@ AXES = {"X": "L",
         "Y": "T",
         "Z": "V"}
 
+ZERO_FIELD = {
+    "X": 0.0,
+    "Y": 0.0,
+    "Z": 0.0
+}
+
 FIELD_STRENGTHS = [0.0, 1.1, 12.3, -1.1, -12.3]
 
 SENSOR_MATRIX_PVS = "SENSORMATRIX:{row}{column}"
 SENSOR_MATRIX_SIZE = 3
 
+PVS_WHICH_USE_DAQ_DATA = [
+    "OVERLOAD",
+    "FIELDSTRENGTH",
+    "MEASURED:X",
+    "MEASURED:Y",
+    "MEASURED:Z",
+    "CORRECTEDFIELD:X",
+    "CORRECTEDFIELD:Y",
+    "CORRECTEDFIELD:Z"
+]
 
 class ZeroFieldMagFieldTests(unittest.TestCase):
     def setUp(self):
@@ -37,7 +53,9 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.write_offset(0)
         self.ca.set_pv_value("RANGE", 1.0, sleep_after_set=0.0)
+        self.write_simulated_field_values(ZERO_FIELD)
         self.write_simulated_alarm_level(self.ca.Alarms.NONE)
+        self.ca.process_pv("TAKEDATA")
 
     def write_offset(self, offset):
         """
@@ -91,7 +109,11 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
     def write_simulated_field_values(self, simulated_field):
         """
-        Writes the given simulated field values to the IOC
+        Writes the given simulated field values to the IOC.
+
+        Also asserts that the value has been taken up by the '_RAW' PV. We need to do this because the '_RAW' PVs are
+        on SCAN = .1 second in RECSIM, so some time is taken between writing the SIM field and it being available in the
+        '_RAW' PV.
 
         Args:
             simulated_field: dict with 'X', 'Y' and 'Z' keys. Values are the corresponding simulated field values
@@ -103,6 +125,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         for component in AXES.keys():
             self.ca.set_pv_value("SIM:DAQ:{}".format(component), simulated_field[component], sleep_after_set=0.0)
+            self.ca.assert_that_pv_is_number("DAQ:{}:_RAW".format(component), simulated_field[component])
 
     def apply_offset_and_matrix_multiplication(self, simulated_field, offset, sensor_matrix):
         """
@@ -137,19 +160,32 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
     def write_simulated_alarm_level(self, level):
         """
-        Writes to the SIML field of the DAQ data pvs. This sets the severity level of the three pvs to level.
+        Writes to the SIML field of the RAW data pvs. This sets the severity level of the three pvs to level.
+        Waits for the SEVR fields of the RAW data pvs to update before returning.
+
         Args:
             level: Class attribute of ChannelAccess.Alarms (e.g. ca.Alarms.NONE). The severity level to set to the PV
 
         """
         for axis in AXES.keys():
-            self.ca.set_pv_value("DAQ:{}.SIMS".format(axis), level, sleep_after_set=0.0)
+            self.ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), level, sleep_after_set=0.0)
+
+        # Wait for the raw PVs to process
+        for axis in AXES.keys():
+            self.ca.assert_that_pv_alarm_is("DAQ:{}:_RAW".format(axis), level)
 
     @parameterized.expand(parameterized_list(itertools.product(AXES.keys(), FIELD_STRENGTHS)))
     def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(self, _, hw_axis, field_strength):
         # GIVEN
         self.write_offset(OFFSET)
 
+        field = {"X": 0,
+                 "Y": 0,
+                 "Z": 0}
+
+        field[hw_axis] = field_strength
+
+        self.write_simulated_field_values(field)
         self.ca.set_pv_value("SIM:DAQ:{}".format(hw_axis), field_strength, sleep_after_set=0.0)
 
         # WHEN
@@ -363,16 +399,16 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         for axis in AXES.keys():
             self.ca.assert_that_pv_alarm_is("CORRECTEDFIELD:{}".format(axis), self.ca.Alarms.MAJOR)
 
-    def test_GIVEN_daq_pvs_in_invalid_alarm_THEN_alarms_to_corrected_field_pvs(self):
+    @parameterized.expand(parameterized_list(itertools.product([ChannelAccess.Alarms.INVALID,
+                                              ChannelAccess.Alarms.MAJOR,
+                                              ChannelAccess.Alarms.MAJOR], PVS_WHICH_USE_DAQ_DATA)))
+    def test_GIVEN_raw_daq_pvs_in_alarm_WHEN_PVs_processed_THEN_alarm_copied_to_downstream_pvs(self, _, alarm, pv):
         # GIVEN
-        test_field = {"X": 1.1,
-                      "Y": 2.2,
-                      "Z": 3.3}
+        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), self.ca.Alarms.NONE)
 
-        self.write_simulated_field_values(test_field)
+        self.write_simulated_alarm_level(alarm)
 
-        self.write_simulated_alarm_level(self.ca.Alarms.INVALID)
+        self.ca.process_pv("TAKEDATA")
 
         # THEN
-        for axis in AXES.keys():
-            self.ca.assert_that_pv_alarm_is("FIELDSTRENGTH.SEVR", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), alarm)
