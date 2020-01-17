@@ -51,13 +51,11 @@ class AttocubeTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device('axis_on', True)
         self._lewis.assert_that_emulator_value_is('axis_on', "True")
 
-    @unittest.skip("Fix in https://github.com/ISISComputingGroup/IBEX/issues/4841")
     def test_WHEN_moved_to_position_THEN_position_reached(self):
         position_setpoint = 2
         self.ca.set_pv_value(MOTOR_PV, position_setpoint)
         self.ca.assert_that_pv_value_is_increasing(MOTOR_RBV, 1)
         self.ca.assert_that_pv_is_number(MOTOR_RBV, position_setpoint, timeout=30)
-
 
     @unittest.skip("This test is broken and is difficult to fix because the test passes consistently on dev machines, "
                    "but fails consistently on RENO. On connecting a debugger, it appears that the motor record may be "
