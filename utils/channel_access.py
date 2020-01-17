@@ -193,7 +193,7 @@ class ChannelAccess(object):
             except UnableToConnectToPVException:
                 pass  # try again next loop maybe the PV will be up
 
-            time.sleep(0.5)
+            time.sleep(0.01)
             current_time = time.time()
 
         # last try
@@ -276,7 +276,7 @@ class ChannelAccess(object):
         self.process_pv(pv)
         return self.assert_that_pv_is(pv, expected_value, timeout=None, msg=None)
 
-    def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=""):
+    def assert_that_pv_is_not(self, pv, restricted_value, timeout=None, msg=None):
         """
         Assert that the pv does not have a particular value and optionally it does not become that value within the
         timeout.
@@ -400,13 +400,20 @@ class ChannelAccess(object):
              pv: pv to wait for
              timeout: time to wait for
         Raises:
-             UnableToConnectToPVException: if pv can not be connected to after given time
+             AssertionError: if pv can not be connected to after given time
         """
         if timeout is None:
             timeout = self._default_timeout
 
-        if not self.ca.pv_exists(self.create_pv_with_prefix(pv), timeout=timeout):
-            raise AssertionError("PV {pv} does not exist".format(pv=self.create_pv_with_prefix(pv)))
+        start_time = time.time()
+        pv = self.create_pv_with_prefix(pv)
+        while time.time() - start_time < timeout:
+            if self.ca.pv_exists(pv, timeout=1.0):
+                break
+        else:
+            # Last try.
+            if not self.ca.pv_exists(pv, timeout=1.0):
+                raise AssertionError("PV {pv} does not exist".format(pv=pv))
 
     def assert_that_pv_does_not_exist(self, pv, timeout=2):
         """
@@ -418,9 +425,11 @@ class ChannelAccess(object):
         Raises:
              AssertionError: if pv exists
         """
-
-        pv_name = self.create_pv_with_prefix(pv)
-        if self.ca.pv_exists(pv_name, timeout):
+        try:
+            self.assert_that_pv_exists(pv, timeout)
+        except AssertionError:
+            return
+        else:
             raise AssertionError("PV {pv} exists".format(pv=self.create_pv_with_prefix(pv)))
 
     def assert_that_pv_alarm_is_not(self, pv, alarm, timeout=None):
@@ -475,7 +484,7 @@ class ChannelAccess(object):
         if expected_value is None:
             expected_value = value
 
-        self.set_pv_value(set_point_pv, value)
+        self.set_pv_value(set_point_pv, value, sleep_after_set=0)
         self.assert_that_pv_is(readback_pv, expected_value, timeout=timeout)
         if expected_alarm is not None:
             self.assert_that_pv_alarm_is(readback_pv, expected_alarm, timeout=timeout)

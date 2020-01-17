@@ -33,11 +33,6 @@ class KeylkgTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_run_function_on_device("reset")
 
-        self.ca.set_pv_value("MEASUREMODE:HEAD:A:SP", 0)
-        self.ca.set_pv_value("MEASUREMODE:HEAD:B:SP", 0)
-        # Set the mode incorrectly so that auto correct is tested for all commands
-        self.ca.set_pv_value("MODE:SP", "SET-UP")
-
     def test_GIVEN_running_ioc_WHEN_change_to_communication_mode_THEN_mode_changed(self):
         expected_value = "SET-UP"
         self.ca.set_pv_value("MODE:SP", expected_value)
@@ -51,28 +46,28 @@ class KeylkgTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MODE", expected_value)
 
     @parameterized.expand([('low limit', -99.9999), ('test_value_1', -2.3122), ('test_value_2', 12.3423), ('high limit', 99.9999)])
-    def test_GIVE_running_ioc_WHEN_set_output1_offset_THEN_output1_offset_updated(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output1_offset_THEN_output1_offset_updated(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
-        self.ca.assert_that_pv_is("OFFSET:OUTPUT:1", expected_value)
+        self.ca.assert_that_pv_is_number("OFFSET:OUTPUT:1", expected_value, tolerance=0.001)
 
     @parameterized.expand([('exceeds low limit', -100.0000), ('exceeds high limit', 100.000)])
-    def test_GIVE_running_ioc_WHEN_set_output1_offset_outside_of_limits_THEN_output1_offset_within_limits(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output1_offset_outside_of_limits_THEN_output1_offset_within_limits(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
         self.ca.assert_that_pv_is_within_range("OFFSET:OUTPUT:1", -99.9999, 99.9999)
 
     @parameterized.expand([('low limit', -99.9999), ('test_value_1', -2.3122), ('test_value_2', 12.3423), ('high limit', 99.9999)])
-    def test_GIVE_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output2_offset_THEN_output1_offset_updated(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:2:SP", expected_value)
 
-        self.ca.assert_that_pv_is("OFFSET:OUTPUT:2", expected_value)
+        self.ca.assert_that_pv_is_number("OFFSET:OUTPUT:2", expected_value, tolerance=0.001)
 
     @parameterized.expand([('exceeds low limit', -100.0000), ('exceeds high limit', 100.000)])
-    def test_GIVE_running_ioc_WHEN_set_output2_offset_outside_of_limits_THEN_output2_offset_within_limits(self, _, mock_offset):
+    def test_GIVEN_running_ioc_WHEN_set_output2_offset_outside_of_limits_THEN_output2_offset_within_limits(self, _, mock_offset):
         expected_value = mock_offset
         self.ca.set_pv_value("OFFSET:OUTPUT:1:SP", expected_value)
 
@@ -93,7 +88,7 @@ class KeylkgTests(unittest.TestCase):
     @skip_if_recsim('Cannot use lewis backdoor in RECSIM')
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output1_takes_data(self):
         expected_value = 0.1234
-        self._lewis.backdoor_set_on_device("output1_raw_value", expected_value)
+        self._lewis.backdoor_set_on_device("detector_1_raw_value", expected_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value)
@@ -101,7 +96,7 @@ class KeylkgTests(unittest.TestCase):
     @skip_if_recsim('No emulation of data capture in RECSIM')
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_THEN_output2_takes_data(self):
         expected_value = 0.1234
-        self._lewis.backdoor_set_on_device("output2_raw_value", expected_value)
+        self._lewis.backdoor_set_on_device("detector_2_raw_value", expected_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value)
@@ -123,7 +118,7 @@ class KeylkgTests(unittest.TestCase):
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_output1_THEN_output1_reset(self):
         expected_value = 0.0000
         test_value = 0.1234
-        self._lewis.backdoor_set_on_device("output1_raw_value", test_value)
+        self._lewis.backdoor_set_on_device("detector_1_raw_value", test_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
         self.ca.assert_that_pv_is("VALUE:OUTPUT:1", test_value)
         self.ca.set_pv_value("RESET:OUTPUT:1:SP", "RESET")
@@ -134,7 +129,7 @@ class KeylkgTests(unittest.TestCase):
     def test_GIVEN_running_ioc_WHEN_in_measure_mode_and_reset_output2_THEN_output2_reset(self):
         expected_value = 0.0000
         test_value = 0.1234
-        self._lewis.backdoor_set_on_device("output2_raw_value", test_value)
+        self._lewis.backdoor_set_on_device("detector_2_raw_value", test_value)
         self.ca.set_pv_value("MODE:SP", "MEASURE")
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", test_value)
         self.ca.set_pv_value("RESET:OUTPUT:2:SP", "RESET")
@@ -142,10 +137,9 @@ class KeylkgTests(unittest.TestCase):
         self.ca.assert_that_pv_is("VALUE:OUTPUT:2", expected_value)
 
     @skip_if_recsim('Cannot use lewis backdoor in RECSIM')
-    def test_GIVEN_running_ioc_WHEN_in_setup_mode_THEN_output1_swicthes_to_measurement_mode_and_takes_data(self):
+    def test_GIVEN_running_ioc_WHEN_in_setup_mode_THEN_output1_switches_to_measurement_mode_and_takes_data(self):
         expected_value = 0.1234
         self.ca.set_pv_value("MODE:SP", "SET-UP")
-        self._lewis.backdoor_set_on_device("output1_raw_value", expected_value)
-
+        self._lewis.backdoor_set_on_device("detector_1_raw_value", expected_value)
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value)
