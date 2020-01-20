@@ -19,6 +19,7 @@ from signal import SIGTERM
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
 PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "Python", "python.exe"))
+PYTHON3 = os.environ.get("PYTHON3", os.path.join(APPS_BASE, "Python3", "python.exe"))
 
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
 
@@ -528,12 +529,13 @@ class PythonIOCLauncher(IocLauncher):
     def __init__(self, ioc, test_mode, var_dir):
         super(PythonIOCLauncher, self).__init__(ioc, test_mode, var_dir)
         self._python_script_commandline = ioc.get("python_script_commandline", None)
+        self._python_version = ioc.get("python_version", 2)
 
     def _command_line(self):
         run_ioc_path = self._python_script_commandline[0]
         if not os.path.isfile(run_ioc_path):
             print("Command first argument path not found: '{0}'".format(run_ioc_path))
-        command_line = [PYTHON]
+        command_line = [PYTHON] if self._python_version == 2 else [PYTHON3]
         command_line.extend(self._python_script_commandline)
         return command_line
 
