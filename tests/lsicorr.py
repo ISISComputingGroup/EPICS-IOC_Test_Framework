@@ -33,6 +33,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
+
 class LSITests(unittest.TestCase):
     """
     Tests for LSi Correlator
@@ -47,3 +48,10 @@ class LSITests(unittest.TestCase):
 
         self.ca.assert_that_pv_exists(pv_name)
         self.ca.assert_that_pv_is_number(pv_name, 300)
+
+    def test_GIVEN_setting_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
+        pv_name = "MEASUREMENTDURATION"
+        pv_value = 1000.0
+
+        self.ca.set_pv_value(pv_name, pv_value)
+        self.ca.assert_that_pv_is_number(pv_name, pv_value)
