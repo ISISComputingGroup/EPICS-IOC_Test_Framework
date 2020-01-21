@@ -3,7 +3,7 @@ import unittest
 from parameterized import parameterized
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 DEVICE_PREFIX = "CRYOSMS_01"
@@ -46,9 +46,12 @@ class CryoSMSTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=10)
 
-        self.ca.assert_that_pv_exists("DISABLE", timeout=30)
+        if IOCRegister.uses_rec_sim:
+            self.ca.assert_that_pv_exists("DISABLE", timeout=30)
+        else:
+            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=30)
 
-    @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
+    @skip_if_recsim("Cannot properly simulate device startup in recsim")
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
         expectedValues = {"OUTPUT:SP": 0,
                           "OUTPUT": 0,
@@ -60,7 +63,7 @@ class CryoSMSTests(unittest.TestCase):
                           "RAMP:RAMPING": 0,
                           "TARGET:TIME": 0,
                           "STAT": "",
-                          "HEATER:STAT": "Off",
+                          "HEATER:STAT": "OFF",
                           "START:SP.DISP": "0",
                           "PAUSE:SP.DISP": "0",
                           "ABORT:SP.DISP": "0",
