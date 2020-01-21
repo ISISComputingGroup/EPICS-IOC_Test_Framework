@@ -48,7 +48,6 @@ class KepcoTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("reset")
         self.ca.assert_that_pv_exists("VOLTAGE", timeout=30)
 
-
     def _write_voltage(self, expected_voltage):
         self._lewis.backdoor_set_on_device("voltage", expected_voltage)
         self._ioc.set_simulated_value("SIM:VOLTAGE", expected_voltage)

@@ -28,18 +28,21 @@ class _AssertLogContext(object):
     messages = list()
     first_message = 0
 
-    def __init__(self, log_manager, number_of_messages=None, in_time=5, must_contain=None):
+    def __init__(self, log_manager, number_of_messages=None, in_time=5, must_contain=None,
+                 ignore_log_client_failures=True):
         """
         Args:
             log_manager: A reference to the IOC log object
             number_of_messages: A number of log messages to expect (None to not check number of messages)
             in_time: The amount of time to wait for messages to be generated
             must_contain: A string which must appear in the generated log messages (None to not check contents)
+            ignore_log_client_failures (bool): Whether to ignore messages about not being able to connect to logserver
         """
         self.in_time = in_time
         self.log_manager = log_manager
         self.exp_num_of_messages = number_of_messages
         self.must_contain = must_contain
+        self.ignore_log_client_failures = ignore_log_client_failures
 
     def __enter__(self):
         self.log_manager.read_log()  # Read any excess log
@@ -48,6 +51,9 @@ class _AssertLogContext(object):
     def __exit__(self, *args):
         sleep(self.in_time)
         self.messages = self.log_manager.read_log()
+
+        if self.ignore_log_client_failures:
+            self.messages = [message for message in self.messages if "log client: " not in message]
 
         actual_num_of_messages = len(self.messages)
 
@@ -84,7 +90,8 @@ def get_running_lewis_and_ioc(emulator_name, ioc_name):
     return lewis, ioc
 
 
-def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=None):
+def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=None,
+                        ignore_log_client_failures=True):
     """
     A context object that asserts that the given code produces the given number of ioc log messages in the the given
     amount of time.
@@ -104,8 +111,10 @@ def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=No
         number_of_messages (int): The number of messages that are expected (None to not check number of messages)
         in_time (int): The number of seconds to wait for messages
         must_contain (str): a string which must be contained in at least one of the messages (None to not check)
+        ignore_log_client_failures (bool): Whether to ignore messages about not being able to connect to logserver
     """
-    return _AssertLogContext(ioc.log_file_manager, number_of_messages, in_time, must_contain)
+    return _AssertLogContext(ioc.log_file_manager, number_of_messages, in_time, must_contain,
+                             ignore_log_client_failures)
 
 
 def skip_if_condition(condition, reason):
@@ -182,7 +191,7 @@ def parameterized_list(cases):
     return return_list
 
 
-def unstable_test(max_retries=2, error_class=AssertionError):
+def unstable_test(max_retries=2, error_class=AssertionError, wait_between_runs=0):
     """
     Decorator which will retry a test on failure. This decorator should not be required on most tests and should not
     be included as standard when writing a test.
@@ -190,6 +199,7 @@ def unstable_test(max_retries=2, error_class=AssertionError):
     Args:
         max_retries: the max number of times to run the test before actually throwing an error (defaults to 2 retries)
         error_class: the class of error to retry under (defaults to AssertionError)
+        wait_between_runs: number of seconds to wait between each failed attempt at running the test
     """
     def decorator(func):
         @six.wraps(func)
@@ -199,6 +209,7 @@ def unstable_test(max_retries=2, error_class=AssertionError):
             except error_class:
                 last_error = None
                 for _ in range(max_retries):
+                    sleep(wait_between_runs)
                     try:
                         self.setUp()  # Need to rerun setup
                         return func(self, *args, **kwargs)

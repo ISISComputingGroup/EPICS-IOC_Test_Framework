@@ -9,18 +9,38 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
+from utils.testing import ManagerMode
+from utils.testing import unstable_test
+
 
 GALIL_ADDR = "128.0.0.0"
 DEVICE_PREFIX = "REFL"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
+SOFT_LIMIT_HI = 10000
+SOFT_LIMIT_LO = -10000
 
 REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
 GALIL_PREFIX = "GALIL_01"
 GALIL_PREFIX_JAWS = "GALIL_02"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 IOCS = [
+    # Delibrately start the REFL server first to check on waiting for motors functionality
+    {
+        "ioc_launcher_class": PythonIOCLauncher,
+        "name": DEVICE_PREFIX,
+        "directory": REFL_PATH,
+        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "started_text": "Instantiating Beamline Model",
+        "pv_for_existence": "BL:STAT",
+        "macros": {
+        },
+        "environment_vars": {
+            "ICPCONFIGROOT": test_config_path,
+            "ICPVARDIR": test_config_path,
+        }
+    },
     {
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
@@ -35,6 +55,10 @@ IOCS = [
             "MTR0102.VMAX": INITIAL_VELOCITY,
             "MTR0104.VMAX": INITIAL_VELOCITY,
             "MTR0105.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
+            "MTR0104.LLM": SOFT_LIMIT_LO,
+            "MTR0104.HLM": SOFT_LIMIT_HI,
+            "MTR0105.LLM": SOFT_LIMIT_LO,
+            "MTR0105.HLM": SOFT_LIMIT_HI,
         }
     },
     {
@@ -50,20 +74,6 @@ IOCS = [
         "inits": {
             "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
-        }
-    },
-    {
-        "ioc_launcher_class": PythonIOCLauncher,
-        "name": DEVICE_PREFIX,
-        "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
-        "started_text": "Reflectometry IOC started",
-        "pv_for_existence": "BL:STAT",
-        "macros": {
-        },
-        "environment_vars": {
-            "ICPCONFIGROOT": test_config_path,
-            "ICPVARDIR": test_config_path,
         }
     },
     {
@@ -98,6 +108,7 @@ class ReflTests(unittest.TestCase):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT")
         self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS")
+        self.ca_no_prefix = ChannelAccess()
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("PARAM:S1:SP", 0)
         self.ca.set_pv_value("PARAM:S3:SP", 0)
@@ -200,6 +211,7 @@ class ReflTests(unittest.TestCase):
              self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
                 self.ca.set_pv_value("BL:MODE:SP", expected_value)
 
+    @unstable_test()
     def test_GIVEN_new_parameter_setpoint_WHEN_triggering_move_THEN_SP_is_only_set_on_motor_when_difference_above_motor_resolution(self):
         target_mres = 0.001
         pos_above_res = 0.01
@@ -226,6 +238,17 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
         self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0104.VELO", expected)
+
+    def test_GIVEN_motor_velocity_altered_by_move_WHEN_moving_THEN_velocity_altered(self):
+        # Given a known initial velocity, confirm that on a move the velocity has changed for the axes
+        self.set_up_velocity_tests(INITIAL_VELOCITY)
+
+        self.ca.set_pv_value("PARAM:THETA:SP", 15)
+
+        self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=10)
+        self.ca_galil.assert_that_pv_is_not("MTR0102.VELO", INITIAL_VELOCITY)
+        self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 0, timeout=10)
+        self.ca_galil.assert_that_pv_is_not("MTR0104.VELO", INITIAL_VELOCITY)
 
     def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_interrupted_THEN_velocity_reverted_to_original_value(self):
         expected = INITIAL_VELOCITY
@@ -256,14 +279,18 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=30)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
 
-    def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_motor_retains_new_value_after_move_completed(self):
+    def test_GIVEN_move_in_progress_WHEN_modifying_motor_velocity_THEN_velocity_reverted_to_value_before_modified_velocity(self):
+        # The by-design behaviour (but maybe not expected by the user) is that if a velocity is sent during a move
+        # then we ignore this and restore the cached value we had for the currently issued move.
         initial = INITIAL_VELOCITY
-        expected = INITIAL_VELOCITY / 2.0
+        altered = INITIAL_VELOCITY + 5
+        expected = INITIAL_VELOCITY
         self.set_up_velocity_tests(initial)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 22.5)
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 0, timeout=1)
-        self.ca_galil.set_pv_value("MTR0102.VELO", expected)
+
+        self.ca_galil.set_pv_value("MTR0102.VELO", altered)
 
         self.ca_galil.assert_that_pv_is("MTR0102.DMOV", 1, timeout=30)
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
@@ -294,10 +321,11 @@ class ReflTests(unittest.TestCase):
         expected_gap_in_refl = 0.2
         expected_change_to_gap = 1.0
 
-        time.sleep(5)
-        self.ca.assert_setting_setpoint_sets_readback(readback_pv="PARAM:S1HG", value=expected_gap_in_refl, expected_alarm=None)
+        self.ca.set_pv_value("PARAM:S1HG:SP", expected_gap_in_refl)
+        self.ca.assert_that_pv_is_number("PARAM:S1HG", expected_gap_in_refl, timeout=15, tolerance=MOTOR_TOLERANCE)
 
-        self.ca_galil.assert_setting_setpoint_sets_readback(readback_pv="JAWS1:HGAP", value=expected_change_to_gap)
+        self.ca_galil.set_pv_value("JAWS1:HGAP:SP", expected_change_to_gap)
+        self.ca_galil.assert_that_pv_is_number("JAWS1:HGAP", expected_change_to_gap, timeout=15, tolerance=MOTOR_TOLERANCE)
 
         self.ca.assert_that_pv_is("PARAM:S1HG", expected_change_to_gap)
         self.ca.assert_that_pv_is("PARAM:S1HG:SP:RBV", expected_gap_in_refl)
@@ -454,3 +482,167 @@ class ReflTests(unittest.TestCase):
         # when the movement finishes it should still be the same
         self.ca_galil.assert_that_pv_is("MTR0103.DMOV", 1, timeout=10)
         self.ca_galil.assert_that_pv_is("MTR0103.VELO", MEDIUM_VELOCITY)
+
+    def test_GIVEN_motor_axis_is_angle_WHEN_motor_alarm_status_is_updated_THEN_alarms_propagate_to_correct_parameters_on_component(self):
+        expected_severity_code = "MINOR"
+        expected_status_code = "HIGH"
+        no_alarm_code = "NO_ALARM"
+
+        # Setting High Limit = Low limit produces alarm on 0105 (detector angle)
+        self.ca_galil.set_pv_value("MTR0105.HLM", SOFT_LIMIT_LO)
+
+        # detector angle should be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.STAT", expected_status_code)
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.SEVR", expected_severity_code)
+        # detector offset is independent and should not be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_POS.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_POS.SEVR", no_alarm_code)
+
+        # Setting High Limit back clears alarm
+        self.ca_galil.set_pv_value("MTR0105.HLM", SOFT_LIMIT_HI)
+
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.SEVR", no_alarm_code)
+
+    def test_GIVEN_motor_axis_is_displacement_WHEN_motor_alarm_status_is_updated_THEN_alarms_propagate_to_correct_parameters_on_component(self):
+        expected_severity_code = "MINOR"
+        expected_status_code = "HIGH"
+        no_alarm_code = "NO_ALARM"
+
+        # Setting High Limit = Low limit produces alarm on 0104 (detector height)
+        self.ca_galil.set_pv_value("MTR0104.HLM", SOFT_LIMIT_LO)
+
+        # detector offset should be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_POS.STAT", expected_status_code)
+        self.ca.assert_that_pv_is("PARAM:DET_POS.SEVR", expected_severity_code)
+        # theta is derived from detector offset and should be in alarm
+        self.ca.assert_that_pv_is("PARAM:THETA.STAT", expected_status_code)
+        self.ca.assert_that_pv_is("PARAM:THETA.SEVR", expected_severity_code)
+        # detector angle is independent and should not be in alarm
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_ANG.SEVR", no_alarm_code)
+
+        # Setting High Limit back clears alarm
+        self.ca_galil.set_pv_value("MTR0104.HLM", SOFT_LIMIT_HI)
+
+        self.ca.assert_that_pv_is("PARAM:DET_POS.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:DET_POS.SEVR", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:THETA.STAT", no_alarm_code)
+        self.ca.assert_that_pv_is("PARAM:THETA.SEVR", no_alarm_code)
+
+    @parameterized.expand([("Variable", "DET_POS", "MTR0104"), ("Frozen", "DET_POS", "MTR0104"), ("Frozen", "DET_ANG", "MTR0105")])
+    def test_GIVEN_motors_not_at_zero_WHEN_define_motor_position_to_THEN_motor_position_is_changed_without_move(self, initial_foff, param_name, motor_name):
+        offset = 10
+        new_position = 2
+        self.ca.set_pv_value("PARAM:{}:SP".format(param_name), offset)
+        self.ca_galil.set_pv_value("MTR0104.FOFF", initial_foff)
+        self.ca_galil.set_pv_value("MTR0104.OFF", 0)
+        self.ca.assert_that_pv_is_number("PARAM:{}".format(param_name), offset, tolerance=MOTOR_TOLERANCE, timeout=30)
+        self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=30)
+
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_position)
+
+        # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
+        # is very quick
+        self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+        self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), new_position)
+        self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), new_position)
+        self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
+        self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), initial_foff)
+        self.ca_galil.assert_that_pv_is_number("{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE)
+
+        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_position)
+        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_position)
+        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_position)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+        self.ca.assert_that_pv_is("PARAM:THETA", 0)
+        self.ca.assert_that_pv_is("PARAM:THETA:SP", 0)
+        self.ca.assert_that_pv_is("PARAM:THETA:SP:RBV", 0)
+
+    def test_GIVEN_jaws_not_at_zero_WHEN_define_motor_position_for_jaw_gaps_THEN_jaws_position_are_changed_without_move(self):
+        param_name = "S1VG"
+        jaw_motors = ["MTR0201", "MTR0202"]
+        initial_gap = 1.0
+        initial_centre = 2.0
+        new_gap = 4.0
+        expected_pos = {"MTR0201": new_gap/2.0 - initial_centre,
+                        "MTR0202": new_gap/2.0 + initial_centre}
+        self.ca.assert_setting_setpoint_sets_readback(initial_gap, "PARAM:S1VG", expected_alarm=None, timeout=30)
+        self.ca.assert_setting_setpoint_sets_readback(initial_centre, "PARAM:S1VC", expected_alarm=None, timeout=30)
+        for motor_name in jaw_motors:
+            self.ca_galil.set_pv_value("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.set_pv_value("{}.OFF".format(motor_name), 0)
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
+
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_gap)
+
+        # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
+        # is very quick
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+
+        for motor_name in jaw_motors:
+            # jaws are open to half the gap
+            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
+            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.assert_that_pv_is_number("{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE)
+
+        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_gap)
+        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_gap)
+        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_gap)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+
+    def test_GIVEN_jaws_not_at_zero_WHEN_define_motor_position_for_jaw_centres_THEN_jaws_position_are_changed_without_move(self):
+        param_name = "S1HC"
+        jaw_motors = ["MTR0203", "MTR0204"]
+        initial_gap = 1.0
+        initial_centre = 2.0
+        new_centre = 4.0
+        expected_pos = {"MTR0203": initial_gap/2.0 + new_centre,
+                        "MTR0204": initial_gap/2.0 - new_centre}
+        self.ca.assert_setting_setpoint_sets_readback(initial_gap, "PARAM:S1HG", expected_alarm=None, timeout=30)
+        self.ca.assert_setting_setpoint_sets_readback(initial_centre, "PARAM:S1HC", expected_alarm=None, timeout=30)
+        for motor_name in jaw_motors:
+            self.ca_galil.set_pv_value("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.set_pv_value("{}.OFF".format(motor_name), 0)
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
+
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_centre)
+
+        # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
+        # is very quick
+        for motor_name in jaw_motors:
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+
+        for motor_name in jaw_motors:
+            # jaws are open to half the gap
+            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
+            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.assert_that_pv_is_number("{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE)
+
+        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_centre)
+        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_centre)
+        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_centre)
+        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+
+    def test_GIVEN_theta_THEN_define_position_as_does_not_exist(self):
+        param_name = "THETA"
+        self.ca.assert_that_pv_exists("PARAM:{}".format(param_name))
+        self.ca.assert_that_pv_does_not_exist("PARAM:{}:DEFINE_POSITION_AS".format(param_name))
+
+    def test_GIVEN_parameter_not_in_manager_mode_WHEN_define_position_THEN_position_is_not_defined(self):
+        new_position = 10
+
+        param_pv = "PARAM:{}:DEFINE_POSITION_AS".format("DET_POS")
+        self.assertRaises(IOError, self.ca.set_pv_value, param_pv, new_position)
+
+        self.ca.assert_that_pv_is_not(param_pv, new_position)
