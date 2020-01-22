@@ -51,7 +51,14 @@ class LSITests(unittest.TestCase):
 
     def test_GIVEN_setting_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
         pv_name = "MEASUREMENTDURATION"
-        pv_value = 1000.0
+        pv_value = 1000
 
         self.ca.set_pv_value(pv_name, pv_value)
         self.ca.assert_that_pv_is_number(pv_name, pv_value)
+
+    def test_GIVEN_setting_pv_WHEN_pv_written_to_with_invalid_value_THEN_value_not_updated(self):
+        pv_name = "MEASUREMENTDURATION"
+        original_value = self.ca.get_pv_value(pv_name)
+
+        self.ca.set_pv_value(pv_name, -1)
+        self.ca.assert_that_pv_is_number(pv_name, original_value)
