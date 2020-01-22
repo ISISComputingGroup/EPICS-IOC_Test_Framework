@@ -43,12 +43,6 @@ class LSITests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("LSI")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
 
-    def test_GIVEN_setting_pv_WHEN_pv_read_THEN_value_returned(self):
-        pv_name = "MEASUREMENTDURATION"
-
-        self.ca.assert_that_pv_exists(pv_name)
-        self.ca.assert_that_pv_is_number(pv_name, 300)
-
     def test_GIVEN_setting_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
         pv_name = "MEASUREMENTDURATION"
         pv_value = 1000
@@ -62,3 +56,10 @@ class LSITests(unittest.TestCase):
 
         self.ca.set_pv_value(pv_name, -1)
         self.ca.assert_that_pv_is_number(pv_name, original_value)
+
+    def test_GIVEN_integer_device_setting_WHEN_pv_written_to_with_a_float_THEN_value_is_rounded_before_setting(self):
+        pv_name = "MEASUREMENTDURATION"
+        new_value = 12.3
+
+        self.ca.set_pv_value(pv_name, new_value)
+        self.ca.assert_that_pv_is_number(pv_name, 12)
