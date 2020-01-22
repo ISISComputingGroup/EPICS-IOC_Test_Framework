@@ -85,3 +85,10 @@ class LSITests(unittest.TestCase):
         setting_pv = "CORRELATIONTYPE"
         self.ca.assert_that_pv_exists(setting_pv)
         self.ca.assert_that_pv_is(setting_pv, "AUTO")
+
+    def test_GIVEN_enum_setting_WHEN_setting_pv_written_to_THEN_new_value_read_back(self):
+        setting_pv = "CORRELATIONTYPE"
+        self.ca.assert_that_pv_is(setting_pv, "AUTO")
+
+        self.ca.set_pv_value(setting_pv, "CROSS")
+        self.ca.assert_that_pv_is(setting_pv, "CROSS")
