@@ -80,3 +80,8 @@ class LSITests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("ERRORMSG", error_message)
         pass
+
+    def test_GIVEN_enum_setting_WHEN_setting_pv_read_THEN_enum_name_is_returned(self):
+        setting_pv = "CORRELATIONTYPE"
+        self.ca.assert_that_pv_exists(setting_pv)
+        self.ca.assert_that_pv_is(setting_pv, "AUTO")
