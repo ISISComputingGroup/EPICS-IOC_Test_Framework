@@ -130,9 +130,6 @@ class LSITests(unittest.TestCase):
         ("SAMPLINGTIMEMULTIT", ("ns12_5", "ns200", "ns400", "ns800", "ns1600", "ns3200"))
     ])
     def test_GIVEN_enum_setting_WHEN_setting_pv_written_to_THEN_new_value_read_back(self, pv, values):
-        setting_pv = "CORRELATIONTYPE"
         for value in values:
-        #self.ca.assert_that_pv_is(pv, "AUTO")
-
             self.ca.set_pv_value(pv, value)
             self.ca.assert_that_pv_is(pv, value)
