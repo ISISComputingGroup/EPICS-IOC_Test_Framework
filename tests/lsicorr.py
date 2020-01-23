@@ -1,8 +1,6 @@
 import os
 import unittest
 import time
-from contextlib import contextmanager
-from math import tan, radians, cos
 
 from parameterized import parameterized
 
@@ -32,6 +30,44 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.DEVSIM]
+
+
+NORMALISATION = (
+    "SYMMETRIC",
+    "COMPENSATED"
+)
+
+SWAPCHANNELS = (
+    "ChA_ChB",
+    "ChB_ChA"
+)
+
+
+CORRELATIONTYPE = (
+    "AUTO",
+    "CROSS"
+)
+
+TRANSFERRATE = (
+    "ms100",
+    "ms150",
+    "ms200",
+    "ms250",
+    "ms300",
+    "ms400",
+    "ms500",
+    "ms600",
+    "ms700"
+)
+
+SAMPLINGTIMEMULTIT = (
+    "ns12_5",
+    "ns200",
+    "ns400",
+    "ns800",
+    "ns1600",
+    "ns3200"
+)
 
 
 class LSITests(unittest.TestCase):
@@ -86,9 +122,17 @@ class LSITests(unittest.TestCase):
         self.ca.assert_that_pv_exists(setting_pv)
         self.ca.assert_that_pv_is(setting_pv, "AUTO")
 
-    def test_GIVEN_enum_setting_WHEN_setting_pv_written_to_THEN_new_value_read_back(self):
+    @parameterized.expand([
+        ("NORMALIZATION", ("SYMMETRIC", "COMPENSATED")),
+        ("SWAPCHANNELS", ("ChA_ChB", "ChB_ChA")),
+        ("CORRELATIONTYPE", ("AUTO", "CROSS")),
+        ("TRANSFERRATE", ("ms100", "ms150", "ms200", "ms250", "ms300", "ms400", "ms500", "ms600", "ms700")),
+        ("SAMPLINGTIMEMULTIT", ("ns12_5", "ns200", "ns400", "ns800", "ns1600", "ns3200"))
+    ])
+    def test_GIVEN_enum_setting_WHEN_setting_pv_written_to_THEN_new_value_read_back(self, pv, values):
         setting_pv = "CORRELATIONTYPE"
-        self.ca.assert_that_pv_is(setting_pv, "AUTO")
+        for value in values:
+        #self.ca.assert_that_pv_is(pv, "AUTO")
 
-        self.ca.set_pv_value(setting_pv, "CROSS")
-        self.ca.assert_that_pv_is(setting_pv, "CROSS")
+            self.ca.set_pv_value(pv, value)
+            self.ca.assert_that_pv_is(pv, value)
