@@ -144,3 +144,15 @@ class Itc503Tests(unittest.TestCase):
         self.ca.set_pv_value("{}:SP".format(control_pv), set_value)
         self.ca.assert_that_pv_is("CTRL", "Local and remote")
         self.ca.set_pv_value("CTRL", "Locked")
+
+    @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
+    def test_WHEN_sweeping_reported_by_hardware_THEN_correct_sweep_state_reported(self):
+        """
+        The hardware can report the control channel with and without a leading zero (depending on the hardware).
+        Ensure we catch all cases.
+        """
+        for report_sweep_state_with_leading_zero in [True, False]:
+            for sweeping in [True, False]:
+                self._lewis.backdoor_set_on_device("report_sweep_state_with_leading_zero", report_sweep_state_with_leading_zero)
+                self._lewis.backdoor_set_on_device("sweeping", sweeping)
+                self.ca.assert_that_pv_is("SWEEPING", "Sweeping" if sweeping else "Not Sweeping")
