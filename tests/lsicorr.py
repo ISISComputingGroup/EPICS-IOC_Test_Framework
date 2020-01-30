@@ -139,3 +139,10 @@ class LSITests(unittest.TestCase):
     ])
     def test_GIVEN_pv_with_unit_WHEN_EGU_field_read_from_THEN_unit_returned(self, pv, expected_unit):
         self.ca.assert_that_pv_is("{pv}.EGU".format(pv=pv), expected_unit)
+
+    @parameterized.expand([
+        ("CORRELATION_FUNCTION", 400),
+        ("LAGS", 400),
+    ])
+    def test_GIVEN_array_pv_WHEN_NELM_field_read_THEN_length_of_array_returned(self, pv, expected_length):
+        self.ca.assert_that_pv_is_number("{pv}.NELM".format(pv=pv), expected_length)
