@@ -117,11 +117,6 @@ class LSITests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERRORMSG", error_message)
         pass
 
-    def test_GIVEN_enum_setting_WHEN_setting_pv_read_THEN_enum_name_is_returned(self):
-        setting_pv = "CORRELATIONTYPE"
-        self.ca.assert_that_pv_exists(setting_pv)
-        self.ca.assert_that_pv_is(setting_pv, "AUTO")
-
     @parameterized.expand([
         ("NORMALIZATION", ("SYMMETRIC", "COMPENSATED")),
         ("SWAPCHANNELS", ("ChA_ChB", "ChB_ChA")),
@@ -131,5 +126,16 @@ class LSITests(unittest.TestCase):
     ])
     def test_GIVEN_enum_setting_WHEN_setting_pv_written_to_THEN_new_value_read_back(self, pv, values):
         for value in values:
-            self.ca.set_pv_value(pv, value)
+            self.ca.set_pv_value(pv, value, sleep_after_set=0.0)
             self.ca.assert_that_pv_is(pv, value)
+
+    @parameterized.expand([
+        ("OVERLOADLIMIT", "Mcps"),
+        ("SCATTERING_ANGLE", "degree"),
+        ("SAMPLE_TEMP", "C"),
+        ("SOLVENT_VISCOSITY", ""),
+        ("SOLVENT_REFRACTIVE_INDEX", "mPas"),
+        ("LASER_WAVELENGTH", "nm")
+    ])
+    def test_GIVEN_pv_with_unit_WHEN_EGU_field_read_from_THEN_unit_returned(self, pv, expected_unit):
+        self.ca.assert_that_pv_is("{pv}.EGU".format(pv=pv), expected_unit)
