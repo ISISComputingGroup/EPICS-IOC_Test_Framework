@@ -7,8 +7,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
 from utils.test_modes import TestModes
-from utils.testing import ManagerMode
-from utils.testing import unstable_test
+from utils.testing import parameterized_list, ManagerMode, unstable_test
 
 DEVICE_PREFIX = "LSI"
 
@@ -146,3 +145,29 @@ class LSITests(unittest.TestCase):
     ])
     def test_GIVEN_array_pv_WHEN_NELM_field_read_THEN_length_of_array_returned(self, pv, expected_length):
         self.ca.assert_that_pv_is_number("{pv}.NELM".format(pv=pv), expected_length)
+
+    @parameterized.expand(parameterized_list(["CORRELATIONTYPE",
+                                              "NORMALIZATION",
+                                              "MEASUREMENTDURATION",
+                                              "SWAPCHANNELS",
+                                              "SAMPLINGTIMEMULTIT",
+                                              "TRANSFERRATE",
+                                              "OVERLOADLIMIT",
+                                              "OVERLOADINTERVAL",
+                                              "ERRORMSG",
+                                              "FILEPATH",
+                                              "FILENAME",
+                                              "TAKEDATA",
+                                              "CORRELATION_FUNCTION",
+                                              "LAGS",
+                                              "REPETITIONS",
+                                              "CURRENT_REPETITION",
+                                              "RUNNING",
+                                              "CONNECTED",
+                                              "SCATTERING_ANGLE",
+                                              "SAMPLE_TEMP",
+                                              "SOLVENT_VISCOSITY",
+                                              "SOLVENT_REFRACTIVE_INDEX",
+                                              "LASER_WAVELENGTH"]))
+    def test_GIVEN_pv_WHEN_pv_read_THEN_pv_has_no_alarms(self, _, pv):
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
