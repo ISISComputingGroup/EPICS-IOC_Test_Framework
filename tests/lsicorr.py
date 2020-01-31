@@ -19,7 +19,6 @@ IOCS = [
         "directory": LSICORR_PATH,
         "python_script_commandline": [os.path.join(LSICORR_PATH, "LSi_Correlator.py"), "--pv_prefix", "TE:NDW1836:"],
         "started_text": "IOC started",
-        "pv_for_existence": "MEASUREMENTDURATION",
         "python_version": 3,
         "macros": {
         }
@@ -157,7 +156,8 @@ class LSITests(unittest.TestCase):
                                               "ERRORMSG",
                                               "FILEPATH",
                                               "FILENAME",
-                                              "TAKEDATA",
+                                              "START",
+                                              "STOP",
                                               "CORRELATION_FUNCTION",
                                               "LAGS",
                                               "REPETITIONS",
