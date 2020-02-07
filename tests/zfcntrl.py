@@ -699,7 +699,7 @@ class ZeroFieldTests(unittest.TestCase):
             "STATUS", self.zfcntrl_ca.Alarms.MAJOR if overloaded and autofeedback else self.zfcntrl_ca.Alarms.NONE)
 
     def test_WHEN_power_supply_voltage_limit_is_set_incorrectly_WHEN_going_into_auto_mode_THEN_correct_limits_applied(self):
-        self._set_simulated_power_supply_voltages({"X":0, "Y":0, "Z":0})
+        self._set_simulated_power_supply_voltages({"X": 0, "Y": 0, "Z": 0})
 
         self._set_autofeedback(True)
 
