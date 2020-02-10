@@ -57,9 +57,10 @@ class _AssertLogContext(object):
 
         actual_num_of_messages = len(self.messages)
 
-        if self.exp_num_of_messages is not None and actual_num_of_messages != self.exp_num_of_messages:
-            raise AssertionError("Incorrect number of log messages created. Expected {} and found {}"
-                                 .format(self.exp_num_of_messages, actual_num_of_messages))
+        if self.exp_num_of_messages is not None and actual_num_of_messages > self.exp_num_of_messages:
+            raise AssertionError("Incorrect number of log messages created. Expected {} and found {}.\n"
+                                 "Found log messages were: \n{}"
+                                 .format(self.exp_num_of_messages, actual_num_of_messages, "\n".join(self.messages)))
 
         if self.must_contain is not None and not any(self.must_contain in message for message in self.messages):
             raise AssertionError("Expected the generated log messages to contain the string '{}' but they didn't.\n"
@@ -96,7 +97,7 @@ def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=No
     A context object that asserts that the given code produces the given number of ioc log messages in the the given
     amount of time.
 
-    To assert that only 5 messages are produced in 5 seconds::
+    To assert that no more than 5 messages are produced in 5 seconds::
         with assert_log_messages(self._ioc, 5, 5):
             do_something()
 
@@ -108,7 +109,7 @@ def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=No
 
     Args:
         ioc (IocLauncher): The IOC that we are checking the logs for.
-        number_of_messages (int): The number of messages that are expected (None to not check number of messages)
+        number_of_messages (int): The maximum number of messages that are expected (None to not check number of messages)
         in_time (int): The number of seconds to wait for messages
         must_contain (str): a string which must be contained in at least one of the messages (None to not check)
         ignore_log_client_failures (bool): Whether to ignore messages about not being able to connect to logserver

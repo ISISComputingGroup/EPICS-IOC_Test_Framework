@@ -231,10 +231,11 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
 
     if os.path.dirname(arguments.tests_path):
-        tests_module_path = os.path.abspath(os.path.dirname(arguments.tests_path))
-        if not os.path.isdir(tests_module_path):
-            print("Test path {} not found".format(tests_module_path))
+        full_path = os.path.abspath(arguments.tests_path)
+        if not os.path.isdir(full_path):
+            print("Test path {} not found".format(full_path))
             sys.exit(-1)
+        tests_module_path = os.path.dirname(full_path)
         sys.path.insert(0, tests_module_path)
         arguments.tests_path = os.path.basename(arguments.tests_path)
 

@@ -5,8 +5,8 @@ import itertools
 import multiprocessing
 import operator
 import unittest
-
 import six
+
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
@@ -138,7 +138,7 @@ class ZeroFieldTests(unittest.TestCase):
     def _set_simulated_measured_fields(self, fields, overload=False, wait_for_update=True):
         """
         Args:
-            fields (dict[str, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to the
+            fields (dict[AnyStr, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to the
               required fields
             overload (bool): whether to simulate the magnetometer being overloaded
             wait_for_update (bool): whether to wait for the statemachine to pick up the new readings
@@ -158,7 +158,7 @@ class ZeroFieldTests(unittest.TestCase):
     def _set_user_setpoints(self, fields):
         """
         Args:
-            fields (dict[str, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to the
+            fields (dict[AnyStr, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to the
               required fields 
         """
         for axis in FIELD_AXES:
@@ -167,8 +167,8 @@ class ZeroFieldTests(unittest.TestCase):
     def _set_simulated_power_supply_currents(self, currents, wait_for_update=True):
         """
         Args:
-            currents (dict[str, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to the
-              required currents
+            currents (dict[AnyStr, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to
+              the required currents
             wait_for_update (bool): whether to wait for the readback and setpoint readbacks to update
         """
         for axis in FIELD_AXES:
@@ -192,9 +192,16 @@ class ZeroFieldTests(unittest.TestCase):
         Args:
             status (Tuple[str, str]): the controller status and error to assert.
         """
-        name, alarm = status
+        name, expected_alarm = status
+
+        # Special case - this alarm should be suppressed in manual mode. This is because, in manual mode, the
+        # scientists will intentionally apply large fields (which overload the magnetometer), but they do not want
+        # alarms for this case as it is a "normal" mode of operation.
+        if name == Statuses.MAGNETOMETER_OVERLOAD[0] and self.zfcntrl_ca.get_pv_value("AUTOFEEDBACK") == "Manual":
+            expected_alarm = self.zfcntrl_ca.Alarms.NONE
+
         self.zfcntrl_ca.assert_that_pv_is("STATUS", name)
-        self.zfcntrl_ca.assert_that_pv_alarm_is("STATUS", alarm)
+        self.zfcntrl_ca.assert_that_pv_alarm_is("STATUS", expected_alarm)
 
     def _set_autofeedback(self, autofeedback):
         self.zfcntrl_ca.set_pv_value("AUTOFEEDBACK", "Auto-feedback" if autofeedback else "Manual")
@@ -215,9 +222,9 @@ class ZeroFieldTests(unittest.TestCase):
     def _set_output_limits(self, lower_limits, upper_limits):
         """
         Args:
-            lower_limits (dict[str, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to
+            lower_limits (dict[AnyStr, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to
               the required output lower limits
-            upper_limits (dict[str, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to
+            upper_limits (dict[AnyStr, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to
               the required output upper limits
         """
         for axis in FIELD_AXES:
@@ -654,3 +661,16 @@ class ZeroFieldTests(unittest.TestCase):
         # Check it can recover when writes work again
         self._assert_status(Statuses.NO_ERROR)
         self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
+
+    @parameterized.expand(parameterized_list([
+        (True, True),
+        (False, True),
+        (True, False),
+        (False, False),
+    ]))
+    def test_GIVEN_magnetometer_overloaded_THEN_error_suppressed_if_in_manual_mode(self, _, autofeedback, overloaded):
+        self._set_autofeedback(autofeedback)
+        self._set_simulated_measured_fields(ZERO_FIELD, overload=overloaded, wait_for_update=True)
+        self._assert_status(Statuses.MAGNETOMETER_OVERLOAD if overloaded else Statuses.NO_ERROR)
+        self.zfcntrl_ca.assert_that_pv_alarm_is(
+            "STATUS", self.zfcntrl_ca.Alarms.MAJOR if overloaded and autofeedback else self.zfcntrl_ca.Alarms.NONE)

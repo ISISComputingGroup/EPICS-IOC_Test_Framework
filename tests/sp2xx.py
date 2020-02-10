@@ -3,8 +3,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
 
 DEVICE_PREFIX = "SP2XX_01"
 
@@ -28,7 +27,7 @@ TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 def _reset_device():
     """Reset the sp2xx device"""
     lewis, ioc = get_running_lewis_and_ioc("sp2xx", DEVICE_PREFIX)
-    ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
+    ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
 
     _stop_running(ca)
     ca.assert_that_pv_is("STATUS", "Stopped")
@@ -38,6 +37,8 @@ def _reset_device():
     ca.assert_that_pv_is("ERROR", "No error")
 
     ca.assert_setting_setpoint_sets_readback("Infusion", "MODE")
+
+    ca.assert_that_pv_is("NA", "No error")
 
     return lewis, ioc, ca
 
@@ -308,7 +309,7 @@ class NATests(unittest.TestCase):
         # Given:
         self.ca.assert_setting_setpoint_sets_readback("Withdrawal", "MODE")
 
-        self.ca.set_pv_value("NA", 0)
+        self.ca.set_pv_value("NA", 0, sleep_after_set=0)
         self.ca.assert_that_pv_is("NA", "Can't run command")
 
         # When:
@@ -321,8 +322,9 @@ class NATests(unittest.TestCase):
     @skip_if_recsim("NA can only be set through complicated logic not in recsim")
     def test_that_GIVEN_a_device_in_infusion_mode_with_NA_triggered_WHEN_starting_the_device_THEN_NA_is_reset(self):
         # Given:
+        self.ca.assert_setting_setpoint_sets_readback("Infusion", "MODE")
 
-        self.ca.set_pv_value("NA", 0)
+        self.ca.set_pv_value("NA", 0, sleep_after_set=0)
         self.ca.assert_that_pv_is("NA", "Can't run command")
 
         # When:
