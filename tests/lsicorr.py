@@ -105,7 +105,6 @@ class LSITests(unittest.TestCase):
         self.ca.set_pv_value(pv_name, new_value)
         self.ca.assert_that_pv_is_number(pv_name, 12)
 
-    @unittest.skip('Monitors arent working yet')
     def test_GIVEN_monitor_on_setting_pv_WHEN_pv_changed_THEN_monitor_gets_updated(self):
         pv_name = "MEASUREMENTDURATION"
         self.ca.set_pv_value(pv_name, 10.0)
@@ -113,10 +112,7 @@ class LSITests(unittest.TestCase):
         expected_value = 12.0
 
         with self.ca.assert_that_pv_monitor_is(pv_name, expected_value):
-            from time import sleep
-            sleep(1.0)
-            print('setting with monitor')
-            self.ca.set_pv_value(pv_name, new_value)
+            self.ca.set_pv_value(pv_name + ":SP", new_value)
 
     def test_GIVEN_invalid_value_for_setting_WHEN_setting_pv_written_THEN_status_pv_updates_with_error(self):
         setting_pv = "MEASUREMENTDURATION"
