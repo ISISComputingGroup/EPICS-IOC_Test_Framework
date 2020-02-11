@@ -530,7 +530,7 @@ class ChannelAccess(object):
         """
         Assert that a pv has a given value set by a monitor event
         Args:
-            pv: the pv name
+            pv: the pv name. Must not be the same PV which is written to in the test.
             expected_value: the expected value
         Raises:
             AssertionError: if the value of the pv did not satisfy the comparator
@@ -546,7 +546,7 @@ class ChannelAccess(object):
         """
         Assert that a pv value is set by a monitor event and is within a tolerance
         Args:
-            pv: the pv name
+            pv: the pv name. Must not be the same PV which is written to in the test.
             expected_value: the expected value
             tolerance: tolerance
 
