@@ -9,7 +9,8 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, Pyth
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list, ManagerMode, unstable_test
 
-DEVICE_PREFIX = "LSI"
+ioc_number = 1
+DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
 
 LSICORR_PATH = os.path.join(EPICS_TOP, "support", "lsicorr", "master")
 IOCS = [
@@ -17,7 +18,7 @@ IOCS = [
         "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
         "directory": LSICORR_PATH,
-        "python_script_commandline": [os.path.join(LSICORR_PATH, "LSi_Correlator.py"), "--pv_prefix", "TE:NDW1836:"],
+        "python_script_commandline": [os.path.join(LSICORR_PATH, "LSi_Correlator.py"), "--pv_prefix", "TE:NDW1836:", "--ioc_number", "{}".format(ioc_number)],
         "started_text": "IOC started",
         "python_version": 3,
         "macros": {
@@ -29,43 +30,49 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
+PV_NAMES = ["CORRELATIONTYPE",
+            "NORMALIZATION",
+            "MEASUREMENTDURATION",
+            "SWAPCHANNELS",
+            "SAMPLINGTIMEMULTIT",
+            "TRANSFERRATE",
+            "OVERLOADLIMIT",
+            "OVERLOADINTERVAL",
+            "ERRORMSG",
+            "FILEPATH",
+            "FILENAME",
+            "START",
+            "STOP",
+            "CORRELATION_FUNCTION",
+            "LAGS",
+            "REPETITIONS",
+            "CURRENT_REPETITION",
+            "RUNNING",
+            "CONNECTED",
+            "SCATTERING_ANGLE",
+            "SAMPLE_TEMP",
+            "SOLVENT_VISCOSITY",
+            "SOLVENT_REFRACTIVE_INDEX",
+            "LASER_WAVELENGTH"]
 
-NORMALISATION = (
-    "SYMMETRIC",
-    "COMPENSATED"
-)
 
-SWAPCHANNELS = (
-    "ChA_ChB",
-    "ChB_ChA"
-)
-
-
-CORRELATIONTYPE = (
-    "AUTO",
-    "CROSS"
-)
-
-TRANSFERRATE = (
-    "ms100",
-    "ms150",
-    "ms200",
-    "ms250",
-    "ms300",
-    "ms400",
-    "ms500",
-    "ms600",
-    "ms700"
-)
-
-SAMPLINGTIMEMULTIT = (
-    "ns12_5",
-    "ns200",
-    "ns400",
-    "ns800",
-    "ns1600",
-    "ns3200"
-)
+SETTING_PVS = [("CORRELATIONTYPE", "CROSS"),
+               ("NORMALIZATION", "SYMMETRIC"),
+               ("MEASUREMENTDURATION", 30),
+               ("SWAPCHANNELS", "ChB_ChA"),
+               ("SAMPLINGTIMEMULTIT", "ns200"),
+               ("TRANSFERRATE", "ms700"),
+               ("OVERLOADLIMIT", 15),
+               ("OVERLOADINTERVAL", 450),
+               ("START", "YES"),
+               ("STOP", "YES"),
+               ("REPETITIONS", 5),
+               ("FILENAME", "TEST_FILENAME"),
+               ("SCATTERING_ANGLE", 4.4),
+               ("SAMPLE_TEMP", 298),
+               ("SOLVENT_VISCOSITY", 2200),
+               ("SOLVENT_REFRACTIVE_INDEX", 2.2),
+               ("LASER_WAVELENGTH", 580)]
 
 
 class LSITests(unittest.TestCase):
@@ -103,8 +110,12 @@ class LSITests(unittest.TestCase):
         pv_name = "MEASUREMENTDURATION"
         self.ca.set_pv_value(pv_name, 10.0)
         new_value = 12.3
+        expected_value = 12.0
 
-        with self.ca.assert_that_pv_monitor_is_number(pv_name, 12.0):
+        with self.ca.assert_that_pv_monitor_is(pv_name, expected_value):
+            from time import sleep
+            sleep(1.0)
+            print('setting with monitor')
             self.ca.set_pv_value(pv_name, new_value)
 
     def test_GIVEN_invalid_value_for_setting_WHEN_setting_pv_written_THEN_status_pv_updates_with_error(self):
@@ -113,7 +124,6 @@ class LSITests(unittest.TestCase):
         error_message = "LSI --- wrong value assigned to MeasurementDuration"
 
         self.ca.assert_that_pv_is("ERRORMSG", error_message)
-        pass
 
     @parameterized.expand([
         ("NORMALIZATION", ("SYMMETRIC", "COMPENSATED")),
@@ -131,8 +141,8 @@ class LSITests(unittest.TestCase):
         ("OVERLOADLIMIT", "Mcps"),
         ("SCATTERING_ANGLE", "degree"),
         ("SAMPLE_TEMP", "C"),
-        ("SOLVENT_VISCOSITY", ""),
-        ("SOLVENT_REFRACTIVE_INDEX", "mPas"),
+        ("SOLVENT_VISCOSITY", "mPas"),
+        ("SOLVENT_REFRACTIVE_INDEX", ""),
         ("LASER_WAVELENGTH", "nm")
     ])
     def test_GIVEN_pv_with_unit_WHEN_EGU_field_read_from_THEN_unit_returned(self, pv, expected_unit):
@@ -145,29 +155,14 @@ class LSITests(unittest.TestCase):
     def test_GIVEN_array_pv_WHEN_NELM_field_read_THEN_length_of_array_returned(self, pv, expected_length):
         self.ca.assert_that_pv_is_number("{pv}.NELM".format(pv=pv), expected_length)
 
-    @parameterized.expand(parameterized_list(["CORRELATIONTYPE",
-                                              "NORMALIZATION",
-                                              "MEASUREMENTDURATION",
-                                              "SWAPCHANNELS",
-                                              "SAMPLINGTIMEMULTIT",
-                                              "TRANSFERRATE",
-                                              "OVERLOADLIMIT",
-                                              "OVERLOADINTERVAL",
-                                              "ERRORMSG",
-                                              "FILEPATH",
-                                              "FILENAME",
-                                              "START",
-                                              "STOP",
-                                              "CORRELATION_FUNCTION",
-                                              "LAGS",
-                                              "REPETITIONS",
-                                              "CURRENT_REPETITION",
-                                              "RUNNING",
-                                              "CONNECTED",
-                                              "SCATTERING_ANGLE",
-                                              "SAMPLE_TEMP",
-                                              "SOLVENT_VISCOSITY",
-                                              "SOLVENT_REFRACTIVE_INDEX",
-                                              "LASER_WAVELENGTH"]))
+    @parameterized.expand(parameterized_list(SETTING_PVS))
+    def test_GIVEN_pv_name_THEN_setpoint_exists_for_that_pv(self, _, pv, value):
+        self.ca.assert_setting_setpoint_sets_readback(value, pv)
+    
+    @parameterized.expand(parameterized_list(PV_NAMES))
+    def test_GIVEN_pv_name_THEN_val_field_exists_for_that_pv(self, _, pv):
+        self.ca.assert_that_pv_is("{pv}.VAL".format(pv=pv), self.ca.get_pv_value(pv))
+
+    @parameterized.expand(parameterized_list(PV_NAMES))
     def test_GIVEN_pv_WHEN_pv_read_THEN_pv_has_no_alarms(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
