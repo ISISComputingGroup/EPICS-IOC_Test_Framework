@@ -551,7 +551,7 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
         if os.path.exists(automation_tools_binary):
             plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
             self.beckhoff_command_line = '{} "{}" '.format(automation_tools_binary, plc_to_start)
-            self.startup_command = self.beckhoff_command_line + "activate run"
+            self.startup_command = self.beckhoff_command_line + "activate run " + options.get("plc_name", "")
 
             options["emulator_command_line"] = self.startup_command
             options["emulator_wait_to_finish"] = True
