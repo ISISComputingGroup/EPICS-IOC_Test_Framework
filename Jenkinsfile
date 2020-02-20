@@ -26,7 +26,12 @@ pipeline {
         bat """
             if EXIST "ibex_utils" rmdir /s /q ibex_utils
             git clone https://github.com/ISISComputingGroup/ibex_utils.git ibex_utils
-            call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat
+            set \"MYJOB=${env.JOB_NAME}\"
+            if \"%MYJOB%\" == \"System_Tests_IOCs_debug\" (
+                call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat CLEAN EPICS_DEBUG
+            ) else (
+                call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat
+            )
             rmdir /s /q ibex_utils
             """
       }
