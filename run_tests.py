@@ -138,6 +138,7 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
 
             for module in modules_to_be_tested_in_current_mode:
                 device_launchers = make_device_launchers_from_module(module.file, mode)
+            try:
                 test_results.append(
                     threadpool.submit(run_tests, arguments.prefix, module.tests,
                                       device_collection_launcher(device_launchers), failfast, ask_before_running_tests))
@@ -252,10 +253,11 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
 
     if os.path.dirname(arguments.tests_path):
-        tests_module_path = os.path.abspath(os.path.dirname(arguments.tests_path))
-        if not os.path.isdir(tests_module_path):
-            print("Test path {} not found".format(tests_module_path))
+        full_path = os.path.abspath(arguments.tests_path)
+        if not os.path.isdir(full_path):
+            print("Test path {} not found".format(full_path))
             sys.exit(-1)
+        tests_module_path = os.path.dirname(full_path)
         sys.path.insert(0, tests_module_path)
         arguments.tests_path = os.path.basename(arguments.tests_path)
 
@@ -268,11 +270,11 @@ if __name__ == '__main__':
     var_dir = var_dir.replace('/', '\\')
 
     if arguments.prefix is None:
-        print("Cannot run without instrument prefix")
+        print("Cannot run without instrument prefix, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
     if arguments.emulator_path is None:
-        print("Cannot run without emulator path")
+        print("Cannot run without emulator path, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)

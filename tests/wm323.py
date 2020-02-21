@@ -25,7 +25,7 @@ SPEED_LOW_LIMIT = 3
 SPEED_HIGH_LIMIT = 400
 
 
-class Itc503Tests(unittest.TestCase):
+class Wm323Tests(unittest.TestCase):
     """
     Tests for the wm323 IOC.
     """

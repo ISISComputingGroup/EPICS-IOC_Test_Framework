@@ -179,15 +179,19 @@ class EmulatorLauncher(object):
             Nothing.
         """
 
-    def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None):
+    def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None,
+                                      cast=lambda val: val):
         """
-        Assert that the pv has the expected value or that it becomes the expected value within the timeout.
+        Assert that the emulator property has the expected value or that it becomes the expected value within the
+        timeout.
 
         Args:
             emulator_property (string): emulator property to check
-            expected_value: expected value
+            expected_value: expected value. Emulator backdoor always returns a string, so the value should be a string.
             timeout (float): if it hasn't changed within this time raise assertion error
             message (string): Extra message to print
+            cast (callable): function which casts the returned value to an appropriate type before
+                checking equality. E.g. to cast to float pass the float class as this argument.
         Raises:
             AssertionError: if emulator property is not the expected value
             UnableToConnectToPVException: if emulator property does not exist within timeout
@@ -197,12 +201,12 @@ class EmulatorLauncher(object):
             message = "Expected PV to have value {}.".format(format_value(expected_value))
 
         return self.assert_that_emulator_value_causes_func_to_return_true(
-            emulator_property, lambda val: val == expected_value, timeout=timeout, msg=message)
+            emulator_property, lambda val: cast(val) == expected_value, timeout=timeout, msg=message)
 
     def assert_that_emulator_value_causes_func_to_return_true(
             self, emulator_property, func, timeout=None, msg=None):
         """
-        Check that a emulator property satisfies a given function within some timeout.
+        Check that an emulator property satisfies a given function within some timeout.
 
         Args:
             emulator_property (string): emulator property to check
@@ -273,7 +277,8 @@ class EmulatorLauncher(object):
 
             Args:
                  emulator_property (string): Name of the numerical emulator property.
-                 min_value (float): Minimum value (inclusive).
+                 min_value (float): Minimum value (inclusive).Emulator backdoor always returns a string, so the value
+                 should be a string.
                  timeout: if it hasn't changed within this time raise assertion error
             Raises:
                  AssertionError: if value does not become requested value
@@ -554,12 +559,17 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
             raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and `solution_path` options must"
                            " be provided as part of the options dictionary")
 
-        automation_tools = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools", "bin", "x64", "Release", "AutomationTools.exe")
-        plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
-        self.beckhoff_command_line = '{} "{}" '.format(automation_tools, plc_to_start)
-        self.startup_command = self.beckhoff_command_line + "activate run"
+        automation_tools_dir = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools")
+        automation_tools_binary = os.path.join(automation_tools_dir, "bin", "x64", "Release", "AutomationTools.exe")
 
-        options["emulator_command_line"] = self.startup_command
-        options["emulator_wait_to_finish"] = True
-        super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
+        if os.path.exists(automation_tools_binary):
+            plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
+            self.beckhoff_command_line = '{} "{}" '.format(automation_tools_binary, plc_to_start)
+            self.startup_command = self.beckhoff_command_line + "activate run"
 
+            options["emulator_command_line"] = self.startup_command
+            options["emulator_wait_to_finish"] = True
+            super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
+        else:
+            raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
+                          " {} \n".format(automation_tools_dir))

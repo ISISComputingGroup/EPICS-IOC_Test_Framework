@@ -5,8 +5,7 @@ import time
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
 
 # Device prefix
 DEVICE_PREFIX = "INSTRON_01"
@@ -610,6 +609,7 @@ class InstronStressRigTests(unittest.TestCase):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel)
             self.ca.assert_that_pv_is(wave_prefixed("FREQ"), expected_values[device_channel])
 
+    @unstable_test()
     @skip_if_recsim("Conversion factors initialized to 0")
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = [123.4, 567.8, 91.2]
@@ -618,6 +618,10 @@ class InstronStressRigTests(unittest.TestCase):
             float(self.ca.get_pv_value("STRESS:SCALE"))/float(self.ca.get_pv_value("STRESS:AREA")),
             float(self.ca.get_pv_value("STRAIN:SCALE"))*100000*float(self.ca.get_pv_value("STRAIN:LENGTH"))
         ]
+
+        for i in range(len(conversion_factors)):
+            self.assertNotEqual(0, conversion_factors[i], "Factor {} was zero".format(i))
+
         expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
         assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
 

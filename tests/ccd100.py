@@ -4,7 +4,7 @@ from time import sleep
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import get_running_lewis_and_ioc, assert_log_messages, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, assert_log_messages, skip_if_recsim, unstable_test
 from parameterized import parameterized
 
 # Device prefix
@@ -73,6 +73,9 @@ class CCD100SecondDeviceTests(CCD100Tests):
 class CCD100LogTests(unittest.TestCase):
     """
     Tests for the log messages produced by CCD100.
+
+    In general all we want to test here is that we're not producing excessive messages. Unfortunately some of the
+    messages outputted by autosave etc. are outside our control so we're just testing messages are less than some value.
     """
     NUM_OF_PVS = 3
 
@@ -84,24 +87,27 @@ class CCD100LogTests(unittest.TestCase):
         sleep(2)  # Wait for previous errors to get logged
 
     @skip_if_recsim("Cannot check log messages in rec sim")
-    def test_GIVEN_not_in_error_WHEN_put_in_error_THEN_three_log_messages_per_pv_logged_in_five_secs(self):
-        self._set_error_state(False) # Should already be out of error state but doing this again to ingest logs
-        with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
+    def test_GIVEN_not_in_error_WHEN_put_in_error_THEN_less_than_four_log_messages_per_pv_logged_in_five_secs(self):
+        self._set_error_state(False)  # Should already be out of error state but doing this again to ingest logs
+        # Actually expect 3 messages but checking for 4 as a buffer see comment above
+        with assert_log_messages(self._ioc, self.NUM_OF_PVS*4, 5) as log:
             self._set_error_state(True)
 
     @skip_if_recsim("Cannot check log messages in rec sim")
-    def test_GIVEN_in_error_WHEN_error_cleared_THEN_one_log_message_per_pv_logged(self):
+    def test_GIVEN_in_error_WHEN_error_cleared_THEN_less_than_two_log_message_per_pv_logged(self):
         self._set_error_state(True)
-        with assert_log_messages(self._ioc, self.NUM_OF_PVS*1):
+        # Actually expect 1 message but checking for 2 as a buffer see comment above
+        with assert_log_messages(self._ioc, self.NUM_OF_PVS*2):
             self._set_error_state(False)
 
     @skip_if_recsim("Cannot check log messages in rec sim")
-    def test_GIVEN_in_error_WHEN_error_string_changed_THEN_three_log_message_per_pv_logged_in_five_secs(self):
+    def test_GIVEN_in_error_WHEN_error_string_changed_THEN_less_than_four_log_message_per_pv_logged_in_five_secs(self):
         self._lewis.backdoor_set_on_device("out_error", "OLD_ERROR")
         self._set_error_state(True)
 
         new_error = "A_NEW_ERROR"
-        with assert_log_messages(self._ioc, self.NUM_OF_PVS*3, 5) as log:
+        # Actually expect 3 messages but checking for 4 as a buffer see comment above
+        with assert_log_messages(self._ioc, self.NUM_OF_PVS*4, 5) as log:
             self._lewis.backdoor_set_on_device("out_error", new_error)
 
-        self.assertTrue(new_error in log.messages[-1])
+        self.assertTrue(any([new_error in _ for _ in log.messages[-3:]]))
