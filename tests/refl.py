@@ -383,7 +383,7 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:THETA:SP", theta)
         self.ca.set_pv_value("PARAM:S5:SP", 0)
 
-        self.ca.assert_that_pv_is("COR:MOT:MTR0206.DESC",
+        self.ca.assert_that_pv_is("COR:MOT:MTR0206:DESC",
                                   "Interpolated from file s4_correction.dat on MOT:MTR0206 for s5")
         self.ca.assert_that_pv_is("COR:MOT:MTR0206", theta/10.0)  # s4 correction is a 1/10 of theta
 
