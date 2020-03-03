@@ -4,7 +4,7 @@ from parameterized import parameterized
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
 DEVICE_PREFIX = "CRYOSMS_01"
 EMULATOR_NAME = "cryogenic_sms"
@@ -39,6 +39,13 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_RAMPS = [[(0, 1), [1.12]],
+              [(0.5, 2.5), [1.12, 0.547, 0.038]],
+              [(-0.5, -2.5), [1.12, 0.547, 0.038]],
+              [(2.5, 0.5), [0.038, 0.547, 1.12]],
+              [(2.5, -2.5)], [0.038, 0.547, 1.12, 0.547, 0.038],
+              [(-2.5, 2.5)], [0.038, 0.547, 1.12, 0.547, 0.038],
+              ]
 
 
 class CryoSMSTests(unittest.TestCase):
@@ -83,3 +90,13 @@ class CryoSMSTests(unittest.TestCase):
     @parameterized.expand(["TESLA", "AMPS"])
     def test_GIVEN_outputmode_sp_correct_WHEN_outputmode_sp_written_to_THEN_outputmode_changes(self, units):
         self.ca.assert_setting_setpoint_sets_readback(units, "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
+
+    @parameterized.expand(parameterized_list(TEST_RAMPS))
+    def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(self, ramp_data):
+        startPoint, endPoint = ramp_data[0]
+        rampRateSequence = ramp_data[1]
+        self._lewis.backdoor_set_on_device("output", startPoint)
+        self.ca.set_pv_value("MID:SP", endPoint)
+        self.ca.set_pv_value("START:SP", 1)
+        for rate in rampRateSequence:
+            self.ca.assert_that_pv_is("RAMP:RATE", rate)
