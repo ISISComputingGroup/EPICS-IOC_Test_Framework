@@ -24,6 +24,10 @@ MAGNETOMETER_DEVICE_PREFIX = "ZFMAGFLD_01"
 DEFAULT_LOW_OUTPUT_LIMIT = -100
 DEFAULT_HIGH_OUTPUT_LIMIT = 100
 
+X_KEPCO_VOLTAGE_LIMIT = 20
+Y_KEPCO_VOLTAGE_LIMIT = 30
+Z_KEPCO_VOLTAGE_LIMIT = 40
+
 
 IOCS = [
     {
@@ -48,6 +52,10 @@ IOCS = [
             "AMPS_PER_MG_X": "1",
             "AMPS_PER_MG_Y": "1",
             "AMPS_PER_MG_Z": "1",
+
+            "OUTPUT_VOLTAGE_X_MAX": X_KEPCO_VOLTAGE_LIMIT,
+            "OUTPUT_VOLTAGE_Y_MAX": Y_KEPCO_VOLTAGE_LIMIT,
+            "OUTPUT_VOLTAGE_Z_MAX": Z_KEPCO_VOLTAGE_LIMIT,
         }
     },
     {
@@ -178,6 +186,21 @@ class ZeroFieldTests(unittest.TestCase):
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:CURR".format(axis), currents[axis])
                 self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:CURR:SP:RBV".format(axis), currents[axis])
+
+    def _set_simulated_power_supply_voltages(self, voltages, wait_for_update=True):
+        """
+        Args:
+            voltages (dict[AnyStr, float]): A dictionary with the same keys as FIELD_AXES and values corresponding to
+              the required voltages
+            wait_for_update (bool): whether to wait for the readback and setpoint readbacks to update
+        """
+        for axis in FIELD_AXES:
+            self.zfcntrl_ca.set_pv_value("OUTPUT:{}:VOLT:SP".format(axis), voltages[axis], sleep_after_set=0)
+
+        if wait_for_update:
+            for axis in FIELD_AXES:
+                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:VOLT".format(axis), voltages[axis])
+                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:VOLT:SP:RBV".format(axis), voltages[axis])
 
     def _assert_stable(self, stable):
         """
@@ -674,3 +697,12 @@ class ZeroFieldTests(unittest.TestCase):
         self._assert_status(Statuses.MAGNETOMETER_OVERLOAD if overloaded else Statuses.NO_ERROR)
         self.zfcntrl_ca.assert_that_pv_alarm_is(
             "STATUS", self.zfcntrl_ca.Alarms.MAJOR if overloaded and autofeedback else self.zfcntrl_ca.Alarms.NONE)
+
+    def test_GIVEN_power_supply_voltage_limit_is_set_incorrectly_WHEN_going_into_auto_mode_THEN_correct_limits_applied(self):
+        self._set_simulated_power_supply_voltages({"X": 0, "Y": 0, "Z": 0})
+
+        self._set_autofeedback(True)
+
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:X:VOLT:SP:RBV", X_KEPCO_VOLTAGE_LIMIT)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Y:VOLT:SP:RBV", Y_KEPCO_VOLTAGE_LIMIT)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Z:VOLT:SP:RBV", Z_KEPCO_VOLTAGE_LIMIT)
