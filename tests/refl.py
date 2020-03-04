@@ -649,13 +649,13 @@ class ReflTests(unittest.TestCase):
 
     def test_GIVEN_value_parameter_WHEN_read_THEN_value_returned(self):
 
-        param_pv = "VALUE:TEN"
+        param_pv = "CONST:TEN"
 
         self.ca.assert_that_pv_is(param_pv, 10)
         self.ca.assert_that_pv_is("{}.DESC".format(param_pv), "The value 10")
 
     def test_GIVEN_bool_parameter_WHEN_read_THEN_value_returned(self):
 
-        param_pv = "VALUE:YES"
+        param_pv = "CONST:YES"
 
         self.ca.assert_that_pv_is(param_pv, "YES")
