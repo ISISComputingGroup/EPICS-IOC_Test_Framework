@@ -71,10 +71,10 @@ def get_beamline():
 
     # Value parameters
     value_parameters = [
-        ValueParameter("TEN", 10, "The value 10"),
-        ValueParameter("YES", True, "True is Yes")]
+        BeamlineConstant("TEN", 10, "The value 10"),
+        BeamlineConstant("YES", True, "True is Yes")]
 
     beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-    bl = Beamline(comps, params_all, drivers, modes, beam_start, value_parameters=value_parameters)
+    bl = Beamline(comps, params_all, drivers, modes, beam_start, beamline_constants=value_parameters)
 
     return bl
