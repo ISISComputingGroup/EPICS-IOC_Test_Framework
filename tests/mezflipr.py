@@ -79,7 +79,7 @@ class MezfliprTests(unittest.TestCase):
         self._assert_mode("analytical")
 
     @skip_if_recsim("State of device not simulated in recsim")
-    def test_WHEN_file_mode_set_THEN_parameters_reflected_and_mode_is_static(self):
+    def test_WHEN_file_mode_set_THEN_parameters_reflected_and_mode_is_file(self):
         param = r"C:\some\file\path\to\a\file\in\a\really\deep\directory\structure\with\path\longer\than\40\characters"
         self.ca.set_pv_value("{}:FILENAME:SP".format(flipper), param)
 
