@@ -46,49 +46,45 @@ class MezfliprTests(unittest.TestCase):
     def test_GIVEN_compensation_is_set_THEN_compensation_can_be_read_back(self, _, compensation):
         self.ca.assert_setting_setpoint_sets_readback(compensation, readback_pv="{}:COMPENSATION".format(flipper))
 
+    def _assert_mode(self, mode):
+        self.ca.assert_that_pv_is("{}:MODE".format(flipper), mode)
+        self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
+
+    def _assert_params(self, param):
+        self.ca.assert_that_pv_is("{}:PARAMS".format(flipper), param)
+        self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
+
     @skip_if_recsim("State of device not simulated in recsim")
-    def test_WHEN_constant_current_mode_set_THEN_parameters_reflected_and_mode_is_static(self):
+    def test_WHEN_constant_current_mode_set_THEN_parameters_reflected_and_mode_is_constant_current(self):
         param = 25
         self.ca.set_pv_value("{}:CURRENT:SP".format(flipper), param)
 
-        self.ca.assert_that_pv_is("{}:PARAMS".format(flipper), "{:.1f}".format(param))
-        self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
-
-        self.ca.assert_that_pv_is("{}:MODE".format(flipper), "static")
-        self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
+        self._assert_params("{:.1f}".format(param))
+        self._assert_mode("static")
 
     @skip_if_recsim("State of device not simulated in recsim")
-    def test_WHEN_steps_mode_set_THEN_parameters_reflected_and_mode_is_static(self):
+    def test_WHEN_steps_mode_set_THEN_parameters_reflected_and_mode_is_steps(self):
         param = "[some, random, list, of, data]"
         self.ca.set_pv_value("{}:CURRENT_STEPS:SP".format(flipper), param)
 
-        self.ca.assert_that_pv_is("{}:PARAMS".format(flipper), param)
-        self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
-
-        self.ca.assert_that_pv_is("{}:MODE".format(flipper), "steps")
-        self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
+        self._assert_params(param)
+        self._assert_mode("steps")
 
     @skip_if_recsim("State of device not simulated in recsim")
-    def test_WHEN_analytical_mode_set_THEN_parameters_reflected_and_mode_is_static(self):
+    def test_WHEN_analytical_mode_set_THEN_parameters_reflected_and_mode_is_analytical(self):
         param = "a long string of parameters which is longer than 40 characters"
         self.ca.set_pv_value("{}:CURRENT_ANALYTICAL:SP".format(flipper), param)
 
-        self.ca.assert_that_pv_is("{}:PARAMS".format(flipper), param)
-        self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
-
-        self.ca.assert_that_pv_is("{}:MODE".format(flipper), "analytical")
-        self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
+        self._assert_params(param)
+        self._assert_mode("analytical")
 
     @skip_if_recsim("State of device not simulated in recsim")
     def test_WHEN_file_mode_set_THEN_parameters_reflected_and_mode_is_static(self):
         param = r"C:\some\file\path\to\a\file\in\a\really\deep\directory\structure\with\path\longer\than\40\characters"
         self.ca.set_pv_value("{}:FILENAME:SP".format(flipper), param)
 
-        self.ca.assert_that_pv_is("{}:PARAMS".format(flipper), param)
-        self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
-
-        self.ca.assert_that_pv_is("{}:MODE".format(flipper), "file")
-        self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
+        self._assert_params(param)
+        self._assert_mode("file")
 
     @parameterized.expand(parameterized_list(["MODE", "COMPENSATION", "PARAMS"]))
     @skip_if_recsim("Recsim cannot test disconnected device")
