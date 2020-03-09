@@ -69,7 +69,12 @@ def get_beamline():
     testing_mode = BeamlineMode("TESTING", [param.name for param in params_for_mode_testing], nr_inits)
     modes = [nr_mode, polarised_mode, testing_mode]
 
+    # Value parameters
+    value_parameters = [
+        BeamlineConstant("TEN", 10, "The value 10"),
+        BeamlineConstant("YES", True, "True is Yes")]
+
     beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-    bl = Beamline(comps, params_all, drivers, modes, beam_start)
+    bl = Beamline(comps, params_all, drivers, modes, beam_start, beamline_constants=value_parameters)
 
     return bl

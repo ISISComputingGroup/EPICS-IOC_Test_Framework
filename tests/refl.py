@@ -383,7 +383,7 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:THETA:SP", theta)
         self.ca.set_pv_value("PARAM:S5:SP", 0)
 
-        self.ca.assert_that_pv_is("COR:MOT:MTR0206.DESC",
+        self.ca.assert_that_pv_is("COR:MOT:MTR0206:DESC",
                                   "Interpolated from file s4_correction.dat on MOT:MTR0206 for s5")
         self.ca.assert_that_pv_is("COR:MOT:MTR0206", theta/10.0)  # s4 correction is a 1/10 of theta
 
@@ -646,3 +646,16 @@ class ReflTests(unittest.TestCase):
         self.assertRaises(IOError, self.ca.set_pv_value, param_pv, new_position)
 
         self.ca.assert_that_pv_is_not(param_pv, new_position)
+
+    def test_GIVEN_value_parameter_WHEN_read_THEN_value_returned(self):
+
+        param_pv = "CONST:TEN"
+
+        self.ca.assert_that_pv_is(param_pv, 10)
+        self.ca.assert_that_pv_is("{}.DESC".format(param_pv), "The value 10")
+
+    def test_GIVEN_bool_parameter_WHEN_read_THEN_value_returned(self):
+
+        param_pv = "CONST:YES"
+
+        self.ca.assert_that_pv_is(param_pv, "YES")
