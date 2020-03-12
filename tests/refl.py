@@ -33,7 +33,7 @@ IOCS = [
         "directory": REFL_PATH,
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
         "started_text": "Instantiating Beamline Model",
-        "pv_for_existence": "BL:STAT",
+        "pv_for_existence": "STAT",
         "macros": {
         },
         "environment_vars": {
@@ -139,7 +139,7 @@ class ReflTests(unittest.TestCase):
             yield
 
     def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
-        self.ca.assert_that_pv_is("BL:STAT", "OKAY")
+        self.ca.assert_that_pv_is("STAT", "OKAY")
 
     def test_GIVEN_slit_with_beam_along_z_axis_WHEN_set_value_THEN_read_back_MTR_and_setpoints_moves_to_given_value(self):
         expected_value = 3.0
