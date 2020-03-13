@@ -77,18 +77,13 @@ class RotscTests(unittest.TestCase):
 
     def test_GIVEN_current_position_WHEN_position_set_to_current_position_THEN_setpoint_not_sent(self):
         # GIVEN
-        self.ca.set_pv_value("POSN:SP", 3)
-        self._assert_position_reached(3)
-        self.ca.assert_that_pv_is("STAT", "Idle")
-
-        timestamp = self.ca.get_pv_value("POSN:SP:RAW.TSEL")
-
+        with self.ca.assert_pv_processed(self._ioc, "POSN:SP:RAW"):
+            self.ca.set_pv_value("POSN:SP", 3)
+            self.ca.assert_that_pv_is("POSN", 3)
+            self.ca.assert_that_pv_is("STAT", "Idle")
         # WHEN
-        self.ca.set_pv_value("POSN:SP", 3)
-
-        # THEN - check that timestamp on raw setpoint did not change i.e. did not reprocess
-        self.ca.assert_that_pv_is("POSN:SP:RAW.TSEL", timestamp)
-        self.ca.assert_that_pv_value_is_unchanged("POSN:SP:RAW.TSEL", wait=30)
+        with self.ca.assert_pv_not_processed(self._ioc, "POSN:SP:RAW"):
+            self.ca.set_pv_value("POSN:SP", 3)
 
     @skip_if_recsim("No emulator backdoor in recsim")
     def test_GIVEN_sample_changer_drops_sample_WHEN_doing_a_move_THEN_move_is_retried_and_error_in_log(self):

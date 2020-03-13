@@ -59,6 +59,10 @@ IOCS = [
             "MTR0104.HLM": SOFT_LIMIT_HI,
             "MTR0105.LLM": SOFT_LIMIT_LO,
             "MTR0105.HLM": SOFT_LIMIT_HI,
+            "MTR0107.ERES": 0.001,
+            "MTR0107.MRES": 0.001,
+            "MTR0108.ERES": 0.001,
+            "MTR0108.MRES": 0.001
         }
     },
     {
@@ -112,6 +116,9 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("PARAM:S1:SP", 0)
         self.ca.set_pv_value("PARAM:S3:SP", 0)
+        self.ca.set_pv_value("PARAM:SMANGLE:SP", 0)
+        self.ca.set_pv_value("PARAM:SMOFFSET:SP", 0)
+        self.ca.set_pv_value("PARAM:SMINBEAM:SP", "OUT")
         self.ca.set_pv_value("PARAM:THETA:SP", 0)
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
@@ -126,7 +133,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.set_pv_value("MTR0104.VELO", velocity)
         self.ca_galil.set_pv_value("MTR0105.VELO", FAST_VELOCITY)  # Remove angle as a speed limiting factor
 
-    def _check_param_pvs(self, param_name, expected_value):
+    def _check_param(self, param_name, expected_value):
         self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
         self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
         self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
@@ -659,3 +666,24 @@ class ReflTests(unittest.TestCase):
         param_pv = "CONST:YES"
 
         self.ca.assert_that_pv_is(param_pv, "YES")
+
+    def test_GIVEN_PNR_mode_with_SM_angle_WHEN_move_in_disable_mode_and_into_PNR_THEN_beamline_is_updated_on_mode_change_and_value_of_pd_offsets_correct(self):
+
+        self.ca.set_pv_value("BL:MODE:SP", "POLARISED")
+        self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", "0.2")
+        self.ca.set_pv_value("BL:MOVE", 1)
+        self.ca.assert_that_pv_is_number("PARAM:SMANGLE", 0.2, tolerance=1e-2)
+
+        self.ca.set_pv_value("BL:MODE:SP", "DISABLED")
+        self.ca.set_pv_value("PARAM:SMANGLE:SP", "0")
+        self.ca.assert_that_pv_is_number("PARAM:SMANGLE", 0.0, tolerance=1e-2)
+
+        self.ca.assert_that_pv_is_number("PARAM:S3", 0.0, tolerance=1e-2)
+        self.ca.assert_that_pv_is_number("PARAM:DET_POS", 0.0, tolerance=1e-2)
+
+        self.ca.set_pv_value("BL:MODE:SP", "POLARISED")
+
+        # In polarised mode the sm angle will now make everything appear to be in the wrong place.
+        # This test will also check that on changing modes the beamline is updated
+        self.ca.assert_that_pv_is_not_number("PARAM:S3", 0.0, tolerance=1e-2)
+        self.ca.assert_that_pv_is_not_number("PARAM:DET_POS", 0.0, tolerance=1e-2)
