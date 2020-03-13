@@ -581,6 +581,14 @@ class ChannelAccess(object):
 
     @contextmanager
     def assert_pv_not_processed(self, ioc, pv):
+        """
+        Asserts that a PV was not processed by enabling TPRO (trace processing) and asserting that the relevant message
+        does not appear in the IOC log.
+
+        Args:
+            ioc: the IOC object (necessary to be able to read the log file)
+            pv: the PV on which to check (lack of) processing
+        """
         # Local import to avoid circular dependency
         from utils.testing import assert_log_messages
 
