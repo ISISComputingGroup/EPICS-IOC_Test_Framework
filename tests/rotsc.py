@@ -108,3 +108,11 @@ class RotscTests(unittest.TestCase):
 
         # The move should be retried (eventually) and so the position should go correct
         self._assert_position_reached(final_position, timeout=60)
+
+    @skip_if_recsim("Moves occur instantly in recsim")
+    def test_WHEN_sample_changer_goes_into_error_whilst_moving_THEN_move_not_completed(self):
+        # Set initial position to 1 and wait for it to get there, so that we can tell it moved later.
+        self.ca.set_pv_value("POSN:SP", 3)
+        self._lewis.backdoor_set_on_device("current_err", 8)
+        self.ca.assert_that_pv_is("CALC_MOVE_FINISHED", 0)
+        self.ca.assert_that_pv_value_is_unchanged("CALC_MOVE_FINISHED", wait=5)
