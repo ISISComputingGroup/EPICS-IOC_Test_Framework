@@ -558,3 +558,46 @@ class ChannelAccess(object):
         yield
 
         self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, pv_value_source=pv_value_source)
+
+    @contextmanager
+    def assert_pv_processed(self, ioc, pv):
+        """
+        Asserts that a PV was processed by enabling TPRO (trace processing) and asserting that the relevant message
+        appears in the IOC log.
+
+        Args:
+            ioc: the IOC object (necessary to be able to read the log file)
+            pv: the PV on which to check processing
+        """
+        # Local import to avoid circular dependency
+        from utils.testing import assert_log_messages
+
+        self.set_pv_value("{}.TPRO".format(pv), 1)
+        try:
+            with assert_log_messages(ioc, must_contain="dbProcess of '{}{}'".format(self.prefix, pv)):
+                yield
+        finally:
+            self.set_pv_value("{}.TPRO".format(pv), 0)
+
+    @contextmanager
+    def assert_pv_not_processed(self, ioc, pv):
+        """
+        Asserts that a PV was not processed by enabling TPRO (trace processing) and asserting that the relevant message
+        does not appear in the IOC log.
+
+        Args:
+            ioc: the IOC object (necessary to be able to read the log file)
+            pv: the PV on which to check (lack of) processing
+        """
+        # Local import to avoid circular dependency
+        from utils.testing import assert_log_messages
+
+        self.set_pv_value("{}.TPRO".format(pv), 1)
+        try:
+            with assert_log_messages(ioc) as cm:
+                yield
+
+            if any("dbProcess of '{}{}'".format(self.prefix, pv) in message for message in cm.messages):
+                raise AssertionError("PV '{}{}' was processed when it should not have been".format(self.prefix, pv))
+        finally:
+            self.set_pv_value("{}.TPRO".format(pv), 0)
