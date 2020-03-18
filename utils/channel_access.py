@@ -572,7 +572,7 @@ class ChannelAccess(object):
         # Local import to avoid circular dependency
         from utils.testing import assert_log_messages
 
-        self.set_pv_value("{}.TPRO".format(pv), 1)
+        self.set_pv_value("{}.TPRO".format(pv), 1, wait=True)
         try:
             with assert_log_messages(ioc, must_contain="dbProcess of '{}{}'".format(self.prefix, pv)):
                 yield
