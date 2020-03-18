@@ -76,12 +76,12 @@ class Lakeshore460Tests(unittest.TestCase):
             self.ca.assert_that_pv_is("{}:FIELD:RAW".format(chan), set_field_reading)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_prms_set_rms_WHEN_read_THEN_prms_is_rms(self):
+    def test_GIVEN_prms_set_peak_WHEN_read_THEN_prms_is_peak(self):
         for chan in channels:
             set_prms = UnitFlags.PEAK
             expected_prms = UnitStrings.PEAK
             self.ca.assert_setting_setpoint_sets_readback(set_prms, "{}:PRMS".format(chan),
-                                                          "{}:PRMS:SP".format(chan), expected_prms)
+                                                          "{}:PRMS:SP".format(chan), expected_prms, timeout=15)
     
     def test_GIVEN_unit_set_tesla_WHEN_read_THEN_unit_is_tesla(self):
         unit_string = UnitStrings.TESLA
@@ -112,12 +112,12 @@ class Lakeshore460Tests(unittest.TestCase):
                                                           "{}:MODE:SP".format(chan), expected_mode)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_prms_set_peak_WHEN_read_THEN_prms_is_peak(self):
+    def test_GIVEN_prms_set_rms_WHEN_read_THEN_prms_is_rms(self):
         for chan in channels:
             set_prms = UnitFlags.RMS
             expected_prms = UnitStrings.RMS
             self.ca.assert_setting_setpoint_sets_readback(set_prms, "{}:PRMS".format(chan),
-                                                          "{}:PRMS:SP".format(chan), expected_prms)
+                                                          "{}:PRMS:SP".format(chan), expected_prms, timeout=15)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_display_filter_set_on_WHEN_read_THEN_display_filter_is_set_value(self):
