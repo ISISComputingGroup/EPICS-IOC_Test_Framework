@@ -5,7 +5,7 @@ import time
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list, ManagerMode, unstable_test
 
@@ -15,12 +15,10 @@ DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
 LSICORR_PATH = os.path.join(EPICS_TOP, "support", "lsicorr", "master")
 IOCS = [
     {
-        "ioc_launcher_class": PythonIOCLauncher,
+        "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
-        "directory": LSICORR_PATH,
-        "python_script_commandline": [os.path.join(LSICORR_PATH, "LSi_Correlator.py"), "--pv_prefix", "TE:NDW1836:", "--ioc_number", "{}".format(ioc_number)],
+        "directory": get_default_ioc_dir("LSICORR"),
         "started_text": "IOC started",
-        "python_version": 3,
         "macros": {
         }
     }
@@ -136,7 +134,7 @@ class LSITests(unittest.TestCase):
     @parameterized.expand([
         ("OVERLOADLIMIT", "Mcps"),
         ("SCATTERING_ANGLE", "degree"),
-        ("SAMPLE_TEMP", "C"),
+        ("SAMPLE_TEMP", "K"),
         ("SOLVENT_VISCOSITY", "mPas"),
         ("SOLVENT_REFRACTIVE_INDEX", ""),
         ("LASER_WAVELENGTH", "nm")
