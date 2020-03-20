@@ -6,6 +6,7 @@ import os
 import subprocess
 
 import sys
+import datetime
 from time import sleep, time
 from functools import partial
 import six
@@ -16,6 +17,7 @@ from utils.log_file import log_filename
 from utils.formatters import format_value
 
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
+
 
 
 class EmulatorRegister(object):
@@ -169,6 +171,23 @@ class EmulatorLauncher(object):
             Nothing.
         """
 
+    def backdoor_set_and_assert_set(self, variable, value, *args, **kwargs):
+        """
+        Sets a value on the emulator via the backdoor and gets it back to assert it's been set
+
+        Args:
+            variable: The name of the variable to set
+            value: The value to set
+            args: arbitrary arguments
+            kwargs: arbitrary keyword arguments
+
+        Raises:
+            AssertionError: if emulator property is not the expected value
+            UnableToConnectToPVException: if emulator property does not exist within timeout
+        """
+        self.backdoor_set_on_device(variable, value)
+        self.assert_that_emulator_value_is(variable, str(value))
+
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None,
                                       cast=lambda val: val):
         """
@@ -262,23 +281,23 @@ class EmulatorLauncher(object):
         return wait_for_lambda()
 
     def assert_that_emulator_value_is_greater_than(self, emulator_property, min_value, timeout=None):
-            """
-            Assert that an emulator property has a value greater than the expected value.
+        """
+        Assert that an emulator property has a value greater than the expected value.
 
-            Args:
-                 emulator_property (string): Name of the numerical emulator property.
-                 min_value (float): Minimum value (inclusive).Emulator backdoor always returns a string, so the value
-                 should be a string.
-                 timeout: if it hasn't changed within this time raise assertion error
-            Raises:
-                 AssertionError: if value does not become requested value
-                 UnableToConnectToPVException: if pv does not exist within timeout
-            """
+        Args:
+             emulator_property (string): Name of the numerical emulator property.
+             min_value (float): Minimum value (inclusive).Emulator backdoor always returns a string, so the value
+             should be a string.
+             timeout: if it hasn't changed within this time raise assertion error
+        Raises:
+             AssertionError: if value does not become requested value
+             UnableToConnectToPVException: if pv does not exist within timeout
+        """
 
-            message = "Expected emulator property {} to have a value greater than or equal to {}".format(
-                emulator_property, min_value)
-            return self.assert_that_emulator_value_causes_func_to_return_true(
-                emulator_property, lambda value: min_value <= float(value), timeout, message)
+        message = "Expected emulator property {} to have a value greater than or equal to {}".format(
+            emulator_property, min_value)
+        return self.assert_that_emulator_value_causes_func_to_return_true(
+            emulator_property, lambda value: min_value <= float(value), timeout, message)
 
 
 class NullEmulatorLauncher(EmulatorLauncher):
@@ -327,6 +346,7 @@ class LewisLauncher(EmulatorLauncher):
                                                   os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
         self._default_timeout = options.get("default_timeout", 5)
+        self._speed = options.get("speed", 100)
 
         self._process = None
         self._logFile = None
@@ -360,7 +380,9 @@ class LewisLauncher(EmulatorLauncher):
             lewis_command_line.extend(["-a", self._lewis_additional_path])
         if self._lewis_package is not None:
             lewis_command_line.extend(["-k", self._lewis_package])
-        lewis_command_line.extend(["-e", "100", self._device])
+
+        # Set lewis speed
+        lewis_command_line.extend(["-e", str(self._speed), self._device])
 
         print("Starting Lewis")
         self._logFile = open(self._log_filename(), "w")
@@ -436,7 +458,8 @@ class LewisLauncher(EmulatorLauncher):
         lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis-control.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
-        self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))
+        time_stamp = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
+        self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
         try:
             p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             for i in range(1, 30):

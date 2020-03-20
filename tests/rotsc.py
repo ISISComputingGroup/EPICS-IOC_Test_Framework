@@ -1,7 +1,6 @@
 import unittest
 
 from parameterized import parameterized
-
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -18,6 +17,7 @@ IOCS = [
         "macros": {},
         "emulator": "rotating_sample_changer",
         "lewis_protocol": "POLARIS",
+        "speed": 10,  # Slowed down from the default 100 to make sure states are reached
     },
 ]
 
@@ -38,15 +38,16 @@ class RotscTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
 
         if not IOCRegister.uses_rec_sim:
-            self._lewis.backdoor_set_on_device("drop_sample_on_next_move", False)
-            self._lewis.assert_that_emulator_value_is("drop_sample_on_next_move", "False")
+            self._lewis.backdoor_command(["device", "reset"])
+            self.ca.assert_that_pv_is("POSN", -1)  # Reset should bring us back to -1
 
-        self.ca.assert_that_pv_exists("POSN")
         self.ca.set_pv_value("SEQ:MAX_MOTION_TIME", 10)  # Make faster for tests.
+        self.ca.set_pv_value("SEQ:MAX_RETRY", 2)  # Make faster for tests.
 
         self.ca.set_pv_value("INIT", 1)
         # setting sim values required due to issue with linking INIT and SIM:INIT
         self._ioc.set_simulated_value("SIM:INIT", 1)
+        self.ca.assert_that_pv_is("IS_INITIALISED", 1)
 
     def _assert_position_reached(self, pos, timeout=30):
         """
@@ -85,24 +86,54 @@ class RotscTests(unittest.TestCase):
         with self.ca.assert_pv_not_processed(self._ioc, "POSN:SP:RAW"):
             self.ca.set_pv_value("POSN:SP", 3)
 
-    @skip_if_recsim("No emulator backdoor in recsim")
-    def test_GIVEN_sample_changer_drops_sample_WHEN_doing_a_move_THEN_move_is_retried_and_error_in_log(self):
-        # Set initial position to 1 and wait for it to get there, so that we can tell it moved later.
-        initial_position = 1
-        self.ca.set_pv_value("POSN:SP", initial_position)
+    def set_up_sample_dropped_test(self, initial_position, sample_drop_position, final_position):
+        # Set initial position and wait for it to get there
+        self.ca.set_pv_value("POSN:SP", initial_position, wait=True)
         self._assert_position_reached(initial_position)
 
-        self._lewis.backdoor_set_on_device("drop_sample_on_next_move", True)
-        self._lewis.assert_that_emulator_value_is("drop_sample_on_next_move", "True")
+        # Tell emulator to drop at some point during travel
+        self._lewis.backdoor_set_and_assert_set("position_to_drop_sample", sample_drop_position)
 
-        # Choice is arbitrary, just needs to be different from initial_position above
-        final_position = 2
+        # Move past the drop position
+        self.ca.set_pv_value("POSN:SP", final_position)
 
-        with assert_log_messages(self._ioc, in_time=30, must_contain="Sample arm has dropped"):
-            self.ca.set_pv_value("POSN:SP", final_position)
+        # Confirm we get a drop
+        self.ca.assert_that_pv_is("ERR_LOWER", "Sample arm has dropped", timeout=10)
 
-        # The move should be retried (eventually) and so the position should go correct
-        self._assert_position_reached(final_position, timeout=60)
+        # Confirm we move back to original position
+        self._lewis.assert_that_emulator_value_is("sample_retrieved", str(False))
+        self.ca.assert_that_pv_is("POSN", initial_position)
+        self.ca.assert_that_pv_is("CALC_NOT_MOVING", 1)
+
+    @skip_if_recsim("No emulator backdoor in recsim")
+    def test_GIVEN_sample_changer_drops_sample_WHEN_doing_a_move_THEN_sample_retrieved(self):
+        initial_position, sample_drop_position, final_position = 2, 5, 10
+        self.set_up_sample_dropped_test(initial_position, sample_drop_position, final_position)
+
+        # Confirm we retrieve sample and move to final position
+        self._lewis.assert_that_emulator_value_is("sample_retrieved", str(True), timeout=5)
+        self.ca.assert_that_pv_is("POSN", final_position)
+
+    @skip_if_recsim("No emulator backdoor in recsim")
+    def test_GIVEN_sample_changer_drops_sample_persistently_WHEN_doing_a_move_THEN_error_after_multiple_retrieves(self):
+        self._lewis.backdoor_set_and_assert_set("drop_persistently", True)
+
+        self.set_up_sample_dropped_test(3, 6, 10)
+
+        # Confirm we eventually get an error that retrieving sample failed
+        self.ca.assert_that_pv_is("ERR_STRING.SVAL", "Dropped sample could not be retrieved", timeout=60)
+
+    @skip_if_recsim("State machine doesn't work well in recsim")
+    def test_WHEN_position_set_to_value_THEN_last_position_saved(self):
+        init_position = 2
+        positions = [init_position, 5, 10]
+        self.ca.set_pv_value("POSN:SP", init_position)
+        self._assert_position_reached(init_position)
+
+        for idx, position in enumerate(positions[1:]):
+            self.ca.set_pv_value("POSN:SP", position)
+            self.ca.assert_that_pv_is("LAST_POSN:SP", positions[idx])
+            self._assert_position_reached(position)
 
     @skip_if_recsim("Moves occur instantly in recsim")
     def test_WHEN_sample_changer_goes_into_error_whilst_moving_THEN_move_not_completed(self):
