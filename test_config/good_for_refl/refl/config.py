@@ -54,9 +54,8 @@ def get_beamline():
                   detector_angle, not_in_mode_pos, hgap_param, vgap_param, hcentre_param, vcentre_param, slit4_pos, slit5_pos]
     params_polerised = [slit1_pos, sm_in_beam, sm_pos, sm_angle, s3_enabled, theta_ang, slit3_pos, detector_position,
                   detector_angle, hgap_param, vgap_param, hcentre_param, vcentre_param, slit4_pos, slit5_pos]
-    params_nr = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle, not_in_mode_pos,
+    params_nr = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle,
                  hgap_param, vgap_param, hcentre_param, vcentre_param, slit4_pos, slit5_pos]
-    params_default = [slit1_pos, s3_enabled, theta_ang, slit3_pos, detector_position, detector_angle, slit4_pos, slit5_pos]
 
     params_for_mode_testing = [slit1_pos, theta_ang, slit3_pos, slit4_pos, slit5_pos, detector_position, s3_enabled]
     params_for_mode_disabled = [detector_position, detector_angle]
