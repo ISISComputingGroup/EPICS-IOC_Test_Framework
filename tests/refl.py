@@ -133,7 +133,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.set_pv_value("MTR0104.VELO", velocity)
         self.ca_galil.set_pv_value("MTR0105.VELO", FAST_VELOCITY)  # Remove angle as a speed limiting factor
 
-    def _check_param(self, param_name, expected_value):
+    def _check_param_pvs(self, param_name, expected_value):
         self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
         self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
         self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
