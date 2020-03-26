@@ -92,7 +92,7 @@ def make_device_launchers_from_module(test_module, mode):
     return device_launchers
 
 
-def load_and_run_tests(test_names, failfast, ask_before_running_tests):
+def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mode=None):
     """
     Loads and runs the dotted unit tests to be run.
 
@@ -100,6 +100,7 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
         test_names: List of dotted unit tests to run.
         failfast: Determines if tests abort after first failure.
         ask_before_running_tests: ask whether to run the tests before running them
+        tests_mode: test mode to run (default: both RECSIM and DEVSIM)
 
     Returns:
         boolean: True if all tests pass and false otherwise.
@@ -118,6 +119,9 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
     test_results = []
 
     for mode in modes:
+        if tests_mode is not None and mode != tests_mode:
+            continue
+
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
@@ -227,6 +231,8 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--ask-before-running', action='store_true',
                         help="""Pauses after starting emulator and ioc. Allows you to use booted
                         emulator/IOC or attach debugger for tests""")
+    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM','RECSIM'],
+                        help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
 
     arguments = parser.parse_args()
 
@@ -259,8 +265,14 @@ if __name__ == '__main__':
     failfast = arguments.failfast
     ask_before_running_tests = arguments.ask_before_running
 
+    tests_mode = None
+    if arguments.tests_mode == "RECSIM":
+        tests_mode = TestModes.RECSIM
+    if arguments.tests_mode == "DEVSIM":
+        tests_mode = TestModes.DEVSIM
+
     try:
-        success = load_and_run_tests(tests, failfast, ask_before_running_tests)
+        success = load_and_run_tests(tests, failfast, ask_before_running_tests, tests_mode)
     except Exception as e:
         print("---\n---\n---\nAn Error occurred loading the tests: ")
         traceback.print_exc()
