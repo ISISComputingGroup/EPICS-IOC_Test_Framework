@@ -9,6 +9,11 @@ pipeline {
     }
   }
 
+  parameters {
+      string(name: 'BUILD_PREFIX', defaultValue: 'EPICS', description: 'Build prefix')
+      string(name: 'BUILD_SUFFIX', defaultValue: 'CLEAN', description: 'Build suffix')
+  }
+
   triggers {
     pollSCM('H/2 * * * *')
     cron('H H/4 * * *')
@@ -48,11 +53,7 @@ pipeline {
             if EXIST "ibex_utils" rmdir /s /q ibex_utils
             git clone https://github.com/ISISComputingGroup/ibex_utils.git ibex_utils
             set \"MYJOB=${env.JOB_NAME}\"
-            if \"%MYJOB%\" == \"System_Tests_IOCs_debug\" (
-                call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat CLEAN EPICS_DEBUG
-            ) else (
-                call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat
-            )
+            call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat \"${params.BUILD_SUFFIX}\" \"${params.BUILD_PREFIX}\"
             rmdir /s /q ibex_utils
             """
       }
