@@ -204,14 +204,14 @@ class ReflTests(unittest.TestCase):
         expected_det_angle = 2.0 * theta_angle
         self.ca_galil.assert_that_pv_is_number("MTR0105", expected_det_angle, 0.01)
 
-    def test_GIVEN_enabled_s3_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_disable_position(self):
+    def test_GIVEN_s3_in_beam_WHEN_disable_THEN_monitor_updates_and_motor_moves_to_out_of_beam_position(self):
         expected_value = "OUT"
 
         with self.ca.assert_that_pv_monitor_is("PARAM:S3INBEAM", expected_value):
             self.ca.set_pv_value("PARAM:S3INBEAM:SP_NO_ACTION", expected_value)
             self.ca.set_pv_value("BL:MOVE", 1)
 
-        self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION_LOW)
+        self.ca_galil.assert_that_pv_is("MTR0102", OUT_POSITION_HIGH)
 
     def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode(self):
         expected_value = "POLARISED"
