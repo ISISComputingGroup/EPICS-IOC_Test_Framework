@@ -139,6 +139,12 @@ class Statuses(object):
     INVALID_PSU_LIMITS = ("PSU high limit<low limit", ChannelAccess.Alarms.MAJOR)
 
 
+class AtSetpointStatuses(object):
+    TRUE = "Yes"
+    FALSE = "No"
+    NA = "N/A"
+
+
 class ZeroFieldTests(unittest.TestCase):
     """
     Tests for the muon zero field controller IOC.
@@ -202,13 +208,12 @@ class ZeroFieldTests(unittest.TestCase):
                 self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:VOLT".format(axis), voltages[axis])
                 self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:VOLT:SP:RBV".format(axis), voltages[axis])
 
-    def _assert_stable(self, stable):
+    def _assert_at_setpoint(self, status):
         """
         Args:
-            stable (bool): whether the field is stable or not.
+            status (string): value of AT_SETPOINT PV (either Yes, No or N/A)
         """
-        self.zfcntrl_ca.assert_that_pv_is("STABLE", "Stable" if stable else "Unstable")
-        self.zfcntrl_ca.assert_that_pv_alarm_is("STABLE", self.zfcntrl_ca.Alarms.NONE if stable else self.zfcntrl_ca.Alarms.MAJOR)
+        self.zfcntrl_ca.assert_that_pv_is("AT_SETPOINT", status)
 
     def _assert_status(self, status):
         """
@@ -406,14 +411,14 @@ class ZeroFieldTests(unittest.TestCase):
             upper_limits={"X": DEFAULT_HIGH_OUTPUT_LIMIT, "Y": DEFAULT_HIGH_OUTPUT_LIMIT, "Z": DEFAULT_HIGH_OUTPUT_LIMIT},
         )
 
-        self._assert_stable(True)
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.NO_ERROR)
 
     def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
         self.zfcntrl_ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     @parameterized.expand(parameterized_list(FIELD_AXES))
-    def test_WHEN_any_readback_value_is_not_equal_to_setpoint_THEN_field_is_marked_as_unstable(self, _, axis_to_vary):
+    def test_WHEN_manual_mode_and_any_readback_value_is_not_equal_to_setpoint_THEN_at_setpoint_field_is_na(self, _, axis_to_vary):
         fields = {"X": 10, "Y": 20, "Z": 30}
         self._set_simulated_measured_fields(fields, overload=False)
         self._set_user_setpoints(fields)
@@ -421,39 +426,39 @@ class ZeroFieldTests(unittest.TestCase):
         # Set one of the parameters to a completely different value
         self.zfcntrl_ca.set_pv_value("FIELD:{}:SP".format(axis_to_vary), 100, sleep_after_set=0)
 
-        self._assert_stable(False)
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.NO_ERROR)
 
-    def test_GIVEN_magnetometer_not_overloaded_WHEN_readback_values_are_equal_to_setpoints_THEN_field_is_marked_as_stable(self):
+    def test_GIVEN_manual_mode_and_magnetometer_not_overloaded_WHEN_readback_values_are_equal_to_setpoints_THEN_at_setpoint_field_is_na(self):
         fields = {"X": 55, "Y": 66, "Z": 77}
         self._set_simulated_measured_fields(fields, overload=False)
         self._set_user_setpoints(fields)
 
-        self._assert_stable(True)
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.NO_ERROR)
 
-    def test_GIVEN_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_stable(self):
+    def test_GIVEN_manual_mode_and_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
         fields = {"X": 55, "Y": 66, "Z": 77}
         self._set_simulated_measured_fields(fields, overload=True)
         self._set_user_setpoints(fields)
 
-        self._assert_stable(True)
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
 
-    def test_GIVEN_just_outside_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_unstable(self):
+    def test_GIVEN_manual_mode_and_just_outside_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
         fields = {"X": 55, "Y": 66, "Z": 77}
         self._set_simulated_measured_fields(fields, overload=True)
         self._set_user_setpoints({k: v + 1.01 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
 
-        self._assert_stable(False)
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
 
-    def test_GIVEN_just_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_stable(self):
+    def test_GIVEN_manual_mode_and_just_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
         fields = {"X": 55, "Y": 66, "Z": 77}
         self._set_simulated_measured_fields(fields, overload=True)
         self._set_user_setpoints({k: v + 0.99 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
 
-        self._assert_stable(True)
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
 
     def test_WHEN_magnetometer_ioc_does_not_respond_THEN_status_is_magnetometer_read_error(self):
@@ -462,14 +467,12 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_user_setpoints(fields)
 
         with self._simulate_disconnected_magnetometer():
-            self._assert_stable(False)
             self._assert_status(Statuses.MAGNETOMETER_READ_ERROR)
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
                 self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
 
         # Now simulate recovery and assert error gets cleared correctly
-        self._assert_stable(True)
         self._assert_status(Statuses.NO_ERROR)
         for axis in FIELD_AXES:
             self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
@@ -481,14 +484,12 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_user_setpoints(fields)
 
         with self._simulate_invalid_magnetometer_readings():
-            self._assert_stable(False)
             self._assert_status(Statuses.MAGNETOMETER_DATA_INVALID)
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
                 self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
 
         # Now simulate recovery and assert error gets cleared correctly
-        self._assert_stable(True)
         self._assert_status(Statuses.NO_ERROR)
         for axis in FIELD_AXES:
             self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
@@ -501,11 +502,11 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_autofeedback(True)
 
         with self._simulate_invalid_power_supply():
-            self._assert_stable(True)  # Invalid power supplies do not mark the field as "unstable"
+            self._assert_at_setpoint(AtSetpointStatuses.TRUE)  # Invalid power supplies do not mark the field as "not at setpoint"
             self._assert_status(Statuses.PSU_INVALID)
 
         # Now simulate recovery and assert error gets cleared correctly
-        self._assert_stable(True)
+        self._assert_at_setpoint(AtSetpointStatuses.TRUE)
         self._assert_status(Statuses.NO_ERROR)
 
     def test_WHEN_power_supplies_writes_fail_THEN_status_is_power_supply_writes_failed(self):
@@ -577,9 +578,9 @@ class ZeroFieldTests(unittest.TestCase):
         )
 
         self._assert_status(Statuses.NO_ERROR)
-        self._assert_stable(False)
 
         self._set_autofeedback(True)
+        self._assert_at_setpoint(AtSetpointStatuses.FALSE)
 
         for axis in FIELD_AXES:
             self.zfcntrl_ca.assert_that_pv_value_over_time_satisfies_comparator("OUTPUT:{}:CURR".format(axis),
@@ -635,7 +636,6 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_scaling_factors(0.001, 0.001, 0.001, fiddle=0.05)
 
         with self._simulate_measured_fields_changing_with_outputs(psu_amps_at_measured_zero=psu_amps_at_zero_field):
-
             self._set_autofeedback(True)
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_is_number(
@@ -644,8 +644,8 @@ class ZeroFieldTests(unittest.TestCase):
                 self.zfcntrl_ca.assert_that_pv_is_number(
                     "FIELD:{}".format(axis), 0.0, tolerance=STABILITY_TOLERANCE)
 
-            self._assert_stable(True)
-            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("STABLE", wait=20)
+            self._assert_at_setpoint(AtSetpointStatuses.TRUE)
+            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("AT_SETPOINT", wait=20)
             self._assert_status(Statuses.NO_ERROR)
 
     @parameterized.expand(parameterized_list(FIELD_AXES))
