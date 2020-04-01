@@ -726,17 +726,3 @@ class ReflTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PARAM:S3INBEAM:CHANGING", "NO", timeout=30)
         self.ca.assert_that_pv_is("PARAM:S3INBEAM", expected_inbeam_status)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
