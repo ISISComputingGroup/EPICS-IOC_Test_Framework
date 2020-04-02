@@ -10,9 +10,10 @@ from ReflectometryServer import *
 SPACING = 2
 
 # This is the position if s3 is out of the beam relative to straight through beam
-S3_OUT_POSITION = -5
 
-INIT_OUT_POSITION = -2
+SM_OUT_POS = OutOfBeamPosition(-5)
+S3_OUT_POS_HIGH = OutOfBeamPosition(5)
+S3_OUT_POS_LOW = OutOfBeamPosition(-5, threshold=1)
 
 
 def get_beamline():
@@ -44,7 +45,7 @@ def get_beamline():
     detector_position = TrackingPosition("det_pos", detector, True)
     detector_angle = AngleParameter("det_ang", detector, True)
     not_in_mode_pos = TrackingPosition("notinmode", not_in_mode, True)
-    s3_enabled = InBeamParameter("s3_enabled", s3)
+    s3_enabled = InBeamParameter("s3inbeam", s3)
     hgap_param = SlitGapParameter("S1HG", JawsGapPVWrapper("MOT:JAWS1", is_vertical=False))
     hcentre_param = SlitGapParameter("S1HC", JawsCentrePVWrapper("MOT:JAWS1", is_vertical=False))
     vgap_param = SlitGapParameter("S1VG", JawsGapPVWrapper("MOT:JAWS1", is_vertical=True))
@@ -62,11 +63,11 @@ def get_beamline():
 
     # DRIVES
     drivers = [DisplacementDriver(s1, MotorPVWrapper("MOT:MTR0101")),
-               DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102"), S3_OUT_POSITION),
+               DisplacementDriver(s3, MotorPVWrapper("MOT:MTR0102"), out_of_beam_positions=[S3_OUT_POS_LOW, S3_OUT_POS_HIGH]),
                DisplacementDriver(s4_comp, MotorPVWrapper("MOT:MTR0103"), synchronised=False),
                DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0104")),
                AngleDriver(detector, MotorPVWrapper("MOT:MTR0105")),
-               DisplacementDriver(sm_comp, MotorPVWrapper("MOT:MTR0107"), out_of_beam_position=-5.0),
+               DisplacementDriver(sm_comp, MotorPVWrapper("MOT:MTR0107"), out_of_beam_positions=[SM_OUT_POS]),
                AngleDriver(sm_comp, MotorPVWrapper("MOT:MTR0108")),
                # MTR0201-MTR0204 used for jaws1
                DisplacementDriver(not_in_mode, MotorPVWrapper("MOT:MTR0205")),
