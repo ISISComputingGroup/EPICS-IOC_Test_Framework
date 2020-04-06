@@ -30,18 +30,27 @@ class DMA4500MTests(unittest.TestCase):
     """
     Tests for the DMA4500M density meter
     """
+
+    def _reset_ioc(self):
+        self.ca.set_pv_value("MEASUREMENT", "ready")
+        self.ca.set_pv_value("TEMPERATURE", 0)
+        self.ca.set_pv_value("TEMPERATURE:SP", 0)
+        self.ca.set_pv_value("DENSITY", 0)
+        self.ca.set_pv_value("CONDITION", "0.00000")
+        self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", 0)
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
         self._lewis.backdoor_run_function_on_device("reset")
-        self.ca.set_pv_value("MEASUREMENT", "ready")
-        self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", 0)
+        self._reset_ioc()
 
     def test_WHEN_temperature_set_THEN_setpoint_readback_updates(self):
         self.ca.set_pv_value("TEMPERATURE:SP", 12.34)
         self.ca.assert_that_pv_is("TEMPERATURE:SP:RBV", 12.34)
 
-    def test_WHEN_temperature_set_THEN_status_is_ready(self):
+    def test_WHEN_status_is_done_and_temperature_set_THEN_status_is_ready(self):
+        self.ca.set_pv_value("MEASUREMENT", "done")
         self.ca.set_pv_value("TEMPERATURE:SP", 12.34)
         self.ca.assert_that_pv_is("MEASUREMENT", "ready")
 
