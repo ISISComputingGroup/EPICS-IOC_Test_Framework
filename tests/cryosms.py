@@ -18,8 +18,8 @@ IOCS = [
             "MAX_CURR": 135,
             "T_TO_A": 0.037,
             "MAX_VOLT": 9.9,
-            "WRITE_UNIT": "Amps",
-            "DISPLAY_UNIT": "Gauss",
+            "WRITE_UNIT": "AMPS",
+            "DISPLAY_UNIT": "GAUSS",
             "RAMP_FILE": "C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\test.txt",
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.01,
@@ -39,12 +39,12 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
-TEST_RAMPS = [[(0, 10000), [1.12]],
-              [(5000, 25000), [1.12, 0.547, 0.038]],
-              [(-5000, -25000), [1.12, 0.547, 0.038]],
-              [(25000, 5000), [0.038, 0.547, 1.12]],
-              [(25000, -25000), [0.038, 0.547, 1.12, 0.547, 0.038]],
-              [(-25000, 25000), [0.038, 0.547, 1.12, 0.547, 0.038]]
+TEST_RAMPS = [[(0.0, 10000.0), [1.12]],
+              [(5000.0, 25000.0), [1.12, 0.547, 0.038]],
+              [(-5000.0, -25000.0), [1.12, 0.547, 0.038]],
+              [(25000.0, 5000.0), [0.038, 0.547, 1.12]],
+              [(25000.0, -25000.0), [0.038, 0.547, 1.12, 0.547, 0.038]],
+              [(-25000.0, 25000.0), [0.038, 0.547, 1.12, 0.547, 0.038]]
               ]
 
 
@@ -57,18 +57,13 @@ class CryoSMSTests(unittest.TestCase):
             self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         else:
             self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=30)
-            self.ca.set_pv_value("PAUSE:SP", 1)
-            self.ca.assert_that_pv_is_one_of("RAMP:STAT", ["HOLDING ON PAUSE", "HOLDING ON TARGET"])
-            self._lewis.backdoor_set_on_device("output", 0)
-            self.ca.process_pv("OUTPUT:RAW")
-            try:
-                self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
-            except:
-                self.fail("output = {}".format(self._lewis.backdoor_get_from_device("output")))
             self.ca.set_pv_value("ABORT:SP", 1)
-            self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
+            self.ca.set_pv_value("MID:SP", 0)
+            self._lewis.backdoor_set_on_device("output", 0)
             self.ca.set_pv_value("ABORT:SP", 0)
-            self.ca.set_pv_value("PAUSE:SP", 0)
+            self.ca.set_pv_value("START:SP", 1)
+            self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
+            self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
 
     @skip_if_recsim("Cannot properly simulate device startup in recsim")
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
@@ -104,18 +99,18 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("TESLA", "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
         self.ca.assert_setting_setpoint_sets_readback("AMPS", "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
 
-    # @parameterized.expand(parameterized_list(TEST_RAMPS))
-    # @skip_if_recsim("C++ driver can not correctly initialise in recsim")
-    # def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(self, _, ramp_data):
-    #     startPoint, endPoint = ramp_data[0]
-    #     ramp_rates = ramp_data[1]
-    #     self._lewis.backdoor_set_on_device("output", startPoint)
-    #     self.ca.set_pv_value("MID:SP", endPoint)
-    #     self.ca.set_pv_value("START:SP", 1)
-    #     for rate in ramp_rates:
-    #         self.ca.assert_that_pv_is("RAMP:RATE", rate)
-    #     self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=20)
-    #     self.ca.assert_that_pv_is("OUTPUT", endPoint)
+    @parameterized.expand(parameterized_list(TEST_RAMPS))
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(self, _, ramp_data):
+        startPoint, endPoint = ramp_data[0]
+        ramp_rates = ramp_data[1]
+        self._lewis.backdoor_set_on_device("output", startPoint/(0.037 * 10000))
+        self.ca.set_pv_value("MID:SP", endPoint)
+        self.ca.set_pv_value("START:SP", 1)
+        for rate in ramp_rates:
+            self.ca.assert_that_pv_is("RAMP:RATE", rate, timeout=20)
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=25)
+        self.ca.assert_that_pv_is_within_range("OUTPUT", endPoint - 0.01, endPoint + 0.01)
 
     @skip_if_recsim("C++ driver can not correctly initialise in recsim")
     def test_GIVEN_IOC_not_ramping_WHEN_ramp_started_THEN_simulated_ramp_performed(self):
