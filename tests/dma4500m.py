@@ -31,6 +31,9 @@ class DMA4500MTests(unittest.TestCase):
     Tests for the DMA4500M density meter
     """
 
+    PVS_ENABLED_OUTSIDE_MEASUREMENT = ["TEMPERATURE:SP", "START"]
+    PVS_DISABLED_DURING_MEASUREMENT = ["TEMPERATURE:SP", "START", "AUTOMEASURE"]
+
     def _reset_ioc(self):
         self.ca.set_pv_value("MEASUREMENT", "ready")
         self.ca.set_pv_value("TEMPERATURE", 0)
@@ -38,6 +41,22 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.set_pv_value("DENSITY", 0)
         self.ca.set_pv_value("CONDITION", "0.00000")
         self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", 0)
+
+    def _assert_pvs_disabled(self, pvs, disabled):
+        for pv in pvs:
+            self.ca.process_pv(pv)
+            if disabled:
+                self.ca.assert_that_pv_is("{0}.STAT".format(pv), "DISABLE")
+            else:
+                self.ca.assert_that_pv_is_not("{0}.STAT".format(pv), "DISABLE")
+
+    def _start_instant_measurement(self):
+        self._start_measurement(0)
+
+    def _start_measurement(self, measurement_time=10):
+        measurement_time = measurement_time
+        self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
+        self.ca.set_pv_value("START", 1)
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
@@ -56,30 +75,43 @@ class DMA4500MTests(unittest.TestCase):
 
     def test_WHEN_temperature_set_THEN_it_updates_after_measurement(self):
         self.ca.set_pv_value("TEMPERATURE:SP", 12.34)
-        self.ca.set_pv_value("START", 1)
+        self._start_instant_measurement()
         self.ca.assert_that_pv_is("TEMPERATURE", 12.34)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_density_set_via_backdoor_THEN_it_updates_after_measurement(self):
         self._lewis.backdoor_set_on_device("density", 98.76)
-        self.ca.set_pv_value("START", 1)
+        self._start_instant_measurement()
         self.ca.assert_that_pv_is("DENSITY", 98.76)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_condition_set_via_backdoor_THEN_it_updates_after_measurement(self):
         self._lewis.backdoor_set_on_device("condition", "valid")
-        self.ca.set_pv_value("START", 1)
+        self._start_instant_measurement()
         self.ca.assert_that_pv_is("CONDITION", "valid")
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_measurement_starts_THEN_status_updates(self):
-        measurement_time = 10
-        self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
-        self.ca.assert_that_pv_is("MEASUREMENT", "ready")
-        self.ca.set_pv_value("START", 1)
-        self.ca.assert_that_pv_is("MEASUREMENT", "measuring")
-        sleep(measurement_time + SCAN_FREQUENCY)
-        self.ca.assert_that_pv_is("MEASUREMENT", "done")
+        self._start_measurement(measurement_time=10)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
+        sleep(10)
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_status_is_ready_THEN_correct_records_enabled(self):
+        self._assert_pvs_disabled(self.PVS_ENABLED_OUTSIDE_MEASUREMENT, False)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_status_is_measuring_THEN_correct_records_disabled(self):
+        self._start_measurement(measurement_time=10)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
+        self._assert_pvs_disabled(self.PVS_DISABLED_DURING_MEASUREMENT, True)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_status_is_done_THEN_correct_records_enabled(self):
+        self._start_instant_measurement()
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
+        self._assert_pvs_disabled(self.PVS_ENABLED_OUTSIDE_MEASUREMENT, False)
 
     def test_WHEN_automeasure_frequency_set_THEN_value_updates(self):
         self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", 10)
