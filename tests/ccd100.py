@@ -110,4 +110,4 @@ class CCD100LogTests(unittest.TestCase):
         with assert_log_messages(self._ioc, self.NUM_OF_PVS*4, 5) as log:
             self._lewis.backdoor_set_on_device("out_error", new_error)
 
-        self.assertTrue(new_error in log.messages[-1])
+        self.assertTrue(any([new_error in _ for _ in log.messages[-3:]]))

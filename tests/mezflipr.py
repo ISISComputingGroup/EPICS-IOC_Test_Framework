@@ -1,15 +1,13 @@
 import os
 import unittest
 
-import sys
-
 from parameterized import parameterized
 
 from utils.emulator_launcher import CommandLineEmulatorLauncher
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
-from utils.testing import skip_if_recsim, get_running_lewis_and_ioc, parameterized_list
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 # Device prefix
 DEVICE_PREFIX = "MEZFLIPR_01"
@@ -20,20 +18,14 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MEZFLIPR"),
         "emulator": EMULATOR_NAME,
-        "emulator_launcher_class": CommandLineEmulatorLauncher,
-        "emulator_command_line": "{} {} --port {{port}}".format(
-            sys.executable,
-            os.path.join(EPICS_TOP, "support", "deviceemulator", "master", "other_emulators", "mezei_flipper", "flipper_emulator.py")
-        ),
-        "macros": {
-            "POLARISERPRESENT": "yes",
-            "ANALYSERPRESENT": "yes",
-        },
     },
 ]
 
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+
+# Currently only one flipper but they may add more in a future iteration of the program
+flipper = "FLIPPER"
 
 
 class MezfliprTests(unittest.TestCase):
@@ -46,43 +38,59 @@ class MezfliprTests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    @skip_if_recsim("Disconnection simulation not implemented in recsim")
-    def test_GIVEN_device_is_connected_THEN_can_read_id(self):
-        self.ca.assert_that_pv_is("ID", "Flipper Control")
-        self.ca.assert_that_pv_alarm_is("ID", self.ca.Alarms.NONE)
+    @parameterized.expand(parameterized_list(["On", "Off"]))
+    def test_GIVEN_power_is_set_THEN_can_be_read_back(self, _, state):
+        self.ca.assert_setting_setpoint_sets_readback(state, readback_pv="{}:POWER".format(flipper))
 
-    @parameterized.expand(["ANALYSER", "POLARISER"])
-    def test_GIVEN_amplitude_is_set_THEN_amplitude_can_be_read_back(self, flipper):
-        for val in [0., 0.12, 2.99]:  # Amplitude should be limited to 3A
-            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:AMPLITUDE".format(flipper))
+    @parameterized.expand(parameterized_list([0., 0.12, 5000.5]))
+    def test_GIVEN_compensation_is_set_THEN_compensation_can_be_read_back(self, _, compensation):
+        self.ca.assert_setting_setpoint_sets_readback(compensation, readback_pv="{}:COMPENSATION".format(flipper))
 
-    @parameterized.expand(["ANALYSER", "POLARISER"])
-    def test_GIVEN_compensation_is_set_THEN_compensation_can_be_read_back(self, flipper):
-        for val in [0., 0.12, 5000.5]:
-            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:COMPENSATION".format(flipper))
+    def _assert_mode(self, mode):
+        self.ca.assert_that_pv_is("{}:MODE".format(flipper), mode)
+        self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
 
-    @parameterized.expand(["ANALYSER", "POLARISER"])
-    def test_GIVEN_dt_is_set_THEN_dt_can_be_read_back(self, flipper):
-        for val in [0., -0.12, -5000.5]:  # DT only accepts negative values.
-            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:DT".format(flipper))
+    def _assert_params(self, param):
+        self.ca.assert_that_pv_is("{}:PARAMS".format(flipper), param)
+        self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
 
-    @parameterized.expand(["ANALYSER", "POLARISER"])
-    def test_GIVEN_constant_is_set_THEN_constant_can_be_read_back(self, flipper):
-        for val in [0., 0.12, 5000.5]:
-            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:CONSTANT".format(flipper))
+    @skip_if_recsim("State of device not simulated in recsim")
+    def test_WHEN_constant_current_mode_set_THEN_parameters_reflected_and_mode_is_constant_current(self):
+        param = 25
+        self.ca.set_pv_value("{}:CURRENT:SP".format(flipper), param)
 
-    @parameterized.expand(["ANALYSER", "POLARISER"])
-    def test_GIVEN_constant_is_set_THEN_constant_can_be_read_back(self, flipper):
-        for filename in [r"C:\a.txt", r"C:\b.txt"]:
-            self.ca.assert_setting_setpoint_sets_readback(filename, readback_pv="{}:FILENAME".format(flipper))
+        self._assert_params("{:.1f}".format(param))
+        self._assert_mode("static")
 
-    @parameterized.expand([
-        "Analyser Off Pol. Off",
-        "Analyser Off Pol. On",
-        "Analyser On Pol. Off",
-        "Analyser On Pol. On",
-    ])
-    def test_GIVEN_toggle_state_is_set_THEN_toggle_state_can_be_read_back(self, toggle_state):
-        self.ca.set_pv_value("TOGGLE:SP", toggle_state)
-        self.ca.assert_that_pv_is("TOGGLE", toggle_state)
-        self.ca.assert_that_pv_alarm_is("TOGGLE", self.ca.Alarms.NONE)
+    @skip_if_recsim("State of device not simulated in recsim")
+    def test_WHEN_steps_mode_set_THEN_parameters_reflected_and_mode_is_steps(self):
+        param = "[some, random, list, of, data]"
+        self.ca.set_pv_value("{}:CURRENT_STEPS:SP".format(flipper), param)
+
+        self._assert_params(param)
+        self._assert_mode("steps")
+
+    @skip_if_recsim("State of device not simulated in recsim")
+    def test_WHEN_analytical_mode_set_THEN_parameters_reflected_and_mode_is_analytical(self):
+        param = "a long string of parameters which is longer than 40 characters"
+        self.ca.set_pv_value("{}:CURRENT_ANALYTICAL:SP".format(flipper), param)
+
+        self._assert_params(param)
+        self._assert_mode("analytical")
+
+    @skip_if_recsim("State of device not simulated in recsim")
+    def test_WHEN_file_mode_set_THEN_parameters_reflected_and_mode_is_file(self):
+        param = r"C:\some\file\path\to\a\file\in\a\really\deep\directory\structure\with\path\longer\than\40\characters"
+        self.ca.set_pv_value("{}:FILENAME:SP".format(flipper), param)
+
+        self._assert_params(param)
+        self._assert_mode("file")
+
+    @parameterized.expand(parameterized_list(["MODE", "COMPENSATION", "PARAMS"]))
+    @skip_if_recsim("Recsim cannot test disconnected device")
+    def test_WHEN_device_is_disconnected_THEN_pvs_are_in_invalid_alarm(self, _, pv):
+        try:
+            self._lewis.backdoor_set_on_device("connected", False)
+            self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.INVALID)
+        finally:
+            self._lewis.backdoor_set_on_device("connected", True)

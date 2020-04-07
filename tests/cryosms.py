@@ -50,6 +50,9 @@ class CryoSMSTests(unittest.TestCase):
             self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         else:
             self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=30)
+            self.ca.set_pv_value("PAUSE:SP", 0)
+            self.ca.set_pv_value("ABORT:SP", 0)
+            self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
 
     @skip_if_recsim("Cannot properly simulate device startup in recsim")
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
@@ -83,3 +86,45 @@ class CryoSMSTests(unittest.TestCase):
     @parameterized.expand(["TESLA", "AMPS"])
     def test_GIVEN_outputmode_sp_correct_WHEN_outputmode_sp_written_to_THEN_outputmode_changes(self, units):
         self.ca.assert_setting_setpoint_sets_readback(units, "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
+
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_IOC_not_ramping_WHEN_ramp_started_THEN_simulated_ramp_performed(self):
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING", msg="Ramping failed to start")
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
+
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_IOC_ramping_WHEN_paused_and_unpaused_THEN_ramp_is_paused_resumed_and_completes(self):
+        # GIVEN ramping
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
+        # Pauses when pause set to true
+        self.ca.set_pv_value("PAUSE:SP", 1)
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON PAUSE", msg="Ramping failed to pause")
+        self.ca.assert_that_pv_is_not("RAMP:STAT", "HOLDING ON TARGET", timeout=5,
+                                      msg="Ramp completed even though it should have paused")
+        # Resumes when pause set to false, completes ramp
+        self.ca.set_pv_value("PAUSE:SP", 0)
+        self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING", msg="Ramping failed to resume")
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10, msg="Ramping failed to complete")
+
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_IOC_ramping_WHEN_aborted_THEN_ramp_aborted(self):
+        # Given Ramping
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
+        # Aborts when abort set to true, then hits ready again
+        self.ca.set_pv_value("ABORT:SP", 1)
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
+
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_IOC_paused_WHEN_aborted_THEN_ramp_aborted(self):
+        # GIVEN paused
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.set_pv_value("PAUSE:SP", 1)
+        rampTarget = self.ca.get_pv_value("MID")
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON PAUSE", msg="Ramping failed to pause")
+        # Aborts when abort set to true, then hits ready again
+        self.ca.set_pv_value("ABORT:SP", 1)
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
+        self.ca.assert_that_pv_is_not("MID", rampTarget)

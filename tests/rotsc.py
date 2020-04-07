@@ -5,7 +5,6 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import IOCRegister, skip_if_recsim, get_running_lewis_and_ioc
 
-
 DEVICE_PREFIX = "ROTSC_01"
 
 
@@ -57,12 +56,10 @@ class RotscTests(unittest.TestCase):
 
     def test_GIVEN_current_position_WHEN_position_set_to_current_position_THEN_setpoint_not_sent(self):
         # GIVEN
-        self.ca.set_pv_value("POSN:SP", 3)
-        self.ca.assert_that_pv_is("POSN", 3)
-        self.ca.assert_that_pv_is("STAT", "Idle")
-        self.ca.assert_that_pv_is("POSN:SP:RAW.PROC", "1")
-        self.ca.set_pv_value("POSN:SP:RAW.PROC", 0)
+        with self.ca.assert_pv_processed(self._ioc, "POSN:SP:RAW"):
+            self.ca.set_pv_value("POSN:SP", 3)
+            self.ca.assert_that_pv_is("POSN", 3)
+            self.ca.assert_that_pv_is("STAT", "Idle")
         # WHEN
-        self.ca.set_pv_value("POSN:SP", 3)
-        # THEN
-        self.ca.assert_that_pv_is("POSN:SP:RAW.PROC", "0")
+        with self.ca.assert_pv_not_processed(self._ioc, "POSN:SP:RAW"):
+            self.ca.set_pv_value("POSN:SP", 3)

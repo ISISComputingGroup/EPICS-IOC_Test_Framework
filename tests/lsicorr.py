@@ -17,7 +17,7 @@ IOCS = [
     {
         "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("LSICORR"),
+        "directory": get_default_ioc_dir("LSICORR", iocnum=ioc_number),
         "started_text": "IOC started",
         "macros": {
         }

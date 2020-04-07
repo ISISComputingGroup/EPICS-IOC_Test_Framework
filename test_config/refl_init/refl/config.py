@@ -10,9 +10,7 @@ from ReflectometryServer import *
 SPACING = 2
 
 # This is the position if s3 is out of the beam relative to straight through beam
-S3_OUT_POSITION = -5
-
-INIT_OUT_POSITION = -2
+INIT_OUT_POSITION = OutOfBeamPosition(-2, tolerance=0.5)
 
 
 def get_beamline():
@@ -42,9 +40,9 @@ def get_beamline():
     params = [is_out, out_pos, is_out_auto, is_in, in_pos, theta_auto, init, init_auto]
 
     # DRIVES
-    drivers = [DisplacementDriver(out_comp, MotorPVWrapper("MOT:MTR0101"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
-               DisplacementDriver(out_comp_auto, MotorPVWrapper("MOT:MTR0105"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
-               DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0102"), INIT_OUT_POSITION, tolerance_on_out_of_beam_position=0.5),
+    drivers = [DisplacementDriver(out_comp, MotorPVWrapper("MOT:MTR0101"), out_of_beam_positions=[INIT_OUT_POSITION]),
+               DisplacementDriver(out_comp_auto, MotorPVWrapper("MOT:MTR0105"), out_of_beam_positions=[INIT_OUT_POSITION]),
+               DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0102"), out_of_beam_positions=[INIT_OUT_POSITION]),
                DisplacementDriver(det_for_init, MotorPVWrapper("MOT:MTR0103")),
                DisplacementDriver(det_for_init_auto, MotorPVWrapper("MOT:MTR0104")), ]
 
