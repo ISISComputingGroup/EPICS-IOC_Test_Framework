@@ -105,7 +105,7 @@ class LSITests(unittest.TestCase):
 
     def test_GIVEN_monitor_on_setting_pv_WHEN_pv_changed_THEN_monitor_gets_updated(self):
         pv_name = "MEASUREMENTDURATION"
-        self.ca.set_pv_value(pv_name, 10.0)
+        self.ca.set_pv_value(pv_name, 10.0, wait=True)
         new_value = 12.3
         expected_value = 12.0
 
