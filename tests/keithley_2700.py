@@ -2,7 +2,7 @@ import time
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
 
@@ -73,6 +73,8 @@ class SetUpTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
+        if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_set_on_device("simulate_readings", False)
 
     def test_WHEN_scan_state_set_THEN_scan_state_matches_the_set_state(self):
         sample_data = {0: "INT", 1: "NONE"}
@@ -200,6 +202,8 @@ class BufferTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("IDN")
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
+        if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_set_on_device("simulate_readings", False)
 
     def _set_buffer_size(self, buff_size):
         self.ca.set_pv_value("BUFF:SIZE:SP", buff_size)
@@ -298,6 +302,8 @@ class ChannelTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("IDN")
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
+        if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_set_on_device("simulate_readings", False)
 
     @unstable_test()
     @skip_if_recsim("Cannot use lewis backdoor in recsim")
@@ -349,6 +355,8 @@ class DriftTests(unittest.TestCase):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
         self.ca.set_pv_value("BUFF:CLEAR:SP", "")
+        if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_set_on_device("simulate_readings", False)
 
     @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_values_added_THEN_temp_AND_drift_correct(self, test_data=drift_test_data):
