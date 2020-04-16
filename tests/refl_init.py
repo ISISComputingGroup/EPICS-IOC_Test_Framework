@@ -45,7 +45,7 @@ IOCS = [
         "directory": REFL_PATH,
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
         "started_text": "Reflectometry IOC started",
-        "pv_for_existence": "BL:STAT",
+        "pv_for_existence": "STAT",
         "macros": {
         },
         "environment_vars": {
