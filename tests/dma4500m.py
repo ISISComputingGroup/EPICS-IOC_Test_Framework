@@ -60,11 +60,11 @@ class DMA4500MTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
         self.ca.set_pv_value("START", 1)
 
-    def _start_automeasure(self, interval):
+    def _enable_automeasure(self, interval):
         self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", interval)
         self.ca.set_pv_value("AUTOMEASURE:ENABLED", 1)
 
-    def _stop_automeasure(self):
+    def _disable_automeasure(self):
         self.ca.set_pv_value("AUTOMEASURE:ENABLED", 0)
 
     def setUp(self):
@@ -122,16 +122,12 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
         self._assert_pvs_disabled(self.PVS_ENABLED_OUTSIDE_MEASUREMENT, False)
 
-    def test_WHEN_automeasure_frequency_set_THEN_value_updates(self):
-        self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", 10)
-        self.ca.assert_that_pv_is("AUTOMEASURE:FREQ", 10)
-
     @skip_if_recsim
     @parameterized.expand(parameterized_list([2, 5, 10, 20]))
     def test_WHEN_automeasure_frequency_set_THEN_measurement_repeats(self, _, automeasure_interval):
         measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
-        self._start_automeasure(automeasure_interval)
+        self._enable_automeasure(automeasure_interval)
         sleep(automeasure_interval)
         self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
         sleep(measurement_time)
@@ -144,11 +140,11 @@ class DMA4500MTests(unittest.TestCase):
     def test_WHEN_automeasure_frequency_set_then_unset_THEN_measurement_stops(self, _, automeasure_interval):
         measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
-        self._start_automeasure(automeasure_interval)
+        self._enable_automeasure(automeasure_interval)
         sleep(automeasure_interval)
         self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
+        self._disable_automeasure()
         sleep(measurement_time)
-        self._stop_automeasure()
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
         sleep(automeasure_interval)
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
