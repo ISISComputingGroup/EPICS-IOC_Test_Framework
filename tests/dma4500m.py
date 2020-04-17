@@ -2,11 +2,12 @@ from __future__ import division
 
 import unittest
 from time import sleep
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
 DEVICE_PREFIX = "DMA4500M_01"
 _EMULATOR_NAME = "dma4500m"
@@ -40,6 +41,7 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.set_pv_value("TEMPERATURE:SP", 0)
         self.ca.set_pv_value("DENSITY", 0)
         self.ca.set_pv_value("CONDITION", "0.00000")
+        self.ca.set_pv_value("AUTOMEASURE:ENABLED", 0)
         self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", 0)
 
     def _assert_pvs_disabled(self, pvs, disabled):
@@ -57,6 +59,13 @@ class DMA4500MTests(unittest.TestCase):
         measurement_time = measurement_time
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
         self.ca.set_pv_value("START", 1)
+
+    def _start_automeasure(self, interval):
+        self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", interval)
+        self.ca.set_pv_value("AUTOMEASURE:ENABLED", 1)
+
+    def _stop_automeasure(self):
+        self.ca.set_pv_value("AUTOMEASURE:ENABLED", 0)
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
@@ -118,13 +127,31 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("AUTOMEASURE:FREQ", 10)
 
     @skip_if_recsim
-    def test_WHEN_automeasure_frequency_set_THEN_measurement_starts(self):
-        interval = 2
-        measurement_time = 10
+    @parameterized.expand(parameterized_list([2, 5, 10, 20]))
+    def test_WHEN_automeasure_frequency_set_THEN_measurement_repeats(self, _, automeasure_interval):
+        measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
-        self.ca.set_pv_value("AUTOMEASURE:FREQ:SP", interval)
-        sleep(interval + SCAN_FREQUENCY)
-        self.ca.assert_that_pv_is("MEASUREMENT", "measuring")
+        self._start_automeasure(automeasure_interval)
+        sleep(automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
+        sleep(measurement_time)
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
+        sleep(automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
+
+    @skip_if_recsim
+    @parameterized.expand(parameterized_list([2, 5, 10, 20]))
+    def test_WHEN_automeasure_frequency_set_then_unset_THEN_measurement_stops(self, _, automeasure_interval):
+        measurement_time = 5
+        self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
+        self._start_automeasure(automeasure_interval)
+        sleep(automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
+        sleep(measurement_time)
+        self._stop_automeasure()
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
+        sleep(automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
 
     @skip_if_recsim
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
