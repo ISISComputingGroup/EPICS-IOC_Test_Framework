@@ -569,15 +569,12 @@ class ChannelAccess(object):
             ioc: the IOC object (necessary to be able to read the log file)
             pv: the PV on which to check processing
         """
-        # Local import to avoid circular dependency
-        from utils.testing import assert_log_messages
+        pv_value_source = _MonitorAssertion(self, pv)
 
-        self.set_pv_value("{}.TPRO".format(pv), 1, wait=True)
-        try:
-            with assert_log_messages(ioc, must_contain="dbProcess of '{}{}'".format(self.prefix, pv)):
-                yield
-        finally:
-            self.set_pv_value("{}.TPRO".format(pv), 0)
+        yield
+
+        if pv_value_source.value is None:
+            raise AssertionError("PV {} has not processed".format(pv))
 
     @contextmanager
     def assert_pv_not_processed(self, ioc, pv):
