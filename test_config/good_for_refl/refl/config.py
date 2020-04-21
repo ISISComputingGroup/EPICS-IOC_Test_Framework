@@ -42,8 +42,8 @@ def get_beamline():
     add_driver(AngleDriver(sm_comp, MotorPVWrapper("MOT:MTR0108")))
 
     # THETA
-    theta = add_component(ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2 * SPACING, 90)))
-    theta_ang = add_parameter(AngleParameter("Theta", theta, True), modes=[nr, polarised, testing])
+    theta_marker = add_component_marker()
+    theta_marker_param = add_parameter_marker()
 
     # S3
     s3_comp = add_component(Component("s3", PositionAndAngle(0.0, 3 * SPACING, 90)))
@@ -60,8 +60,7 @@ def get_beamline():
     # S5
     s5_comp = add_component(Component("s5", PositionAndAngle(0.0, 3.5 * SPACING, 90)))
     add_parameter(TrackingPosition("S5", s5_comp, autosave=True), modes=[nr, polarised, testing])
-    add_driver(DisplacementDriver(s5_comp, MotorPVWrapper("MOT:MTR0206"),
-               engineering_correction=InterpolateGridDataCorrection("s4_correction.dat", theta_ang)))
+    s5_marker = add_driver_marker()
 
     # DETECTOR
     detector = add_component(TiltingComponent("Detector", PositionAndAngle(0.0, 4*SPACING, 90)))
@@ -69,8 +68,6 @@ def get_beamline():
     add_parameter(AngleParameter("det_ang", detector, True), modes=[nr, polarised, disabled])
     add_driver(DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0104")))
     add_driver(AngleDriver(detector, MotorPVWrapper("MOT:MTR0105")))
-
-    theta.set_angle_to([detector])
 
     # NOT_IN_MODE
     not_in_mode_comp = add_component(Component("NotInModeComp", PositionAndAngle(0.0, 5 * SPACING, 90)))
@@ -82,5 +79,13 @@ def get_beamline():
     add_constant(BeamlineConstant("YES", True, "True is Yes"))
 
     add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
+
+    # Replace markers
+    theta = add_component(ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2 * SPACING, 90), angle_to=[detector]),
+                          marker=theta_marker)
+    theta_ang = add_parameter(AngleParameter("Theta", theta, True), modes=[nr, polarised, testing], marker=theta_marker_param)
+
+    add_driver(DisplacementDriver(s5_comp, MotorPVWrapper("MOT:MTR0206"),
+               engineering_correction=InterpolateGridDataCorrection("s4_correction.dat", theta_ang)), marker=s5_marker)
 
     return get_configured_beamline()
