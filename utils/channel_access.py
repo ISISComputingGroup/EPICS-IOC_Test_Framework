@@ -560,41 +560,37 @@ class ChannelAccess(object):
         self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, pv_value_source=pv_value_source)
 
     @contextmanager
-    def assert_pv_processed(self, ioc, pv):
+    def assert_pv_processed(self, pv):
         """
-        Asserts that a PV was processed by enabling TPRO (trace processing) and asserting that the relevant message
-        appears in the IOC log.
+        Asserts that a PV was processed by putting a monitor on the PV and asserting it's called.
 
         Args:
-            ioc: the IOC object (necessary to be able to read the log file)
             pv: the PV on which to check processing
         """
-        pv_value_source = _MonitorAssertion(self, pv)
+        pv_with_prefix = self.create_pv_with_prefix(pv)
+        time_before = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
 
         yield
 
-        if pv_value_source.value is None:
+        time_after = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        if time_before == time_after:
             raise AssertionError("PV {} has not processed".format(pv))
 
     @contextmanager
-    def assert_pv_not_processed(self, ioc, pv):
+    def assert_pv_not_processed(self, pv):
         """
-        Asserts that a PV was not processed by enabling TPRO (trace processing) and asserting that the relevant message
-        does not appear in the IOC log.
+        Asserts that a PV was processed by getting the time
 
         Args:
-            ioc: the IOC object (necessary to be able to read the log file)
             pv: the PV on which to check (lack of) processing
         """
-        # Local import to avoid circular dependency
-        from utils.testing import assert_log_messages
+        pv_with_prefix = self.create_pv_with_prefix(pv)
+        time_before = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
 
-        self.set_pv_value("{}.TPRO".format(pv), 1)
-        try:
-            with assert_log_messages(ioc) as cm:
-                yield
+        yield
 
-            if any("dbProcess of '{}{}'".format(self.prefix, pv) in message for message in cm.messages):
-                raise AssertionError("PV '{}{}' was processed when it should not have been".format(self.prefix, pv))
-        finally:
-            self.set_pv_value("{}.TPRO".format(pv), 0)
+        time_after = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        if time_before != time_after:
+            raise AssertionError("PV {} has processed".format(pv))

@@ -78,12 +78,12 @@ class RotscTests(unittest.TestCase):
 
     def test_GIVEN_current_position_WHEN_position_set_to_current_position_THEN_setpoint_not_sent(self):
         # GIVEN
-        with self.ca.assert_pv_processed(self._ioc, "POSN:SP:RAW"):
+        with self.ca.assert_pv_processed("POSN:SP:RAW"):
             self.ca.set_pv_value("POSN:SP", 3)
             self.ca.assert_that_pv_is("POSN", 3)
             self.ca.assert_that_pv_is("STAT", "Idle")
         # WHEN
-        with self.ca.assert_pv_not_processed(self._ioc, "POSN:SP:RAW"):
+        with self.ca.assert_pv_not_processed("POSN:SP:RAW"):
             self.ca.set_pv_value("POSN:SP", 3)
 
     def set_up_sample_dropped_test(self, initial_position, sample_drop_position, final_position):
