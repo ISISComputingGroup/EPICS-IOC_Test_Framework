@@ -33,7 +33,7 @@ class MezfliprTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -51,7 +51,8 @@ class MezfliprTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
 
     def _assert_params(self, param):
-        self.ca.assert_that_pv_is("{}:PARAMS".format(flipper), param)
+        self.ca.assert_that_pv_value_causes_func_to_return_true("{}:PARAMS".format(flipper),
+                                                                lambda val: val is not None and val.rstrip() == param)
         self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
 
     @skip_if_recsim("State of device not simulated in recsim")
