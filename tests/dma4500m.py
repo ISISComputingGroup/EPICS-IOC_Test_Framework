@@ -87,42 +87,35 @@ class DMA4500MTests(unittest.TestCase):
         self._start_instant_measurement()
         self.ca.assert_that_pv_is("TEMPERATURE", 12.34)
 
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_density_set_via_backdoor_THEN_it_updates_after_measurement(self):
         self._lewis.backdoor_set_on_device("density", 98.76)
         self._start_instant_measurement()
         self.ca.assert_that_pv_is("DENSITY", 98.76)
 
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_condition_set_via_backdoor_THEN_it_updates_after_measurement(self):
         self._lewis.backdoor_set_on_device("condition", "valid")
         self._start_instant_measurement()
         self.ca.assert_that_pv_is("CONDITION", "valid")
 
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_measurement_starts_THEN_status_updates(self):
         self._start_measurement(measurement_time=10)
         self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
         sleep(10)
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
 
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_status_is_ready_THEN_correct_records_enabled(self):
         self._assert_pvs_disabled(self.PVS_ENABLED_OUTSIDE_MEASUREMENT, False)
 
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_status_is_measuring_THEN_correct_records_disabled(self):
         self._start_measurement(measurement_time=10)
         self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
         self._assert_pvs_disabled(self.PVS_DISABLED_DURING_MEASUREMENT, True)
 
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_status_is_done_THEN_correct_records_enabled(self):
         self._start_instant_measurement()
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
         self._assert_pvs_disabled(self.PVS_ENABLED_OUTSIDE_MEASUREMENT, False)
 
-    @skip_if_recsim
     @parameterized.expand(parameterized_list([2, 5, 10, 20]))
     def test_WHEN_automeasure_frequency_set_THEN_measurement_repeats(self, _, automeasure_interval):
         measurement_time = 5
@@ -132,7 +125,6 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
         self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2*automeasure_interval)
 
-    @skip_if_recsim
     @parameterized.expand(parameterized_list([2, 5, 10, 20]))
     def test_WHEN_automeasure_frequency_set_then_unset_THEN_measurement_stops(self, _, automeasure_interval):
         measurement_time = 5
@@ -143,7 +135,6 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*automeasure_interval)
 
-    @skip_if_recsim
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is('MEASUREMENT', ChannelAccess.Alarms.INVALID)
