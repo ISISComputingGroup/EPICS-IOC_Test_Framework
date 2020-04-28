@@ -128,12 +128,9 @@ class DMA4500MTests(unittest.TestCase):
         measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
         self._enable_automeasure(automeasure_interval)
-        sleep(automeasure_interval)
-        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
-        sleep(measurement_time)
-        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
-        sleep(automeasure_interval)
-        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=SCAN_FREQUENCY)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2*automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2*automeasure_interval)
 
     @skip_if_recsim
     @parameterized.expand(parameterized_list([2, 5, 10, 20]))
