@@ -672,12 +672,12 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_PNR_mode_with_SM_angle_WHEN_move_in_disable_mode_and_into_PNR_THEN_beamline_is_updated_on_mode_change_and_value_of_pd_offsets_correct(self):
 
         self.ca.set_pv_value("BL:MODE:SP", "POLARISED")
-        self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", "0.2")
+        self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 0.2)
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca.assert_that_pv_is_number("PARAM:SMANGLE", 0.2, tolerance=1e-2)
 
         self.ca.set_pv_value("BL:MODE:SP", "DISABLED")
-        self.ca.set_pv_value("PARAM:SMANGLE:SP", "0")
+        self.ca.set_pv_value("PARAM:SMANGLE:SP", 0)
         self.ca.assert_that_pv_is_number("PARAM:SMANGLE", 0.0, tolerance=1e-2)
 
         self.ca.assert_that_pv_is_number("PARAM:S3", 0.0, tolerance=1e-2)
