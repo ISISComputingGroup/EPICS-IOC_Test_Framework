@@ -37,7 +37,7 @@ class MecfrfTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
 
         self._lewis.backdoor_set_on_device("connected", True)
         self._lewis.backdoor_set_on_device("corrupted_messages", False)
@@ -52,11 +52,14 @@ class MecfrfTests(unittest.TestCase):
         self.ca.assert_that_pv_is("SENSOR{}".format(sensor), length)
         self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
 
-    # @parameterized.expand(parameterized_list(SENSORS))
-    # @skip_if_recsim("Uses Lewis backdoor")
-    # def test_WHEN_emulator_sends_corrupt_packets_THEN_records_go_into_alarm(self, _, sensor):
-    #     self._lewis.backdoor_set_on_device("corrupted_messages", True)
-    #     self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.INVALID)
+    @skip_if_recsim("Uses Lewis backdoor")
+    def test_WHEN_emulator_sends_corrupt_packets_THEN_records_go_into_alarm(self):
+        with self.ca.assert_pv_processed(self._ioc, "_RESET_CONNECTION"):
+            self._lewis.backdoor_set_on_device("corrupted_messages", True)
+            self.ca.assert_that_pv_is("_GETTING_INVALID_MESSAGES", 1)
+
+        self._lewis.backdoor_set_on_device("corrupted_messages", False)
+        self.ca.assert_that_pv_is("_GETTING_INVALID_MESSAGES", 0)
 
     @parameterized.expand(parameterized_list(SENSORS))
     @skip_if_recsim("Uses Lewis backdoor")
