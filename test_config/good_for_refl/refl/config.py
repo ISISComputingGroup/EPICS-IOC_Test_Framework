@@ -31,7 +31,7 @@ def get_beamline():
     s1_comp = add_component(Component("s1", PositionAndAngle(0.0, z_s1, 90)))
     add_parameter(TrackingPosition("S1", s1_comp), modes=[nr, polarised, testing])
     add_driver(DisplacementDriver(s1_comp, MotorPVWrapper("MOT:MTR0101")))
-    add_slit_parameters(1, nr, polarised)
+    add_slit_parameters(1, modes=[nr, polarised])
 
     # SM
     sm_comp = add_component(ReflectingComponent("SM", PositionAndAngle(0.0, 2*SPACING, 90)))
