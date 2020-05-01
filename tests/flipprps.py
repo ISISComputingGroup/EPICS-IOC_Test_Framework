@@ -14,12 +14,12 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("FLIPPRPS"),
         "macros": {},
-        "emulator": "Flipprps",
+        "emulator": "flipprps",
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class FlipprpsTests(unittest.TestCase):
@@ -27,8 +27,14 @@ class FlipprpsTests(unittest.TestCase):
     Tests for the Flipprps IOC.
     """
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("Flipprps", DEVICE_PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("flipprps", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_that_fails(self):
-        self.fail("You haven't implemented any tests!")
+    @skip_if_recsim("Lewis backdoor commands not available in RecSim")
+    def test_SET_polarity(self):
+        self.ca.set_pv_value("POLARITY", "Down")
+        polarity = self._lewis.backdoor_get_from_device("polarity")
+        self.assertEqual(polarity, "0")
+        self.ca.set_pv_value("POLARITY", "Up")
+        polarity = self._lewis.backdoor_get_from_device("polarity")
+        self.assertEqual(polarity, "1")
