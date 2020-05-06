@@ -127,13 +127,9 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
         for module in modules_to_be_tested_in_current_mode:
             clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
-            try:
-                test_results.append(
-                    run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers),
-                              failfast, ask_before_running_tests))
-            except Exception:
-                print("Error while attempting to load test suite: {}".format(traceback.format_exc()))
-                test_results.append(False)  # Fail the tests which threw an exception, but keep running other tests.
+            test_results.append(
+                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers),
+                          failfast, ask_before_running_tests))
 
     return all(test_result is True for test_result in test_results)
 
@@ -160,6 +156,23 @@ def prompt_user_to_run_tests(test_names):
             return
 
 
+class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
+    """
+    Class to allow reporting of an error to run any tests.
+
+    Args:
+        msg: Error message.
+
+    Returns:
+        None
+    """
+    def __init__(self, msg):
+        super(ReportFailLoadTestsuiteTestCase,self).__init__()
+        self.msg = msg
+
+    def runTest(self):
+        self.fail(self.msg)
+
 def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
     Runs dotted unit tests.
@@ -183,17 +196,18 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
 
     test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
 
-    with modified_environment(**settings), device_launchers:
-        if ask_before_running_tests:
-            prompt_user_to_run_tests(test_names)
+    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
+    test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
 
-        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
-
-        test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
-        result = runner.run(test_suite).wasSuccessful()
-
+    try:
+        with modified_environment(**settings), device_launchers:
+            if ask_before_running_tests:
+                prompt_user_to_run_tests(test_names)
+            result = runner.run(test_suite).wasSuccessful()
+    except Exception:
+        msg = "Error while attempting to load test suite: {}".format(traceback.format_exc())
+        result = runner.run(ReportFailLoadTestsuiteTestCase(msg)).wasSuccessful()
     return result
-
 
 if __name__ == '__main__':
 
