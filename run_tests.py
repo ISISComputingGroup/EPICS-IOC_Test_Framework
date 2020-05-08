@@ -7,6 +7,7 @@ import os
 import sys
 import traceback
 import unittest
+import types
 
 import six
 import xmlrunner
@@ -128,7 +129,7 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
             clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
             test_results.append(
-                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers),
+                run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
                           failfast, ask_before_running_tests))
 
     return all(test_result is True for test_result in test_results)
@@ -155,30 +156,36 @@ def prompt_user_to_run_tests(test_names):
         elif answer.upper()[0] == "Y":
             return
 
+def runTestProto(self):
+    """
+    Function to be used as basis for runTest function of ReportFailLoadTestsuiteTestCase.
+    We create a specific named test function to improve the test failure summary details.
+    """
+    self.fail(self.msg)
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """
     Class to allow reporting of an error to run any tests.
 
     Args:
-        msg: Error message.
+        func_name:   Name of function to create for the test.
+        msg:         Error message explaining test failure.
 
     Returns:
         None
     """
-    def __init__(self, msg):
-        super(ReportFailLoadTestsuiteTestCase,self).__init__()
+    def __init__(self, func_name, msg):
+        setattr(self, func_name, types.MethodType(runTestProto, self))
+        super(ReportFailLoadTestsuiteTestCase,self).__init__(func_name)
         self.msg = msg
 
-    def runTest(self):
-        self.fail(self.msg)
-
-def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
+def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
     Runs dotted unit tests.
 
     Args:
         prefix: The instrument prefix.
+        module_name: Name of module containing tests.
         tests_to_run: List of dotted unit tests to be run.
         device_launchers: Context manager that launches the necessary iocs and associated emulators.
         failfast_switch: Determines if test suit aborts after first failure.
@@ -206,7 +213,7 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
             result = runner.run(test_suite).wasSuccessful()
     except Exception:
         msg = "Error while attempting to load test suite: {}".format(traceback.format_exc())
-        result = runner.run(ReportFailLoadTestsuiteTestCase(msg)).wasSuccessful()
+        result = runner.run(ReportFailLoadTestsuiteTestCase(module_name, msg)).wasSuccessful()
     return result
 
 if __name__ == '__main__':
