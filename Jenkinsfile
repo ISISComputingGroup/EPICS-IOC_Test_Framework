@@ -16,8 +16,8 @@ pipeline {
 
   // The options directive is for configuration that applies to the whole job.
   options {
-    buildDiscarder(logRotator(numToKeepStr:'5', daysToKeepStr: '7'))
-    timeout(time: 600, unit: 'MINUTES')
+    buildDiscarder(logRotator(numToKeepStr:'7', daysToKeepStr: '7'))
+    timeout(time: 900, unit: 'MINUTES')
     disableConcurrentBuilds()
     timestamps()
     office365ConnectorWebhooks([[
