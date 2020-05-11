@@ -156,28 +156,32 @@ def prompt_user_to_run_tests(test_names):
         elif answer.upper()[0] == "Y":
             return
 
-def runTestProto(self):
-    """
-    Function to be used as basis for runTest function of ReportFailLoadTestsuiteTestCase.
-    We create a specific named test function to improve the test failure summary details.
-    """
-    self.fail(self.msg)
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """
     Class to allow reporting of an error to run any tests.
 
     Args:
-        func_name:   Name of function to create for the test.
-        msg:         Error message explaining test failure.
+        failing_module_name:   Name of module that failed.
+        msg:                   Error message explaining failure.
 
     Returns:
         None
     """
-    def __init__(self, func_name, msg):
-        setattr(self, func_name, types.MethodType(runTestProto, self))
+    def __init__(self, failing_module_name, msg):
+        # strictly we should use and pass (*args, **kwargs) but we only call 
+        # this directly ourselves and not from a test suite.
+        # We create a function based on fail_with_msg() to get a better test summary.
+        func_name = "{}_module_failed_to_load".format(failing_module_name)
+        setattr(self, func_name, self.fail_with_msg)
         super(ReportFailLoadTestsuiteTestCase,self).__init__(func_name)
         self.msg = msg
+
+    def fail_with_msg(self):
+        """
+        Function to be used as basis of "runTest" unittest.TestCase function.
+        """
+        self.fail(self.msg)
 
 def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
