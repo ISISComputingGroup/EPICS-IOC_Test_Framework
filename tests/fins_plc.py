@@ -21,6 +21,12 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
+MEMORY_FIELD_MAPPING = {
+        19500: 1,  # heartbeat
+        19533: 999,  # helium purity
+        19534: 5,  # dew point
+        19900: 100  # HE_BAG_PR_BE_ATM
+    }
 
 class FinsPLCTests(unittest.TestCase):
     """
@@ -34,6 +40,9 @@ class FinsPLCTests(unittest.TestCase):
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
+
+    def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device()
 
     @skip_if_recsim("Depends on state which is not implemented in recsim")
     def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
