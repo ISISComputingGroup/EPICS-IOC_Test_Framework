@@ -13,6 +13,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("FINS"),
         "macros": {
+            "PLCIP": "127.0.0.1",
             "PLCNODE": 58,
         },
         "emulator": "fins",
