@@ -1,7 +1,7 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
@@ -31,10 +31,9 @@ class FinsPLCTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
 
-        self.ca.assert_that_pv_exists("FREQ", timeout=30)
-
-        # Wait for emulator to be connected, signified by "STAT:OK"
-        self.ca.assert_that_pv_is("STAT:OK", "OK")
+        if not IOCRegister.uses_rec_sim:
+            self._lewis.backdoor_run_function_on_device("reset")
+            self._lewis.backdoor_set_on_device("connected", True)
 
     @skip_if_recsim("Depends on state which is not implemented in recsim")
     def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
