@@ -6,7 +6,7 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # Device prefix
-DEVICE_PREFIX = "FINS_01"
+DEVICE_PREFIX = "HE-RCVRY"
 
 IOCS = [
     {
@@ -21,12 +21,6 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
-MEMORY_FIELD_MAPPING = {
-        19500: 1,  # heartbeat
-        19533: 999,  # helium purity
-        19534: 5,  # dew point
-        19900: 100  # HE_BAG_PR_BE_ATM
-    }
 
 class FinsPLCTests(unittest.TestCase):
     """
@@ -42,12 +36,5 @@ class FinsPLCTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("connected", True)
 
     def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device()
-
-    @skip_if_recsim("Depends on state which is not implemented in recsim")
-    def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
-        self.ca.set_pv_value("START", 1)
-        self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "YES")
-        self.ca.set_pv_value("STOP", 1)
-        self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "NO")
-
+        self._lewis.backdoor_set_on_device("heartbeat", 1)
+        self.ca.assert_that_pv_is("HEARTBEAT", 1)
