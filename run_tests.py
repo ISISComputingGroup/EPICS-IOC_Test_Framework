@@ -7,7 +7,6 @@ import os
 import sys
 import traceback
 import unittest
-import types
 
 import six
 import xmlrunner
