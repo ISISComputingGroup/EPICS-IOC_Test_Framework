@@ -128,7 +128,7 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
             clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
             test_results.append(
-                run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers),
+                run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
                           failfast, ask_before_running_tests))
 
     return all(test_result is True for test_result in test_results)
@@ -161,24 +161,34 @@ class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     Class to allow reporting of an error to run any tests.
 
     Args:
-        msg: Error message.
+        failing_module_name:   Name of module that failed.
+        msg:                   Error message explaining failure.
 
     Returns:
         None
     """
-    def __init__(self, msg):
-        super(ReportFailLoadTestsuiteTestCase,self).__init__()
+    def __init__(self, failing_module_name, msg):
+        # strictly we should use and pass (*args, **kwargs) but we only call 
+        # this directly ourselves and not from a test suite.
+        # We create a function based on fail_with_msg() to get a better test summary.
+        func_name = "{}_module_failed_to_load".format(failing_module_name)
+        setattr(self, func_name, self.fail_with_msg)
+        super(ReportFailLoadTestsuiteTestCase,self).__init__(func_name)
         self.msg = msg
 
-    def runTest(self):
+    def fail_with_msg(self):
+        """
+        Function to be used as basis of "runTest" unittest.TestCase function.
+        """
         self.fail(self.msg)
 
-def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
+def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
     Runs dotted unit tests.
 
     Args:
         prefix: The instrument prefix.
+        module_name: Name of module containing tests.
         tests_to_run: List of dotted unit tests to be run.
         device_launchers: Context manager that launches the necessary iocs and associated emulators.
         failfast_switch: Determines if test suit aborts after first failure.
@@ -206,7 +216,7 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
             result = runner.run(test_suite).wasSuccessful()
     except Exception:
         msg = "Error while attempting to load test suite: {}".format(traceback.format_exc())
-        result = runner.run(ReportFailLoadTestsuiteTestCase(msg)).wasSuccessful()
+        result = runner.run(ReportFailLoadTestsuiteTestCase(module_name, msg)).wasSuccessful()
     return result
 
 if __name__ == '__main__':
