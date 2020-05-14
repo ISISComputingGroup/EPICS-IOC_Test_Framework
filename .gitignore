@@ -99,6 +99,7 @@ IOCTestFramework.iml
 NULL
 
 # VS Code files
+.vs/
 .vscode/
 settings.json
 
