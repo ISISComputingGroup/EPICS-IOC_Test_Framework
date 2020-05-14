@@ -19,7 +19,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class FlipprpsTests(unittest.TestCase):
@@ -32,9 +32,23 @@ class FlipprpsTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor commands not available in RecSim")
     def test_SET_polarity(self):
+        self._lewis.backdoor_set_on_device("connected", True)
         self.ca.set_pv_value("POLARITY", "Down")
-        polarity = self._lewis.backdoor_get_from_device("polarity")
-        self.assertEqual(polarity, "0")
+        self._lewis.assert_that_emulator_value_is("polarity", "0")
         self.ca.set_pv_value("POLARITY", "Up")
-        polarity = self._lewis.backdoor_get_from_device("polarity")
-        self.assertEqual(polarity, "1")
+        self._lewis.assert_that_emulator_value_is("polarity", "1")
+
+    def test_GET_id(self):
+        self._lewis.backdoor_set_on_device("connected", True)
+        self.ca.assert_that_pv_is("ID", "Flipper")
+
+    @skip_if_recsim("Lewis backdoor commands not available in RecSim")
+    def test_GIVEN_device_not_connected_THEN_id_is_in_alarm(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+        self.ca.assert_that_pv_alarm_is("ID", "INVALID", 20)
+
+    @skip_if_recsim("Lewis backdoor commands not available in RecSim")
+    def test_GIVEN_device_not_connected_THEN_polarity_raises_timeout_alarm_after_set(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+        self.ca.set_pv_value("POLARITY", "Up")
+        self.ca.assert_that_pv_alarm_is("POLARITY", "INVALID")
