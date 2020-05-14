@@ -106,7 +106,7 @@ class BaseLauncher(object):
     Launcher base, this is the base class for a launcher of application under test.
     """
 
-    def __init__(self, ioc_config, var_dir):
+    def __init__(self, test_name, ioc_config, var_dir):
         """
         Constructor which picks some generic things out of the config.
         Args:
@@ -127,6 +127,7 @@ class BaseLauncher(object):
         self.macros = ioc_config.get("macros", {})
         self.port = int(self.macros['EMULATOR_PORT'])
         self._var_dir = var_dir
+        self._test_name = test_name
         self.ca = None
 
     def open(self):
@@ -165,7 +166,7 @@ class ProcServLauncher(BaseLauncher):
 
     ICPTOOLS = os.path.join(EPICS_TOP, "tools", "master")
 
-    def __init__(self, ioc, test_mode, var_dir):
+    def __init__(self, test_name, ioc, test_mode, var_dir):
         """
         Constructor which calls ProcServ to boot an IOC
 
@@ -178,7 +179,7 @@ class ProcServLauncher(BaseLauncher):
             test_mode: Ignored by non-emulator launchers
             var_dir: The directory into which the launcher will save log files.
         """
-        super(ProcServLauncher, self).__init__(ioc, var_dir)
+        super(ProcServLauncher, self).__init__(test_name, ioc, var_dir)
         self.logport = int(self.macros['LOG_PORT'])
 
         self.ioc_run_command = None
@@ -206,7 +207,7 @@ class ProcServLauncher(BaseLauncher):
         return settings
 
     def _log_filename(self):
-        return log_filename("ioc", self._device, True, self._var_dir)
+        return log_filename(self._test_name, "ioc", self._device, True, self._var_dir)
 
     @staticmethod
     def to_cygwin_address(win_filepath):
@@ -368,7 +369,7 @@ class IocLauncher(BaseLauncher):
     """
     Launches an IOC for testing.
     """
-    def __init__(self, ioc, test_mode, var_dir):
+    def __init__(self, test_name, ioc, test_mode, var_dir):
         """
         Constructor that also launches the IOC.
 
@@ -382,7 +383,7 @@ class IocLauncher(BaseLauncher):
         :param test_mode: TestModes.RECSIM or TestModes.DEVSIM depending on IOC test mode
         :param var_dir: The directory into which the launcher will save log files.
         """
-        super(IocLauncher, self).__init__(ioc, var_dir)
+        super(IocLauncher, self).__init__(test_name, ioc, var_dir)
         self._extra_environment_vars = ioc.get("environment_vars", {})
         self._init_values = ioc.get('inits', {})
 
@@ -396,7 +397,7 @@ class IocLauncher(BaseLauncher):
         self.log_file_manager = None
 
     def _log_filename(self):
-        return log_filename("ioc", self._device, self.use_rec_sim, self._var_dir)
+        return log_filename(self._test_name, "ioc", self._device, self.use_rec_sim, self._var_dir)
 
     def _set_environment_vars(self):
         settings = os.environ.copy()
@@ -526,8 +527,8 @@ class PythonIOCLauncher(IocLauncher):
     Launch a python ioc like REFL server.
     """
 
-    def __init__(self, ioc, test_mode, var_dir):
-        super(PythonIOCLauncher, self).__init__(ioc, test_mode, var_dir)
+    def __init__(self, test_name, ioc, test_mode, var_dir):
+        super(PythonIOCLauncher, self).__init__(test_name, ioc, test_mode, var_dir)
         self._python_script_commandline = ioc.get("python_script_commandline", None)
         self._python_version = ioc.get("python_version", 2)
 

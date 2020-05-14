@@ -63,10 +63,11 @@ class EmulatorRegister(object):
 @six.add_metaclass(abc.ABCMeta)
 class EmulatorLauncher(object):
 
-    def __init__(self, device, var_dir, port, options):
+    def __init__(self, test_name, device, var_dir, port, options):
         """
         Args:
             device: The name of the device to emulate
+            test_name: The name of the test we are creating a device for
             var_dir: The directory in which to store logs
             port: The TCP port to listen on for connections
             options: Dictionary of any additional options required by specific launchers
@@ -76,6 +77,7 @@ class EmulatorLauncher(object):
         self._var_dir = var_dir
         self._port = port
         self._options = options
+        self._test_name = test_name
 
     def __enter__(self):
         self._open()
@@ -330,16 +332,17 @@ class LewisLauncher(EmulatorLauncher):
     _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
     _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH, "scripts")
 
-    def __init__(self, device, var_dir, port, options):
+    def __init__(self, test_name, device, var_dir, port, options):
         """
         Constructor that also launches Lewis.
 
         Args:
             device: device to start
+            test_name name of test
             var_dir: location of directory to write log file and macros directories
             port: the port to use
         """
-        super(LewisLauncher, self).__init__(device, var_dir, port, options)
+        super(LewisLauncher, self).__init__(test_name, device, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
         self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
@@ -396,7 +399,7 @@ class LewisLauncher(EmulatorLauncher):
         self._connected = True
 
     def _log_filename(self):
-        return log_filename("lewis", self._emulator_id, False, self._var_dir)
+        return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
 
     def check(self):
         """
@@ -508,8 +511,8 @@ class LewisLauncher(EmulatorLauncher):
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
 
-    def __init__(self, device, var_dir, port, options):
-        super(CommandLineEmulatorLauncher, self).__init__(device, var_dir, port, options)
+    def __init__(self, test_name, device, var_dir, port, options):
+        super(CommandLineEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
         try:
             self.command_line = options["emulator_command_line"]
         except KeyError:
@@ -525,7 +528,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         self._log_file = None
 
     def _open(self):
-        self._log_file = open(log_filename("cmdemulator", self._device, True, self._var_dir), "w")
+        self._log_file = open(log_filename(self._test_name, "cmdemulator", self._device, True, self._var_dir), "w")
         self._call_command_line(self.command_line.format(port=self._port))
 
     def _call_command_line(self, command_line):
@@ -561,7 +564,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
 
 class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
 
-    def __init__(self, device, var_dir, port, options):
+    def __init__(self, test_name, device, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
             self.solution_path = options["solution_path"]
@@ -579,7 +582,7 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
 
             options["emulator_command_line"] = self.startup_command
             options["emulator_wait_to_finish"] = True
-            super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
+            super(BeckhoffEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
         else:
             raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
                           " {} \n".format(automation_tools_dir))
