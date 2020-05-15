@@ -110,6 +110,7 @@ class BaseLauncher(object):
         """
         Constructor which picks some generic things out of the config.
         Args:
+            test_name: name of test we are running.
             ioc_config: Dictionary containing
                  name: String, Device name
                  directory: String, the directory where st.cmd for the IOC is found
@@ -171,6 +172,7 @@ class ProcServLauncher(BaseLauncher):
         Constructor which calls ProcServ to boot an IOC
 
         Args:
+            test_name: name of test we are running
             ioc: Dictionary containing
                 device: String, Device name
                 directory: String, the directory where st.cmd for the IOC is found
@@ -373,6 +375,7 @@ class IocLauncher(BaseLauncher):
         """
         Constructor that also launches the IOC.
 
+        :param test_name: name of test we are running
         :param ioc: Dictionary containing:
             name: device name
             directory: the directory where the st.cmd for the IOC is found

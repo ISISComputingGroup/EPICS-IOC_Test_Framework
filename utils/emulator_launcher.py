@@ -66,8 +66,8 @@ class EmulatorLauncher(object):
     def __init__(self, test_name, device, var_dir, port, options):
         """
         Args:
+            test_name: The name of the test we are creating a device emulator for
             device: The name of the device to emulate
-            test_name: The name of the test we are creating a device for
             var_dir: The directory in which to store logs
             port: The TCP port to listen on for connections
             options: Dictionary of any additional options required by specific launchers
@@ -337,8 +337,8 @@ class LewisLauncher(EmulatorLauncher):
         Constructor that also launches Lewis.
 
         Args:
+            test_name name of test we are creating device emulator for
             device: device to start
-            test_name name of test
             var_dir: location of directory to write log file and macros directories
             port: the port to use
         """
