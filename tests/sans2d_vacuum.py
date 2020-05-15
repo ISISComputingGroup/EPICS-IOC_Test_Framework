@@ -94,4 +94,18 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:SEAL:SUPPLY:PRESS:RAW", raw_value)
         self.ca.assert_that_pv_is("SEAL:SUPPLY:PRESS", expected_converted_val)
 
+    def _set_shutter_and_assert(self, state, int_state=None):
+        if int_state is None:
+            int_state = state
+        self.ca.set_pv_value("SHUTTER:STATUS:SP", int_state)
+        self.ca.assert_that_pv_monitor_gets_values("SHUTTER:{}:SP".format(state), [state, "..."])
 
+    def test_WHEN_opening_and_closing_shutter_THEN_propogates(self):
+        self._set_shutter_and_assert("OPEN")
+        self._set_shutter_and_assert("CLOSE")
+        self._set_shutter_and_assert("OPEN")
+
+    def test_WHEN_opening_and_closing_shutter_with_numbers_THEN_propogates(self):
+        self._set_shutter_and_assert("OPEN", 1)
+        self._set_shutter_and_assert("CLOSE", 0)
+        self._set_shutter_and_assert("OPEN", 1)
