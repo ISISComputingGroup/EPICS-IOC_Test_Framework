@@ -3,6 +3,8 @@ Code that launches an IOC/application under test
 """
 import subprocess
 import os
+import time
+
 import psutil
 from time import sleep
 from abc import ABCMeta
@@ -338,10 +340,20 @@ class ProcServLauncher(BaseLauncher):
         if self.telnet is not None:
             self.telnet.close()
 
+        at_least_one_killed = False
         for process in psutil.process_iter(attrs=['pid', 'name']):
             if process.info['name'] == 'procServ.exe' and self.process_arguments_match_this_ioc(process.cmdline()):
                 # Command line arguments match, kill procServ instance
-                os.kill(process.pid, SIGTERM)
+                pid = process.pid
+                os.kill(pid, SIGTERM)
+                time.sleep(10)
+                if psutil.pid_exists(pid):
+                    print("Process is still running try killing again!")
+                    os.kill(pid, SIGTERM)
+                at_least_one_killed = True
+
+        if not at_least_one_killed:
+            print("No process with name procServ.exe found that matched command line {}".format(self.ioc_run_command))
 
     def process_arguments_match_this_ioc(self, process_arguments):
         """
