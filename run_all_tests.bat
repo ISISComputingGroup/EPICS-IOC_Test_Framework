@@ -8,3 +8,4 @@ call "%~dp0..\..\..\config_env.bat"
 set "PYTHONUNBUFFERED=1"
 
 call %PYTHON% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %*
+IF %ERRORLEVEL% NEQ 0 EXIT /b %errorlevel%
