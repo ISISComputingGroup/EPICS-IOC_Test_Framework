@@ -337,7 +337,7 @@ class LewisLauncher(EmulatorLauncher):
         Constructor that also launches Lewis.
 
         Args:
-            test_name name of test we are creating device emulator for
+            test_name: name of test we are creating device emulator for
             device: device to start
             var_dir: location of directory to write log file and macros directories
             port: the port to use
