@@ -94,18 +94,40 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:SEAL:SUPPLY:PRESS:RAW", raw_value)
         self.ca.assert_that_pv_is("SEAL:SUPPLY:PRESS", expected_converted_val)
 
-    def _set_shutter_and_assert(self, state, int_state=None):
+    def _set_sp_and_assert(self, set_pv, state, expected_state=None, int_state=None):
         if int_state is None:
             int_state = state
-        self.ca.set_pv_value("SHUTTER:STATUS:SP", int_state)
-        self.ca.assert_that_pv_monitor_gets_values("SHUTTER:{}:SP".format(state), [state, "..."])
+        if expected_state is None:
+            expected_state = state
+        self.ca.set_pv_value("{}:STATUS:SP".format(set_pv), int_state)
+        self.ca.assert_that_pv_monitor_gets_values("{}:{}:SP".format(set_pv, expected_state), [expected_state, "..."])
 
     def test_WHEN_opening_and_closing_shutter_THEN_propogates(self):
-        self._set_shutter_and_assert("OPEN")
-        self._set_shutter_and_assert("CLOSE")
-        self._set_shutter_and_assert("OPEN")
+        self._set_sp_and_assert("SHUTTER", "OPEN")
+        self._set_sp_and_assert("SHUTTER", "CLOSE")
+        self._set_sp_and_assert("SHUTTER", "OPEN")
 
     def test_WHEN_opening_and_closing_shutter_with_numbers_THEN_propogates(self):
-        self._set_shutter_and_assert("OPEN", 1)
-        self._set_shutter_and_assert("CLOSE", 0)
-        self._set_shutter_and_assert("OPEN", 1)
+        self._set_sp_and_assert("SHUTTER", "OPEN", 1)
+        self._set_sp_and_assert("SHUTTER", "CLOSE", 0)
+        self._set_sp_and_assert("SHUTTER", "OPEN", 1)
+
+    def test_WHEN_insert_and_extract_monitor_THEN_propogates(self):
+        self._set_sp_and_assert("MONITOR", "IN", "INSERT")
+        self._set_sp_and_assert("MONITOR", "OUT", "EXTRACT")
+        self._set_sp_and_assert("MONITOR", "IN", "INSERT")
+
+    def test_WHEN_insert_and_extract_monitor_with_numbers_THEN_propogates(self):
+        self._set_sp_and_assert("MONITOR", "IN", "INSERT", 1)
+        self._set_sp_and_assert("MONITOR", "OUT", "EXTRACT", 0)
+        self._set_sp_and_assert("MONITOR", "IN", "INSERT", 1)
+
+    def test_WHEN_start_and_stop_guide_THEN_propogates(self):
+        self._set_sp_and_assert("GUIDE", "START")
+        self._set_sp_and_assert("GUIDE", "STOP")
+        self._set_sp_and_assert("GUIDE", "START")
+
+    def test_WHEN_start_and_stop_guide_with_numbers_THEN_propogates(self):
+        self._set_sp_and_assert("GUIDE", "START", 1)
+        self._set_sp_and_assert("GUIDE", "STOP", 0)
+        self._set_sp_and_assert("GUIDE", "START", 1)
