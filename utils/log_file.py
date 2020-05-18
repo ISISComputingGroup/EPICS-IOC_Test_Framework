@@ -6,10 +6,11 @@ import threading
 LOG_FILES_DIRECTORY = os.path.join("logs", "IOCTestFramework")
 
 
-def log_filename(what, device, uses_rec_sim, var_dir):
+def log_filename(test_name, what, device, uses_rec_sim, var_dir):
     """
     Log file name with path. Ensure path exists.
 
+    :param test_name: name of test module being run
     :param what: what is being logged for, e.g. lewis
     :param device: device the log is for
     :param uses_rec_sim: whether rec sim is used
@@ -24,8 +25,8 @@ def log_filename(what, device, uses_rec_sim, var_dir):
     if not os.path.exists(full_dir):
         os.makedirs(full_dir)
 
-    return os.path.join(full_dir, "log_{device}_{sim_type}_{what}.log".format(
-        device=device, what=what, sim_type=sim_type))
+    return os.path.join(full_dir, "log_{test_name}_{sim_type}_{device}_{what}.log".format(
+        test_name=test_name.replace('.','_'), sim_type=sim_type, device=device, what=what))
 
 
 class LogFileManager(object):

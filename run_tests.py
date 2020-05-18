@@ -76,14 +76,14 @@ def make_device_launchers_from_module(test_module, mode):
         macros['LOG_PORT'] = free_port[1]
 
         ioc_launcher_class = ioc.get("ioc_launcher_class", IocLauncher)
-        ioc_launcher = ioc_launcher_class(ioc, mode, var_dir)
+        ioc_launcher = ioc_launcher_class(test_module.__name__, ioc, mode, var_dir)
 
         if "emulator" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulator_launcher_class", LewisLauncher)
-            emulator_launcher = emulator_launcher_class(ioc["emulator"], var_dir,
+            emulator_launcher = emulator_launcher_class(test_module.__name__, ioc["emulator"], var_dir,
                                                         emmulator_port, ioc)
         elif "emulator" in ioc:
-            emulator_launcher = NullEmulatorLauncher(ioc["emulator"], var_dir, None, ioc)
+            emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], var_dir, None, ioc)
         else:
             emulator_launcher = None
 

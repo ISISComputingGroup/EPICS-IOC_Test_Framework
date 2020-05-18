@@ -69,6 +69,7 @@ pipeline {
   
   post {
     always {
+      archiveArtifacts artifacts: 'c:/Instrument/Var/logs/IOCTestFramework/*.log', caseSensitive: false
       junit "test-reports/**/*.xml"
     }
   }
