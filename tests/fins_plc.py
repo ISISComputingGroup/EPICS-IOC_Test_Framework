@@ -6,7 +6,7 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # Device prefix
-DEVICE_PREFIX = "HE-RCVRY"
+DEVICE_PREFIX = "FINS_01"
 
 IOCS = [
     {
@@ -30,7 +30,7 @@ class FinsPLCTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=20, device_prefix="HE-RCVRY")
 
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
