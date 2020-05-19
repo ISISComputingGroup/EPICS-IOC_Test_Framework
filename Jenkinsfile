@@ -53,7 +53,9 @@ pipeline {
             ) else (
                 call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat
             )
+            set ERRCODE=%ERRORLEVEL%
             rmdir /s /q ibex_utils
+            if %ERRCODE% NEQ 0 EXIT /B 1
             """
       }
     }
