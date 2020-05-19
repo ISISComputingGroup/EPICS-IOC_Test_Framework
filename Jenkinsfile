@@ -63,6 +63,7 @@ pipeline {
     stage("System Tests") {
       steps {
         bat """
+            del /q C:\\Instrument\\Var\\logs\\IOCTestFramework\\*.*
             call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat"
             """
       }
@@ -71,7 +72,10 @@ pipeline {
   
   post {
     always {
-      archiveArtifacts artifacts: 'c:\\Instrument\\Var\\logs\\IOCTestFramework\\*.log', caseSensitive: false
+      bat """
+          robocopy "C:\\Instrument\\Var\\logs\\IOCTestFramework" "%WORKSPACE%\\test-logs" /E /PURGE /R:2 /MT /NFL /NDL /NP /NC /NS /LOG:NUL
+      """
+      archiveArtifacts artifacts: 'test-logs/*.log', caseSensitive: false
       junit "test-reports/**/*.xml"
     }
   }
