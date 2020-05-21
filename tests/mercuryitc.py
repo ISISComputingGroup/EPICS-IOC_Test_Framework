@@ -24,14 +24,20 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 PID_PARAMS = ["P", "I", "D"]
 PID_TEST_VALUES = [0.0, 0.01, 99.99]
 TEMPERATURE_TEST_VALUES = [0.0, 0.01, 999.9999]
+RESISTANCE_TEST_VALUES = TEMPERATURE_TEST_VALUES
+GAS_FLOW_TEST_VALUES = TEMPERATURE_TEST_VALUES
+HEATER_PERCENT_TEST_VALUES = PID_TEST_VALUES
 
 PRIMARY_TEMPERATURE_CHANNEL = "MB0"
+
+HEATER_MODES = ["Auto", "Manual"]
+GAS_FLOW_MODES = ["Auto", "Manual"]
 
 
 class MercuryTests(unittest.TestCase):
@@ -40,17 +46,22 @@ class MercuryTests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("mercuryitc", DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     @parameterized.expand(parameterized_list(itertools.product(PID_PARAMS, PID_TEST_VALUES)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_pid_params_set_via_backdoor_THEN_pv_updates(self, _, param, test_value):
+    def test_WHEN_pid_params_set_via_backdoor_THEN_readback_updates(self, _, param, test_value):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, param.lower(), test_value])
         self.ca.assert_that_pv_is("1:{}".format(param), test_value)
+
+    @parameterized.expand(parameterized_list(itertools.product(PID_PARAMS, PID_TEST_VALUES)))
+    def test_WHEN_pid_params_set_THEN_readback_updates(self, _, param, test_value):
+        self.ca.assert_setting_setpoint_sets_readback(
+            test_value, readback_pv="1:{}".format(param), set_point_pv="1:{}:SP".format(param))
 
     @parameterized.expand(parameterized_list(TEMPERATURE_TEST_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -59,9 +70,35 @@ class MercuryTests(unittest.TestCase):
             "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, "temperature", test_value])
         self.ca.assert_that_pv_is("1:TEMP", test_value)
 
+    @parameterized.expand(parameterized_list(RESISTANCE_TEST_VALUES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_resistance_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, "resistance", test_value])
+        self.ca.assert_that_pv_is("1:RESISTANCE", test_value)
+
     @parameterized.expand(parameterized_list(TEMPERATURE_TEST_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_sp_temp_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
-        self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, "temperature_sp", test_value])
-        self.ca.assert_that_pv_is("1:TEMP:SP:RBV", test_value)
+    def test_WHEN_sp_temp_is_set_THEN_pv_updates(self, _, test_value):
+        self.ca.assert_setting_setpoint_sets_readback(test_value, set_point_pv="1:TEMP:SP", readback_pv="1:TEMP:SP:RBV")
+
+    @parameterized.expand(parameterized_list(HEATER_MODES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_heater_mode_is_set_THEN_pv_updates(self, _, mode):
+        self.ca.assert_setting_setpoint_sets_readback(
+            mode, set_point_pv="1:HEATER:MODE:SP", readback_pv="1:HEATER:MODE")
+
+    @parameterized.expand(parameterized_list(GAS_FLOW_MODES))
+    def test_WHEN_gas_flow_mode_is_set_THEN_pv_updates(self, _, mode):
+        self.ca.assert_setting_setpoint_sets_readback(
+            mode, set_point_pv="1:FLOW:STAT:SP", readback_pv="1:FLOW:STAT")
+
+    @parameterized.expand(parameterized_list(GAS_FLOW_TEST_VALUES))
+    def test_WHEN_gas_flow_is_set_THEN_pv_updates(self, _, mode):
+        self.ca.assert_setting_setpoint_sets_readback(
+            mode, set_point_pv="1:FLOW:SP", readback_pv="1:FLOW")
+
+    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    def test_WHEN_heater_percent_is_set_THEN_pv_updates(self, _, mode):
+        self.ca.assert_setting_setpoint_sets_readback(
+            mode, set_point_pv="1:HEATER:SP", readback_pv="1:HEATER")
