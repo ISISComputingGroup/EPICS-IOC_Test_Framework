@@ -78,12 +78,10 @@ class MercuryTests(unittest.TestCase):
         self.ca.assert_that_pv_is("1:RESISTANCE", test_value)
 
     @parameterized.expand(parameterized_list(TEMPERATURE_TEST_VALUES))
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_sp_temp_is_set_THEN_pv_updates(self, _, test_value):
         self.ca.assert_setting_setpoint_sets_readback(test_value, set_point_pv="1:TEMP:SP", readback_pv="1:TEMP:SP:RBV")
 
     @parameterized.expand(parameterized_list(HEATER_MODES))
-    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_heater_mode_is_set_THEN_pv_updates(self, _, mode):
         self.ca.assert_setting_setpoint_sets_readback(
             mode, set_point_pv="1:HEATER:MODE:SP", readback_pv="1:HEATER:MODE")
@@ -102,3 +100,29 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_heater_percent_is_set_THEN_pv_updates(self, _, mode):
         self.ca.assert_setting_setpoint_sets_readback(
             mode, set_point_pv="1:HEATER:SP", readback_pv="1:HEATER")
+
+    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    def test_WHEN_heater_voltage_limit_is_set_THEN_pv_updates(self, _, mode):
+        self.ca.assert_setting_setpoint_sets_readback(
+            mode, set_point_pv="1:HEATER:VOLT_LIMIT:SP", readback_pv="1:HEATER:VOLT_LIMIT")
+
+    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", ["DB0", "power", test_value])  # TODO: refactor DB0
+        self.ca.assert_that_pv_is("1:HEATER:POWER", test_value)
+
+    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_heater_curr_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", ["DB0", "current", test_value])  # TODO: refactor DB0
+        self.ca.assert_that_pv_is("1:HEATER:CURR", test_value)
+
+    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_heater_voltage_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", ["DB0", "voltage", test_value])  # TODO: refactor DB0
+        self.ca.assert_that_pv_is("1:HEATER:VOLT", test_value)
