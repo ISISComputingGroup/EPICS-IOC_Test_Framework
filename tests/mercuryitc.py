@@ -38,6 +38,9 @@ PRIMARY_TEMPERATURE_CHANNEL = "MB0"
 
 HEATER_MODES = ["Auto", "Manual"]
 GAS_FLOW_MODES = ["Auto", "Manual"]
+AUTOPID_MODES = ["OFF", "ON"]
+
+MOCK_NICKNAMES = ["MyNickName", "SomeOtherNickname"]
 
 
 class MercuryTests(unittest.TestCase):
@@ -46,7 +49,7 @@ class MercuryTests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("mercuryitc", DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -62,6 +65,11 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_pid_params_set_THEN_readback_updates(self, _, param, test_value):
         self.ca.assert_setting_setpoint_sets_readback(
             test_value, readback_pv="1:{}".format(param), set_point_pv="1:{}:SP".format(param))
+
+    @parameterized.expand(parameterized_list(AUTOPID_MODES))
+    def test_WHEN_autopid_set_THEN_readback_updates(self, _, test_value):
+        self.ca.assert_setting_setpoint_sets_readback(
+            test_value, readback_pv="1:PID:AUTO", set_point_pv="1:PID:AUTO:SP")
 
     @parameterized.expand(parameterized_list(TEMPERATURE_TEST_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -126,3 +134,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", ["DB0", "voltage", test_value])  # TODO: refactor DB0
         self.ca.assert_that_pv_is("1:HEATER:VOLT", test_value)
+
+    @parameterized.expand(parameterized_list(MOCK_NICKNAMES))
+    def test_WHEN_name_is_set__THEN_pv_updates(self, _, test_value):
+        self.ca.assert_setting_setpoint_sets_readback(test_value, readback_pv="1:NAME", set_point_pv="1:NAME:SP")
