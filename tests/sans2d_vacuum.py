@@ -113,14 +113,14 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self._set_sp_and_assert("SHUTTER", "OPEN", 1)
 
     def test_WHEN_insert_and_extract_monitor_THEN_propogates(self):
-        self._set_sp_and_assert("MONITOR", "IN", "INSERT")
-        self._set_sp_and_assert("MONITOR", "OUT", "EXTRACT")
-        self._set_sp_and_assert("MONITOR", "IN", "INSERT")
+        self._set_sp_and_assert("MONITOR3", "IN", "INSERT")
+        self._set_sp_and_assert("MONITOR3", "OUT", "EXTRACT")
+        self._set_sp_and_assert("MONITOR3", "IN", "INSERT")
 
     def test_WHEN_insert_and_extract_monitor_with_numbers_THEN_propogates(self):
-        self._set_sp_and_assert("MONITOR", "IN", "INSERT", 1)
-        self._set_sp_and_assert("MONITOR", "OUT", "EXTRACT", 0)
-        self._set_sp_and_assert("MONITOR", "IN", "INSERT", 1)
+        self._set_sp_and_assert("MONITOR3", "IN", "INSERT", 1)
+        self._set_sp_and_assert("MONITOR3", "OUT", "EXTRACT", 0)
+        self._set_sp_and_assert("MONITOR3", "IN", "INSERT", 1)
 
     def test_WHEN_start_and_stop_guide_THEN_propogates(self):
         self._set_sp_and_assert("GUIDE", "START")
