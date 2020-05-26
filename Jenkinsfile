@@ -16,8 +16,8 @@ pipeline {
 
   // The options directive is for configuration that applies to the whole job.
   options {
-    buildDiscarder(logRotator(numToKeepStr:'5', daysToKeepStr: '7'))
-    timeout(time: 600, unit: 'MINUTES')
+    buildDiscarder(logRotator(numToKeepStr:'7', daysToKeepStr: '7'))
+    timeout(time: 900, unit: 'MINUTES')
     disableConcurrentBuilds()
     timestamps()
     office365ConnectorWebhooks([[
@@ -53,7 +53,9 @@ pipeline {
             ) else (
                 call ibex_utils/installation_and_upgrade/instrument_install_latest_build_only.bat
             )
+            set ERRCODE=%ERRORLEVEL%
             rmdir /s /q ibex_utils
+            if %ERRCODE% NEQ 0 EXIT /B 1
             """
       }
     }
@@ -61,6 +63,7 @@ pipeline {
     stage("System Tests") {
       steps {
         bat """
+            del /q C:\\Instrument\\Var\\logs\\IOCTestFramework\\*.*
             call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat"
             """
       }
@@ -69,6 +72,11 @@ pipeline {
   
   post {
     always {
+      bat """
+          robocopy "C:\\Instrument\\Var\\logs\\IOCTestFramework" "%WORKSPACE%\\test-logs" /E /PURGE /R:2 /MT /NFL /NDL /NP /NC /NS /LOG:NUL
+          exit /b 0
+      """
+      archiveArtifacts artifacts: 'test-logs/*.log', caseSensitive: false
       junit "test-reports/**/*.xml"
     }
   }
