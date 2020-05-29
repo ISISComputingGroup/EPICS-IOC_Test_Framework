@@ -55,3 +55,7 @@ class FinsPLCTests(unittest.TestCase):
     def test_WHENdew_point_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("dew_point", 3)
         self.ca.assert_that_pv_is("DEW_POINT", 3)
+
+    def test_WHEN_he_bag_pr_be_atm_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("he_bag_pr_be_atm", 4)
+        self.ca.assert_that_pv_is("HE_BAG_PR_BE_ATM", 4)
