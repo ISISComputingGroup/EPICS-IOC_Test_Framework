@@ -47,3 +47,7 @@ class FinsPLCTests(unittest.TestCase):
     def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("heartbeat", 1)
         self.ca.assert_that_pv_is("HEARTBEAT", 1)
+
+    def test_WHEN_helium_purity_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_set_on_device("helium_purity", 2)
+        self.ca.assert_that_pv_is("HE_PURITY", 2)
