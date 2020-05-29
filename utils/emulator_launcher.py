@@ -342,7 +342,6 @@ class LewisLauncher(EmulatorLauncher):
         super(LewisLauncher, self).__init__(device, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
-        self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
         self._lewis_additional_path = options.get("lewis_additional_path", DEVICE_EMULATOR_PATH)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
@@ -373,7 +372,7 @@ class LewisLauncher(EmulatorLauncher):
         """
 
         self._control_port = str(get_free_ports(1)[0])
-        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis.exe"),
+        lewis_command_line = [os.path.join(self._lewis_path, "lewis.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
                                   .format(protocol=self._lewis_protocol, port=self._port)])
@@ -456,7 +455,7 @@ class LewisLauncher(EmulatorLauncher):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
-        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis-control.exe"),
+        lewis_command_line = [os.path.join(self._lewis_path, "lewis-control.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
         time_stamp = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
