@@ -4,7 +4,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim
 
 # Device prefix
 DEVICE_PREFIX = "FINS_01"
@@ -52,7 +52,7 @@ class FinsPLCTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("helium_purity", 2)
         self.ca.assert_that_pv_is("HE_PURITY", 2)
 
-    def test_WHENdew_point_set_backdoor_THEN_ioc_read_correctly(self):
+    def test_WHEN_dew_point_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_set_on_device("dew_point", 3)
         self.ca.assert_that_pv_is("DEW_POINT", 3)
 
