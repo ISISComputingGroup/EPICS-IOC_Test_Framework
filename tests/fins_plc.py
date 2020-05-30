@@ -28,7 +28,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class FinsPLCTests(unittest.TestCase):
