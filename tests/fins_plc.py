@@ -28,10 +28,9 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
-@skip_if_recsim("Lewis backdoor does not work in recsim")
 class HeliumRecoveryPLCDevsimTests(unittest.TestCase):
     """
     Devsim tests for the FINS helium gas recovery PLC IOC.
@@ -57,21 +56,7 @@ class HeliumRecoveryPLCDevsimTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("dew_point", 3)
         self.ca.assert_that_pv_is("DEW_POINT", 3)
 
-    def test_WHEN_he_bag_pr_be_atm_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("he_bag_pr_be_atm", 4)
-        self.ca.assert_that_pv_is("HE_BAG_PR_BE_ATM", 4)
-
-@skip_if_devsim("sim records are not used in devsim")
-class HeliumRecoveryPLCRecsimTests(unittest.TestCase):
-    """
-    Recsim tests for the FINS helium gas recovery PLC IOC.
-    """
-
-    def setUp(self):
-        _, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=20, device_prefix=IOC_PREFIX)
-
-    def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
+    @skip_if_devsim("sim pvs not used in devsim")
+    def test_WHEN_heartbeat_recsim_set_backdoor_THEN_ioc_read_correctly(self):
         self.ca.set_pv_value("SIM:HEARTBEAT", 1)
         self.ca.assert_that_pv_is("HEARTBEAT", 1)
-
