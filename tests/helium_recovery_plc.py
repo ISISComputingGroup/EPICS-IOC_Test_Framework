@@ -34,14 +34,12 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 PV_NAMES = ["HEARTBEAT", "HE_PURITY", "DEW_POINT"]
 
-EMULATOR_FIELDS = ["heartbeat", "helium_purity", "dew_point"]
-
-TEST_VALUES = range(1, len(PV_NAMES))
+TEST_VALUES = range(1, len(PV_NAMES) + 1)
 
 
 class HeliumRecoveryPLCTests(unittest.TestCase):
     """
-    Devsim tests for the FINS helium gas recovery PLC IOC.
+    Tests for the FINS helium gas recovery PLC IOC.
     """
 
     def setUp(self):
@@ -52,8 +50,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
-    @parameterized.expand(parameterized_list(zip(PV_NAMES, EMULATOR_FIELDS, TEST_VALUES)))
-    def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, emulator_field, test_value):
-        self._lewis.backdoor_set_on_device(emulator_field, test_value)
+    @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
+    def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
         self.ca.assert_that_pv_is(pv_name, test_value)
