@@ -117,22 +117,28 @@ class MercuryTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+        heater_chan_name = self.ca.get_pv_value("1:HTRCHAN")
+
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", ["DB0", "power", test_value])  # TODO: refactor DB0
+            "backdoor_set_channel_property", [heater_chan_name, "power", test_value])
         self.ca.assert_that_pv_is("1:HEATER:POWER", test_value)
 
     @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_heater_curr_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+        heater_chan_name = self.ca.get_pv_value("1:HTRCHAN")
+
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", ["DB0", "current", test_value])  # TODO: refactor DB0
+            "backdoor_set_channel_property", [heater_chan_name, "current", test_value])
         self.ca.assert_that_pv_is("1:HEATER:CURR", test_value)
 
     @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_heater_voltage_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+        heater_chan_name = self.ca.get_pv_value("1:HTRCHAN")
+
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", ["DB0", "voltage", test_value])  # TODO: refactor DB0
+            "backdoor_set_channel_property", [heater_chan_name, "voltage", test_value])
         self.ca.assert_that_pv_is("1:HEATER:VOLT", test_value)
 
     @parameterized.expand(parameterized_list(MOCK_NICKNAMES))
