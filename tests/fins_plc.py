@@ -31,7 +31,7 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM]
 
 
-class HeliumRecoveryPLCDevsimTests(unittest.TestCase):
+class HeliumRecoveryPLCTests(unittest.TestCase):
     """
     Devsim tests for the FINS helium gas recovery PLC IOC.
     """
