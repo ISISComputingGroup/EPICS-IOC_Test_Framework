@@ -1,10 +1,12 @@
 import os
 import unittest
 
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim
+from utils.testing import get_running_lewis_and_ioc, parameterized_list
 
 # Device prefix
 DEVICE_PREFIX = "FINS_01"
@@ -28,7 +30,13 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+
+PV_NAMES = ["HEARTBEAT", "HE_PURITY", "DEW_POINT"]
+
+EMULATOR_FIELDS = ["heartbeat", "helium_purity", "dew_point"]
+
+TEST_VALUES = range(1, len(PV_NAMES))
 
 
 class HeliumRecoveryPLCTests(unittest.TestCase):
@@ -44,19 +52,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
-    def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("heartbeat", 1)
-        self.ca.assert_that_pv_is("HEARTBEAT", 1)
-
-    def test_WHEN_helium_purity_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("helium_purity", 2)
-        self.ca.assert_that_pv_is("HE_PURITY", 2)
-
-    def test_WHEN_dew_point_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_set_on_device("dew_point", 3)
-        self.ca.assert_that_pv_is("DEW_POINT", 3)
-
-    @skip_if_devsim("sim pvs not used in devsim")
-    def test_WHEN_heartbeat_recsim_set_backdoor_THEN_ioc_read_correctly(self):
-        self.ca.set_pv_value("SIM:HEARTBEAT", 1)
-        self.ca.assert_that_pv_is("HEARTBEAT", 1)
+    @parameterized.expand(parameterized_list(zip(PV_NAMES, EMULATOR_FIELDS, TEST_VALUES)))
+    def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, emulator_field, test_value):
+        self._lewis.backdoor_set_on_device(emulator_field, test_value)
+        self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
+        self.ca.assert_that_pv_is(pv_name, test_value)
