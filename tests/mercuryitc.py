@@ -10,6 +10,40 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameteriz
 import os
 
 
+# These definitions should match self.channels in the emulator
+TEMP_CARDS = ["MB0", "MB1"]
+PRESSURE_CARDS = []
+LEVEL_CARDS = []
+
+
+def get_card_pv_prefix(card):
+    """
+    Given a card (e.g. "MB0", "DB1"), get the PV prefix in the IOC for it.
+
+    Args:
+        card (str): the card
+
+    Returns:
+        The pv prefix e.g. "1", "LEVEL2", "PRESSURE3"
+    """
+    if card in TEMP_CARDS:
+        assert card not in PRESSURE_CARDS and card not in LEVEL_CARDS
+        return "{}".format(TEMP_CARDS.index(card) + 1)  # Only a numeric prefix for temperature cards
+    elif card in PRESSURE_CARDS:
+        assert card not in LEVEL_CARDS
+        return "PRESSURE{}".format(PRESSURE_CARDS.index(card) + 1)
+    elif card in LEVEL_CARDS:
+        return "LEVEL{}".format(LEVEL_CARDS.index(card) + 1)
+    else:
+        raise ValueError("Unknown card")
+
+
+macros = {}
+macros.update({"TEMP_{}".format(key): val for key, val in enumerate(TEMP_CARDS, start=1)})
+macros.update({"PRESSURE_{}".format(key): val for key, val in enumerate(PRESSURE_CARDS, start=1)})
+macros.update({"LEVEL_{}".format(key): val for key, val in enumerate(LEVEL_CARDS, start=1)})
+
+
 DEVICE_PREFIX = "MERCURY_01"
 
 IOCS = [
@@ -17,9 +51,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": os.path.join(EPICS_TOP, "ioc", "master", "MERCURY_ITC", "iocBoot", "iocMERCURY-IOC-01"),
         "emulator": "mercuryitc",
-        "macros": {
-            "VI_TEMP_1": "1"
-        }
+        "macros": macros
     },
 ]
 
@@ -28,8 +60,8 @@ TEST_MODES = [TestModes.DEVSIM]
 
 
 PID_PARAMS = ["P", "I", "D"]
-PID_TEST_VALUES = [0.0, 0.01, 99.99]
-TEMPERATURE_TEST_VALUES = [0.0, 0.01, 999.9999]
+PID_TEST_VALUES = [0.01, 99.99]
+TEMPERATURE_TEST_VALUES = [0.01, 999.9999]
 RESISTANCE_TEST_VALUES = TEMPERATURE_TEST_VALUES
 GAS_FLOW_TEST_VALUES = TEMPERATURE_TEST_VALUES
 HEATER_PERCENT_TEST_VALUES = PID_TEST_VALUES
@@ -54,93 +86,138 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
-    @parameterized.expand(parameterized_list(itertools.product(PID_PARAMS, PID_TEST_VALUES)))
+    @parameterized.expand(parameterized_list(itertools.product(PID_PARAMS, PID_TEST_VALUES, TEMP_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_pid_params_set_via_backdoor_THEN_readback_updates(self, _, param, test_value):
+    def test_WHEN_pid_params_set_via_backdoor_THEN_readback_updates(self, _, param, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+        
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, param.lower(), test_value])
-        self.ca.assert_that_pv_is("1:{}".format(param), test_value)
+            "backdoor_set_channel_property", [card, param.lower(), test_value])
+        self.ca.assert_that_pv_is("{}:{}".format(card_pv_prefix, param), test_value)
 
-    @parameterized.expand(parameterized_list(itertools.product(PID_PARAMS, PID_TEST_VALUES)))
-    def test_WHEN_pid_params_set_THEN_readback_updates(self, _, param, test_value):
+    @parameterized.expand(parameterized_list(itertools.product(PID_PARAMS, PID_TEST_VALUES, TEMP_CARDS)))
+    def test_WHEN_pid_params_set_THEN_readback_updates(self, _, param, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+        
         self.ca.assert_setting_setpoint_sets_readback(
-            test_value, readback_pv="1:{}".format(param), set_point_pv="1:{}:SP".format(param))
+            test_value,
+            readback_pv="{}:{}".format(card_pv_prefix, param),
+            set_point_pv="{}:{}:SP".format(card_pv_prefix, param))
 
-    @parameterized.expand(parameterized_list(AUTOPID_MODES))
-    def test_WHEN_autopid_set_THEN_readback_updates(self, _, test_value):
+    @parameterized.expand(parameterized_list(itertools.product(AUTOPID_MODES, TEMP_CARDS)))
+    def test_WHEN_autopid_set_THEN_readback_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+        
         self.ca.assert_setting_setpoint_sets_readback(
-            test_value, readback_pv="1:PID:AUTO", set_point_pv="1:PID:AUTO:SP")
+            test_value,
+            readback_pv="{}:PID:AUTO".format(card_pv_prefix),
+            set_point_pv="{}:PID:AUTO:SP".format(card_pv_prefix))
 
-    @parameterized.expand(parameterized_list(TEMPERATURE_TEST_VALUES))
+    @parameterized.expand(parameterized_list(itertools.product(TEMPERATURE_TEST_VALUES, TEMP_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_actual_temp_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+    def test_WHEN_actual_temp_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+        
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, "temperature", test_value])
-        self.ca.assert_that_pv_is("1:TEMP", test_value)
+            "backdoor_set_channel_property", [card, "temperature", test_value])
+        self.ca.assert_that_pv_is("{}:TEMP".format(card_pv_prefix), test_value)
 
-    @parameterized.expand(parameterized_list(RESISTANCE_TEST_VALUES))
+    @parameterized.expand(parameterized_list(itertools.product(RESISTANCE_TEST_VALUES, TEMP_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_resistance_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
+    def test_WHEN_resistance_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, "resistance", test_value])
-        self.ca.assert_that_pv_is("1:RESISTANCE", test_value)
+            "backdoor_set_channel_property", [card, "resistance", test_value])
+        self.ca.assert_that_pv_is("{}:RESISTANCE".format(card_pv_prefix), test_value)
 
-    @parameterized.expand(parameterized_list(TEMPERATURE_TEST_VALUES))
-    def test_WHEN_sp_temp_is_set_THEN_pv_updates(self, _, test_value):
-        self.ca.assert_setting_setpoint_sets_readback(test_value, set_point_pv="1:TEMP:SP", readback_pv="1:TEMP:SP:RBV")
+    @parameterized.expand(parameterized_list(itertools.product(TEMPERATURE_TEST_VALUES, TEMP_CARDS)))
+    def test_WHEN_sp_temp_is_set_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
 
-    @parameterized.expand(parameterized_list(HEATER_MODES))
-    def test_WHEN_heater_mode_is_set_THEN_pv_updates(self, _, mode):
         self.ca.assert_setting_setpoint_sets_readback(
-            mode, set_point_pv="1:HEATER:MODE:SP", readback_pv="1:HEATER:MODE")
+            test_value,
+            set_point_pv="{}:TEMP:SP".format(card_pv_prefix),
+            readback_pv="{}:TEMP:SP:RBV".format(card_pv_prefix))
 
-    @parameterized.expand(parameterized_list(GAS_FLOW_MODES))
-    def test_WHEN_gas_flow_mode_is_set_THEN_pv_updates(self, _, mode):
+    @parameterized.expand(parameterized_list(itertools.product(HEATER_MODES, TEMP_CARDS)))
+    def test_WHEN_heater_mode_is_set_THEN_pv_updates(self, _, mode, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
         self.ca.assert_setting_setpoint_sets_readback(
-            mode, set_point_pv="1:FLOW:STAT:SP", readback_pv="1:FLOW:STAT")
+            mode, set_point_pv="{}:HEATER:MODE:SP".format(card_pv_prefix),
+            readback_pv="{}:HEATER:MODE".format(card_pv_prefix))
 
-    @parameterized.expand(parameterized_list(GAS_FLOW_TEST_VALUES))
-    def test_WHEN_gas_flow_is_set_THEN_pv_updates(self, _, mode):
+    @parameterized.expand(parameterized_list(itertools.product(GAS_FLOW_MODES, TEMP_CARDS)))
+    def test_WHEN_gas_flow_mode_is_set_THEN_pv_updates(self, _, mode, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+        
         self.ca.assert_setting_setpoint_sets_readback(
-            mode, set_point_pv="1:FLOW:SP", readback_pv="1:FLOW")
+            mode,
+            set_point_pv="{}:FLOW:STAT:SP".format(card_pv_prefix),
+            readback_pv="{}:FLOW:STAT".format(card_pv_prefix))
 
-    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
-    def test_WHEN_heater_percent_is_set_THEN_pv_updates(self, _, mode):
+    @parameterized.expand(parameterized_list(itertools.product(GAS_FLOW_TEST_VALUES, TEMP_CARDS)))
+    def test_WHEN_gas_flow_is_set_THEN_pv_updates(self, _, mode, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
         self.ca.assert_setting_setpoint_sets_readback(
-            mode, set_point_pv="1:HEATER:SP", readback_pv="1:HEATER")
+            mode, set_point_pv="{}:FLOW:SP".format(card_pv_prefix), readback_pv="{}:FLOW".format(card_pv_prefix))
 
-    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
-    def test_WHEN_heater_voltage_limit_is_set_THEN_pv_updates(self, _, mode):
+    @parameterized.expand(parameterized_list(itertools.product(HEATER_PERCENT_TEST_VALUES, TEMP_CARDS)))
+    def test_WHEN_heater_percent_is_set_THEN_pv_updates(self, _, mode, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
         self.ca.assert_setting_setpoint_sets_readback(
-            mode, set_point_pv="1:HEATER:VOLT_LIMIT:SP", readback_pv="1:HEATER:VOLT_LIMIT")
+            mode, set_point_pv="{}:HEATER:SP".format(card_pv_prefix), readback_pv="{}:HEATER".format(card_pv_prefix))
 
-    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    @parameterized.expand(parameterized_list(itertools.product(HEATER_PERCENT_TEST_VALUES, TEMP_CARDS)))
+    def test_WHEN_heater_voltage_limit_is_set_THEN_pv_updates(self, _, mode, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
+        self.ca.assert_setting_setpoint_sets_readback(
+            mode, set_point_pv="{}:HEATER:VOLT_LIMIT:SP".format(card_pv_prefix),
+            readback_pv="{}:HEATER:VOLT_LIMIT".format(card_pv_prefix))
+
+    @parameterized.expand(parameterized_list(itertools.product(HEATER_PERCENT_TEST_VALUES, TEMP_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
-        heater_chan_name = self.ca.get_pv_value("1:HTRCHAN")
+    def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
+        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "power", test_value])
-        self.ca.assert_that_pv_is("1:HEATER:POWER", test_value)
+        self.ca.assert_that_pv_is("{}:HEATER:POWER".format(card_pv_prefix), test_value)
 
-    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    @parameterized.expand(parameterized_list(itertools.product(HEATER_PERCENT_TEST_VALUES, TEMP_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_heater_curr_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
-        heater_chan_name = self.ca.get_pv_value("1:HTRCHAN")
+    def test_WHEN_heater_curr_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
+        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "current", test_value])
-        self.ca.assert_that_pv_is("1:HEATER:CURR", test_value)
+        self.ca.assert_that_pv_is("{}:HEATER:CURR".format(card_pv_prefix), test_value)
 
-    @parameterized.expand(parameterized_list(HEATER_PERCENT_TEST_VALUES))
+    @parameterized.expand(parameterized_list(itertools.product(HEATER_PERCENT_TEST_VALUES, TEMP_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_heater_voltage_is_set_via_backdoor_THEN_pv_updates(self, _, test_value):
-        heater_chan_name = self.ca.get_pv_value("1:HTRCHAN")
+    def test_WHEN_heater_voltage_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
+        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "voltage", test_value])
-        self.ca.assert_that_pv_is("1:HEATER:VOLT", test_value)
+        self.ca.assert_that_pv_is("{}:HEATER:VOLT".format(card_pv_prefix), test_value)
 
-    @parameterized.expand(parameterized_list(MOCK_NICKNAMES))
-    def test_WHEN_name_is_set__THEN_pv_updates(self, _, test_value):
-        self.ca.assert_setting_setpoint_sets_readback(test_value, readback_pv="1:NAME", set_point_pv="1:NAME:SP")
+    @parameterized.expand(parameterized_list(itertools.product(MOCK_NICKNAMES, TEMP_CARDS)))
+    def test_WHEN_name_is_set_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
+        self.ca.assert_setting_setpoint_sets_readback(
+            test_value, readback_pv="{}:NAME".format(card_pv_prefix), set_point_pv="{}:NAME:SP".format(card_pv_prefix))
+
+    # def test_WHEN_get_catalog_THEN_catalog_correct(self):
+    #     self.ca.assert_that_pv_is("CATALOG", "abc")
