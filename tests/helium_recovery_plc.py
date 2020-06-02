@@ -14,7 +14,7 @@ DEVICE_PREFIX = "FINS_01"
 IOC_NAME = "FINS"
 TEST_PATH = os.path.join(EPICS_TOP, "ioc", "master", IOC_NAME, "exampleSettings", "HELIUM_RECOVERY")
 
-IOC_PREFIX = "{}:HE-RCVRY".format(DEVICE_PREFIX)
+IOC_PREFIX = "{}:HE_RCVRY".format(DEVICE_PREFIX)
 
 IOCS = [
     {
