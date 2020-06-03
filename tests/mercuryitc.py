@@ -4,16 +4,16 @@ import unittest
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
+from utils.ioc_launcher import EPICS_TOP
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 import os
 
 
 # These definitions should match self.channels in the emulator
-TEMP_CARDS = ["MB0", "MB1"]
-PRESSURE_CARDS = ["MB2"]
-LEVEL_CARDS = []
+TEMP_CARDS = ["MB0", "DB2"]
+PRESSURE_CARDS = ["DB5"]
+LEVEL_CARDS = ["DB8"]
 
 
 def get_card_pv_prefix(card):
@@ -65,6 +65,7 @@ TEMPERATURE_TEST_VALUES = [0.01, 999.9999]
 RESISTANCE_TEST_VALUES = TEMPERATURE_TEST_VALUES
 GAS_FLOW_TEST_VALUES = TEMPERATURE_TEST_VALUES
 HEATER_PERCENT_TEST_VALUES = PID_TEST_VALUES
+GAS_LEVEL_TEST_VALUES = PID_TEST_VALUES
 
 PRIMARY_TEMPERATURE_CHANNEL = "MB0"
 
@@ -246,12 +247,26 @@ class MercuryTests(unittest.TestCase):
             "backdoor_set_channel_property", [heater_chan_name, "voltage", test_value])
         self.ca.assert_that_pv_is("{}:HEATER:VOLT".format(card_pv_prefix), test_value)
 
-    @parameterized.expand(parameterized_list(itertools.product(MOCK_NICKNAMES, TEMP_CARDS + PRESSURE_CARDS)))
+    @parameterized.expand(parameterized_list(
+        itertools.product(MOCK_NICKNAMES, TEMP_CARDS + PRESSURE_CARDS + LEVEL_CARDS)))
     def test_WHEN_name_is_set_THEN_pv_updates(self, _, test_value, card):
         card_pv_prefix = get_card_pv_prefix(card)
 
         self.ca.assert_setting_setpoint_sets_readback(
             test_value, readback_pv="{}:NAME".format(card_pv_prefix), set_point_pv="{}:NAME:SP".format(card_pv_prefix))
 
-    # def test_WHEN_get_catalog_THEN_catalog_correct(self):
-    #     self.ca.assert_that_pv_is("CATALOG", "abc")
+    @parameterized.expand(parameterized_list(itertools.product(GAS_LEVEL_TEST_VALUES, LEVEL_CARDS)))
+    def test_WHEN_helium_level_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [card, "helium_level", test_value])
+        self.ca.assert_that_pv_is_number("{}:HELIUM".format(card_pv_prefix), test_value, tolerance=0.01)
+
+    @parameterized.expand(parameterized_list(itertools.product(GAS_LEVEL_TEST_VALUES, LEVEL_CARDS)))
+    def test_WHEN_nitrogen_level_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
+        card_pv_prefix = get_card_pv_prefix(card)
+
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [card, "nitrogen_level", test_value])
+        self.ca.assert_that_pv_is_number("{}:NITROGEN".format(card_pv_prefix), test_value, tolerance=0.01)
