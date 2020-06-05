@@ -26,7 +26,7 @@ GALIL_PREFIX = "GALIL_01"
 GALIL_PREFIX_JAWS = "GALIL_02"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 IOCS = [
-    # Delibrately start the REFL server first to check on waiting for motors functionality
+    # Deliberately start the REFL server first to check on waiting for motors functionality
     {
         "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
@@ -130,6 +130,7 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0105", 0.0)
+        self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
 
     def set_up_velocity_tests(self, velocity):
         self.ca_galil.set_pv_value("MTR0102.VELO", velocity)
@@ -705,7 +706,7 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_component_with_multiple_out_of_beam_positions_is_out_of_beam_WHEN_beam_intercept_moves_above_threshold_THEN_driver_moves_to_correct_out_of_beam_position(self):
         self.ca.assert_that_pv_is("PARAM:S3INBEAM", "IN")
         self.ca.set_pv_value("PARAM:S3INBEAM:SP", "OUT", wait=True)
-        self.ca.assert_that_pv_is("PARAM:S3INBEAM:CHANGING", "NO", timeout=20)
+        self.ca.assert_that_pv_is("PARAM:S3INBEAM:CHANGING", "NO", timeout=30)
         self.ca_galil.assert_that_pv_is_number("MTR0102.RBV", OUT_POSITION_HIGH, timeout=20)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 22.5, wait=True)

@@ -29,17 +29,18 @@ def get_beamline():
     z_s1 = 1 * SPACING
     add_constant(BeamlineConstant("S1_Z", z_s1, "Slit 1 z position"))
     s1_comp = add_component(Component("s1", PositionAndAngle(0.0, z_s1, 90)))
-    add_parameter(TrackingPosition("S1", s1_comp), modes=[nr, polarised, testing])
-    add_driver(DisplacementDriver(s1_comp, MotorPVWrapper("MOT:MTR0101")))
+    add_parameter(AxisParameter("S1", s1_comp, ChangeAxis.POSITION), modes=[nr, polarised, testing])
+    add_driver(IocDriver(s1_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0101")))
     add_slit_parameters(1, modes=[nr, polarised], include_centres=True)
 
     # SM
     sm_comp = add_component(ReflectingComponent("SM", PositionAndAngle(0.0, 2*SPACING, 90)))
-    add_parameter(TrackingPosition("SMOffset", sm_comp), [polarised])
-    add_parameter(AngleParameter("SMAngle", sm_comp), [polarised])
+    add_parameter(AxisParameter("SMOffset", sm_comp, ChangeAxis.POSITION), [polarised])
+    add_parameter(AxisParameter("SMAngle", sm_comp, ChangeAxis.ANGLE), [polarised])
     add_parameter(InBeamParameter("SMInBeam", sm_comp), modes=[nr, polarised], mode_inits=[(polarised, True)])
-    add_driver(DisplacementDriver(sm_comp, MotorPVWrapper("MOT:MTR0107"), out_of_beam_positions=[SM_OUT_POS]))
-    add_driver(AngleDriver(sm_comp, MotorPVWrapper("MOT:MTR0108")))
+    add_driver(
+        IocDriver(sm_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0107"), out_of_beam_positions=[SM_OUT_POS]))
+    add_driver(IocDriver(sm_comp, ChangeAxis.ANGLE, MotorPVWrapper("MOT:MTR0108")))
 
     # THETA
     theta_marker = add_component_marker()
@@ -47,32 +48,32 @@ def get_beamline():
 
     # S3
     s3_comp = add_component(Component("s3", PositionAndAngle(0.0, 3 * SPACING, 90)))
-    add_parameter(TrackingPosition("S3", s3_comp, True), modes=[nr, polarised, testing])
+    add_parameter(AxisParameter("S3", s3_comp, ChangeAxis.POSITION), modes=[nr, polarised, testing])
     add_parameter(InBeamParameter("s3inbeam", s3_comp), modes=[nr, polarised, testing])
-    add_driver(DisplacementDriver(s3_comp, MotorPVWrapper("MOT:MTR0102"), 
-                                  out_of_beam_positions=[S3_OUT_POS_LOW, S3_OUT_POS_HIGH]))
+    add_driver(IocDriver(s3_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0102"),
+                          out_of_beam_positions=[S3_OUT_POS_LOW, S3_OUT_POS_HIGH]))
 
     # S4
     s4_comp = add_component(Component("s4", PositionAndAngle(0.0, 3.5 * SPACING, 90)))
-    add_parameter(TrackingPosition("S4", s4_comp, autosave=True), modes=[nr, polarised, testing])
-    add_driver(DisplacementDriver(s4_comp, MotorPVWrapper("MOT:MTR0103"), synchronised=False))
+    add_parameter(AxisParameter("S4", s4_comp, ChangeAxis.POSITION, autosave=True), modes=[nr, polarised, testing])
+    add_driver(IocDriver(s4_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0103"), synchronised=False))
 
     # S5
     s5_comp = add_component(Component("s5", PositionAndAngle(0.0, 3.5 * SPACING, 90)))
-    add_parameter(TrackingPosition("S5", s5_comp, autosave=True), modes=[nr, polarised, testing])
+    add_parameter(AxisParameter("S5", s5_comp, ChangeAxis.POSITION, autosave=True), modes=[nr, polarised, testing])
     s5_marker = add_driver_marker()
 
     # DETECTOR
     detector = add_component(TiltingComponent("Detector", PositionAndAngle(0.0, 4*SPACING, 90)))
-    add_parameter(TrackingPosition("det_pos", detector, True), modes=[nr, polarised, testing, disabled])
-    add_parameter(AngleParameter("det_ang", detector, True), modes=[nr, polarised, disabled])
-    add_driver(DisplacementDriver(detector, MotorPVWrapper("MOT:MTR0104")))
-    add_driver(AngleDriver(detector, MotorPVWrapper("MOT:MTR0105")))
+    add_parameter(AxisParameter("det_pos", detector, ChangeAxis.POSITION), modes=[nr, polarised, testing, disabled])
+    add_parameter(AxisParameter("det_ang", detector, ChangeAxis.ANGLE), modes=[nr, polarised, disabled])
+    add_driver(IocDriver(detector, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0104")))
+    add_driver(IocDriver(detector, ChangeAxis.ANGLE, MotorPVWrapper("MOT:MTR0105")))
 
     # NOT_IN_MODE
     not_in_mode_comp = add_component(Component("NotInModeComp", PositionAndAngle(0.0, 5 * SPACING, 90)))
-    add_parameter(TrackingPosition("notinmode", not_in_mode_comp, True))
-    add_driver(DisplacementDriver(not_in_mode_comp, MotorPVWrapper("MOT:MTR0205")))
+    add_parameter(AxisParameter("notinmode", not_in_mode_comp, ChangeAxis.POSITION))
+    add_driver(IocDriver(not_in_mode_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0205")))
 
     # Beamline constant
     add_constant(BeamlineConstant("TEN", 10, "The value 10"))
@@ -83,9 +84,11 @@ def get_beamline():
     # Replace markers
     theta = add_component(ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2 * SPACING, 90), angle_to=[detector]),
                           marker=theta_marker)
-    theta_ang = add_parameter(AngleParameter("Theta", theta, True), modes=[nr, polarised, testing], marker=theta_marker_param)
+    theta_ang = add_parameter(AxisParameter("Theta", theta, ChangeAxis.ANGLE), modes=[nr, polarised, testing],
+                              marker=theta_marker_param)
 
-    add_driver(DisplacementDriver(s5_comp, MotorPVWrapper("MOT:MTR0206"),
-               engineering_correction=InterpolateGridDataCorrection("s4_correction.dat", theta_ang)), marker=s5_marker)
+    add_driver(IocDriver(s5_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0206"),
+                         engineering_correction=InterpolateGridDataCorrection("s4_correction.dat", theta_ang)),
+               marker=s5_marker)
 
     return get_configured_beamline()
