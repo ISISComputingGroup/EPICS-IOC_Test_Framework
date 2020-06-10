@@ -6,7 +6,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, parameterized_list
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim, skip_if_devsim
 
 # Device prefix
 DEVICE_PREFIX = "FINS_01"
@@ -32,7 +32,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
-PV_NAMESA = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
+PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
             "MCP1:BANK3:MAIN_HE_STORAGE", "MCP2:BANK3:MAIN_HE_STORAGE", "MCP1:BANK4:DLS_HE_STORAGE",
             "MCP2:BANK4:DLS_HE_STORAGE", "MCP1:BANK5:SPARE_STORAGE", "MCP2:BANK5:SPARE_STORAGE",
             "MCP1:BANK6:SPARE_STORAGE", "MCP2:BANK6:SPARE_STORAGE", "MCP1:BANK7:SPARE_STORAGE",
@@ -44,7 +44,8 @@ PV_NAMESA = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_H
             "GC:R108:DEWAR_FARM", "GC:R55:TOTAL", "GC:R55:NORTH", "GC:R55:SOUTH", "GC:MICE_HALL", "GC:MUON",
             "GC:PEARL_HRPD_MARI_ENGINX", "GC:SXD_AND_MERLIN", "GC:CRYO_LAB", "GC:MAPS_AND_VESUVIO", "GC:SANDALS",
             "GC:CRISP_AND_LOQ", "GC:IRIS_AND_OSIRIS", "GC:INES", "GC:RIKEN", "GC:R80:TOTAL", "GC:R53", "GC:R80:EAST",
-            "GC:WISH", "GC:WISH:DEWAR_FARM", "GC:LARMOR_AND_OFFSPEC", "LIQUEFIER:COLDBOX:CV112",
+            "GC:WISH", "GC:WISH:DEWAR_FARM", "GC:LARMOR_AND_OFFSPEC", "GC:ZOOM_SANS2D_AND_POLREF", "GC:MAGNET_LAB",
+            "GC:IMAT", "GC:LET_AND_NIMROD", "GC:R80:WEST", "LIQUEFIER:COLDBOX:CV112",
             "LIQUEFIER:COMPRESSOR:CV2150", "LIQUEFIER:COMPRESSOR:CV2160", "LIQUEFIER:COMPRESSOR:CV2250",
             "LIQUEFIER:COLDBOX:MV108", "BANK1:TS2:RESPPLY:AVG_PURITY", "BANK1:TS1:RESPPLY:AVG_PURITY",
             "BANK2:IMPURE_HE:AVG_PURITY", "BANK3:MAIN_STRAGE:AVG_PURITY", "BANK4:DLS_STORAGE:AVG_PURITY",
@@ -52,11 +53,10 @@ PV_NAMESA = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_H
             "BANK8:SPARE_STORA:AVG_PURITY", "COLDBOX:TURBINE_100:SPEED", "COLDBOX:TURBINE_101:SPEED",
             "COLDBOX:T106:TEMP", "COLDBOX:TT111:TEMP", "COLDBOX:PT102:PRESSURE", "PT203:BUFFER_PRESSURE",
             "TT104:PURIFIER_TEMP", "TT102:PURIFIER_TEMP", "COLDBOX:TT108:TEMP", "COLDBOX:PT112:PRESSURE",
-             "LIQUEFIER:COLDBOX:CV103", "LIQUEFIER:COLDBOX:CV111", "LIQUEFIER:COLDBOX:CV112", "MOTHER_DEWAR:HE_LEVEL",
-            "PURIFIER:LEVEL", "IMPURE_HE_SUPPLY:PRESSURE", "CMPRSSR:LOW_CNTRL_PRESSURE", "CMPRSSR:HIGH_CNTRL_PRESSURE"]
-
-PV_NAMES = []
-
+            "LIQUEFIER:COLDBOX:CV103", "LIQUEFIER:COLDBOX:CV111", "MOTHER_DEWAR:HE_LEVEL", "PURIFIER:LEVEL",
+            "IMPURE_HE_SUPPLY:PRESSURE", "CMPRSSR:LOW_CNTRL_PRESSURE", "CMPRSSR:HIGH_CNTRL_PRESSURE", "CV2250",
+            "CV2150", "CV2160", "LIQUID_NITROGEN:STATUS", "LIQUEFIER:ALARM1", "LIQUEFIER:ALARM2",
+            "MCP:LIQUID_HE_INVENTORY"]
 
 TEST_VALUES = range(1, len(PV_NAMES) + 1)
 
@@ -75,7 +75,13 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("connected", True)
 
     @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
+    @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
+        self.ca.assert_that_pv_is(pv_name, test_value)
+
+    @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
+    @skip_if_devsim("sim pvs not available in devsim")
+    def test_WHEN_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
         self.ca.assert_that_pv_is(pv_name, test_value)
