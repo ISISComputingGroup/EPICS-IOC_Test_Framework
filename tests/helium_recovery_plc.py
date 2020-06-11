@@ -30,7 +30,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 PV_NAMESS = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
             "MCP1:BANK3:MAIN_HE_STORAGE", "MCP2:BANK3:MAIN_HE_STORAGE", "MCP1:BANK4:DLS_HE_STORAGE",
@@ -58,8 +58,10 @@ PV_NAMESS = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_H
             "CV2150", "CV2160", "LIQUID_NITROGEN:STATUS", "LIQUEFIER:ALARM1", "LIQUEFIER:ALARM2",
             "MCP:LIQUID_HE_INVENTORY"]
 
-PV_NAMES = []
+PV_NAMES = ["MCP:LIQUID_HE_INVENTORY"]
 
+AUTO_MANUAL_PV_NAMES = ["CV120", "CV121", "LOW_PRESSURE", "HIGH_PRESSURE", "TIC106",
+                        "PIC112"]
 
 TEST_VALUES = range(1, len(PV_NAMES) + 1)
 
@@ -88,3 +90,15 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     def test_WHEN_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
         self.ca.assert_that_pv_is(pv_name, test_value)
+
+    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_value_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+        self._lewis.backdoor_run_function_on_device("set_mode", (pv_name, "MANUAL"))
+        self.ca.assert_that_pv_is("{}:MODE".format(pv_name), "MANUAL")
+
+    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
+    @skip_if_devsim("sim pvs not available in recsim")
+    def test_WHEN_value_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+        self.ca.set_pv_value("SIM:{}:MODE".format(pv_name), 0)
+        self.ca.assert_that_pv_is("{}:MODE".format(pv_name), "MANUAL")
