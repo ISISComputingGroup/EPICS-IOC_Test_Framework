@@ -30,7 +30,7 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
             "MCP1:BANK3:MAIN_HE_STORAGE", "MCP2:BANK3:MAIN_HE_STORAGE", "MCP1:BANK4:DLS_HE_STORAGE",
@@ -60,6 +60,8 @@ PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE
 
 AUTO_MANUAL_PV_NAMES = ["CV120:MODE", "CV121:MODE", "LOW_PRESSURE:MODE", "HIGH_PRESSURE:MODE", "TIC106:MODE",
                         "PIC112:MODE"]
+
+CV_POSITION_VALUES = ["Opening", "Closing", "No movement"]
 
 TEST_VALUES = range(1, len(PV_NAMES) + 1)
 
@@ -124,3 +126,29 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
         self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
         self.ca.assert_that_pv_is(pv_name, "AUTO")
+
+    @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_CV120_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
+        self._lewis.backdoor_run_function_on_device("set_position", ("CV120:POSITION", test_value))
+        self.ca.assert_that_pv_is("CV120:POSITION", test_value)
+
+    @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_CV121_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
+        self._lewis.backdoor_run_function_on_device("set_position", ("CV121:POSITION", test_value))
+        self.ca.assert_that_pv_is("CV121:POSITION", test_value)
+
+    @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
+    @skip_if_devsim("sim pvs not available in devsim")
+    def test_WHEN_CV120_position_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
+        index_test_value = CV_POSITION_VALUES.index(test_value) + 1
+        self.ca.set_pv_value("SIM:CV120:POSITION", index_test_value)
+        self.ca.assert_that_pv_is("CV120:POSITION", test_value)
+
+    @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
+    @skip_if_devsim("sim pvs not available in devsim")
+    def test_WHEN_CV121_position_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
+        index_test_value = CV_POSITION_VALUES.index(test_value) + 1
+        self.ca.set_pv_value("SIM:CV121:POSITION", index_test_value)
+        self.ca.assert_that_pv_is("CV121:POSITION", test_value)
