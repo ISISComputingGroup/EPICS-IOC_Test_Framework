@@ -27,6 +27,7 @@ IOCS = [
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8000",
         "pv_for_existence": "FIELD",
+        "DISABLE_AUTOONOFF": "0",
     },
 ]
 

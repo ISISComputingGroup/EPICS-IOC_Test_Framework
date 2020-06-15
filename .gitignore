@@ -95,10 +95,12 @@ modules.xml
 workspace.xml
 IOCTestFramework.iml
 
-/test-reports
+/test-reports/
+/test-logs/
 NULL
 
 # VS Code files
+.vs/
 .vscode/
 settings.json
 

@@ -23,6 +23,7 @@ IOCS = [
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8000",
+        "DISABLE_AUTOONOFF": "0",
     },
 ]
 
