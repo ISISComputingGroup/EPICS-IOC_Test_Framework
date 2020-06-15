@@ -43,8 +43,8 @@ def get_beamline():
     add_driver(IocDriver(sm_comp, ChangeAxis.ANGLE, MotorPVWrapper("MOT:MTR0108")))
 
     # THETA
-    theta_marker = add_component_marker()
-    theta_marker_param = add_parameter_marker()
+    theta = add_component(ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2 * SPACING, 90)))
+    theta_ang = add_parameter(AxisParameter("Theta", theta, ChangeAxis.ANGLE), modes=[nr, polarised, testing])
 
     # S3
     s3_comp = add_component(Component("s3", PositionAndAngle(0.0, 3 * SPACING, 90)))
@@ -61,7 +61,8 @@ def get_beamline():
     # S5
     s5_comp = add_component(Component("s5", PositionAndAngle(0.0, 3.5 * SPACING, 90)))
     add_parameter(AxisParameter("S5", s5_comp, ChangeAxis.POSITION, autosave=True), modes=[nr, polarised, testing])
-    s5_marker = add_driver_marker()
+    add_driver(IocDriver(s5_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0206"),
+                         engineering_correction=InterpolateGridDataCorrection("s4_correction.dat", theta_ang)))
 
     # DETECTOR
     detector = add_component(TiltingComponent("Detector", PositionAndAngle(0.0, 4*SPACING, 90)))
@@ -69,6 +70,7 @@ def get_beamline():
     add_parameter(AxisParameter("det_ang", detector, ChangeAxis.ANGLE), modes=[nr, polarised, disabled])
     add_driver(IocDriver(detector, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0104")))
     add_driver(IocDriver(detector, ChangeAxis.ANGLE, MotorPVWrapper("MOT:MTR0105")))
+    theta.add_angle_to(detector)
 
     # NOT_IN_MODE
     not_in_mode_comp = add_component(Component("NotInModeComp", PositionAndAngle(0.0, 5 * SPACING, 90)))
@@ -78,17 +80,8 @@ def get_beamline():
     # Beamline constant
     add_constant(BeamlineConstant("TEN", 10, "The value 10"))
     add_constant(BeamlineConstant("YES", True, "True is Yes"))
+    add_constant(BeamlineConstant("STRING", "Test String", "A test string"))
 
     add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
-
-    # Replace markers
-    theta = add_component(ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2 * SPACING, 90), angle_to=[detector]),
-                          marker=theta_marker)
-    theta_ang = add_parameter(AxisParameter("Theta", theta, ChangeAxis.ANGLE), modes=[nr, polarised, testing],
-                              marker=theta_marker_param)
-
-    add_driver(IocDriver(s5_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0206"),
-                         engineering_correction=InterpolateGridDataCorrection("s4_correction.dat", theta_ang)),
-               marker=s5_marker)
 
     return get_configured_beamline()

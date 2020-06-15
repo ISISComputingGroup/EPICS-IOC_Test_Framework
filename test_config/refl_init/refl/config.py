@@ -36,20 +36,17 @@ def get_beamline():
     add_driver(IocDriver(in_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0102"),
                          out_of_beam_positions=[INIT_OUT_POSITION]))
 
-    theta_marker = add_component_marker()
-    theta_param_marker = add_parameter_marker()
+    theta_for_init = add_component(ThetaComponent("theta_init_comp", PositionAndAngle(0.0, 3 * SPACING, 90)))
+    add_parameter(AxisParameter("theta_auto", theta_for_init, ChangeAxis.ANGLE, autosave=True), modes=[nr])
 
     det_for_init = add_component(TiltingComponent("det_init_comp", PositionAndAngle(0.0, 4*SPACING, 90)))
     add_parameter(AxisParameter("init", det_for_init, ChangeAxis.POSITION, autosave=False), modes=[nr])
     add_driver(IocDriver(det_for_init, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0103")))
+    theta_for_init.add_angle_to(det_for_init)
 
     det_for_init_auto = add_component(TiltingComponent("det_init_auto_comp", PositionAndAngle(0.0, 5*SPACING, 90)))
     add_parameter(AxisParameter("init_auto", det_for_init_auto, ChangeAxis.POSITION, autosave=True), modes=[nr])
     add_driver(IocDriver(det_for_init_auto, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0104")))
-
-    theta_for_init = add_component(ThetaComponent("theta_init_comp", PositionAndAngle(0.0, 3*SPACING, 90), [det_for_init]), marker=theta_marker)
-    add_parameter(AxisParameter("theta_auto", theta_for_init, ChangeAxis.ANGLE, autosave=True), modes=[nr],
-                  marker=theta_param_marker)
 
     add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
     return get_configured_beamline()

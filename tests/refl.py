@@ -116,6 +116,8 @@ class ReflTests(unittest.TestCase):
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT")
         self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS")
         self.ca_no_prefix = ChannelAccess()
+        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+        self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("PARAM:S1:SP", 0)
         self.ca.set_pv_value("PARAM:S3:SP", 0)
@@ -130,7 +132,15 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("BL:MOVE", 1)
         self.ca_galil.assert_that_pv_is("MTR0105", 0.0)
-        self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
+        try:
+            import datetime
+            print("Now: {}".format(datetime.datetime.now()))
+            self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
+        except AssertionError as e:
+            print("Now: {}".format(datetime.datetime.now()))
+            print("About to throw {}".format(e))
+            raw_input("Press something")
+            raise
 
     def set_up_velocity_tests(self, velocity):
         self.ca_galil.set_pv_value("MTR0102.VELO", velocity)
@@ -670,6 +680,12 @@ class ReflTests(unittest.TestCase):
         param_pv = "CONST:YES"
 
         self.ca.assert_that_pv_is(param_pv, "YES")
+
+    def test_GIVEN_string_constant_parameter_WHEN_read_THEN_value_returned(self):
+
+        param_pv = "CONST:STRING"
+
+        self.ca.assert_that_pv_is(param_pv, "Test String")
 
     def test_GIVEN_PNR_mode_with_SM_angle_WHEN_move_in_disable_mode_and_into_PNR_THEN_beamline_is_updated_on_mode_change_and_value_of_pd_offsets_correct(self):
 
