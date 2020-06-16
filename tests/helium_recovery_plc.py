@@ -83,7 +83,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
-        self.ca.assert_that_pv_is(pv_name, test_value)
+        self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
@@ -131,13 +131,13 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_CV120_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         self._lewis.backdoor_run_function_on_device("set_position", ("CV120:POSITION", test_value))
-        self.ca.assert_that_pv_is("CV120:POSITION", test_value)
+        self.ca.assert_that_pv_is("CV120:POSITION", test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_CV121_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         self._lewis.backdoor_run_function_on_device("set_position", ("CV121:POSITION", test_value))
-        self.ca.assert_that_pv_is("CV121:POSITION", test_value)
+        self.ca.assert_that_pv_is("CV121:POSITION", test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
