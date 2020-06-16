@@ -38,13 +38,15 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 TEST_RAMPS = [[(0.0, 10000.0), [1.12]],
               [(5000.0, 25000.0), [1.12, 0.547, 0.038]],
               [(-5000.0, -25000.0), [1.12, 0.547, 0.038]],
               [(25000.0, 5000.0), [0.038, 0.547, 1.12]],
               [(25000.0, -25000.0), [0.038, 0.547, 1.12, 0.547, 0.038]],
-              [(-25000.0, 25000.0), [0.038, 0.547, 1.12, 0.547, 0.038]]
+              [(-25000.0, 25000.0), [0.038, 0.547, 1.12, 0.547, 0.038]],
+              [(-25000.0, 0), [0.038, 0.547, 1.12]],
+              [(25000.0, 0), [0.038, 0.547, 1.12]],
               ]
 
 
@@ -104,6 +106,7 @@ class CryoSMSTests(unittest.TestCase):
     def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(self, _, ramp_data):
         startPoint, endPoint = ramp_data[0]
         ramp_rates = ramp_data[1]
+        # When setting output, convert from Gauss to Amps by dividing by 10000 and T_TO_A
         self._lewis.backdoor_set_on_device("output", startPoint/(0.037 * 10000))
         self.ca.set_pv_value("MID:SP", endPoint)
         self.ca.set_pv_value("START:SP", 1)
@@ -157,3 +160,19 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.set_pv_value("ABORT:SP", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
         self.ca.assert_that_pv_is_not("MID", rampTarget)
+
+    @skip_if_recsim("Test is to tell whether data from emulator is correctly received")
+    def test_GIVEN_output_nonzero_WHEN_units_changed_THEN_output_raw_adjusts(self):
+        # Check that it is currently working correctly in Amps
+        self._lewis.backdoor_set_on_device("is_paused", True)
+        self._lewis.backdoor_set_on_device("output", 1/0.037)  # 1T (0.037 = T_TO_A)
+        self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1/0.037, 0.001)
+        self.ca.assert_that_pv_is_number("OUTPUT", 10000, 1)  # OUTPUT should remain in Gauss
+        # Set outputmode to tesla
+        self.ca.set_pv_value("OUTPUTMODE:SP", "TESLA")
+        self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1, 0.001)
+        self.ca.assert_that_pv_is_number("OUTPUT", 10000, 1)
+        # Confirm functionality returns to normal when going back to Amps
+        self.ca.set_pv_value("OUTPUTMODE:SP", "AMPS")
+        self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1/0.037, 0.001)
+        self.ca.assert_that_pv_is_number("OUTPUT", 10000, 1)
