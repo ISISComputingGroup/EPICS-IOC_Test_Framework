@@ -63,6 +63,8 @@ AUTO_MANUAL_PV_NAMES = ["CV120:MODE", "CV121:MODE", "LOW_PRESSURE:MODE", "HIGH_P
 
 CV_POSITION_VALUES = ["Opening", "Closing", "No movement"]
 
+PURIFIER_STATUS_VALUES = ["OFF", "FLUSHING", "COOLDOWN 1", "COOLDOWN 2", "CLEANING MODE", "REGENERATION", "STANDBY"]
+
 TEST_VALUES = range(1, len(PV_NAMES) + 1)
 
 
@@ -152,3 +154,17 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         index_test_value = CV_POSITION_VALUES.index(test_value) + 1
         self.ca.set_pv_value("SIM:CV121:POSITION", index_test_value)
         self.ca.assert_that_pv_is("CV121:POSITION", test_value)
+
+    @parameterized.expand(parameterized_list(PURIFIER_STATUS_VALUES))
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_purifier_status_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
+        index_test_value = PURIFIER_STATUS_VALUES.index(test_value) + 1
+        self._lewis.backdoor_run_function_on_device("set_memory", ("PURIFIER:STATUS", index_test_value))
+        self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value, timeout=40)
+
+    @parameterized.expand(parameterized_list(PURIFIER_STATUS_VALUES))
+    @skip_if_devsim("sim pvs not available in devsim")
+    def test_WHEN_purifier_status_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
+        index_test_value = PURIFIER_STATUS_VALUES.index(test_value) + 1
+        self.ca.set_pv_value("SIM:PURIFIER:STATUS", index_test_value)
+        self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value, timeout=40)
