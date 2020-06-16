@@ -65,6 +65,8 @@ CV_POSITION_VALUES = ["Opening", "Closing", "No movement"]
 
 PURIFIER_STATUS_VALUES = ["OFF", "FLUSHING", "COOLDOWN 1", "COOLDOWN 2", "CLEANING MODE", "REGENERATION", "STANDBY"]
 
+COMPRESSOR_STATUS_VALUES = ["NOT READY TO START", "READY TO START", "RUNNING"]
+
 TEST_VALUES = range(1, len(PV_NAMES) + 1)
 
 
@@ -170,3 +172,17 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         index_test_value = PURIFIER_STATUS_VALUES.index(test_value) + 1
         self.ca.set_pv_value("SIM:PURIFIER:STATUS", index_test_value)
         self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value, timeout=40)
+
+    @parameterized.expand(parameterized_list(COMPRESSOR_STATUS_VALUES))
+    @skip_if_devsim("sim pvs not available in devsim")
+    def test_WHEN_purifier_status_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
+        index_test_value = COMPRESSOR_STATUS_VALUES.index(test_value) + 1
+        self.ca.set_pv_value("SIM:CMPRSSR:STATUS", index_test_value)
+        self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value, timeout=40)
+
+    @parameterized.expand(parameterized_list(COMPRESSOR_STATUS_VALUES))
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_compressor_status_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
+        index_test_value = COMPRESSOR_STATUS_VALUES.index(test_value) + 1
+        self._lewis.backdoor_run_function_on_device("set_memory", ("CMPRSSR:STATUS", index_test_value))
+        self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value, timeout=40)
