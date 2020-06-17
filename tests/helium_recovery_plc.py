@@ -83,6 +83,10 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
+    @staticmethod
+    def _get_index_value(list_of_test_values, test_value):
+        return list_of_test_values.index(test_value) + 1
+
     @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
@@ -134,55 +138,55 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_CV120_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = CV_POSITION_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(CV_POSITION_VALUES, test_value)
         self._lewis.backdoor_run_function_on_device("set_memory", ("CV120:POSITION", index_test_value))
         self.ca.assert_that_pv_is("CV120:POSITION", test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_CV121_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = CV_POSITION_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(CV_POSITION_VALUES, test_value)
         self._lewis.backdoor_run_function_on_device("set_memory", ("CV121:POSITION", index_test_value))
         self.ca.assert_that_pv_is("CV121:POSITION", test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_CV120_position_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = CV_POSITION_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(CV_POSITION_VALUES, test_value)
         self.ca.set_pv_value("SIM:CV120:POSITION", index_test_value)
         self.ca.assert_that_pv_is("CV120:POSITION", test_value)
 
     @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_CV121_position_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = CV_POSITION_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(CV_POSITION_VALUES, test_value)
         self.ca.set_pv_value("SIM:CV121:POSITION", index_test_value)
         self.ca.assert_that_pv_is("CV121:POSITION", test_value)
 
     @parameterized.expand(parameterized_list(PURIFIER_STATUS_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_purifier_status_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = PURIFIER_STATUS_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(PURIFIER_STATUS_VALUES, test_value)
         self._lewis.backdoor_run_function_on_device("set_memory", ("PURIFIER:STATUS", index_test_value))
         self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(PURIFIER_STATUS_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_purifier_status_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = PURIFIER_STATUS_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(PURIFIER_STATUS_VALUES, test_value)
         self.ca.set_pv_value("SIM:PURIFIER:STATUS", index_test_value)
         self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(COMPRESSOR_STATUS_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_purifier_status_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = COMPRESSOR_STATUS_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(COMPRESSOR_STATUS_VALUES, test_value)
         self.ca.set_pv_value("SIM:CMPRSSR:STATUS", index_test_value)
         self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value, timeout=40)
 
     @parameterized.expand(parameterized_list(COMPRESSOR_STATUS_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_compressor_status_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
-        index_test_value = COMPRESSOR_STATUS_VALUES.index(test_value) + 1
+        index_test_value = HeliumRecoveryPLCTests._get_index_value(COMPRESSOR_STATUS_VALUES, test_value)
         self._lewis.backdoor_run_function_on_device("set_memory", ("CMPRSSR:STATUS", index_test_value))
         self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value, timeout=40)
