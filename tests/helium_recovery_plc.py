@@ -57,8 +57,8 @@ PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE
             "CV2150", "CV2160", "LIQUID_NITROGEN:STATUS", "LIQUEFIER:ALARM1", "LIQUEFIER:ALARM2",
             "MCP:LIQUID_HE_INVENTORY"]
 
-AUTO_MANUAL_PV_NAMES = ["CV120:MODE", "CV121:MODE", "LOW_PRESSURE:MODE", "HIGH_PRESSURE:MODE", "TIC106:MODE",
-                        "PIC112:MODE"]
+AUTO_MANUAL_PV_NAMES = ["CNTRL_VALVE_120:MODE", "CNTRL_VALVE_121:MODE", "LOW_PRESSURE:MODE", "HIGH_PRESSURE:MODE",
+                        "TIC106:MODE", "PIC112:MODE"]
 
 CV_POSITION_VALUES = ["Opening", "Closing", "No movement"]
 
@@ -111,41 +111,41 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     #     self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
     #     self.ca.assert_that_pv_is(pv_name, test_value)
     #
-    # @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
-    # @skip_if_recsim("lewis backdoor not available in recsim")
-    # def test_WHEN_value_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
-    #     self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 1))
-    #     self.ca.assert_that_pv_is(pv_name, "AUTO", timeout=40)
-    #
-    #     self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 0))
-    #     self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
-    #
-    # @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
-    # @skip_if_recsim("lewis backdoor not available in recsim")
-    # def test_WHEN_value_auto_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
-    #     self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 0))
-    #     self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
-    #
-    #     self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 1))
-    #     self.ca.assert_that_pv_is(pv_name, "AUTO", timeout=40)
-    #
-    # @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
-    # @skip_if_devsim("sim pvs not available in recsim")
-    # def test_WHEN_value_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
-    #     self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
-    #     self.ca.assert_that_pv_is(pv_name, "AUTO")
-    #
-    #     self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
-    #     self.ca.assert_that_pv_is(pv_name, "MANUAL")
-    #
-    # @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
-    # @skip_if_devsim("sim pvs not available in recsim")
-    # def test_WHEN_value_auto_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
-    #     self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
-    #     self.ca.assert_that_pv_is(pv_name, "MANUAL")
-    #
-    #     self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
-    #     self.ca.assert_that_pv_is(pv_name, "AUTO")
+    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_value_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 1))
+        self.ca.assert_that_pv_is(pv_name, "AUTO", timeout=40)
+
+        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 0))
+        self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
+
+    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
+    @skip_if_recsim("lewis backdoor not available in recsim")
+    def test_WHEN_value_auto_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 0))
+        self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
+
+        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 1))
+        self.ca.assert_that_pv_is(pv_name, "AUTO", timeout=40)
+
+    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
+    @skip_if_devsim("sim pvs not available in recsim")
+    def test_WHEN_value_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
+        self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
+        self.ca.assert_that_pv_is(pv_name, "AUTO")
+
+        self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
+        self.ca.assert_that_pv_is(pv_name, "MANUAL")
+
+    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
+    @skip_if_devsim("sim pvs not available in recsim")
+    def test_WHEN_value_auto_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
+        self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
+        self.ca.assert_that_pv_is(pv_name, "MANUAL")
+
+        self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
+        self.ca.assert_that_pv_is(pv_name, "AUTO")
     #
     # @parameterized.expand(parameterized_list(CV_POSITION_VALUES))
     # @skip_if_recsim("lewis backdoor not available in recsim")
