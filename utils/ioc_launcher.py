@@ -12,6 +12,7 @@ from abc import ABCMeta
 import six
 
 from utils.channel_access import ChannelAccess
+from utils.free_ports import get_free_ports
 from utils.log_file import log_filename, LogFileManager
 from utils.test_modes import TestModes
 from datetime import date
@@ -108,7 +109,7 @@ class BaseLauncher(object):
     Launcher base, this is the base class for a launcher of application under test.
     """
 
-    def __init__(self, test_name, ioc_config, var_dir):
+    def __init__(self, test_name, ioc_config, test_mode, var_dir):
         """
         Constructor which picks some generic things out of the config.
         Args:
@@ -129,9 +130,17 @@ class BaseLauncher(object):
         self._pv_for_existence = ioc_config.get("pv_for_existence", "DISABLE")
         self.macros = ioc_config.get("macros", {})
         self.port = int(self.macros['EMULATOR_PORT'])
+        self._extra_environment_vars = ioc_config.get("environment_vars", {})
         self._var_dir = var_dir
         self._test_name = test_name
         self.ca = None
+
+        if test_mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
+            raise ValueError("Invalid test mode provided")
+
+        self.use_rec_sim = test_mode == TestModes.RECSIM
+
+        IOCRegister.uses_rec_sim = self.use_rec_sim
 
     def open(self):
         """
@@ -161,6 +170,43 @@ class BaseLauncher(object):
 
         return self.ca
 
+    def create_macros_file(self):
+        full_dir = os.path.join(self._var_dir, "tmp")
+        if not os.path.exists(full_dir):
+            os.makedirs(full_dir)
+        with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
+            for macro, value in self.macros.items():
+                f.write('epicsEnvSet("{macro}", "{value}")\n'
+                        .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
+
+    def set_environment_vars(self):
+        settings = os.environ.copy()
+        if self.use_rec_sim:
+            # Using record simulation
+            settings['TESTDEVSIM'] = ''
+            settings['TESTRECSIM'] = 'yes'
+        else:
+            # Not using record simulation
+            settings['TESTDEVSIM'] = 'yes'
+            settings['TESTRECSIM'] = ''
+
+        # Set the port
+        settings['EMULATOR_PORT'] = str(self.port)
+
+        for env_name, setting in self._extra_environment_vars.items():
+            settings[env_name] = setting
+        return settings
+
+    def set_simulated_value(self, pv_name, value):
+        """
+        If this IOC is in rec sim set the PV value.
+
+        :param pv_name: name of the pv value
+        :param value: value to set
+        :return:
+        """
+        if self.use_rec_sim:
+            self._get_channel_access().set_pv_value(pv_name, value)
 
 class ProcServLauncher(BaseLauncher):
     """
@@ -180,11 +226,13 @@ class ProcServLauncher(BaseLauncher):
                 directory: String, the directory where st.cmd for the IOC is found
                 var_dir: location of directory to write the log file
                 port: The port to use
-            test_mode: Ignored by non-emulator launchers
+            test_mode: TestModes.RECSIM or TestModes.DEVSIM depending on IOC test mode
             var_dir: The directory into which the launcher will save log files.
         """
-        super(ProcServLauncher, self).__init__(test_name, ioc, var_dir)
+        super(ProcServLauncher, self).__init__(test_name, ioc, test_mode, var_dir)
         self.logport = int(self.macros['LOG_PORT'])
+
+        self.procserv_port = get_free_ports(1)[0]
 
         self.ioc_run_command = None
         self._process = None
@@ -193,11 +241,8 @@ class ProcServLauncher(BaseLauncher):
         self.telnet = None
         self.autorestart = True
 
-    def _set_environment_vars(self):
-        settings = os.environ.copy()
-
-        # Set the port
-        settings['EMULATOR_PORT'] = str(self.port)
+    def set_environment_vars(self):
+        settings = super(ProcServLauncher, self).set_environment_vars()
 
         settings["CYGWIN"] = "nodosfilewarning"
         settings["MYDIRPROCSV"] = os.path.join(EPICS_TOP, "iocstartup")
@@ -243,6 +288,8 @@ class ProcServLauncher(BaseLauncher):
 
         ca = self._get_channel_access()
 
+        self.create_macros_file()
+
         with check_existence_pv(ca, self._device, self._pv_for_existence):
             comspec = os.getenv("ComSpec")
 
@@ -254,11 +301,11 @@ class ProcServLauncher(BaseLauncher):
                                     '--name={}'.format(self._device.upper()),
                                     '--pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(self._device),
                                     '--logport={:d}'.format(self.logport), '--chdir="{}"'.format(cygwin_dir),
-                                    '{:d}'.format(self.port), '{}'.format(comspec), '/c', 'runIOC.bat', 'st.cmd']
+                                    '{:d}'.format(self.procserv_port), '{}'.format(comspec), '/c', 'runIOC.bat', 'st.cmd']
 
             print("Starting IOC ({})".format(self._device))
 
-            settings = self._set_environment_vars()
+            settings = self.set_environment_vars()
 
             self.log_file_manager = LogFileManager(self._log_filename())
             self.log_file_manager.log_file.write("Started IOC with '{0}'\n".format(" ".join(self.ioc_run_command)))
@@ -271,14 +318,15 @@ class ProcServLauncher(BaseLauncher):
                                              cwd=self._directory, stdout=self.log_file_manager.log_file,
                                              stderr=subprocess.STDOUT, env=settings)
 
-            self.connect_to_procserv()
-            self.start_ioc()
-
             self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+
+            print("IOC started, connecting to procserv")
+
+            self.connect_to_procserv()
 
         IOCRegister.add_ioc(self._device, self)
 
-    def connect_to_procserv(self, timeout=10):
+    def connect_to_procserv(self, timeout=20):
         """
         Opens the telnet connection to the procserv daemon.
 
@@ -292,7 +340,7 @@ class ProcServLauncher(BaseLauncher):
             OSError if procServ connection could not be made
 
         """
-        self.telnet = telnetlib.Telnet("localhost", self.port, timeout=timeout)
+        self.telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
 
         # Wait for procServ to become responsive by checking for the IOC started text ("epics>")
         init_output = self.telnet.read_until(self._ioc_started_text.encode(), timeout)
@@ -337,7 +385,6 @@ class ProcServLauncher(BaseLauncher):
     def close(self):
         """
         Shuts telnet connection and kills IOC. Identifies the spawned procServ processes and kills them
-
         """
 
         if self.telnet is not None:
@@ -369,7 +416,6 @@ class ProcServLauncher(BaseLauncher):
             arguments_match: Boolean: True if the process command line arguments match the IOC boot arguments, else False
 
         """
-
         # PSUtil strips quote marks (") from the command line used to spawn a process,
         # so we must remove them to compare with our ioc_run_command
         ioc_start_arguments = [args.replace('"', '') for args in self.ioc_run_command]
@@ -398,39 +444,14 @@ class IocLauncher(BaseLauncher):
         :param test_mode: TestModes.RECSIM or TestModes.DEVSIM depending on IOC test mode
         :param var_dir: The directory into which the launcher will save log files.
         """
-        super(IocLauncher, self).__init__(test_name, ioc, var_dir)
-        self._extra_environment_vars = ioc.get("environment_vars", {})
+        super(IocLauncher, self).__init__(test_name, ioc, test_mode, var_dir)
         self._init_values = ioc.get('inits', {})
 
-        if test_mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
-            raise ValueError("Invalid test mode provided")
-
-        self.use_rec_sim = test_mode == TestModes.RECSIM
-
-        IOCRegister.uses_rec_sim = self.use_rec_sim
         self._process = None
         self.log_file_manager = None
 
     def _log_filename(self):
         return log_filename(self._test_name, "ioc", self._device, self.use_rec_sim, self._var_dir)
-
-    def _set_environment_vars(self):
-        settings = os.environ.copy()
-        if self.use_rec_sim:
-            # Using record simulation
-            settings['TESTDEVSIM'] = ''
-            settings['TESTRECSIM'] = 'yes'
-        else:
-            # Not using record simulation
-            settings['TESTDEVSIM'] = 'yes'
-            settings['TESTRECSIM'] = ''
-
-        # Set the port
-        settings['EMULATOR_PORT'] = str(self.port)
-
-        for env_name, setting in self._extra_environment_vars.items():
-            settings[env_name] = setting
-        return settings
 
     def _command_line(self):
         run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
@@ -454,16 +475,9 @@ class IocLauncher(BaseLauncher):
         with check_existence_pv(ca, self._device, self._pv_for_existence):
             print("Starting IOC ({})".format(self._device))
 
-            settings = self._set_environment_vars()
+            settings = self.set_environment_vars()
 
-            # create macros
-            full_dir = os.path.join(self._var_dir, "tmp")
-            if not os.path.exists(full_dir):
-                os.makedirs(full_dir)
-            with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
-                for macro, value in self.macros.items():
-                    f.write('epicsEnvSet("{macro}", "{value}")\n'
-                            .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
+            self.create_macros_file()
 
             self.log_file_manager = LogFileManager(self._log_filename())
             self.log_file_manager.log_file.write("Started IOC with '{0}'".format(" ".join(ioc_run_commandline)))
@@ -524,17 +538,6 @@ class IocLauncher(BaseLauncher):
         if self.log_file_manager is not None:
             self.log_file_manager.close()
             print("IOC log written to {0}".format(self._log_filename()))
-
-    def set_simulated_value(self, pv_name, value):
-        """
-        If this IOC is in rec sim set the PV value.
-
-        :param pv_name: name of the pv value
-        :param value: value to set
-        :return:
-        """
-        if self.use_rec_sim:
-            self._get_channel_access().set_pv_value(pv_name, value)
 
 
 class PythonIOCLauncher(IocLauncher):
