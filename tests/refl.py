@@ -34,6 +34,7 @@ IOCS = [
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
         "started_text": "Instantiating Beamline Model",
         "pv_for_existence": "STAT",
+        "python_version": 3,
         "macros": {
         },
         "environment_vars": {
