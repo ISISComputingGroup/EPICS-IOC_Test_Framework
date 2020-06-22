@@ -226,7 +226,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(itertools.product(VALVE_STATUS_PVS, VALVE_STATUS_VALUES)))
     @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_compressor_status_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+    def test_WHEN_valve_status_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         index_test_value = HeliumRecoveryPLCTests._get_index_value(VALVE_STATUS_VALUES, test_value)
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, index_test_value))
         self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
