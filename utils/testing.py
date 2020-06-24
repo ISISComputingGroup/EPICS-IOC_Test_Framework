@@ -17,10 +17,10 @@ class ManagerMode(object):
         self.channel_access.assert_that_pv_exists(self.MANAGER_MODE_PV)
 
     def __enter__(self):
-        self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 1)
+        self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 1, wait=True)
 
     def __exit__(self, *args):
-        self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 0)
+        self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 0, wait=True)
 
 
 class _AssertLogContext(object):

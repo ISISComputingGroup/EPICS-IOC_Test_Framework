@@ -376,7 +376,7 @@ class LewisLauncher(EmulatorLauncher):
         """
 
         self._control_port = str(get_free_ports(1)[0])
-        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis.exe"),
+        lewis_command_line = [self._python_path, "-m", "lewis",
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
                                   .format(protocol=self._lewis_protocol, port=self._port)])
