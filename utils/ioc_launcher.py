@@ -24,6 +24,7 @@ EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
 PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "Python", "python.exe"))
 PYTHON3 = os.environ.get("PYTHON3", os.path.join(APPS_BASE, "Python3", "python.exe"))
 
+DEFAULT_IOC_START_TEXT = "epics>"
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
 
 EPICS_CASE_ENVIRONMENT_VARS = {
@@ -126,7 +127,7 @@ class BaseLauncher(object):
         self._device = ioc_config['name']
         self._directory = ioc_config['directory']
         self._prefix = ioc_config.get('custom_prefix', self._device)
-        self._ioc_started_text = ioc_config.get("started_text", "epics>")
+        self._ioc_started_text = ioc_config.get("started_text", DEFAULT_IOC_START_TEXT)
         self._pv_for_existence = ioc_config.get("pv_for_existence", "DISABLE")
         self.macros = ioc_config.get("macros", {})
         self.emulator_port = int(self.macros['EMULATOR_PORT'])
