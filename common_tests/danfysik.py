@@ -1,7 +1,8 @@
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, skip_if_condition
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import IOCRegister, MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT
+from parameterized import parameterized
 
 # Device prefix
 DEVICE_PREFIX = "DFKPS_01"
@@ -214,3 +215,23 @@ class DanfysikCommon(DanfysikBase):
 
         self.ca.assert_that_pv_is("CURR", 0)
         self.ca.assert_that_pv_is("POWER:SP", "Off")
+
+    @parameterized.expand([
+        ("power_on_and_current_at_10",  True, 10),
+        ("power_off_and_current_at_50", False, 50),
+    ])
+    @skip_if_recsim("In rec sim this test fails as there is nothing holding the device state")
+    def test_WHEN_IOC_is_restarted_THEN_current_and_powered_are_not_changed(self, _, power_state, current):
+        self.ca.set_pv_value("POWER:SP", int(power_state))
+        self.ca.set_pv_value("CURR:SP", current)
+
+        self._ioc.start_ioc()
+
+        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT)
+        self.ca.assert_that_pv_exists("DISABLE", 60)
+
+        self.ca.assert_that_pv_is("CURR", current)
+        self.ca.assert_that_pv_is("POWER", "On" if power_state else "Off")
+
+        self.assertEqual(str(current), self._lewis.backdoor_get_from_device("current"))
+        self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))
