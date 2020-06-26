@@ -24,8 +24,8 @@ IOCS = [
         "custom_prefix": IOC_PREFIX,
         "macros": {
             "FINSCONFIGDIR": TEST_PATH.replace("\\", "/"),
-            "PLCIP": "127.0.0.1",
-            "PLCNODE": 58,
+            "PLC_IP": "127.0.0.1",
+            "PLC_NODE": 58,
         },
         "emulator": "fins",
     },
@@ -132,7 +132,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     def test_WHEN_analogue_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
         self.ca.assert_that_pv_is_number(pv_name, test_value, 0.001, timeout=40)
-    
+
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_value_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
