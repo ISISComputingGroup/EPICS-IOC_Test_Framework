@@ -131,3 +131,35 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self._set_sp_and_assert("GUIDE", "START", 1)
         self._set_sp_and_assert("GUIDE", "STOP", 0)
         self._set_sp_and_assert("GUIDE", "START", 1)
+
+    def test_WHEN_begin_run_in_auto_shutter_mode_THEN_shutter_opened(self):
+        self.ca.set_pv_value("SHUTTER:STATUS:SP", "CLOSE", wait=True)
+        self.ca.set_pv_value("SHUTTER:AUTO", 1, wait=True)
+
+        self.ca.process_pv("SHUTTER:OPEN_IF_AUTO")
+
+        self.ca.assert_that_pv_is("SHUTTER:STATUS:SP", "OPEN")
+
+    def test_WHEN_begin_run_in_manual_shutter_mode_THEN_shutter_opened(self):
+        self.ca.set_pv_value("SHUTTER:STATUS:SP", "CLOSE", wait=True)
+        self.ca.set_pv_value("SHUTTER:AUTO", 0, wait=True)
+
+        self.ca.process_pv("SHUTTER:OPEN_IF_AUTO")
+
+        self.ca.assert_that_pv_is_not("SHUTTER:STATUS:SP", "OPEN", timeout=5)
+
+    def test_WHEN_end_run_in_auto_shutter_mode_THEN_shutter_opened(self):
+        self.ca.set_pv_value("SHUTTER:STATUS:SP", "OPEN", wait=True)
+        self.ca.set_pv_value("SHUTTER:AUTO", 1, wait=True)
+
+        self.ca.process_pv("SHUTTER:CLOSE_IF_AUTO")
+
+        self.ca.assert_that_pv_is("SHUTTER:STATUS:SP", "CLOSE")
+
+    def test_WHEN_end_run_in_manual_shutter_mode_THEN_shutter_opened(self):
+        self.ca.set_pv_value("SHUTTER:STATUS:SP", "OPEN", wait=True)
+        self.ca.set_pv_value("SHUTTER:AUTO", 0, wait=True)
+
+        self.ca.process_pv("SHUTTER:CLOSE_IF_AUTO")
+
+        self.ca.assert_that_pv_is_not("SHUTTER:STATUS:SP", "CLOSE", timeout=5)

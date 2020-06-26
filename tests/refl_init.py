@@ -24,7 +24,7 @@ IOCS = [
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
-        "pv_for_existence": "MOT:MTR0101",
+        "pv_for_existence": "MTR0101",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
@@ -46,6 +46,7 @@ IOCS = [
         "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
         "started_text": "Reflectometry IOC started",
         "pv_for_existence": "STAT",
+        "python_version": 3,
         "macros": {
         },
         "environment_vars": {

@@ -1,7 +1,7 @@
 """
 FOR TESTING
 
-Valid configuration script for a refelctometry beamline
+Valid configuration script for a reflectometry beamline
 """
 
 from ReflectometryServer import *
@@ -17,41 +17,36 @@ def get_beamline():
     """
     Returns: a beamline object describing the current beamline setup
     """
-    # COMPONENTS
-    out_comp = Component("out_comp", PositionAndAngle(0.0, 1*SPACING, 90))
-    out_comp_auto = Component("out_comp_auto", PositionAndAngle(0.0, 1.5 * SPACING, 90))
-    in_comp = Component("in_comp", PositionAndAngle(0.0, 2*SPACING, 90))
-    det_for_init = TiltingComponent("det_init_comp", PositionAndAngle(0.0, 4*SPACING, 90))
-    det_for_init_auto = TiltingComponent("det_init_auto_comp", PositionAndAngle(0.0, 5*SPACING, 90))
-    theta_for_init = ThetaComponent("theta_init_comp", PositionAndAngle(0.0, 3*SPACING, 90), [det_for_init])
+    nr = add_mode("NR")
 
-    comps = [out_comp, out_comp_auto, in_comp, theta_for_init, det_for_init, det_for_init_auto]
+    out_comp = add_component(Component("out_comp", PositionAndAngle(0.0, 1*SPACING, 90)))
+    add_parameter(InBeamParameter("is_out", out_comp, autosave=False), modes=[nr])
+    add_parameter(AxisParameter("out_pos", out_comp, ChangeAxis.POSITION, autosave=False), modes=[nr])
+    add_driver(IocDriver(out_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0101"),
+                         out_of_beam_positions=[INIT_OUT_POSITION]))
 
-    # BEAMLINE PARAMETERS
-    is_out = InBeamParameter("is_out", out_comp, autosave=False)
-    out_pos = TrackingPosition("out_pos", out_comp, autosave=False)
-    is_out_auto = InBeamParameter("is_out_auto", out_comp_auto, autosave=True)
-    is_in = InBeamParameter("is_in", in_comp, autosave=False)
-    in_pos = TrackingPosition("in_pos", in_comp, autosave=False)
-    theta_auto = AngleParameter("theta_auto", theta_for_init, autosave=True)
-    init = TrackingPosition("init", det_for_init, autosave=False)
-    init_auto = TrackingPosition("init_auto", det_for_init_auto, autosave=True)
+    out_comp_auto = add_component(Component("out_comp_auto", PositionAndAngle(0.0, 1.5 * SPACING, 90)))
+    add_parameter(InBeamParameter("is_out_auto", out_comp_auto, autosave=True), modes=[nr])
+    add_driver(IocDriver(out_comp_auto, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0105"),
+                         out_of_beam_positions=[INIT_OUT_POSITION]))
 
-    params = [is_out, out_pos, is_out_auto, is_in, in_pos, theta_auto, init, init_auto]
+    in_comp = add_component(Component("in_comp", PositionAndAngle(0.0, 2*SPACING, 90)))
+    add_parameter(InBeamParameter("is_in", in_comp, autosave=False), modes=[nr])
+    add_parameter(AxisParameter("in_pos", in_comp, ChangeAxis.POSITION, autosave=False), modes=[nr])
+    add_driver(IocDriver(in_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0102"),
+                         out_of_beam_positions=[INIT_OUT_POSITION]))
 
-    # DRIVES
-    drivers = [DisplacementDriver(out_comp, MotorPVWrapper("MOT:MTR0101"), out_of_beam_positions=[INIT_OUT_POSITION]),
-               DisplacementDriver(out_comp_auto, MotorPVWrapper("MOT:MTR0105"), out_of_beam_positions=[INIT_OUT_POSITION]),
-               DisplacementDriver(in_comp, MotorPVWrapper("MOT:MTR0102"), out_of_beam_positions=[INIT_OUT_POSITION]),
-               DisplacementDriver(det_for_init, MotorPVWrapper("MOT:MTR0103")),
-               DisplacementDriver(det_for_init_auto, MotorPVWrapper("MOT:MTR0104")), ]
+    theta_for_init = add_component(ThetaComponent("theta_init_comp", PositionAndAngle(0.0, 3 * SPACING, 90)))
+    add_parameter(AxisParameter("theta_auto", theta_for_init, ChangeAxis.ANGLE, autosave=True), modes=[nr])
 
-    # MODES
-    nr_inits = {}
-    nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
-    modes = [nr_mode]
+    det_for_init = add_component(TiltingComponent("det_init_comp", PositionAndAngle(0.0, 4*SPACING, 90)))
+    add_parameter(AxisParameter("init", det_for_init, ChangeAxis.POSITION, autosave=False), modes=[nr])
+    add_driver(IocDriver(det_for_init, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0103")))
+    theta_for_init.add_angle_to(det_for_init)
 
-    beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-    bl = Beamline(comps, params, drivers, modes, beam_start)
+    det_for_init_auto = add_component(TiltingComponent("det_init_auto_comp", PositionAndAngle(0.0, 5*SPACING, 90)))
+    add_parameter(AxisParameter("init_auto", det_for_init_auto, ChangeAxis.POSITION, autosave=True), modes=[nr])
+    add_driver(IocDriver(det_for_init_auto, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0104")))
 
-    return bl
+    add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
+    return get_configured_beamline()
