@@ -243,6 +243,11 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:{}".format(pv_name), index_test_value)
         self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
 
+    # Liquefier alarms are tested separately because in the memory map they are unsigned integers. The C driver does
+    # not support unsigned 16 bit integers directly, but the value is put into a longin record, which should display
+    # the unsigned 16 bit integer correctly. Therefore, we have tests that check if these two records can correctly
+    # read the largest possible unsigned 16 bit integer value.
+
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_liquefier_alarm_1_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUEFIER:ALARM1", 65535))
