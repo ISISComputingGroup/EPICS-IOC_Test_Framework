@@ -99,16 +99,6 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
-    @staticmethod
-    def _get_index_value(list_of_test_values, test_value):
-        """
-        Returns a 1-based index of the given test value in the given list.
-        :param list_of_test_values: the list of test values within which we search for the given test value.
-        :param test_value: the test value we want the index for.
-        :return: a 1-based index of the test value.
-        """
-        return list_of_test_values.index(test_value) + 1
-
     @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
