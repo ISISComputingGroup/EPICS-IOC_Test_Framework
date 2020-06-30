@@ -9,14 +9,14 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, Pyth
 from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
-DEVICE_PREFIX = "REFL"
+DEVICE_PREFIX = "REFL_01"
 OUT_COMP_INIT_POS = -2.0
 IN_COMP_INIT_POS = 1.0
 DET_INIT_POS = 5.0
 DET_INIT_POS_AUTOSAVE = 1.0
 FAST_VELOCITY = 10
 
-REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
+REFL_PATH = os.path.join(EPICS_TOP, "support", "refl", "master")
 GALIL_PREFIX = "GALIL_01"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "refl_init"))
 IOCS = [
@@ -43,7 +43,7 @@ IOCS = [
         "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
         "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "python_script_commandline": [os.path.join(REFL_PATH, "reflectometry_server.py")],
         "started_text": "Reflectometry IOC started",
         "pv_for_existence": "STAT",
         "python_version": 3,

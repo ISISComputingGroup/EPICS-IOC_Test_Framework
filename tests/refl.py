@@ -14,14 +14,14 @@ from utils.testing import unstable_test
 
 
 GALIL_ADDR = "128.0.0.0"
-DEVICE_PREFIX = "REFL"
+DEVICE_PREFIX = "REFL_01"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
 SOFT_LIMIT_HI = 10000
 SOFT_LIMIT_LO = -10000
 
-REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
+REFL_PATH = os.path.join(EPICS_TOP, "support", "refl", "master")
 GALIL_PREFIX = "GALIL_01"
 GALIL_PREFIX_JAWS = "GALIL_02"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
@@ -31,7 +31,7 @@ IOCS = [
         "ioc_launcher_class": PythonIOCLauncher,
         "name": DEVICE_PREFIX,
         "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "python_script_commandline": [os.path.join(REFL_PATH, "reflectometry_server.py")],
         "started_text": "Instantiating Beamline Model",
         "pv_for_existence": "STAT",
         "python_version": 3,
