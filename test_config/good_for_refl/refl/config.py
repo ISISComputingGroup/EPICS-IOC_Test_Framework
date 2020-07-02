@@ -25,6 +25,8 @@ def get_beamline():
     testing = add_mode("TESTING")
     disabled = add_mode("DISABLED", is_disabled=True)
 
+    add_constant(BeamlineConstant("OPI", "SURF", "OPIs to show on front panel"))
+
     # S1
     z_s1 = 1 * SPACING
     add_constant(BeamlineConstant("S1_Z", z_s1, "Slit 1 z position"))
