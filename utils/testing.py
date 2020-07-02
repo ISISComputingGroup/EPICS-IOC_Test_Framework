@@ -135,7 +135,7 @@ def skip_if_condition(condition, reason):
 
     Args:
         condition (func): The condition on which to skip the test. Should be callable.
-        reason (str): The reason for skipping the test
+        reason (str): The pv_name for skipping the test
     """
     def decorator(func):
         @six.wraps(func)
