@@ -64,6 +64,34 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("COMP:B", expected_value_B, timeout=30)
         self.ca.assert_that_pv_is("COMP:C", expected_value_C, timeout=30)
 
+    # there was a previous problem where if setpoint and readback differed a sleep and resend was started,
+    # but the old state machine did not look to see if a new sp was issued while it was asleep and so then
+    # resent the old out of date SP
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_wrong_component_on_device_WHEN_send_new_sp_THEN_state_machine_aborts_resend(self):
+        value = 50
+        self.ca.set_pv_value("COMP:A:SP", value)
+        self.ca.set_pv_value("COMP:B:SP", value)
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("STATUS", "Pumping", timeout=5)
+        self.ca.assert_that_pv_is("COMP:A", value, timeout=30)
+        self.ca.assert_that_pv_is("COMP:B", value, timeout=30)
+
+        # Setting an incorrect component on the device will result in the state machine attempting
+        # to rerun the pump and reset components after a delay
+        delay = self.ca.get_pv_value("ERROR:DELAY") # delay before state machine reset
+        self._lewis.backdoor_set_on_device("component_A", value-5)
+        self.ca.assert_that_pv_is("COMP:A", value-5, timeout=5)
+        sleep(delay / 2.0)
+
+        # however if we change setpoint, the loop should start again
+        self.ca.set_pv_value("COMP:A:SP", value-10)
+        self.ca.set_pv_value("COMP:B:SP", value+10)
+        sleep(delay / 2.0 + 1.0) # reset should not have happened
+        self.ca.assert_that_pv_is("COMP:A", value-5)
+        sleep(delay / 2.0) # reset should now have happened
+        self.ca.assert_that_pv_is("COMP:A", value-10, timeout=15)
+
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_running_continuous_THEN_retry_run_and_updates_component_in_correct_mode(self):
         value = 50
