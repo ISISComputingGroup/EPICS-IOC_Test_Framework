@@ -254,7 +254,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535, timeout=40)
 
     @skip_if_devsim("sim pvs not available in devsim")
-    def test_WHEN_liquefier_alarm_2_set_sim_pv_THEN_ioc_read_correctly(self):
+    def test_WHEN_liquefier_alarm_1_set_sim_pv_THEN_ioc_read_correctly(self):
         self.ca.set_pv_value("SIM:{}".format("LIQUEFIER:ALARM1"), 65535)
         self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535, timeout=40)
 
