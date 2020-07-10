@@ -97,179 +97,181 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=20, device_prefix=IOC_PREFIX)
+        self.ca = ChannelAccess(default_timeout=40, device_prefix=IOC_PREFIX)
 
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
+    # The HEARTBEAT PV is tested separately despite being a PV that stores a 16 bit integer because it does not have a
+    # calc record that divides the value by 10.
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_run_function_on_device("set_memory", 1)
-        self.ca.assert_that_pv_is_number("HEARTBEAT", 1, timeout=40)
+        self.ca.assert_that_pv_is_number("HEARTBEAT", 1)
 
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_heartbeat_set_sim_pv_THEN_ioc_read_correctly(self):
         self.ca.set_pv_value("SIM:HEARTBEAT", 2)
-        self.ca.assert_that_pv_is_number("HEARTBEAT", 2, timeout=40)
+        self.ca.assert_that_pv_is_number("HEARTBEAT", 2)
 
     @parameterized.expand(parameterized_list(INT16_PV_NAMES))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_int16_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
         test_value = random.randint(-100, 100)
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
-        self.ca.assert_that_pv_is(pv_name, test_value/10, timeout=40)
+        self.ca.assert_that_pv_is(pv_name, test_value/10)
 
     @parameterized.expand(parameterized_list(INT16_PV_NAMES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int16_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         test_value = random.randint(-100, 100)
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
-        self.ca.assert_that_pv_is(pv_name, test_value/10, timeout=40)
+        self.ca.assert_that_pv_is(pv_name, test_value/10)
 
     @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, INT16_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_int32_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
-        self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
+        self.ca.assert_that_pv_is(pv_name, test_value)
 
     @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, INT16_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int32_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
-        self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
+        self.ca.assert_that_pv_is(pv_name, test_value)
 
     @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, ANALOGUE_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_analogue_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
-        self.ca.assert_that_pv_is_number(pv_name, test_value, 0.001, timeout=40)
+        self.ca.assert_that_pv_is_number(pv_name, test_value, 0.001)
 
     @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, ANALOGUE_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_analogue_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
-        self.ca.assert_that_pv_is_number(pv_name, test_value, 0.001, timeout=40)
+        self.ca.assert_that_pv_is_number(pv_name, test_value, 0.001)
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_value_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 2))
-        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC")
 
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 1))
-        self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "MANUAL")
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_value_auto_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 1))
-        self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "MANUAL")
 
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 2))
-        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC")
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_devsim("sim pvs not available in recsim")
     def test_WHEN_value_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
-        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC")
 
         self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
-        self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "MANUAL")
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_devsim("sim pvs not available in recsim")
     def test_WHEN_value_auto_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
-        self.ca.assert_that_pv_is(pv_name, "MANUAL", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "MANUAL")
 
         self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
-        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC", timeout=40)
+        self.ca.assert_that_pv_is(pv_name, "AUTOMATIC")
 
     @parameterized.expand(parameterized_list(CONTROL_VALVE_POSITION_VALUES))
     @skip_if_recsim("lewis backdoor not available in devsim")
     def test_WHEN_CNTRL_VALVE_120_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = CONTROL_VALVE_POSITION_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", ("CNTRL_VALVE_120:POSITION", index_test_value))
-        self.ca.assert_that_pv_is("CNTRL_VALVE_120:POSITION", test_value, timeout=40)
+        self.ca.assert_that_pv_is("CNTRL_VALVE_120:POSITION", test_value)
 
     @parameterized.expand(parameterized_list(CONTROL_VALVE_POSITION_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_CNTRL_VALVE_120_position_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = CONTROL_VALVE_POSITION_VALUES.index(test_value)
         self.ca.set_pv_value("SIM:CNTRL_VALVE_120:POSITION", index_test_value)
-        self.ca.assert_that_pv_is("CNTRL_VALVE_120:POSITION", test_value, timeout=40)
+        self.ca.assert_that_pv_is("CNTRL_VALVE_120:POSITION", test_value)
 
     @parameterized.expand(parameterized_list(CONTROL_VALVE_POSITION_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_CNTRL_VALVE_121_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = CONTROL_VALVE_POSITION_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", ("CNTRL_VALVE_121:POSITION", index_test_value))
-        self.ca.assert_that_pv_is("CNTRL_VALVE_121:POSITION", test_value, timeout=40)
+        self.ca.assert_that_pv_is("CNTRL_VALVE_121:POSITION", test_value)
 
     @parameterized.expand(parameterized_list(CONTROL_VALVE_POSITION_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_CNTRL_VALVE_121_position_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = CONTROL_VALVE_POSITION_VALUES.index(test_value)
         self.ca.set_pv_value("SIM:CNTRL_VALVE_121:POSITION", index_test_value)
-        self.ca.assert_that_pv_is("CNTRL_VALVE_121:POSITION", test_value, timeout=40)
+        self.ca.assert_that_pv_is("CNTRL_VALVE_121:POSITION", test_value)
 
     @parameterized.expand(parameterized_list(PURIFIER_STATUS_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_purifier_status_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = PURIFIER_STATUS_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", ("PURIFIER:STATUS", index_test_value))
-        self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value, timeout=40)
+        self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value)
 
     @parameterized.expand(parameterized_list(PURIFIER_STATUS_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_purifier_status_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = PURIFIER_STATUS_VALUES.index(test_value)
         self.ca.set_pv_value("SIM:PURIFIER:STATUS", index_test_value)
-        self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value, timeout=40)
+        self.ca.assert_that_pv_is("PURIFIER:STATUS", test_value)
 
     @parameterized.expand(parameterized_list(COMPRESSOR_STATUS_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_compressor_status_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = COMPRESSOR_STATUS_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", ("CMPRSSR:STATUS", index_test_value))
-        self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value, timeout=40)
+        self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value)
 
     @parameterized.expand(parameterized_list(COMPRESSOR_STATUS_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_compressor_status_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = COMPRESSOR_STATUS_VALUES.index(test_value)
         self.ca.set_pv_value("SIM:CMPRSSR:STATUS", index_test_value)
-        self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value, timeout=40)
+        self.ca.assert_that_pv_is("CMPRSSR:STATUS", test_value)
 
     @parameterized.expand(parameterized_list(COLDBOX_STATUS_VALUES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_coldbox_status_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = COLDBOX_STATUS_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", ("COLDBOX:STATUS", index_test_value))
-        self.ca.assert_that_pv_is("COLDBOX:STATUS", test_value, timeout=40)
+        self.ca.assert_that_pv_is("COLDBOX:STATUS", test_value)
 
     @parameterized.expand(parameterized_list(COLDBOX_STATUS_VALUES))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_coldbox_status_set_sim_pv_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = COLDBOX_STATUS_VALUES.index(test_value)
         self.ca.set_pv_value("SIM:COLDBOX:STATUS", index_test_value)
-        self.ca.assert_that_pv_is("COLDBOX:STATUS", test_value, timeout=40)
+        self.ca.assert_that_pv_is("COLDBOX:STATUS", test_value)
 
     @parameterized.expand(parameterized_list(itertools.product(VALVE_STATUS_PVS, VALVE_STATUS_VALUES)))
     @skip_if_recsim("lewis backddor not available in recsim")
     def test_WHEN_valve_status_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         index_test_value = VALVE_STATUS_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, index_test_value))
-        self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
+        self.ca.assert_that_pv_is(pv_name, test_value)
 
     @parameterized.expand(parameterized_list(itertools.product(VALVE_STATUS_PVS, VALVE_STATUS_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_valve_status_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         index_test_value = VALVE_STATUS_VALUES.index(test_value)
         self.ca.set_pv_value("SIM:{}".format(pv_name), index_test_value)
-        self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
+        self.ca.assert_that_pv_is(pv_name, test_value)
 
     # Liquefier alarms are tested separately because in the memory map they are unsigned integers. The C driver does
     # not support unsigned 16 bit integers directly, but the value is put into a longin record, which should display
@@ -279,19 +281,19 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_liquefier_alarm_1_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUEFIER:ALARM1", 65535))
-        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535, timeout=40)
+        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535)
 
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_liquefier_alarm_1_set_sim_pv_THEN_ioc_read_correctly(self):
         self.ca.set_pv_value("SIM:{}".format("LIQUEFIER:ALARM1"), 65535)
-        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535, timeout=40)
+        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535)
 
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_liquefier_alarm_2_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUEFIER:ALARM1", 65535))
-        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535, timeout=40)
+        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535)
 
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_liquefier_alarm_2_set_sim_pv_THEN_ioc_read_correctly(self):
         self.ca.set_pv_value("SIM:{}".format("LIQUEFIER:ALARM1"), 65535)
-        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535, timeout=40)
+        self.ca.assert_that_pv_is("LIQUEFIER:ALARM1", 65535)

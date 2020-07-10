@@ -76,8 +76,8 @@ class ChannelAccess(object):
     def __init__(self, default_timeout=5, device_prefix=None):
         """
         Args:
-            device_prefix: the device prefix which will be added to the start of all pvs
-            default_timeout: the default time out to wait for
+            device_prefix: the device prefix which will be added to the start of all pvs.
+            default_timeout: the default time out to wait for an assertion on a PV to become true.
         """
         self.ca = CaChannelWrapper()
 
