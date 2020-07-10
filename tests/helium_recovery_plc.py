@@ -1,6 +1,8 @@
+from __future__ import division
 import itertools
 import os
 import unittest
+import random
 
 from parameterized import parameterized
 
@@ -15,7 +17,7 @@ DEVICE_PREFIX = "FINS_01"
 IOC_NAME = "FINS"
 TEST_PATH = os.path.join(EPICS_TOP, "ioc", "master", IOC_NAME, "exampleSettings", "HELIUM_RECOVERY")
 
-IOC_PREFIX = "HLM"
+IOC_PREFIX = "HA:HLM"
 
 IOCS = [
     {
@@ -33,37 +35,39 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
-PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
-            "MCP1:BANK3:MAIN_HE_STORAGE", "MCP2:BANK3:MAIN_HE_STORAGE", "MCP1:BANK4:DLS_HE_STORAGE",
-            "MCP2:BANK4:DLS_HE_STORAGE", "MCP1:BANK5:SPARE_STORAGE", "MCP2:BANK5:SPARE_STORAGE",
-            "MCP1:BANK6:SPARE_STORAGE", "MCP2:BANK6:SPARE_STORAGE", "MCP1:BANK7:SPARE_STORAGE",
-            "MCP2:BANK7:SPARE_STORAGE", "MCP1:BANK8:SPARE_STORAGE", "MCP2:BANK8:SPARE_STORAGE", "MCP:INLET:PRESSURE",
-            "MCP:EXTERNAL_TEMP", "GAS_LIQUEFACTION:MASS_FLOW", "HE_FILLS:MASS_FLOW", "CMPRSSR:INTERNAL_TEMP",
-            "COLDBOX:HE_TEMP", "COLDBOX:HE_TEMP:LIMIT", "TRANSPORT_DEWAR:PRESSURE", "HE_PURITY", "DEW_POINT",
-            "FLOW_METER:TS2:EAST", "TS2:EAST:O2", "FLOW_METER:TS2:WEST", "TS2:WEST:O2", "TS1:NORTH:O2", "TS1:SOUTH:O2",
-            "FLOW_METER:TS1:WINDOW", "FLOW_METER:TS1:SHUTTER", "FLOW_METER:TS1:VOID", "GC:R108:U40",
-            "GC:R108:DEWAR_FARM", "GC:R55:TOTAL", "GC:R55:NORTH", "GC:R55:SOUTH", "GC:MICE_HALL", "GC:MUON",
-            "GC:PEARL_HRPD_MARI_ENGINX", "GC:SXD_AND_MERLIN", "GC:CRYO_LAB", "GC:MAPS_AND_VESUVIO", "GC:SANDALS",
-            "GC:CRISP_AND_LOQ", "GC:IRIS_AND_OSIRIS", "GC:INES_AND_TOSCA", "GC:RIKEN", "GC:R80:TOTAL", "GC:R53",
-            "GC:R80:EAST", "GC:WISH", "GC:WISH:DEWAR_FARM", "GC:LARMOR_AND_OFFSPEC", "GC:ZOOM_SANS2D_AND_POLREF",
-            "GC:MAGNET_LAB", "GC:IMAT", "GC:LET_AND_NIMROD", "GC:R80:WEST", "BANK1:TS2:RSPPL:AVG_PURITY",
-            "BANK1:TS1:RSPPL:AVG_PURITY", "BANK2:IMPURE_HE:AVG_PURITY", "BANK3:MAIN_STRG:AVG_PURITY",
-            "BANK4:DLS_STRG:AVG_PURITY", "BANK5:SPR_STRG:AVG_PURITY", "BANK6:SPR_STRG:AVG_PURITY",
-            "BANK7:SPR_STRG:AVG_PURITY", "BANK8:SPR_STRG:AVG_PURITY", "COLDBOX:TURBINE_100:SPEED",
-            "COLDBOX:TURBINE_101:SPEED", "COLDBOX:T106:TEMP", "COLDBOX:TT111:TEMP", "COLDBOX:PT102:PRESSURE",
-            "BUFFER:PT203:PRESSURE", "PURIFIER:TT104:TEMP", "PURIFIER:TT102:TEMP", "COLDBOX:TT108:TEMP",
-            "COLDBOX:PT112:PRESSURE", "COLDBOX:CNTRL_VALVE_103", "COLDBOX:CNTRL_VALVE_111", "COLDBOX:CNTRL_VALVE_112",
-            "MOTHER_DEWAR:HE_LEVEL", "PURIFIER:LEVEL", "IMPURE_HE_SUPPLY:PRESSURE", "CMPRSSR:LOW_CNTRL_PRESSURE",
-            "CMPRSSR:HIGH_CNTRL_PRESSURE", "CNTRL_VALVE_2250", "CNTRL_VALVE_2150", "CNTRL_VALVE_2160",
-            "LIQUID_NITROGEN:STATUS", "MCP:LIQUID_HE_INVENTORY"]
+INT16_PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
+                  "MCP1:BANK3:MAIN_HE_STORAGE", "MCP2:BANK3:MAIN_HE_STORAGE", "MCP1:BANK4:DLS_HE_STORAGE",
+                  "MCP2:BANK4:DLS_HE_STORAGE", "MCP1:BANK5:SPARE_STORAGE", "MCP2:BANK5:SPARE_STORAGE",
+                  "MCP1:BANK6:SPARE_STORAGE", "MCP2:BANK6:SPARE_STORAGE", "MCP1:BANK7:SPARE_STORAGE",
+                  "MCP2:BANK7:SPARE_STORAGE", "MCP1:BANK8:SPARE_STORAGE", "MCP2:BANK8:SPARE_STORAGE",
+                  "MCP:INLET:PRESSURE", "MCP:EXTERNAL_TEMP", "GAS_LIQUEFACTION:MASS_FLOW", "HE_FILLS:MASS_FLOW",
+                  "CMPRSSR:INTERNAL_TEMP", "COLDBOX:HE_TEMP", "COLDBOX:HE_TEMP:LIMIT", "TRANSPORT_DEWAR:PRESSURE",
+                  "HE_PURITY", "DEW_POINT", "FLOW_METER:TS2:EAST", "TS2:EAST:O2", "FLOW_METER:TS2:WEST", "TS2:WEST:O2",
+                  "TS1:NORTH:O2", "TS1:SOUTH:O2", "FLOW_METER:TS1:WINDOW", "FLOW_METER:TS1:SHUTTER",
+                  "FLOW_METER:TS1:VOID", "BANK1:TS2:RSPPL:AVG_PURITY", "BANK1:TS1:RSPPL:AVG_PURITY",
+                  "BANK2:IMPURE_HE:AVG_PURITY", "BANK3:MAIN_STRG:AVG_PURITY", "BANK4:DLS_STRG:AVG_PURITY",
+                  "BANK5:SPR_STRG:AVG_PURITY", "BANK6:SPR_STRG:AVG_PURITY", "BANK7:SPR_STRG:AVG_PURITY",
+                  "BANK8:SPR_STRG:AVG_PURITY", "COLDBOX:TURBINE_100:SPEED", "COLDBOX:TURBINE_101:SPEED",
+                  "COLDBOX:T106:TEMP", "COLDBOX:TT111:TEMP", "COLDBOX:PT102:PRESSURE", "BUFFER:PT203:PRESSURE",
+                  "PURIFIER:TT104:TEMP", "PURIFIER:TT102:TEMP", "COLDBOX:TT108:TEMP", "COLDBOX:PT112:PRESSURE",
+                  "COLDBOX:CNTRL_VALVE_103", "COLDBOX:CNTRL_VALVE_111", "COLDBOX:CNTRL_VALVE_112",
+                  "MOTHER_DEWAR:HE_LEVEL", "PURIFIER:LEVEL", "IMPURE_HE_SUPPLY:PRESSURE", "CMPRSSR:LOW_CNTRL_PRESSURE",
+                  "CMPRSSR:HIGH_CNTRL_PRESSURE", "CNTRL_VALVE_2250", "CNTRL_VALVE_2150", "CNTRL_VALVE_2160",
+                  "LIQUID_NITROGEN:STATUS", "MCP:LIQUID_HE_INVENTORY"]
 
-TEST_VALUES = range(1, len(PV_NAMES) + 1)
+INT16_TEST_VALUES = range(65535, len(INT16_PV_NAMES) + 65535)
+
+DWORD_PV_NAMES = ["GC:R108:U40", "GC:R108:DEWAR_FARM", "GC:R55:TOTAL", "GC:R55:NORTH", "GC:R55:SOUTH", "GC:MICE_HALL",
+                  "GC:MUON", "GC:PEARL_HRPD_MARI_ENGINX", "GC:SXD_AND_MERLIN", "GC:CRYO_LAB", "GC:MAPS_AND_VESUVIO",
+                  "GC:SANDALS", "GC:CRISP_AND_LOQ", "GC:IRIS_AND_OSIRIS", "GC:INES_AND_TOSCA", "GC:RIKEN",
+                  "GC:R80:TOTAL", "GC:R53", "GC:R80:EAST", "GC:WISH", "GC:WISH:DEWAR_FARM", "GC:LARMOR_AND_OFFSPEC",
+                  "GC:ZOOM_SANS2D_AND_POLREF", "GC:MAGNET_LAB", "GC:IMAT", "GC:LET_AND_NIMROD", "GC:R80:WEST"]
 
 # list of names for the ai records. It is a separate list as we want to test floating point values with these PVs
 ANALOGUE_IN_PV_NAMES = ["MASS_FLOW:HE_RSPPL:TS2:EAST", "MASS_FLOW:HE_RSPPL:TS2:WEST", "MASS_FLOW:HE_RSPPL:TS1:VOID",
                         "MASS_FLOW:HE_RSPPL:TS1:WNDW", "MASS_FLOW:HE_RSPPL:TS1:SHTR"]
 
-FLOAT_TEST_VALUES = [i + float(i) / 10 for i in range(1, len(ANALOGUE_IN_PV_NAMES) + 1)]
+ANALOGUE_TEST_VALUES = [2.648, 3.028, 5.921, 10.596, 13.207]
 
 AUTO_MANUAL_PV_NAMES = ["CNTRL_VALVE_120:MODE", "CNTRL_VALVE_121:MODE", "LOW_PRESSURE:MODE", "HIGH_PRESSURE:MODE",
                         "TIC106:MODE", "PIC112:MODE"]
@@ -99,25 +103,49 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
-    @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
-    def test_WHEN_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+    def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_run_function_on_device("set_memory", 1)
+        self.ca.assert_that_pv_is_number("HEARTBEAT", 1, timeout=40)
+
+    @skip_if_devsim("sim pvs not available in devsim")
+    def test_WHEN_heartbeat_set_sim_pv_THEN_ioc_read_correctly(self):
+        self.ca.set_pv_value("SIM:HEARTBEAT", 2)
+        self.ca.assert_that_pv_is_number("HEARTBEAT", 2, timeout=40)
+
+    @parameterized.expand(parameterized_list(INT16_PV_NAMES))
+    @skip_if_recsim("lewis backdoor not supported in recsim")
+    def test_WHEN_int16_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+        test_value = random.randint(-100, 100)
+        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
+        self.ca.assert_that_pv_is(pv_name, test_value/10, timeout=40)
+
+    @parameterized.expand(parameterized_list(INT16_PV_NAMES))
+    @skip_if_devsim("sim pvs not available in devsim")
+    def test_WHEN_int16_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
+        test_value = random.randint(-100, 100)
+        self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
+        self.ca.assert_that_pv_is(pv_name, test_value/10, timeout=40)
+
+    @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, INT16_TEST_VALUES)))
+    @skip_if_recsim("lewis backdoor not supported in recsim")
+    def test_WHEN_int32_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
         self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
 
-    @parameterized.expand(parameterized_list(zip(PV_NAMES, TEST_VALUES)))
+    @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, INT16_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
-    def test_WHEN_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+    def test_WHEN_int32_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
         self.ca.assert_that_pv_is(pv_name, test_value, timeout=40)
 
-    @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, FLOAT_TEST_VALUES)))
+    @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, ANALOGUE_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_analogue_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
         self.ca.assert_that_pv_is_number(pv_name, test_value, 0.001, timeout=40)
 
-    @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, FLOAT_TEST_VALUES)))
+    @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, ANALOGUE_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_analogue_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
