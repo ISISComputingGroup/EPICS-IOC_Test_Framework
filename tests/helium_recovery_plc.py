@@ -111,6 +111,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
+    # The heartbeat is testes separately despite being a 16 bit integer because it has no calc record and because it
+    # does not work properly with negative numbers, nor does it need to.
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
         self._lewis.backdoor_run_function_on_device("set_memory", ("HEARTBEAT", 1))
