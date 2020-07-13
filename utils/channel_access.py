@@ -355,6 +355,25 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: not self._within_tolerance_condition(val, restricted, tolerance), timeout, message=message)
 
+    def assert_that_pv_after_processing_is_number(self, pv, expected_value, tolerance=0.0, timeout=None):
+        """
+        Assert that the pv has the expected number value after the pv is processed
+        or that it becomes the expected number value within the timeout.
+
+        Args:
+            pv: pv name
+            expected_value: expected value
+            tolerance: the allowable deviation from the expected value
+            timeout: if it hasn't changed within this time raise assertion error
+            msg: Extra message to print
+        Raises:
+            AssertionError: if value does not become requested value
+            UnableToConnectToPVException: if pv does not exist within timeout
+        """
+
+        self.process_pv(pv)
+        return self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, timeout=None)
+
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=None):
         """
         Assert that the pv has one of the expected values or that it becomes one of the expected value within the
