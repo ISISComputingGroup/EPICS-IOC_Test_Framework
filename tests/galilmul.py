@@ -13,7 +13,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("GALILMUL"),
-        "pv_for_existence": "MOT:MTR0101",
+        "pv_for_existence": "1:AXIS1",
         "macros": {
             "MTRCTRL1": "01",
             "GALILADDR1": "0.0.0.0",
