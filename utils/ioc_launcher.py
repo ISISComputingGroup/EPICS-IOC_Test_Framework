@@ -164,7 +164,7 @@ class BaseLauncher(object):
         with check_existence_pv(ca, self._device, self._pv_for_existence):
             print("Starting IOC ({})".format(self._device))
 
-            settings = self.set_environment_vars()
+            settings = self.get_environment_vars()
 
             self.create_macros_file()
 
@@ -218,6 +218,9 @@ class BaseLauncher(object):
         return self.ca
 
     def create_macros_file(self):
+        """
+        Creates a temporary file that sets the EPICS macros, this file is called when the IOC first starts
+        """
         full_dir = os.path.join(self._var_dir, "tmp")
         if not os.path.exists(full_dir):
             os.makedirs(full_dir)
@@ -226,7 +229,11 @@ class BaseLauncher(object):
                 f.write('epicsEnvSet("{macro}", "{value}")\n'
                         .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
 
-    def set_environment_vars(self):
+    def get_environment_vars(self):
+        """
+        Get the current environment variables and add in the extra ones needed for starting the IOC in DEVSIM/RECSIM.
+        :return: (Dict): The names and values of the environment variables.
+        """
         settings = os.environ.copy()
         if self.use_rec_sim:
             # Using record simulation
@@ -285,8 +292,8 @@ class ProcServLauncher(BaseLauncher):
         self.telnet = None
         self.autorestart = True
 
-    def set_environment_vars(self):
-        settings = super(ProcServLauncher, self).set_environment_vars()
+    def get_environment_vars(self):
+        settings = super(ProcServLauncher, self).get_environment_vars()
 
         settings["CYGWIN"] = "nodosfilewarning"
         settings["MYDIRPROCSV"] = os.path.join(EPICS_TOP, "iocstartup")
