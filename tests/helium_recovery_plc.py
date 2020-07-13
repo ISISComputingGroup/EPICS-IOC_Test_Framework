@@ -35,7 +35,13 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
-INT16_PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
+# names of PVs for memory locations that store 16 bit integers, and that do not need a calc record to divide the value
+# by 10
+INT16_NO_CALC_PV_NAMES = ["HEARTBEAT", "COLDBOX:TURBINE_100:SPEED", "COLDBOX:TURBINE_101:SPEED"]
+
+INT16_NO_CALC_TEST_VALUES = range(1, len(INT16_NO_CALC_PV_NAMES) + 1)
+
+INT16_PV_NAMES = ["MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP2:BANK2:IMPURE_HE",
                   "MCP1:BANK3:MAIN_HE_STORAGE", "MCP2:BANK3:MAIN_HE_STORAGE", "MCP1:BANK4:DLS_HE_STORAGE",
                   "MCP2:BANK4:DLS_HE_STORAGE", "MCP1:BANK5:SPARE_STORAGE", "MCP2:BANK5:SPARE_STORAGE",
                   "MCP1:BANK6:SPARE_STORAGE", "MCP2:BANK6:SPARE_STORAGE", "MCP1:BANK7:SPARE_STORAGE",
@@ -47,21 +53,21 @@ INT16_PV_NAMES = ["HEARTBEAT", "MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMP
                   "FLOW_METER:TS1:VOID", "BANK1:TS2:RSPPL:AVG_PURITY", "BANK1:TS1:RSPPL:AVG_PURITY",
                   "BANK2:IMPURE_HE:AVG_PURITY", "BANK3:MAIN_STRG:AVG_PURITY", "BANK4:DLS_STRG:AVG_PURITY",
                   "BANK5:SPR_STRG:AVG_PURITY", "BANK6:SPR_STRG:AVG_PURITY", "BANK7:SPR_STRG:AVG_PURITY",
-                  "BANK8:SPR_STRG:AVG_PURITY", "COLDBOX:TURBINE_100:SPEED", "COLDBOX:TURBINE_101:SPEED",
-                  "COLDBOX:T106:TEMP", "COLDBOX:TT111:TEMP", "COLDBOX:PT102:PRESSURE", "BUFFER:PT203:PRESSURE",
-                  "PURIFIER:TT104:TEMP", "PURIFIER:TT102:TEMP", "COLDBOX:TT108:TEMP", "COLDBOX:PT112:PRESSURE",
-                  "COLDBOX:CNTRL_VALVE_103", "COLDBOX:CNTRL_VALVE_111", "COLDBOX:CNTRL_VALVE_112",
-                  "MOTHER_DEWAR:HE_LEVEL", "PURIFIER:LEVEL", "IMPURE_HE_SUPPLY:PRESSURE", "CMPRSSR:LOW_CNTRL_PRESSURE",
-                  "CMPRSSR:HIGH_CNTRL_PRESSURE", "CNTRL_VALVE_2250", "CNTRL_VALVE_2150", "CNTRL_VALVE_2160",
-                  "LIQUID_NITROGEN:STATUS", "MCP:LIQUID_HE_INVENTORY"]
+                  "BANK8:SPR_STRG:AVG_PURITY", "COLDBOX:T106:TEMP", "COLDBOX:TT111:TEMP", "COLDBOX:PT102:PRESSURE",
+                  "BUFFER:PT203:PRESSURE", "PURIFIER:TT104:TEMP", "PURIFIER:TT102:TEMP", "COLDBOX:TT108:TEMP",
+                  "COLDBOX:PT112:PRESSURE", "COLDBOX:CNTRL_VALVE_103", "COLDBOX:CNTRL_VALVE_111",
+                  "COLDBOX:CNTRL_VALVE_112", "MOTHER_DEWAR:HE_LEVEL", "PURIFIER:LEVEL", "IMPURE_HE_SUPPLY:PRESSURE",
+                  "CMPRSSR:LOW_CNTRL_PRESSURE", "CMPRSSR:HIGH_CNTRL_PRESSURE", "CNTRL_VALVE_2250", "CNTRL_VALVE_2150",
+                  "CNTRL_VALVE_2160", "LIQUID_NITROGEN:STATUS", "MCP:LIQUID_HE_INVENTORY"]
 
-INT16_TEST_VALUES = range(65535, len(INT16_PV_NAMES) + 65535)
-
+# names of PVs for memory locations that store 32 bit integers
 DWORD_PV_NAMES = ["GC:R108:U40", "GC:R108:DEWAR_FARM", "GC:R55:TOTAL", "GC:R55:NORTH", "GC:R55:SOUTH", "GC:MICE_HALL",
                   "GC:MUON", "GC:PEARL_HRPD_MARI_ENGINX", "GC:SXD_AND_MERLIN", "GC:CRYO_LAB", "GC:MAPS_AND_VESUVIO",
                   "GC:SANDALS", "GC:CRISP_AND_LOQ", "GC:IRIS_AND_OSIRIS", "GC:INES_AND_TOSCA", "GC:RIKEN",
                   "GC:R80:TOTAL", "GC:R53", "GC:R80:EAST", "GC:WISH", "GC:WISH:DEWAR_FARM", "GC:LARMOR_AND_OFFSPEC",
                   "GC:ZOOM_SANS2D_AND_POLREF", "GC:MAGNET_LAB", "GC:IMAT", "GC:LET_AND_NIMROD", "GC:R80:WEST"]
+
+DWORD_TEST_VALUES = range(65535, len(DWORD_PV_NAMES) + 65535)
 
 # list of names for the ai records. It is a separate list as we want to test floating point values with these PVs
 ANALOGUE_IN_PV_NAMES = ["MASS_FLOW:HE_RSPPL:TS2:EAST", "MASS_FLOW:HE_RSPPL:TS2:WEST", "MASS_FLOW:HE_RSPPL:TS1:VOID",
@@ -105,15 +111,17 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     # The HEARTBEAT PV is tested separately despite being a PV that stores a 16 bit integer because it does not have a
     # calc record that divides the value by 10.
+    @parameterized.expand(parameterized_list(zip(INT16_NO_CALC_PV_NAMES, INT16_NO_CALC_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
-    def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_run_function_on_device("set_memory", 1)
-        self.ca.assert_that_pv_is_number("HEARTBEAT", 1)
+    def test_WHEN_int16_no_calc_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
+        self.ca.assert_that_pv_is_number(pv_name, test_value)
 
+    @parameterized.expand(parameterized_list(zip(INT16_NO_CALC_PV_NAMES, INT16_NO_CALC_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
-    def test_WHEN_heartbeat_set_sim_pv_THEN_ioc_read_correctly(self):
-        self.ca.set_pv_value("SIM:HEARTBEAT", 2)
-        self.ca.assert_that_pv_is_number("HEARTBEAT", 2)
+    def test_WHEN_int16_no_calc_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+        self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
+        self.ca.assert_that_pv_is_number(pv_name, test_value)
 
     @parameterized.expand(parameterized_list(INT16_PV_NAMES))
     @skip_if_recsim("lewis backdoor not supported in recsim")
@@ -129,13 +137,13 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
         self.ca.assert_that_pv_is(pv_name, test_value/10)
 
-    @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, INT16_TEST_VALUES)))
+    @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, DWORD_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_int32_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
         self.ca.assert_that_pv_is(pv_name, test_value)
 
-    @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, INT16_TEST_VALUES)))
+    @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, DWORD_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int32_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
