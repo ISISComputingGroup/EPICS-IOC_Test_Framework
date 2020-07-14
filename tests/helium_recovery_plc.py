@@ -37,7 +37,7 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 # names of PVs for memory locations that store 16 bit integers, and that do not need a calc record to divide the value
 # by 10
-INT16_NO_CALC_PV_NAMES = ["COLDBOX:TURBINE_100:SPEED", "COLDBOX:TURBINE_101:SPEED"]
+INT16_NO_CALC_PV_NAMES = ["HEARTBEAT", "COLDBOX:TURBINE_100:SPEED", "COLDBOX:TURBINE_101:SPEED"]
 
 INT16_NO_CALC_TEST_VALUES = range(1, len(INT16_NO_CALC_PV_NAMES) + 1)
 
@@ -111,37 +111,36 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device("reset")
             self._lewis.backdoor_set_on_device("connected", True)
 
-    # The heartbeat is testes separately despite being a 16 bit integer because it has no calc record and because it
-    # does not work properly with negative numbers, nor does it need to.
-    @skip_if_recsim("lewis backdoor not supported in recsim")
-    def test_WHEN_heartbeat_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_run_function_on_device("set_memory", ("HEARTBEAT", 1))
-        self.ca.assert_that_pv_after_processing_is("HEARTBEAT", 1)
-
-    @skip_if_devsim("sim pvs not available in devsim")
-    def test_WHEN_heartbeat_set_sim_pv_THEN_ioc_read_correctly(self):
-        self.ca.set_pv_value("SIM:{}".format("HEARTBEAT"), 1)
-        self.ca.assert_that_pv_after_processing_is("HEARTBEAT", 1)
-
-    # The Coldbox turbine speeds are tested separately despite storing 16 bit integers because it does not have a
-    # calc record that divides the value by 10.
+    # The heartbeat and coldbox turbine speeds are tested separately despite storing 16 bit integers because it does
+    # not have a calc record that divides the value by 10. The heartbeat is not tested with negative numbers because it
+    # does not support them and does not need to. Because of that, it has no associated _RAW PV, and has a 0.5 second
+    # scan rate regardless of the global scan rate, so it does not need to be manually processed by the test.
     @parameterized.expand(parameterized_list(zip(INT16_NO_CALC_PV_NAMES, INT16_NO_CALC_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_int16_no_calc_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+
+        if pv_name != "HEARTBEAT":
+            self.ca.process_pv("{}:_RAW".format(pv_name))
+
         self.ca.assert_that_pv_after_processing_is(pv_name, test_value)
 
     @parameterized.expand(parameterized_list(zip(INT16_NO_CALC_PV_NAMES, INT16_NO_CALC_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int16_no_calc_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+
+        if pv_name != "HEARTBEAT":
+            self.ca.process_pv("{}:_RAW".format(pv_name))
+
         self.ca.assert_that_pv_after_processing_is(pv_name, test_value)
 
     @parameterized.expand(parameterized_list(zip(INT16_NO_CALC_PV_NAMES, INT16_NO_CALC_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_int16_no_calc_set_negative_value_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+        if pv_name == "HEARTBEAT":
+            self.skipTest("HEARTBEAT does not have support for negative values")
+
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, -test_value))
         self.ca.process_pv("{}:_RAW".format(pv_name))
         self.ca.assert_that_pv_after_processing_is(pv_name, -test_value)
@@ -149,6 +148,9 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(zip(INT16_NO_CALC_PV_NAMES, INT16_NO_CALC_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int16_no_calc_set_negative_value_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
+        if pv_name == "HEARTBEAT":
+            self.skipTest("HEARTBEAT does not have support for negative values")
+
         self.ca.set_pv_value("SIM:{}".format(pv_name), -test_value)
         self.ca.process_pv("{}:_RAW".format(pv_name))
         self.ca.assert_that_pv_after_processing_is(pv_name, -test_value)
