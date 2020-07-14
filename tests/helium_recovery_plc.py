@@ -58,7 +58,7 @@ INT16_PV_NAMES = ["MCP:BANK1:TS2", "MCP:BANK1:TS1", "MCP1:BANK2:IMPURE_HE", "MCP
                   "COLDBOX:PT112:PRESSURE", "COLDBOX:CNTRL_VALVE_103", "COLDBOX:CNTRL_VALVE_111",
                   "COLDBOX:CNTRL_VALVE_112", "MOTHER_DEWAR:HE_LEVEL", "PURIFIER:LEVEL", "IMPURE_HE_SUPPLY:PRESSURE",
                   "CMPRSSR:LOW_CNTRL_PRESSURE", "CMPRSSR:HIGH_CNTRL_PRESSURE", "CNTRL_VALVE_2250", "CNTRL_VALVE_2150",
-                  "CNTRL_VALVE_2160", "LIQUID_NITROGEN:STATUS", "MCP:LIQUID_HE_INVENTORY"]
+                  "CNTRL_VALVE_2160", "MCP:LIQUID_HE_INVENTORY"]
 
 INT16_TEST_VALUES = range(1, len(INT16_PV_NAMES) + 1)
 
@@ -119,7 +119,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_after_processing_is("HEARTBEAT", 1)
 
     @skip_if_devsim("sim pvs not available in devsim")
-    def test_WHEN_int16_no_calc_set_sim_pv_THEN_ioc_read_correctly(self):
+    def test_WHEN_heartbeat_set_sim_pv_THEN_ioc_read_correctly(self):
         self.ca.set_pv_value("SIM:{}".format("HEARTBEAT"), 1)
         self.ca.assert_that_pv_after_processing_is("HEARTBEAT", 1)
 
@@ -240,6 +240,22 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
         self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
         self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
+
+    @skip_if_recsim("lewis backdoor not available in devsim")
+    def test_WHEN_liquid_nitrogen_status_set_backdoor_THEN_ioc_read_correctly(self):
+        self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUID_NITROGEN:STATUS", 2))
+        self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Selected")
+
+        self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUID_NITROGEN:STATUS", 1))
+        self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
+
+    @skip_if_devsim("sim pvs not available in recsim")
+    def test_WHEN_liquid_nitrogen_status_set_sim_pv_THEN_ioc_read_correctly(self):
+        self.ca.set_pv_value("SIM:LIQUID_NITROGEN:STATUS", 1)
+        self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Selected")
+
+        self.ca.set_pv_value("SIM:LIQUID_NITROGEN:STATUS", 0)
+        self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
 
     @parameterized.expand(parameterized_list(CONTROL_VALVE_POSITION_VALUES))
     @skip_if_recsim("lewis backdoor not available in devsim")
