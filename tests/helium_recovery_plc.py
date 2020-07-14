@@ -97,6 +97,13 @@ VALVE_STATUS_PVS = ["MOTORISED_VALVE_108:STATUS", "CNTRL_VALVE_112:STATUS", "CNT
 
 VALVE_STATUS_VALUES = ["Opened", "Sweeping", "Closed", "Fault"]
 
+LIQUEFIER_ALARMS = ["POWER_FAILURE", "TURBINE1:BRAKE_TEMP", "TURBINE2:BRAKE_TEMP", "TURBINE1:OVERSPEED",
+                    "TURBINE1:TRIPPED_CMPRSSR", "TURBINE2:OVERSPEED", "TURBINE2:TRIPPED_CMPRSSR", "BACKING_PRESSURE",
+                    "ORS_COALESCER:LEVEL", "ORS:TEMPERATURE", "TS105:UNDERCOOL", "TTX108:UNDERCOOL",
+                    "TURBINE:UNDERCOOL", "TURBINE:MALFUNCTION", "PURIFIER:UNDERCOOL", "LIS107", "PLANT_AUTOSTOP:TIMEOUT",
+                    "EMERGENCY_STOP", "230VAC:FUSE", "24VDC:FUSE", "LTX107:FUSE", "SAFTY_CHAIN_TURBINE", "PSL2951",
+                    "FI3100:COOLING"]
+
 
 class HeliumRecoveryPLCTests(unittest.TestCase):
     """
@@ -348,22 +355,34 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     # the unsigned 16 bit integer correctly. Therefore, we have tests that check if these two records can correctly
     # read the largest possible unsigned 16 bit integer value.
 
+    @parameterized.expand(parameterized_list(LIQUEFIER_ALARMS))
     @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_liquefier_alarm_1_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUEFIER:ALARM1", 65535))
-        self.ca.assert_that_pv_after_processing_is("LIQUEFIER:ALARM1", 65535)
+    def test_WHEN_liquefier_alarm_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+        alarm_index = LIQUEFIER_ALARMS.index(pv_name)
 
+        if alarm_index < 15:
+            mbbiDirect_pv = "LIQUEFIER:ALARM1"
+        else:
+            mbbiDirect_pv = "LIQUEFIER:ALARM2"
+
+        test_value = 2 ** alarm_index
+
+        self._lewis.backdoor_run_function_on_device("set_memory", (mbbiDirect_pv, test_value))
+        self.ca.process_pv(mbbiDirect_pv)
+        self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
+
+    @parameterized.expand(parameterized_list(LIQUEFIER_ALARMS))
     @skip_if_devsim("sim pvs not available in devsim")
-    def test_WHEN_liquefier_alarm_1_set_sim_pv_THEN_ioc_read_correctly(self):
-        self.ca.set_pv_value("SIM:{}".format("LIQUEFIER:ALARM1"), 65535)
-        self.ca.assert_that_pv_after_processing_is("LIQUEFIER:ALARM1", 65535)
+    def test_WHEN_liquefier_alarm_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
+        alarm_index = LIQUEFIER_ALARMS.index(pv_name)
 
-    @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_liquefier_alarm_2_set_backdoor_THEN_ioc_read_correctly(self):
-        self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUEFIER:ALARM1", 65535))
-        self.ca.assert_that_pv_after_processing_is("LIQUEFIER:ALARM1", 65535)
+        if alarm_index < 15:
+            mbbiDirect_pv = "LIQUEFIER:ALARM1"
+        else:
+            mbbiDirect_pv = "LIQUEFIER:ALARM2"
 
-    @skip_if_devsim("sim pvs not available in devsim")
-    def test_WHEN_liquefier_alarm_2_set_sim_pv_THEN_ioc_read_correctly(self):
-        self.ca.set_pv_value("SIM:{}".format("LIQUEFIER:ALARM1"), 65535)
-        self.ca.assert_that_pv_after_processing_is("LIQUEFIER:ALARM1", 65535)
+        test_value = 2 ** alarm_index
+
+        self.ca.set_pv_value("SIM:{}".format(mbbiDirect_pv), test_value)
+        self.ca.process_pv(mbbiDirect_pv)
+        self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
