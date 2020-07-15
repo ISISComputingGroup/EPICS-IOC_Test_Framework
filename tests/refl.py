@@ -7,34 +7,34 @@ from math import tan, radians, cos
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import ManagerMode
 from utils.testing import unstable_test
 
 
 GALIL_ADDR = "128.0.0.0"
-DEVICE_PREFIX = "REFL_01"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
 SOFT_LIMIT_HI = 10000
 SOFT_LIMIT_LO = -10000
 
-REFL_PATH = os.path.join(EPICS_TOP, "support", "refl", "master")
+ioc_number = 1
+DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
 GALIL_PREFIX = "GALIL_01"
 GALIL_PREFIX_JAWS = "GALIL_02"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
+test_var_path = os.path.join(test_config_path, "var")
+
 IOCS = [
     # Deliberately start the REFL server first to check on waiting for motors functionality
     {
-        "ioc_launcher_class": PythonIOCLauncher,
+        "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
-        "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "reflectometry_server.py")],
+        "directory": get_default_ioc_dir("REFL", iocnum=ioc_number),
         "started_text": "Instantiating Beamline Model",
         "pv_for_existence": "STAT",
-        "python_version": 3,
         "macros": {
         },
         "environment_vars": {
