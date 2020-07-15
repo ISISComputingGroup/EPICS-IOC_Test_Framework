@@ -10,13 +10,13 @@ import os
 
 
 class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
-    def __init__(self, device, var_dir, port, options):
+    def __init__(self, test_name, device, var_dir, port, options):
         labview_scripts_dir = os.path.join(DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
         self.start_command = os.path.join(labview_scripts_dir, "start_sim.bat")
         self.stop_command = os.path.join(labview_scripts_dir, "stop_sim.bat")
         options["emulator_command_line"] = self.start_command
         options["emulator_wait_to_finish"] = True
-        super(DAQMxEmulatorLauncher, self).__init__(device, var_dir, port, options)
+        super(DAQMxEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
 
     def _close(self):
         self.disconnect_device()

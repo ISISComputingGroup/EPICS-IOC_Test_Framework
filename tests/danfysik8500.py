@@ -20,7 +20,8 @@ IOCS = [
             "FACTOR_READ_I": "1",
             "FACTOR_READ_V": "1",
             "FACTOR_WRITE_I": "1",
-            "ADDRESS": DEVICE_ADDRESS
+            "ADDRESS": DEVICE_ADDRESS,
+            "DISABLE_AUTOONOFF": "0",
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8500",
