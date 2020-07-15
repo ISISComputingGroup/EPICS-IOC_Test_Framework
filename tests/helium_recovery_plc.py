@@ -216,7 +216,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_value_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+    def test_WHEN_auto_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 2))
         self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
 
@@ -224,31 +224,13 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
-    @skip_if_recsim("lewis backdoor not available in recsim")
-    def test_WHEN_value_auto_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
-        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 1))
-        self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
-
-        self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 2))
-        self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
-
-    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_devsim("sim pvs not available in recsim")
-    def test_WHEN_value_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
+    def test_WHEN_auto_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
         self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
 
         self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
         self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
-
-    @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
-    @skip_if_devsim("sim pvs not available in recsim")
-    def test_WHEN_value_auto_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
-        self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
-        self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
-
-        self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
-        self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
 
     @skip_if_recsim("lewis backdoor not available in devsim")
     def test_WHEN_liquid_nitrogen_status_set_backdoor_THEN_ioc_read_correctly(self):
@@ -352,37 +334,52 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     # Liquefier alarms are tested separately because in the memory map they are unsigned integers. The C driver does
     # not support unsigned 16 bit integers directly, but the value is put into a longin record, which should display
-    # the unsigned 16 bit integer correctly. Therefore, we have tests that check if these two records can correctly
-    # read the largest possible unsigned 16 bit integer value.
+    # the unsigned 16 bit integer correctly. There are two mbbiDirect records that read from the two memory locations
+    # that store alarms in the form of 16 bit integers. These tests then check that the bi records that read from the
+    # mbbiDirect recors work properly.
 
     @parameterized.expand(parameterized_list(LIQUEFIER_ALARMS))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_liquefier_alarm_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
         alarm_index = LIQUEFIER_ALARMS.index(pv_name)
+        hardware_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
+        test_value = HeliumRecoveryPLCTests._get_alarm_test_value(hardware_pv, alarm_index)
 
-        if alarm_index < 15:
-            mbbiDirect_pv = "LIQUEFIER:ALARM1"
-        else:
-            mbbiDirect_pv = "LIQUEFIER:ALARM2"
+        self._lewis.backdoor_run_function_on_device("set_memory", (hardware_pv, test_value))
+        self.ca.process_pv("{}:_RAW".format(hardware_pv))
+        self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "IN ALARM")
 
-        test_value = 2 ** alarm_index
-
-        self._lewis.backdoor_run_function_on_device("set_memory", (mbbiDirect_pv, test_value))
-        self.ca.process_pv(mbbiDirect_pv)
+        self._lewis.backdoor_run_function_on_device("set_memory", (hardware_pv, 0))
+        self.ca.process_pv("{}:_RAW".format(hardware_pv))
         self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
 
     @parameterized.expand(parameterized_list(LIQUEFIER_ALARMS))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_liquefier_alarm_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         alarm_index = LIQUEFIER_ALARMS.index(pv_name)
+        hardware_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
+        test_value = HeliumRecoveryPLCTests._get_alarm_test_value(hardware_pv, alarm_index)
 
-        if alarm_index < 15:
-            mbbiDirect_pv = "LIQUEFIER:ALARM1"
-        else:
-            mbbiDirect_pv = "LIQUEFIER:ALARM2"
+        self.ca.set_pv_value("SIM:{}".format(hardware_pv), test_value)
+        self.ca.process_pv("{}:_RAW".format(hardware_pv))
+        self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "IN ALARM")
 
-        test_value = 2 ** alarm_index
-
-        self.ca.set_pv_value("SIM:{}".format(mbbiDirect_pv), test_value)
-        self.ca.process_pv(mbbiDirect_pv)
+        self.ca.set_pv_value("SIM:{}".format(hardware_pv), 0)
+        self.ca.process_pv("{}:_RAW".format(hardware_pv))
         self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
+
+    @staticmethod
+    def _get_liquefier_hardware_pv(alarm_index):
+        if alarm_index < 15:
+            hardware_pv = "LIQUEFIER:_ALARM1"
+        else:
+            hardware_pv = "LIQUEFIER:_ALARM2"
+
+        return hardware_pv
+
+    @staticmethod
+    def _get_alarm_test_value(hardware_pv, alarm_index):
+        if hardware_pv == "LIQUEFIER:_ALARM1":
+            return 2 ** (alarm_index + 1)
+        elif hardware_pv == "LIQUEFIER:_ALARM2":
+            return 2 ** (alarm_index - 15)
