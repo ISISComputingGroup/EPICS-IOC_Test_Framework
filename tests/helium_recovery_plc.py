@@ -342,44 +342,61 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_liquefier_alarm_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
         alarm_index = LIQUEFIER_ALARMS.index(pv_name)
-        hardware_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
-        test_value = HeliumRecoveryPLCTests._get_alarm_test_value(hardware_pv, alarm_index)
+        mbbi_direct_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
+        test_value = HeliumRecoveryPLCTests._get_alarm_test_value(mbbi_direct_pv, alarm_index)
 
-        self._lewis.backdoor_run_function_on_device("set_memory", (hardware_pv, test_value))
-        self.ca.process_pv("{}:_RAW".format(hardware_pv))
+        self._lewis.backdoor_run_function_on_device("set_memory", (mbbi_direct_pv, test_value))
+        self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
         self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "IN ALARM")
 
-        self._lewis.backdoor_run_function_on_device("set_memory", (hardware_pv, 0))
-        self.ca.process_pv("{}:_RAW".format(hardware_pv))
+        self._lewis.backdoor_run_function_on_device("set_memory", (mbbi_direct_pv, 0))
+        self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
         self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
 
     @parameterized.expand(parameterized_list(LIQUEFIER_ALARMS))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_liquefier_alarm_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         alarm_index = LIQUEFIER_ALARMS.index(pv_name)
-        hardware_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
-        test_value = HeliumRecoveryPLCTests._get_alarm_test_value(hardware_pv, alarm_index)
+        mbbi_direct_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
+        test_value = HeliumRecoveryPLCTests._get_alarm_test_value(mbbi_direct_pv, alarm_index)
 
-        self.ca.set_pv_value("SIM:{}".format(hardware_pv), test_value)
-        self.ca.process_pv("{}:_RAW".format(hardware_pv))
+        self.ca.set_pv_value("SIM:{}".format(mbbi_direct_pv), test_value)
+        self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
         self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "IN ALARM")
 
-        self.ca.set_pv_value("SIM:{}".format(hardware_pv), 0)
-        self.ca.process_pv("{}:_RAW".format(hardware_pv))
+        self.ca.set_pv_value("SIM:{}".format(mbbi_direct_pv), 0)
+        self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
         self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
 
     @staticmethod
     def _get_liquefier_hardware_pv(alarm_index):
+        """
+        The 24 alarm bi records get their value from one of two mbbi records. The first 15 get their value from the
+        first, and the rest from the second one.
+        :param alarm_index: Index of the pv name in the list of alarm PVs.
+        :return: the name of the mbbiDirect record from where the alarm bi record gets its value.
+        """
         if alarm_index < 15:
-            hardware_pv = "LIQUEFIER:_ALARM1"
+            mbbi_direct_pv = "LIQUEFIER:_ALARM1"
         else:
-            hardware_pv = "LIQUEFIER:_ALARM2"
+            mbbi_direct_pv = "LIQUEFIER:_ALARM2"
 
-        return hardware_pv
+        return mbbi_direct_pv
 
     @staticmethod
-    def _get_alarm_test_value(hardware_pv, alarm_index):
-        if hardware_pv == "LIQUEFIER:_ALARM1":
+    def _get_alarm_test_value(mbbi_direct_pv, alarm_index):
+        """
+        The alarm bi records get their valuer from 16 bit number in mbbiDirect records, and we need to compute the
+        correct value for the mbbiDirect such that the right alarm bi record is 1 and not 0.
+        :param mbbi_direct_pv: the name of the mbbiDirect record from where the alarm bi records gets their value.
+        :param alarm_index: Index of the pv name in the list of alarm PVs
+        :return: The corect test value for the mbbi record, such that the bi record being tested will have a value of
+        1, or be in alarm.
+        """
+        if mbbi_direct_pv == "LIQUEFIER:_ALARM1":
+            # We add 1 to the index because the first bit int LIQUEFIER:_ALARM1 is not used
             return 2 ** (alarm_index + 1)
-        elif hardware_pv == "LIQUEFIER:_ALARM2":
+        elif mbbi_direct_pv == "LIQUEFIER:_ALARM2":
+            # We subtract 15 because the bi record for ALARM2 are after the 15 bi records for ALARM1 in the liquefier
+            # alarms list.
             return 2 ** (alarm_index - 15)
