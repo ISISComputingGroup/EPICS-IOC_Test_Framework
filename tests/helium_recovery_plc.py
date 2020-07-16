@@ -217,6 +217,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_auto_manual_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name):
+        self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
+
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, 2))
         self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
 
@@ -226,6 +228,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
     @skip_if_devsim("sim pvs not available in recsim")
     def test_WHEN_auto_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
+        self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
+
         self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
         self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
 
@@ -234,6 +238,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     @skip_if_recsim("lewis backdoor not available in devsim")
     def test_WHEN_liquid_nitrogen_status_set_backdoor_THEN_ioc_read_correctly(self):
+        self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
+
         self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUID_NITROGEN:STATUS", 2))
         self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Selected")
 
@@ -242,6 +248,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     @skip_if_devsim("sim pvs not available in recsim")
     def test_WHEN_liquid_nitrogen_status_set_sim_pv_THEN_ioc_read_correctly(self):
+        self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
+
         self.ca.set_pv_value("SIM:LIQUID_NITROGEN:STATUS", 1)
         self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Selected")
 
@@ -345,6 +353,9 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         mbbi_direct_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
         test_value = HeliumRecoveryPLCTests._get_alarm_test_value(mbbi_direct_pv, alarm_index)
 
+        self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
+        self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
+
         self._lewis.backdoor_run_function_on_device("set_memory", (mbbi_direct_pv, test_value))
         self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
         self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "IN ALARM")
@@ -359,6 +370,9 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         alarm_index = LIQUEFIER_ALARMS.index(pv_name)
         mbbi_direct_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
         test_value = HeliumRecoveryPLCTests._get_alarm_test_value(mbbi_direct_pv, alarm_index)
+
+        self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
+        self.ca.assert_that_pv_is("{}:ALARM".format(pv_name), "OK")
 
         self.ca.set_pv_value("SIM:{}".format(mbbi_direct_pv), test_value)
         self.ca.process_pv("{}:_RAW".format(mbbi_direct_pv))
