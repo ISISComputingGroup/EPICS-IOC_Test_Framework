@@ -1,11 +1,8 @@
 import unittest
-import os
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import parameterized_list
-from parameterized import parameterized
 
 DEVICE_PREFIX = "GALILMUL_01"
 
