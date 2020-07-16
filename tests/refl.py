@@ -1,8 +1,7 @@
 import os
 import unittest
-import time
 from contextlib import contextmanager
-from math import tan, radians, cos
+from math import tan, radians
 
 from parameterized import parameterized
 
@@ -36,10 +35,11 @@ IOCS = [
         "started_text": "Instantiating Beamline Model",
         "pv_for_existence": "STAT",
         "macros": {
+            "CONFIG_FILE": "config_init.py"
         },
         "environment_vars": {
             "ICPCONFIGROOT": test_config_path,
-            "ICPVARDIR": test_config_path,
+            "ICPVARDIR": test_var_path,
         }
     },
     {

@@ -1,11 +1,10 @@
+import json
 import os
 import unittest
-import time
 from contextlib import contextmanager
-from math import tan, radians
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher, ProcServLauncher
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
@@ -20,6 +19,10 @@ DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
 GALIL_PREFIX = "GALIL_01"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 test_var_path = os.path.join(test_config_path, "var_init")
+
+REFL_MACROS = json.dumps({"CONFIG_FILE": "config_init.py",  # tested implicitly by entire suite
+                          "OPTIONAL_1": True,
+                          "OPTIONAL_2": False, })
 
 IOCS = [
     {
@@ -47,14 +50,11 @@ IOCS = [
         "directory": get_default_ioc_dir("REFL", iocnum=ioc_number),
         "started_text": "Reflectometry IOC started",
         "pv_for_existence": "STAT",
-        "macros": {
-            "CONFIG_FILE": "config_init.py",    # tested implicitly by entire suite
-            "OPTIONAL_1": True,
-            "OPTIONAL_2": False,
-        },
         "environment_vars": {
+            "REFL_MACROS": REFL_MACROS,
+            "IOC_TEST": "1",
             "ICPCONFIGROOT": test_config_path,
-            "ICPVARDIR": test_config_path,
+            "ICPVARDIR": test_var_path,
         }
     },
 
