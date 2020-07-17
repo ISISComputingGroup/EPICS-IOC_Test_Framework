@@ -112,7 +112,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=40, device_prefix=IOC_PREFIX)
+        self.ca = ChannelAccess(default_timeout=20, device_prefix=IOC_PREFIX)
 
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
