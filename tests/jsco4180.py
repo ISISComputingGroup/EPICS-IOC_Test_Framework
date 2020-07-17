@@ -36,7 +36,7 @@ class Jsco4180Tests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
         for pv in required_pvs:
             self.ca.assert_that_pv_exists(pv, timeout=30)
         self._lewis.backdoor_run_function_on_device("reset")
