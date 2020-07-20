@@ -182,6 +182,7 @@ class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
         """
         self.fail(self.msg)
 
+
 def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
     Runs dotted unit tests.
@@ -218,6 +219,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
         msg = "Error while attempting to load test suite: {}".format(traceback.format_exc())
         result = runner.run(ReportFailLoadTestsuiteTestCase(module_name, msg)).wasSuccessful()
     return result
+
 
 if __name__ == '__main__':
 

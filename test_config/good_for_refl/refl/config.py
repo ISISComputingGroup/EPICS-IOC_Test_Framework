@@ -16,7 +16,7 @@ S3_OUT_POS_HIGH = OutOfBeamPosition(5)
 S3_OUT_POS_LOW = OutOfBeamPosition(-5, threshold=1)
 
 
-def get_beamline():
+def get_beamline(macros):
     """
     Returns: a beamline object describing the current beamline setup
     """
