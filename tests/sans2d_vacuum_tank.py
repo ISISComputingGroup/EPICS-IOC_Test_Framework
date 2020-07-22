@@ -68,15 +68,15 @@ class Sans2dVacTankTests(unittest.TestCase):
             self.assert_axis_not_moving(axis)
 
     def test_GIVEN_front_beamstop_moving_WHEN_front_detector_angle_goes_out_of_range_THEN_front_beamstop_stops(self):
-        self.ca.set_pv_value("FRONTDETROT", 0)
+        self.ca.set_pv_value("FRONTDETROT:SP", 0, wait=True)
         self.set_axis_moving("FRONTBEAMSTOP")
         self.assert_axis_moving("FRONTBEAMSTOP")
-        self.ca.set_pv_value("FRONTDETROT", -3)
+        self.ca.set_pv_value("FRONTDETROT:SP", -3)
         self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_FRONTBEAMSTOP", 1)
         self.assert_axis_not_moving("FRONTBEAMSTOP")
 
     def test_GIVEN_front_beamstop_not_moving_AND_front_detector_angle_goes_out_of_range_THEN_front_beamstop_cannot_move(self):
-        self.ca.set_pv_value("FRONTDETROT", -3)
+        self.ca.set_pv_value("FRONTDETROT:SP", -3, wait=True)
         start_position = self.ca.get_pv_value("FRONTBEAMSTOP")
         self.set_axis_moving("FRONTBEAMSTOP")
         self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_FRONTBEAMSTOP", 1)
