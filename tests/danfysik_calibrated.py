@@ -2,7 +2,7 @@ import os
 import unittest
 
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED
 from utils.testing import skip_if_recsim
@@ -28,6 +28,7 @@ IOCS = [
         "lewis_protocol": "model8000",
         "pv_for_existence": "FIELD",
         "DISABLE_AUTOONOFF": "0",
+        "ioc_launcher_class": ProcServLauncher
     },
 ]
 
