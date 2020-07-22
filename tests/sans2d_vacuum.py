@@ -175,7 +175,7 @@ class Sans2dVacuumTankTest(unittest.TestCase):
         self._ioc = IOCRegister.get_running("FINS_01")
         self.ca = ChannelAccess(device_prefix=ioc_prefix)
 
-    @parameterized.expand(parameterized_list([-5, 0, 3, 5, 7, 9]))
+    @parameterized.expand(parameterized_list([-5, 0, 3, 5, 7, 9, 16]))
     def test_WHEN_set_tank_status_to_unknown_value_THEN_error_status(self, _, status_rval):
         self.ca.set_pv_value("SIM:TANK:STATUS", status_rval)
         self.ca.assert_that_pv_is("TANK:STATUS", "ERROR: STATUS UNKNOWN")
