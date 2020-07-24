@@ -21,8 +21,8 @@ test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(
 test_var_path = os.path.join(test_config_path, "var_init")
 
 REFL_MACROS = json.dumps({"CONFIG_FILE": "config_init.py",  # tested implicitly by entire suite
-                          "OPTIONAL_1": "1",
-                          "OPTIONAL_2": "0", })
+                          "OPTIONAL_1": "True",
+                          "OPTIONAL_2": "False", })
 
 IOCS = [
     {
