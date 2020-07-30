@@ -220,6 +220,8 @@ class DanfysikCommon(DanfysikBase):
         ("power_on_and_current_at_10",  True, 10),
         ("power_off_and_current_at_50", False, 50),
     ])
+    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(),
+                       "RKNPS has a different emulator and IOC structure which means this test doesn't work.")
     @skip_if_recsim("In rec sim this test fails as there is nothing holding the device state")
     def test_WHEN_IOC_is_restarted_THEN_current_and_powered_are_not_changed(self, _, power_state, current):
         self.ca.set_pv_value("POWER:SP", int(power_state))
