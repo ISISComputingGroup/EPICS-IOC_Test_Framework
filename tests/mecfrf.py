@@ -54,7 +54,7 @@ class MecfrfTests(unittest.TestCase):
 
     @skip_if_recsim("Uses Lewis backdoor")
     def test_WHEN_emulator_sends_corrupt_packets_THEN_records_go_into_alarm(self):
-        with self.ca.assert_pv_processed(self._ioc, "_RESET_CONNECTION"):
+        with self.ca.assert_pv_processed("_RESET_CONNECTION"):
             self._lewis.backdoor_set_on_device("corrupted_messages", True)
             self.ca.assert_that_pv_is("_GETTING_INVALID_MESSAGES", 1)
 

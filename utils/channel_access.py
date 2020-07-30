@@ -588,14 +588,19 @@ class ChannelAccess(object):
             pv: the PV on which to check processing
         """
         pv_with_prefix = self.create_pv_with_prefix(pv)
-        time_before = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        class PvUpdateTimeValueSource(object):
+            @property
+            def value(self):
+                return CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        time_before = PvUpdateTimeValueSource().value
 
         yield
-
-        time_after = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
-
-        if time_before == time_after:
-            raise AssertionError("PV {} has not processed".format(pv))
+        
+        self.assert_that_pv_value_causes_func_to_return_true(
+            pv=pv_with_prefix, func=lambda val: val != time_before, pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was not processed".format(pv))
 
     @contextmanager
     def assert_pv_not_processed(self, pv):
@@ -606,11 +611,16 @@ class ChannelAccess(object):
             pv: the PV on which to check (lack of) processing
         """
         pv_with_prefix = self.create_pv_with_prefix(pv)
-        time_before = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        class PvUpdateTimeValueSource(object):
+            @property
+            def value(self):
+                return CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        time_before = PvUpdateTimeValueSource().value
 
         yield
 
-        time_after = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
-
-        if time_before != time_after:
-            raise AssertionError("PV {} has processed".format(pv))
+        self.assert_that_pv_value_causes_func_to_return_true(
+            pv=pv_with_prefix, func=lambda val: val == time_before, pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was processed".format(pv))
