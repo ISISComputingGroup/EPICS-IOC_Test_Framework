@@ -226,7 +226,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
-    @skip_if_devsim("sim pvs not available in recsim")
+    @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_auto_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
 
@@ -236,7 +236,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
         self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
 
-    @skip_if_recsim("lewis backdoor not available in devsim")
+    @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_liquid_nitrogen_status_set_backdoor_THEN_ioc_read_correctly(self):
         self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
 
@@ -246,7 +246,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_memory", ("LIQUID_NITROGEN:STATUS", 1))
         self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
 
-    @skip_if_devsim("sim pvs not available in recsim")
+    @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_liquid_nitrogen_status_set_sim_pv_THEN_ioc_read_correctly(self):
         self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
 
@@ -257,7 +257,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_after_processing_is("LIQUID_NITROGEN:STATUS", "Not selected")
 
     @parameterized.expand(parameterized_list(CONTROL_VALVE_POSITION_VALUES))
-    @skip_if_recsim("lewis backdoor not available in devsim")
+    @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_CNTRL_VALVE_120_position_set_backdoor_THEN_ioc_read_correctly(self, _, test_value):
         index_test_value = CONTROL_VALVE_POSITION_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", ("CNTRL_VALVE_120:POSITION", index_test_value))
