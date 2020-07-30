@@ -327,7 +327,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_after_processing_is("COLDBOX:STATUS", test_value)
 
     @parameterized.expand(parameterized_list(itertools.product(VALVE_STATUS_PVS, VALVE_STATUS_VALUES)))
-    @skip_if_recsim("lewis backddor not available in recsim")
+    @skip_if_recsim("lewis backdoor not available in recsim")
     def test_WHEN_valve_status_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         index_test_value = VALVE_STATUS_VALUES.index(test_value) + 1
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, index_test_value))
