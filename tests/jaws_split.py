@@ -46,8 +46,8 @@ class SplitJawsTests(JawsTestsBase, unittest.TestCase):
     def setup_jaws(self):
         self.MTR_NORTH = "MOT:MTR0101"
         self.MTR_SOUTH = "MOT:MTR0102"
-        self.MTR_WEST = "MOT:MTR0201"
-        self.MTR_EAST = "MOT:MTR0202"
+        self.MTR_WEST = "MOT:MTR0202"
+        self.MTR_EAST = "MOT:MTR0201"
         self.UNDERLYING_MTRS = OrderedDict([("N", self.MTR_NORTH),
                                             ("S", self.MTR_SOUTH),
                                             ("E", self.MTR_EAST),
