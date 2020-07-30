@@ -75,9 +75,14 @@ class ChannelAccess(object):
 
     def __init__(self, default_timeout=5, device_prefix=None):
         """
+        Initializes this ChannelAccess object.
+
         Args:
-            device_prefix: the device prefix which will be added to the start of all pvs.
-            default_timeout: the default time out to wait for an assertion on a PV to become true.
+            device_prefix: The device prefix which will be added to the start of all pvs.
+            default_timeout: The default time out to wait for an assertion on a PV to become true.
+
+        Returns:
+            None.
         """
         self.ca = CaChannelWrapper()
 
@@ -361,14 +366,14 @@ class ChannelAccess(object):
         or that it becomes the expected number value within the timeout.
 
         Args:
-            pv: pv name
-            expected_value: expected value
-            tolerance: the allowable deviation from the expected value
-            timeout: if it hasn't changed within this time raise assertion error
-            msg: Extra message to print
+            pv: The name of the pv to test.
+            expected_value: The expected value of the pv.
+            tolerance: The allowable deviation from the expected value.
+            timeout: If it hasn't changed within this time raise assertion error.
+
         Raises:
-            AssertionError: if value does not become requested value
-            UnableToConnectToPVException: if pv does not exist within timeout
+            AssertionError: If value does not become requested value.
+            UnableToConnectToPVException: If pv does not exist within timeout.
         """
 
         self.process_pv(pv)
