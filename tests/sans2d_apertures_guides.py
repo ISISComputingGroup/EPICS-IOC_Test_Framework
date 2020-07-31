@@ -66,7 +66,7 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
             set_axis_moving(axis)
             assert_axis_moving(axis)
             self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:ALL", 1)
-            assert_axis_not_moving(axis)
+            assert_axis_not_moving(axis, retry_count=3)
 
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_move_disabled_axis_moving_WHEN_stop_all_THEN_axis_stopped(self, axis):
@@ -77,4 +77,4 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
             set_axis_moving(axis)
             assert_axis_moving(axis)
             self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:ALL", 1)
-            assert_axis_moving(axis)
+            assert_axis_moving(axis, retry_count=3)
