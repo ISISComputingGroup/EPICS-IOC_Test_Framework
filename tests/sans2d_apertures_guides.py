@@ -6,6 +6,7 @@ from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.axis import set_axis_moving, assert_axis_not_moving, assert_axis_moving
+import time
 
 galil_settings_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
@@ -64,5 +65,16 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
         for _ in range(3):
             set_axis_moving(axis)
             assert_axis_moving(axis)
-            self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:_ALL", 1)
+            self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:ALL", 1)
             assert_axis_not_moving(axis)
+
+    @parameterized.expand(AXES_TO_STOP)
+    def test_GIVEN_move_disabled_axis_moving_WHEN_stop_all_THEN_axis_stopped(self, axis):
+        # Set interlock to disabled
+        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
+        self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
+        for _ in range(3):
+            set_axis_moving(axis)
+            assert_axis_moving(axis)
+            self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:ALL", 1)
+            assert_axis_moving(axis)
