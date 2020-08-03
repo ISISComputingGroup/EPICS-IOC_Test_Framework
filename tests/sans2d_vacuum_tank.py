@@ -11,7 +11,7 @@ test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
 )
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR = "127.0.0.1"
 
 # Create GALIL_03, GALIL_04 and GALIL_05
 IOCS = [
@@ -51,4 +51,4 @@ class Sans2dVacTankTests(unittest.TestCase):
             set_axis_moving(axis)
             assert_axis_moving(axis)
             self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL", 1)
-            assert_axis_not_moving(axis, retry_count=3)
+            assert_axis_not_moving(axis)
