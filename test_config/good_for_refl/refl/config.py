@@ -16,7 +16,7 @@ S3_OUT_POS_HIGH = OutOfBeamPosition(5)
 S3_OUT_POS_LOW = OutOfBeamPosition(-5, threshold=1)
 
 
-def get_beamline():
+def get_beamline(macros):
     """
     Returns: a beamline object describing the current beamline setup
     """
@@ -25,13 +25,15 @@ def get_beamline():
     testing = add_mode("TESTING")
     disabled = add_mode("DISABLED", is_disabled=True)
 
+    add_constant(BeamlineConstant("OPI", "SURF", "OPIs to show on front panel"))
+
     # S1
     z_s1 = 1 * SPACING
     add_constant(BeamlineConstant("S1_Z", z_s1, "Slit 1 z position"))
     s1_comp = add_component(Component("s1", PositionAndAngle(0.0, z_s1, 90)))
     add_parameter(AxisParameter("S1", s1_comp, ChangeAxis.POSITION), modes=[nr, polarised, testing])
     add_driver(IocDriver(s1_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0101")))
-    add_slit_parameters(1, modes=[nr, polarised], include_centres=True)
+    add_slit_parameters(1, modes=[nr, polarised], include_centres=True, beam_blocker="N")
 
     # SM
     sm_comp = add_component(ReflectingComponent("SM", PositionAndAngle(0.0, 2*SPACING, 90)))
@@ -73,9 +75,12 @@ def get_beamline():
     theta.add_angle_to(detector)
 
     # NOT_IN_MODE
+    axis_choice = add_parameter(EnumParameter("CHOICE", ["MTR0205", "MTR0207"]))
     not_in_mode_comp = add_component(Component("NotInModeComp", PositionAndAngle(0.0, 5 * SPACING, 90)))
     add_parameter(AxisParameter("notinmode", not_in_mode_comp, ChangeAxis.POSITION))
-    add_driver(IocDriver(not_in_mode_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0205")))
+    add_driver(IocDriver(not_in_mode_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0205"),
+                         pv_wrapper_for_parameter=PVWrapperForParameter(axis_choice,
+                                                                        {"MTR0207": MotorPVWrapper("MOT:MTR0207")})))
 
     # Beamline constant
     add_constant(BeamlineConstant("TEN", 10, "The value 10"))

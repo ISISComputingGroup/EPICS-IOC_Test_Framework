@@ -1,7 +1,7 @@
 import unittest
 
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.testing import skip_if_recsim
 
 from time import sleep
@@ -25,6 +25,7 @@ IOCS = [
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8500",
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 

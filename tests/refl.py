@@ -1,45 +1,45 @@
 import os
 import unittest
-import time
 from contextlib import contextmanager
-from math import tan, radians, cos
+from math import tan, radians
 
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import ManagerMode
 from utils.testing import unstable_test
 
 
 GALIL_ADDR = "128.0.0.0"
-DEVICE_PREFIX = "REFL"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
 SOFT_LIMIT_HI = 10000
 SOFT_LIMIT_LO = -10000
 
-REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
+ioc_number = 1
+DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
 GALIL_PREFIX = "GALIL_01"
 GALIL_PREFIX_JAWS = "GALIL_02"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
+test_var_path = os.path.join(test_config_path, "var")
+
 IOCS = [
     # Deliberately start the REFL server first to check on waiting for motors functionality
     {
-        "ioc_launcher_class": PythonIOCLauncher,
+        "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
-        "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "directory": get_default_ioc_dir("REFL", iocnum=ioc_number),
         "started_text": "Instantiating Beamline Model",
         "pv_for_existence": "STAT",
-        "python_version": 3,
         "macros": {
+            "CONFIG_FILE": "config_init.py"
         },
         "environment_vars": {
             "ICPCONFIGROOT": test_config_path,
-            "ICPVARDIR": test_config_path,
+            "ICPVARDIR": test_var_path,
         }
     },
     {
@@ -128,6 +128,8 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
         self.ca.set_pv_value("PARAM:S3INBEAM:SP", "IN")
+        self.ca.set_pv_value("PARAM:CHOICE:SP", "MTR0205")
+        self.ca_galil.set_pv_value("MTR0207", 0)
         self.ca.set_pv_value("PARAM:NOTINMODE:SP", 0)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("BL:MOVE", 1)
@@ -736,3 +738,15 @@ class ReflTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PARAM:S3INBEAM:CHANGING", "NO", timeout=30)
         self.ca.assert_that_pv_is("PARAM:S3INBEAM", expected_inbeam_status)
+
+    def test_GIVEN_driver_with_param_value_dependent_axis_WHEN_set_value_THEN_correct_axis_drives_to_position_and_read_back_is_correct(self):
+        expected_offset1 = 0.3
+        expected_offset2 = 0.2
+        for expected_offset, choice, mot0205, mot0207 in [(expected_offset1, "MTR0207", 0, expected_offset1),
+                                                          (expected_offset2, "MTR0205", expected_offset2, expected_offset1)]:
+            self.ca.assert_setting_setpoint_sets_readback(choice, "PARAM:CHOICE")
+            self.ca.set_pv_value("PARAM:NOTINMODE:SP", expected_offset)
+
+            self.ca.assert_that_pv_is("PARAM:NOTINMODE", expected_offset, timeout=20)
+            self.ca_galil.assert_that_pv_is_number("MTR0205.RBV", mot0205, timeout=20)
+            self.ca_galil.assert_that_pv_is_number("MTR0207.RBV", mot0207, timeout=20)

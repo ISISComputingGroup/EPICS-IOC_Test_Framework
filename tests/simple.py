@@ -6,15 +6,13 @@ import itertools
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import ProcServLauncher
-from utils.ioc_launcher import IOCRegister
+from utils.ioc_launcher import ProcServLauncher, IOCRegister, DEFAULT_IOC_START_TEXT
 from utils.testing import parameterized_list, unstable_test
 from utils.test_modes import TestModes
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, CaChannelException
 from genie_python.channel_access_exceptions import ReadAccessException
 
 DEVICE_PREFIX = "SIMPLE"
-IOC_STARTED_TEXT = "epics>"
 
 EPICS_ROOT = os.getenv("EPICS_KIT_ROOT")
 
@@ -23,8 +21,7 @@ IOCS = [
         "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
         "directory": os.path.realpath(os.path.join(EPICS_ROOT, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple")),
-        "macros": {},
-        "started_text": IOC_STARTED_TEXT,
+        "macros": {}
     },
 ]
 PROTECTION_TYPES = ["RO", "DISP", "RODISP", ]
@@ -72,7 +69,7 @@ class SimpleTests(unittest.TestCase):
         # WHEN
         self.ca.set_pv_value("CRASHVALUE", "1")
 
-        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, IOC_STARTED_TEXT)
+        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT)
 
         # THEN
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)

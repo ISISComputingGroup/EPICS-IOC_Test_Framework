@@ -75,9 +75,14 @@ class ChannelAccess(object):
 
     def __init__(self, default_timeout=5, device_prefix=None):
         """
+        Initializes this ChannelAccess object.
+
         Args:
-            device_prefix: the device prefix which will be added to the start of all pvs
-            default_timeout: the default time out to wait for
+            device_prefix: The device prefix which will be added to the start of all pvs.
+            default_timeout: The default time out to wait for an assertion on a PV to become true.
+
+        Returns:
+            None.
         """
         self.ca = CaChannelWrapper()
 
@@ -355,6 +360,25 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: not self._within_tolerance_condition(val, restricted, tolerance), timeout, message=message)
 
+    def assert_that_pv_after_processing_is_number(self, pv, expected_value, tolerance=0.0, timeout=None):
+        """
+        Assert that the pv has the expected number value after the pv is processed
+        or that it becomes the expected number value within the timeout.
+
+        Args:
+            pv: The name of the pv to test.
+            expected_value: The expected value of the pv.
+            tolerance: The allowable deviation from the expected value.
+            timeout: If it hasn't changed within this time raise assertion error.
+
+        Raises:
+            AssertionError: If value does not become requested value.
+            UnableToConnectToPVException: If pv does not exist within timeout.
+        """
+
+        self.process_pv(pv)
+        return self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, timeout=None)
+
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=None):
         """
         Assert that the pv has one of the expected values or that it becomes one of the expected value within the
@@ -588,14 +612,19 @@ class ChannelAccess(object):
             pv: the PV on which to check processing
         """
         pv_with_prefix = self.create_pv_with_prefix(pv)
-        time_before = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        class PvUpdateTimeValueSource(object):
+            @property
+            def value(self):
+                return CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        time_before = PvUpdateTimeValueSource().value
 
         yield
-
-        time_after = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
-
-        if time_before == time_after:
-            raise AssertionError("PV {} has not processed".format(pv))
+        
+        self.assert_that_pv_value_causes_func_to_return_true(
+            pv=pv_with_prefix, func=lambda val: val != time_before, pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was not processed".format(pv))
 
     @contextmanager
     def assert_pv_not_processed(self, pv):
@@ -606,11 +635,16 @@ class ChannelAccess(object):
             pv: the PV on which to check (lack of) processing
         """
         pv_with_prefix = self.create_pv_with_prefix(pv)
-        time_before = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        class PvUpdateTimeValueSource(object):
+            @property
+            def value(self):
+                return CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        time_before = PvUpdateTimeValueSource().value
 
         yield
 
-        time_after = CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
-
-        if time_before != time_after:
-            raise AssertionError("PV {} has processed".format(pv))
+        self.assert_that_pv_value_causes_func_to_return_true(
+            pv=pv_with_prefix, func=lambda val: val == time_before, pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was processed".format(pv))

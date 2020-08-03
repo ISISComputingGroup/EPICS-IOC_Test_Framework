@@ -13,7 +13,7 @@ SPACING = 2
 INIT_OUT_POSITION = OutOfBeamPosition(-2, tolerance=0.5)
 
 
-def get_beamline():
+def get_beamline(macros):
     """
     Returns: a beamline object describing the current beamline setup
     """
@@ -47,6 +47,12 @@ def get_beamline():
     det_for_init_auto = add_component(TiltingComponent("det_init_auto_comp", PositionAndAngle(0.0, 5*SPACING, 90)))
     add_parameter(AxisParameter("init_auto", det_for_init_auto, ChangeAxis.POSITION, autosave=True), modes=[nr])
     add_driver(IocDriver(det_for_init_auto, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0104")))
+
+    if optional_is_set(1, macros):
+        add_constant(BeamlineConstant("OPTIONAL_1", "OPTIONAL_1", "Optional Beamline Constant 1"))
+
+    if optional_is_set(2, macros):
+        add_constant(BeamlineConstant("OPTIONAL_1", "OPTIONAL_1", "Optional Beamline Constant 2"))
 
     add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
     return get_configured_beamline()
