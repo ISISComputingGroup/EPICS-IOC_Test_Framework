@@ -5,7 +5,7 @@ from parameterized import parameterized
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.axis import set_axis_moving, assert_axis_moving, assert_axis_not_moving
+from utils.axis import set_axis_moving, assert_axis_moving, assert_axis_not_moving, stop_axis_moving
 
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
@@ -44,6 +44,25 @@ class Sans2dVacTankTests(unittest.TestCase):
 
     def setUp(self):
         self.ca = ChannelAccess(device_prefix="MOT")
+        self.lower_inhibit_bound = -2
+        self.upper_inhibit_bound = 2
+
+    def reset_axis_to_non_inhibit(self, axis):
+        self.ca.set_pv_value("{}:SP".format(axis), 0)
+        self.ca.assert_that_pv_is_number(axis, 0, tolerance=1.9, timeout=10)
+        self.ca.set_pv_value("{}:MTR.STOP".format(axis), 1, wait=True)
+
+    def reset_axes_to_non_inhibit(self, axis_one, axis_two):
+        axis_one_val = self.ca.get_pv_value(axis_one)
+        axis_two_val = self.ca.get_pv_value(axis_two)
+        axis_one_inhibiting = axis_one_val < self.lower_inhibit_bound or axis_one_val > self.upper_inhibit_bound
+        axis_two_inhibiting = axis_two_val < self.lower_inhibit_bound or axis_two_val > self.upper_inhibit_bound
+        if axis_one_inhibiting and axis_one_inhibiting:
+            self.fail("Both {} and {} are inhibiting each other, cannot reliably run test")
+        elif axis_one_inhibiting:
+            self.reset_axis_to_non_inhibit(axis_one)
+        elif axis_two_inhibiting:
+            self.reset_axis_to_non_inhibit(axis_two)
 
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_axis_moving_WHEN_stop_all_THEN_axis_stopped(self, axis):
@@ -52,20 +71,21 @@ class Sans2dVacTankTests(unittest.TestCase):
             assert_axis_moving(axis)
             self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL", 1)
             assert_axis_not_moving(axis)
+        self.reset_axis_to_non_inhibit(axis)
 
-    def test_GIVEN_front_beamstop_moving_WHEN_front_detector_angle_goes_out_of_range_THEN_front_beamstop_stops(self):
-        self.ca.set_pv_value("FRONTDETROT:SP", 0, wait=True)
-        set_axis_moving("FRONTBEAMSTOP")
-        assert_axis_moving("FRONTBEAMSTOP")
-        self.ca.set_pv_value("FRONTDETROT:SP", -3)
-        self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_FRONTBEAMSTOP", 1)
-        assert_axis_not_moving("FRONTBEAMSTOP")
-
-    def test_GIVEN_front_beamstop_not_moving_AND_front_detector_angle_goes_out_of_range_THEN_front_beamstop_cannot_move(self):
-        self.ca.set_pv_value("FRONTDETROT:SP", -3, wait=True)
-        start_position = self.ca.get_pv_value("FRONTBEAMSTOP")
-        set_axis_moving("FRONTBEAMSTOP")
-        self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_FRONTBEAMSTOP", 1)
-        end_position = self.ca.get_pv_value("FRONTBEAMSTOP")
+    @parameterized.expand([("FRONTBEAMSTOP", "FRONTDETROT"), ("FRONTDETROT", "FRONTBEAMSTOP")])
+    def test_GIVEN_axes_in_range_WHEN_axis_goes_out_of_range_THEN_other_axis_inhibited(self, inhibiting_axis, inhibited_axis):
+        # Arrange
+        self.reset_axes_to_non_inhibit(inhibited_axis, inhibiting_axis)
+        # Act
+        self.ca.set_pv_value("{}:SP".format(inhibiting_axis), -3, wait=True)
+        self.ca.assert_that_pv_is_number("{}:SP".format(inhibiting_axis), -3)
+        start_position = self.ca.get_pv_value(inhibited_axis)
+        set_axis_moving(inhibited_axis)
+        # Assert
+        self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_{}".format(inhibited_axis), 1)
+        end_position = self.ca.get_pv_value(inhibited_axis)
         self.assertEqual(start_position, end_position)
+        # Rearrange
+        self.reset_axes_to_non_inhibit(inhibited_axis, inhibiting_axis)
 
