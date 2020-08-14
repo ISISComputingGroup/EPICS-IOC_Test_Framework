@@ -59,11 +59,14 @@ class CryoSMSTests(unittest.TestCase):
             self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         else:
             self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=30)
-            self.ca.set_pv_value("ABORT:SP", 1)
-            self.ca.set_pv_value("MID:SP", 0)
+            self._lewis.backdoor_set_on_device("mid_target", 0)
             self._lewis.backdoor_set_on_device("output", 0)
-            self.ca.set_pv_value("ABORT:SP", 0)
+            self.ca.set_pv_value("MID:SP", 0)
             self.ca.set_pv_value("START:SP", 1)
+            self.ca.set_pv_value("PAUSE:SP", 1)
+            self._lewis.backdoor_set_on_device("output", 0)
+            self.ca.set_pv_value("ABORT:SP", 1)
+            self.ca.set_pv_value("PAUSE:SP", 0)
             self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
             self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
 
@@ -106,8 +109,11 @@ class CryoSMSTests(unittest.TestCase):
     def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(self, _, ramp_data):
         startPoint, endPoint = ramp_data[0]
         ramp_rates = ramp_data[1]
-        # When setting output, convert from Gauss to Amps by dividing by 10000 and T_TO_A
-        self._lewis.backdoor_set_on_device("output", startPoint/(0.037 * 10000))
+        # When setting output, convert from Gauss to Amps by dividing by 10000 and T_TO_A, also ensure sign handled
+        # correctly
+        sign = 1 if startPoint >= 0 else -1
+        self._lewis.backdoor_run_function_on_device("switch_direction", [sign])
+        self._lewis.backdoor_set_on_device("output", abs(startPoint)/(0.037 * 10000))
         self.ca.set_pv_value("MID:SP", endPoint)
         self.ca.set_pv_value("START:SP", 1)
         for rate in ramp_rates:
