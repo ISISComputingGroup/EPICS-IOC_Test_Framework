@@ -65,7 +65,7 @@ class MotionSetpointsTests(unittest.TestCase):
         self.ca1D.assert_that_pv_is("STATIONARY0", 1)
 
         self.ca2D.set_pv_value("COORD0:OFFSET:SP", 0)
-        self.ca2D.set_pv_value("COORD0:OFFSET:SP", 0)
+        self.ca2D.set_pv_value("COORD1:OFFSET:SP", 0)
         self.ca2D.assert_that_pv_is("STATIONARY0", 1)
         self.ca2D.assert_that_pv_is("STATIONARY1", 1)
 
@@ -202,7 +202,7 @@ class MotionSetpointsTests(unittest.TestCase):
     def test_GIVEN_2D_WHEN_invalid_position_specified_THEN_alarm(self):
         self.ca2D.set_pv_value("POSN:SP", "an_invalid_position")
         self.ca2D.assert_that_pv_alarm_is("POSN:SP", ChannelAccess.Alarms.INVALID)
-        
+
     def test_GIVEN_2D_WHEN_move_motor_THEN_tolerance_checked(self):
         self.ca2D.set_pv_value("TOLERENCE", 10)
         self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE2)
