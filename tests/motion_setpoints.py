@@ -21,6 +21,7 @@ TEST_MODES = [TestModes.RECSIM]
 # Device prefix
 DEVICE_PREFIX_1D = "LKUP:1DAXIS"
 DEVICE_PREFIX_2D = "LKUP:2DAXIS"
+DEVICE_PREFIX_10D = "LKUP:10DAXIS"
 DEVICE_PREFIX_DN = "LKUP:DN"
 DEVICE_PREFIX_DP = "LKUP:DP"
 
@@ -65,6 +66,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
         self.ca1D = ChannelAccess(device_prefix=DEVICE_PREFIX_1D)
         self.ca2D = ChannelAccess(device_prefix=DEVICE_PREFIX_2D)
+        self.ca10D = ChannelAccess(device_prefix=DEVICE_PREFIX_10D)
         self.caDN = ChannelAccess(device_prefix=DEVICE_PREFIX_DN)
         self.caDP = ChannelAccess(device_prefix=DEVICE_PREFIX_DP)
         self.motor_ca = ChannelAccess(device_prefix=MOTOR_PREFIX)
@@ -73,12 +75,12 @@ class MotionSetpointsTests(unittest.TestCase):
         self.motor_ca.set_pv_value("MTR1.HLM", 30)
 
         self.ca1D.set_pv_value("COORD0:OFFSET:SP", 0)
-        self.ca1D.assert_that_pv_is("STATIONARY0", 1)
+        self.ca1D.assert_that_pv_is("STATIONARY0", 1, timeout=10)
 
         self.ca2D.set_pv_value("COORD0:OFFSET:SP", 0)
         self.ca2D.set_pv_value("COORD1:OFFSET:SP", 0)
-        self.ca2D.assert_that_pv_is("STATIONARY0", 1)
-        self.ca2D.assert_that_pv_is("STATIONARY1", 1)
+        self.ca2D.assert_that_pv_is("STATIONARY0", 1, timeout=10)
+        self.ca2D.assert_that_pv_is("STATIONARY1", 1, timeout=10)
 
     def test_GIVEN_1D_WHEN_set_position_THEN_position_is_set_and_motor_moves_to_position(self):
         for index, (expected_position, expected_motor_position) in enumerate(POSITIONS_1D):
@@ -253,3 +255,24 @@ class MotionSetpointsTests(unittest.TestCase):
 
     def test_GIVEN_2D_WHEN_second_axis_in_alarm_THEN_position_in_alarm(self):
         self._test_alarm_propogates(self.ca2D, 1)
+
+    def test_GIVEN_10D_WHEN_set_position_THEN_position_is_set_and_motor_moves_to_position(self):
+        def check_motor_positions(expected_coords, readback):
+            pv_suffix = ".RBV" if readback else ""
+            for index, coord in enumerate(expected_coords):
+                self.ca10D.assert_that_pv_is_number("COORD{}:MTR{}".format(index, pv_suffix), coord, 0.1)
+                self.motor_ca.assert_that_pv_is_number("MTR{}{}".format(index, pv_suffix), coord, 0.1)
+
+        for sample_num in range(2):
+            sample_name = "Sample{}".format(sample_num + 1)
+            self.ca10D.set_pv_value("POSN:SP", sample_name)
+
+            expected_coords = [i + sample_num * 5 for i in range(1, 11)]
+            check_motor_positions(expected_coords, False)
+            check_motor_positions(expected_coords, True)
+
+            self.ca10D.assert_that_pv_is("POSN", sample_name)
+            self.ca10D.assert_that_pv_alarm_is("POSN", ChannelAccess.Alarms.NONE)
+            self.ca10D.assert_that_pv_is("POSN:SP:RBV", sample_name)
+            self.ca10D.assert_that_pv_is("IPOSN", sample_num)
+
