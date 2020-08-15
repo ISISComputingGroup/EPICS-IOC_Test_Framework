@@ -8,13 +8,23 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
-IOCS = [
-    {
-        "name": "motion_setpoints",
-        "directory": os.path.join(EPICS_TOP, "support", "motionSetPoints", "master", "iocBoot",  "iocmotionSetPointsTest"),
-        "macros": {}
-    },
-]
+GALIL_ADDR = "128.0.0.0"
+
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motionSetPoints", "master", "settings", "system_tests"))
+
+# Create 2 Galils
+IOCS = [{
+            "name": "GALIL_0{}".format(i),
+            "directory": get_default_ioc_dir("GALIL", i),
+            "custom_prefix": "MOT",
+            "pv_for_existence": "MTR0{}01".format(i),
+            "macros": {
+                "GALILADDR": GALIL_ADDR,
+                "MTRCTRL": "0{}".format(i),
+                "GALILCONFIGDIR": test_path.replace("\\", "/"),
+            }
+           } for i in range(1, 3)]
 
 TEST_MODES = [TestModes.RECSIM]
 
@@ -25,7 +35,7 @@ DEVICE_PREFIX_10D = "LKUP:10DAXIS"
 DEVICE_PREFIX_DN = "LKUP:DN"
 DEVICE_PREFIX_DP = "LKUP:DP"
 
-MOTOR_PREFIX = "MSP"
+MOTOR_PREFIX = "MOT"
 
 POSITION_IN = "In"
 POSITION_OUT = "Out"
@@ -49,7 +59,6 @@ POSITIONS_2D = [
 
 
 def assert_alarm_state_of_posn(channel_access, coordinate, expected_state):
-    channel_access.assert_that_pv_alarm_is("COORD{}:MTR".format(coordinate), expected_state)
     channel_access.assert_that_pv_alarm_is("FORWARD_ALARM", expected_state)
     channel_access.assert_that_pv_alarm_is("POSN", expected_state)
     channel_access.assert_that_pv_alarm_is("POSITIONED", expected_state)
@@ -62,8 +71,6 @@ class MotionSetpointsTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc(None, "motion_setpoints")
-
         self.ca1D = ChannelAccess(device_prefix=DEVICE_PREFIX_1D)
         self.ca2D = ChannelAccess(device_prefix=DEVICE_PREFIX_2D)
         self.ca10D = ChannelAccess(device_prefix=DEVICE_PREFIX_10D)
@@ -71,8 +78,8 @@ class MotionSetpointsTests(unittest.TestCase):
         self.caDP = ChannelAccess(device_prefix=DEVICE_PREFIX_DP)
         self.motor_ca = ChannelAccess(device_prefix=MOTOR_PREFIX)
 
-        self.motor_ca.set_pv_value("MTR0.HLM", 30)
-        self.motor_ca.set_pv_value("MTR1.HLM", 30)
+        self.motor_ca.set_pv_value("MTR0101.HLM", 30)
+        self.motor_ca.set_pv_value("MTR0102.HLM", 30)
 
         self.ca1D.set_pv_value("COORD0:OFFSET:SP", 0)
         self.ca1D.assert_that_pv_is("STATIONARY0", 1, timeout=10)
@@ -82,6 +89,12 @@ class MotionSetpointsTests(unittest.TestCase):
         self.ca2D.assert_that_pv_is("STATIONARY0", 1, timeout=10)
         self.ca2D.assert_that_pv_is("STATIONARY1", 1, timeout=10)
 
+        for axis in range(1, 9):
+            self.motor_ca.set_pv_value("MTR010{}.VMAX".format(axis), 1)
+            self.motor_ca.set_pv_value("MTR010{}.VELO".format(axis), 1)
+            self.motor_ca.set_pv_value("MTR020{}.VMAX".format(axis), 1)
+            self.motor_ca.set_pv_value("MTR020{}.VELO".format(axis), 1)
+
     def test_GIVEN_1D_WHEN_set_position_THEN_position_is_set_and_motor_moves_to_position(self):
         for index, (expected_position, expected_motor_position) in enumerate(POSITIONS_1D):
 
@@ -89,8 +102,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
             self.ca1D.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca1D.assert_that_pv_is("IPOSN:SP:RBV", index)
-            self.motor_ca.assert_that_pv_is("MTR0.RBV", expected_motor_position)
-            self.ca1D.assert_that_pv_is("COORD0:MTR.RBV", expected_motor_position)
+            self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position)
             self.ca1D.assert_that_pv_is("POSN", expected_position)
             self.ca1D.assert_that_pv_alarm_is("POSN", ChannelAccess.Alarms.NONE)
             self.ca1D.assert_that_pv_is("IPOSN", index)
@@ -102,7 +114,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
             self.ca1D.assert_that_pv_is("IPOSN", index)
             self.ca1D.assert_that_pv_is("POSN", expected_position)
-            self.motor_ca.assert_that_pv_is("MTR0.RBV", expected_motor_position)
+            self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position)
 
     def test_GIVEN_1D_WHEN_move_to_out_position_THEN_in_position_light_goes_off_then_on(self):
         self.ca1D.set_pv_value("POSN:SP", POSITION_IN)
@@ -127,7 +139,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
         self.ca1D.assert_that_pv_is("POSITIONED", 1)
         self.ca1D.assert_that_pv_is("COORD0:OFFSET", expected_offset)
-        self.motor_ca.assert_that_pv_is("MTR0.RBV", expected_motor_position)
+        self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position)
 
     def test_GIVEN_1D_WHEN_set_large_offset_THEN_current_position_set_correctly(self):
         offset = MOTOR_POSITION_OUT - MOTOR_POSITION_IN
@@ -155,10 +167,8 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca2D.assert_that_pv_alarm_is("POSN", ChannelAccess.Alarms.NONE)
             self.ca2D.assert_that_pv_is("POSN:SP:RBV", expected_position)
             self.ca2D.assert_that_pv_is("IPOSN", index)
-            self.ca2D.assert_that_pv_is("COORD0:MTR.RBV", expected_motor_position_cord1)
-            self.ca2D.assert_that_pv_is("COORD1:MTR.RBV", expected_motor_position_cord2)
-            self.motor_ca.assert_that_pv_is("MTR0.RBV", expected_motor_position_cord1)
-            self.motor_ca.assert_that_pv_is("MTR1.RBV", expected_motor_position_cord2)
+            self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position_cord1)
+            self.motor_ca.assert_that_pv_is("MTR0102.RBV", expected_motor_position_cord2)
 
     def test_GIVEN_2D_WHEN_move_to_out_position_THEN_in_position_light_goes_off_then_on(self):
         self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE1)
@@ -187,8 +197,8 @@ class MotionSetpointsTests(unittest.TestCase):
         self.ca2D.assert_that_pv_is("POSITIONED", 1)
         self.ca2D.assert_that_pv_is("COORD0:OFFSET", expected_offset_COORD0)
         self.ca2D.assert_that_pv_is("COORD1:OFFSET", expected_offset_COORD1)
-        self.motor_ca.assert_that_pv_is("MTR0.RBV", expected_motor_position_COORD0)
-        self.motor_ca.assert_that_pv_is("MTR1.RBV", expected_motor_position_COORD1)
+        self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position_COORD0)
+        self.motor_ca.assert_that_pv_is("MTR0102.RBV", expected_motor_position_COORD1)
 
     def test_GIVEN_2D_WHEN_set_large_offset_THEN_current_position_is_correct(self):
         """
@@ -219,12 +229,12 @@ class MotionSetpointsTests(unittest.TestCase):
     def test_GIVEN_2D_WHEN_move_motor_THEN_tolerance_checked(self):
         self.ca2D.set_pv_value("TOLERENCE", 10)
         self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE2)
-        self.motor_ca.assert_that_pv_is("MTR0.RBV", MOTOR_POSITION_SAMPLE2_COORD0)
+        self.motor_ca.assert_that_pv_is("MTR0101.RBV", MOTOR_POSITION_SAMPLE2_COORD0)
         self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE2)
         self.ca2D.assert_that_pv_is("IPOSN", 1)
         """move motor, all should still be OK as within tolerance"""
-        self.motor_ca.set_pv_value("MTR0", MOTOR_POSITION_SAMPLE2_COORD0 - 0.2)
-        self.motor_ca.assert_that_pv_is("MTR0.RBV", MOTOR_POSITION_SAMPLE2_COORD0 - 0.2)
+        self.motor_ca.set_pv_value("MTR0101", MOTOR_POSITION_SAMPLE2_COORD0 - 0.2)
+        self.motor_ca.assert_that_pv_is("MTR0101.RBV", MOTOR_POSITION_SAMPLE2_COORD0 - 0.2)
         self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE2)
         self.ca2D.assert_that_pv_is("IPOSN", 1)
         self.ca2D.assert_that_pv_is("POSITIONED", 1)
@@ -234,8 +244,8 @@ class MotionSetpointsTests(unittest.TestCase):
         self.ca2D.assert_that_pv_is("IPOSN", -1)
         self.ca2D.assert_that_pv_is("POSITIONED", 0)
         """move motor back, should now be in position again"""
-        self.motor_ca.set_pv_value("MTR0", MOTOR_POSITION_SAMPLE2_COORD0)
-        self.motor_ca.assert_that_pv_is("MTR0.RBV", MOTOR_POSITION_SAMPLE2_COORD0)
+        self.motor_ca.set_pv_value("MTR0101", MOTOR_POSITION_SAMPLE2_COORD0)
+        self.motor_ca.assert_that_pv_is("MTR0101.RBV", MOTOR_POSITION_SAMPLE2_COORD0)
         self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE2)
         self.ca2D.assert_that_pv_is("IPOSN", 1)
         self.ca2D.assert_that_pv_is("POSITIONED", 1)
@@ -243,25 +253,26 @@ class MotionSetpointsTests(unittest.TestCase):
     def _test_alarm_propogates(self, channel_access, motor_num):
         assert_alarm_state_of_posn(channel_access, motor_num, ChannelAccess.Alarms.NONE)
 
-        self.motor_ca.set_pv_value("MTR{}.HLSV".format(motor_num), "MAJOR")
-        current_posn = self.motor_ca.get_pv_value("MTR{}".format(motor_num))
-        self.motor_ca.set_pv_value("MTR{}.HLM".format(motor_num), current_posn - 1)
-        self.motor_ca.assert_that_pv_alarm_is("MTR{}".format(motor_num), ChannelAccess.Alarms.MAJOR)
+        self.motor_ca.set_pv_value("MTR010{}.HLSV".format(motor_num), "MAJOR")
+        current_posn = self.motor_ca.get_pv_value("MTR010{}".format(motor_num))
+        self.motor_ca.set_pv_value("MTR010{}.HLM".format(motor_num), current_posn - 1)
+        self.motor_ca.assert_that_pv_alarm_is("MTR010{}".format(motor_num), ChannelAccess.Alarms.MAJOR)
 
         assert_alarm_state_of_posn(channel_access, motor_num, ChannelAccess.Alarms.MAJOR)
 
     def test_GIVEN_1D_WHEN_axis_in_alarm_THEN_position_in_alarm(self):
-        self._test_alarm_propogates(self.ca1D, 0)
+        self._test_alarm_propogates(self.ca1D, 1)
 
     def test_GIVEN_2D_WHEN_second_axis_in_alarm_THEN_position_in_alarm(self):
-        self._test_alarm_propogates(self.ca2D, 1)
+        self._test_alarm_propogates(self.ca2D, 2)
 
     def test_GIVEN_10D_WHEN_set_position_THEN_position_is_set_and_motor_moves_to_position(self):
         def check_motor_positions(expected_coords, readback):
             pv_suffix = ".RBV" if readback else ""
             for index, coord in enumerate(expected_coords):
-                self.ca10D.assert_that_pv_is_number("COORD{}:MTR{}".format(index, pv_suffix), coord, 0.1)
-                self.motor_ca.assert_that_pv_is_number("MTR{}{}".format(index, pv_suffix), coord, 0.1)
+                controller = 1 if index < 8 else 2
+                axis = (index % 8) + 1
+                self.motor_ca.assert_that_pv_is_number("MTR0{}0{}{}".format(controller, axis, pv_suffix), coord, 0.1)
 
         for sample_num in range(2):
             sample_name = "Sample{}".format(sample_num + 1)
