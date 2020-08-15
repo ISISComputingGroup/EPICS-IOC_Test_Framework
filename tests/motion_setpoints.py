@@ -11,7 +11,7 @@ from utils.testing import get_running_lewis_and_ioc
 GALIL_ADDR = "128.0.0.0"
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
-                                          "support", "motionSetPoints", "master", "settings", "system_tests"))
+                                          "support", "motionSetPoints", "master", "settings"))
 
 # Create 2 Galils
 IOCS = [{
