@@ -47,6 +47,14 @@ POSITIONS_2D = [
 ]
 
 
+def assert_alarm_state_of_posn(channel_access, coordinate, expected_state):
+    channel_access.assert_that_pv_alarm_is("COORD{}:MTR".format(coordinate), expected_state)
+    channel_access.assert_that_pv_alarm_is("FORWARD_ALARM", expected_state)
+    channel_access.assert_that_pv_alarm_is("POSN", expected_state)
+    channel_access.assert_that_pv_alarm_is("POSITIONED", expected_state)
+    channel_access.assert_that_pv_alarm_is("POSN_NO_ERR", ChannelAccess.Alarms.NONE)
+
+
 class MotionSetpointsTests(unittest.TestCase):
     """
     Tests the motion setpoints.
@@ -60,6 +68,9 @@ class MotionSetpointsTests(unittest.TestCase):
         self.caDN = ChannelAccess(device_prefix=DEVICE_PREFIX_DN)
         self.caDP = ChannelAccess(device_prefix=DEVICE_PREFIX_DP)
         self.motor_ca = ChannelAccess(device_prefix=MOTOR_PREFIX)
+
+        self.motor_ca.set_pv_value("MTR0.HLM", 30)
+        self.motor_ca.set_pv_value("MTR1.HLM", 30)
 
         self.ca1D.set_pv_value("COORD0:OFFSET:SP", 0)
         self.ca1D.assert_that_pv_is("STATIONARY0", 1)
@@ -226,3 +237,19 @@ class MotionSetpointsTests(unittest.TestCase):
         self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE2)
         self.ca2D.assert_that_pv_is("IPOSN", 1)
         self.ca2D.assert_that_pv_is("POSITIONED", 1)
+
+    def _test_alarm_propogates(self, channel_access, motor_num):
+        assert_alarm_state_of_posn(channel_access, motor_num, ChannelAccess.Alarms.NONE)
+
+        self.motor_ca.set_pv_value("MTR{}.HLSV".format(motor_num), "MAJOR")
+        current_posn = self.motor_ca.get_pv_value("MTR{}".format(motor_num))
+        self.motor_ca.set_pv_value("MTR{}.HLM".format(motor_num), current_posn - 1)
+        self.motor_ca.assert_that_pv_alarm_is("MTR{}".format(motor_num), ChannelAccess.Alarms.MAJOR)
+
+        assert_alarm_state_of_posn(channel_access, motor_num, ChannelAccess.Alarms.MAJOR)
+
+    def test_GIVEN_1D_WHEN_axis_in_alarm_THEN_position_in_alarm(self):
+        self._test_alarm_propogates(self.ca1D, 0)
+
+    def test_GIVEN_2D_WHEN_second_axis_in_alarm_THEN_position_in_alarm(self):
+        self._test_alarm_propogates(self.ca2D, 1)
