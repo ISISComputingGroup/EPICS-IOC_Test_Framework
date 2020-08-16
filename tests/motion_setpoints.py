@@ -29,11 +29,11 @@ IOCS = [{
 TEST_MODES = [TestModes.RECSIM]
 
 # Device prefix
-DEVICE_PREFIX_1D = "LKUP:1DAXIS"
-DEVICE_PREFIX_2D = "LKUP:2DAXIS"
-DEVICE_PREFIX_10D = "LKUP:10DAXIS"
-DEVICE_PREFIX_DN = "LKUP:DN"
-DEVICE_PREFIX_DP = "LKUP:DP"
+DEVICE_PREFIX_1D = "LKUP1D"
+DEVICE_PREFIX_2D = "LKUP2D"
+DEVICE_PREFIX_10D = "LKUP10D"
+DEVICE_PREFIX_DN = "LKUPDN"
+DEVICE_PREFIX_DP = "LKUPDP"
 
 MOTOR_PREFIX = "MOT"
 
@@ -287,3 +287,17 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca10D.assert_that_pv_is("POSN:SP:RBV", sample_name)
             self.ca10D.assert_that_pv_is("IPOSN", sample_num)
 
+    def test_GIVEN_10D_WHEN_units_of_motor_set_THEN_units_of_coordinates_also_set(self):
+        motor_pvs = ["MTR010{}".format(i) for i in range(1, 9)]
+        motor_pvs.extend(["MTR0201", "MTR0202"])
+
+        for motor_num, motor_pv in enumerate(motor_pvs):
+            # Set motor unit to PV name
+            self.motor_ca.set_pv_value("{}.EGU".format(motor_pv), motor_pv)
+
+            self.ca10D.assert_that_pv_is("COORD{}.EGU".format(motor_num), motor_pv)
+            self.ca10D.assert_that_pv_is("COORD{}:RBV.EGU".format(motor_num), motor_pv)
+            self.ca10D.assert_that_pv_is("COORD{}:NO_OFF.EGU".format(motor_num), motor_pv)
+            self.ca10D.assert_that_pv_is("COORD{}:OFFSET.EGU".format(motor_num), motor_pv)
+            self.ca10D.assert_that_pv_is("COORD{}:RBV:OFF.EGU".format(motor_num), motor_pv)
+            self.ca10D.assert_that_pv_is("COORD{}:SET:RBV.EGU".format(motor_num), motor_pv)
