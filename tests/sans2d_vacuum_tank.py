@@ -43,11 +43,11 @@ INTERVAL_PAIRS = [("FRONTDETZ", "FRONTBAFFLEZ"), ("FRONTBAFFLEZ", "REARBAFFLEZ")
 INTERVAL_SETPOINT_PAIRS = [("FRONTDETZ:SP", "FRONTBAFFLEZ:SP"), ("FRONTBAFFLEZ:SP", "REARBAFFLEZ:SP"),
                            ("REARBAFFLEZ:SP", "REARDETZ:SP")]
 
-BAFFLES_AND_DETECTORS_Z_AXES = ["FRONTDETZ", "FRONTBAFFLEZ", "REARBAFFLEZ", "REARDETZ"]
-
 BAFFLE_AND_DETECTORS_INTERVAL_NAMES = ["FDFB", "FBRB", "RBRD"]
 
 BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES = ["FDSPFBSP", "FBSPRBSP", "RBSPRDSP"]
+
+BAFFLES_AND_DETECTORS_Z_AXES = ["FRONTDETZ", "FRONTBAFFLEZ", "REARBAFFLEZ", "REARDETZ"]
 
 MAJOR_ALARM_INTERVAL_THRESHOLD = 50
 MINOR_ALARM_INTERVAL_THRESHOLD = 100
@@ -104,7 +104,7 @@ class Sans2dVacTankTests(unittest.TestCase):
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = self.ca.get_pv_value(z_axis_b)
-        a_new_position = b_position - MINOR_ALARM_INTERVAL_THRESHOLD + 2
+        a_new_position = b_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
         expected_interval = b_position - a_new_position
 
         self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
@@ -118,7 +118,7 @@ class Sans2dVacTankTests(unittest.TestCase):
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = 1000
-        a_position = b_position - MINOR_ALARM_INTERVAL_THRESHOLD + 2
+        a_position = b_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
         expected_interval = b_position - a_position
 
         self.ca.set_pv_value(z_axis_a, a_position)
@@ -126,6 +126,35 @@ class Sans2dVacTankTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MINOR)
+
+    @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
+    def test_GIVEN_motor_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, z_axes_pair, interval_name):
+        self._setup_vac_tank_detectors_and_baffles()
+        z_axis_a, z_axis_b = z_axes_pair
+
+        b_position = self.ca.get_pv_value(z_axis_b)
+        a_new_position = b_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
+        expected_interval = b_position - a_new_position
+
+        self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
+
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MAJOR)
+
+    @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
+                                                 BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES)))
+    def test_GIVEN_setpoint_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, z_axes_pair, interval_name):
+        z_axis_a, z_axis_b = z_axes_pair
+
+        b_position = 1000
+        a_position = b_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
+        expected_interval = b_position - a_position
+
+        self.ca.set_pv_value(z_axis_a, a_position)
+        self.ca.set_pv_value(z_axis_b, b_position)
+
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MAJOR)
 
     def _setup_vac_tank_detectors_and_baffles(self):
         for axis in BAFFLES_AND_DETECTORS_Z_AXES:
