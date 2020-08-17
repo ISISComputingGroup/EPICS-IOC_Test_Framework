@@ -128,6 +128,8 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
         self.ca.set_pv_value("PARAM:S3INBEAM:SP", "IN")
+        self.ca.set_pv_value("PARAM:CHOICE:SP", "MTR0205")
+        self.ca_galil.set_pv_value("MTR0207", 0)
         self.ca.set_pv_value("PARAM:NOTINMODE:SP", 0)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("BL:MOVE", 1)
@@ -652,6 +654,35 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("PARAM:{}".format(param_name))
         self.ca.assert_that_pv_does_not_exist("PARAM:{}:DEFINE_POSITION_AS".format(param_name))
 
+    def test_GIVEN_motors_at_zero_WHEN_define_motor_position_to_and_back_multiple_times_THEN_motor_position_is_changed_without_move(self):
+        param_name = "DET_POS"
+        motor_name = "MTR0104"
+        initial_foff = "Frozen"
+        self.ca.set_pv_value("PARAM:{}:SP".format(param_name), 0)
+        self.ca_galil.set_pv_value("MTR0104.FOFF", initial_foff)
+        self.ca_galil.set_pv_value("MTR0104.OFF", 0)
+        self.ca.assert_that_pv_is_number("PARAM:{}".format(param_name), 0, tolerance=MOTOR_TOLERANCE, timeout=30)
+        self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=30)
+
+        for i in range(20):
+            new_position = i - 5
+            with ManagerMode(self.ca_no_prefix):
+                self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_position)
+
+            # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
+            # is very quick
+            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), new_position)
+            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), new_position)
+            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
+            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), initial_foff)
+            self.ca_galil.assert_that_pv_is_number("{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE)
+
+            self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_position)
+            self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_position)
+            self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_position)
+            self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+
     def test_GIVEN_parameter_not_in_manager_mode_WHEN_define_position_THEN_position_is_not_defined(self):
         new_position = 10
 
@@ -736,3 +767,15 @@ class ReflTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PARAM:S3INBEAM:CHANGING", "NO", timeout=30)
         self.ca.assert_that_pv_is("PARAM:S3INBEAM", expected_inbeam_status)
+
+    def test_GIVEN_driver_with_param_value_dependent_axis_WHEN_set_value_THEN_correct_axis_drives_to_position_and_read_back_is_correct(self):
+        expected_offset1 = 0.3
+        expected_offset2 = 0.2
+        for expected_offset, choice, mot0205, mot0207 in [(expected_offset1, "MTR0207", 0, expected_offset1),
+                                                          (expected_offset2, "MTR0205", expected_offset2, expected_offset1)]:
+            self.ca.assert_setting_setpoint_sets_readback(choice, "PARAM:CHOICE")
+            self.ca.set_pv_value("PARAM:NOTINMODE:SP", expected_offset)
+
+            self.ca.assert_that_pv_is("PARAM:NOTINMODE", expected_offset, timeout=20)
+            self.ca_galil.assert_that_pv_is_number("MTR0205.RBV", mot0205, timeout=20)
+            self.ca_galil.assert_that_pv_is_number("MTR0207.RBV", mot0207, timeout=20)
