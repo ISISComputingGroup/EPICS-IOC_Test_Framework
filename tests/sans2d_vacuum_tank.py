@@ -8,7 +8,7 @@ from utils.channel_access import ChannelAccess
 from utils.axis import set_axis_moving, assert_axis_moving, assert_axis_not_moving
 
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
+    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
 )
 
 GALIL_ADDR = "127.0.0.1"
