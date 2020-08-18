@@ -66,3 +66,5 @@ class Sans2dVacTankTests(unittest.TestCase):
                 assert_axis_moving(axis)
                 self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL", 1)
                 assert_axis_not_moving(axis)
+
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 0)

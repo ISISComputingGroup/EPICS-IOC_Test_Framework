@@ -90,8 +90,15 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
                 timeout = self._get_timeout_for_moving_to_position(axis, new_position)
                 self.ca.assert_that_pv_is("{}".format(axis), new_position, timeout=timeout)
 
+            # re-enable collision avoidance
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 0)
+
     @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
     def test_GIVEN_motor_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, z_axes_pair, interval_name):
+        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = self.ca.get_pv_value(z_axis_b)
@@ -107,6 +114,10 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
                                                  BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES)))
     def test_GIVEN_setpoint_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, z_axes_pair, interval_name):
+        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = 1000
@@ -121,6 +132,10 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
     def test_GIVEN_motor_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, z_axes_pair, interval_name):
+        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = self.ca.get_pv_value(z_axis_b)
@@ -136,6 +151,10 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
                                                  BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES)))
     def test_GIVEN_setpoint_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, z_axes_pair, interval_name):
+        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = 1000
@@ -150,6 +169,10 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
     def test_GIVEN_motor_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, z_axes_pair, interval_name):
+        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = self.ca.get_pv_value(z_axis_b)
@@ -165,6 +188,10 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
                                                  BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES)))
     def test_GIVEN_setpoint_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, z_axes_pair, interval_name):
+        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+            
         z_axis_a, z_axis_b = z_axes_pair
 
         b_position = 1000
