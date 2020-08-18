@@ -1,3 +1,5 @@
+from __future__ import division
+
 import unittest
 import os
 from parameterized import parameterized
@@ -6,8 +8,8 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.axis import set_axis_moving, assert_axis_moving, assert_axis_not_moving
-from utils.testing import parameterized_list
-from time import sleep
+from utils.testing import parameterized_list, ManagerMode
+from math import ceil
 
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
@@ -30,6 +32,14 @@ IOCS = [
     } for i in [3, 4, 5]
 ]
 
+IOCS.append(
+        {
+            "name": "INSTETC",
+            "directory": get_default_ioc_dir("INSTETC"),
+            "custom_prefix": "CS",
+            "pv_for_existence": "MANAGER",
+        })
+
 TEST_MODES = [TestModes.RECSIM]
 
 AXES_TO_STOP = [
@@ -47,10 +57,18 @@ BAFFLE_AND_DETECTORS_INTERVAL_NAMES = ["FDFB", "FBRB", "RBRD"]
 
 BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES = ["FDSPFBSP", "FBSPRBSP", "RBSPRDSP"]
 
-BAFFLES_AND_DETECTORS_Z_AXES = ["FRONTDETZ", "FRONTBAFFLEZ", "REARBAFFLEZ", "REARDETZ"]
+BAFFLES_AND_DETECTORS_Z_AXES = ["REARDETZ", "REARBAFFLEZ", "FRONTBAFFLEZ", "FRONTDETZ"]
 
 MAJOR_ALARM_INTERVAL_THRESHOLD = 50
 MINOR_ALARM_INTERVAL_THRESHOLD = 100
+
+FD_FB_MINIMUM_INTERVAL = 150
+FB_RB_MINIMUM_INTERVAL = 210
+RB_RD_MINIMUM_INTERVAL = 350
+
+TEST_SPEED = 200
+# acceleration is number of seconds until motor goes from 0 to full speed
+TEST_ACCELERATION = 1
 
 
 class Sans2dVacTankTests(unittest.TestCase):
@@ -156,22 +174,66 @@ class Sans2dVacTankTests(unittest.TestCase):
         self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MAJOR)
 
+    # def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_greater_than_threshold_THEN_motor_not_stopped(self):
+    #     self._setup_vac_tank_detectors_and_baffles()
+    #
+    #     fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL - 50
+    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+    #
+    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+    #     self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
+    #
+    # def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self):
+    #     self._setup_vac_tank_detectors_and_baffles()
+    #
+    #     fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
+    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+    #
+    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
+    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
+    #
+    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+    #     assert_axis_not_moving("FRONTDETZ", timeout=timeout)
+    #     self.ca.assert_that_pv_is_not("FRONTDETZ", fd_new_position, timeout=timeout)
+    #
+    # def test_GIVEN_front_detector_within_threhsold_distance_to_front_baffle_WHEN_set_to_move_away_THEN_motor_not_stopped(self):
+    #     self._setup_vac_tank_detectors_and_baffles()
+    #
+    #     fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
+    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+    #
+    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
+    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
+    #
+    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+    #     assert_axis_not_moving("FRONTDETZ", timeout=timeout)
+    #     self.ca.assert_that_pv_is_not("FRONTDETZ", fd_new_position, timeout=timeout)
+    #
+    #     fd_new_position = self.ca.get_pv_value("FRONTDETZ") - 200
+    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+    #
+    #     assert_axis_moving("FRONTDETZ", timeout=1)
+    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 0, timeout=1)
+    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+    #     self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
+
     def _setup_vac_tank_detectors_and_baffles(self):
-        for axis in BAFFLES_AND_DETECTORS_Z_AXES:
-            current_position = self.ca.get_pv_value(axis)
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
 
-            new_position = self._get_axis_default_position(axis)
+            for axis in BAFFLES_AND_DETECTORS_Z_AXES:
+                current_position = self.ca.get_pv_value("{}".format(axis))
 
-            if current_position != new_position:
-                self.ca.set_pv_value("{}:MTR.VMAX".format(axis), 200)
-                self.ca.set_pv_value("{}:MTR.VELO".format(axis), 200)
-                self.ca.set_pv_value("{}:MTR.ACCL".format(axis), 1)
+                new_position = self._get_axis_default_position("{}".format(axis))
 
-                self.ca.set_pv_value("{}:SP".format(axis), new_position)
+                self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED)
+                self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED)
+                self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION)
 
-        for axis in BAFFLES_AND_DETECTORS_Z_AXES:
-            new_position = self._get_axis_default_position(axis)
-            self.ca.assert_that_pv_is(axis, new_position, timeout=20)
+                if current_position != new_position:
+                    self.ca.set_pv_value("{}:SP".format(axis), new_position)
+
+                self.ca.assert_that_pv_is("{}".format(axis), new_position, timeout=20)
 
     def _get_axis_default_position(self, axis):
         if axis == "FRONTDETZ":
@@ -186,3 +248,17 @@ class Sans2dVacTankTests(unittest.TestCase):
             raise ValueError("invalid axis!")
 
         return new_position
+
+    def _get_timeout_for_moving_to_position(self, moving_axis, new_position):
+        distance_to_travel = abs(new_position - self.ca.get_pv_value(moving_axis))
+
+        time_to_accelerate_and_decelerate = 2 * TEST_ACCELERATION
+
+        # between 0 and full speed, the average speed is half the full speed, same for when decelerating.
+        # Therefore, the distance traveled when accelerating and decelerating is
+        # 2 * (full_speed/2 * acceleration_time), so full_speed / acceleration_time
+        time_at_full_speed = (distance_to_travel - TEST_SPEED * TEST_ACCELERATION) / TEST_SPEED
+
+        total_time = ceil(time_to_accelerate_and_decelerate + time_at_full_speed)
+
+        return total_time + 1
