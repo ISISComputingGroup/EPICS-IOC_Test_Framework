@@ -87,7 +87,8 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
                 if current_position != new_position:
                     self.ca.set_pv_value("{}:SP".format(axis), new_position)
 
-                self.ca.assert_that_pv_is("{}".format(axis), new_position, timeout=20)
+                timeout = self._get_timeout_for_moving_to_position(axis, new_position)
+                self.ca.assert_that_pv_is("{}".format(axis), new_position, timeout=timeout)
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
     def test_GIVEN_motor_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, z_axes_pair, interval_name):
@@ -99,7 +100,8 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
         self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        timeout = self._get_timeout_for_moving_to_position(z_axis_a, a_new_position)
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=timeout)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.NONE)
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
@@ -114,7 +116,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value(z_axis_a, a_position)
         self.ca.set_pv_value(z_axis_b, b_position)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=5)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.NONE)
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
@@ -127,7 +129,8 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
         self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        timeout = self._get_timeout_for_moving_to_position(z_axis_a, a_new_position)
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=timeout)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MINOR)
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
@@ -142,7 +145,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value(z_axis_a, a_position)
         self.ca.set_pv_value(z_axis_b, b_position)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=5)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MINOR)
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
@@ -155,7 +158,8 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
         self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        timeout = self._get_timeout_for_moving_to_position(z_axis_a, a_new_position)
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=timeout)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MAJOR)
 
     @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
@@ -170,51 +174,45 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value(z_axis_a, a_position)
         self.ca.set_pv_value(z_axis_b, b_position)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=15)
+        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=5)
         self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MAJOR)
 
-    # def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_greater_than_threshold_THEN_motor_not_stopped(self):
-    #     self._setup_vac_tank_detectors_and_baffles()
-    #
-    #     fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL - 50
-    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
-    #
-    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
-    #     self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
-    #
-    # def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self):
-    #     self._setup_vac_tank_detectors_and_baffles()
-    #
-    #     fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
-    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
-    #
-    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
-    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
-    #
-    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
-    #     assert_axis_not_moving("FRONTDETZ", timeout=timeout)
-    #     self.ca.assert_that_pv_is_not("FRONTDETZ", fd_new_position, timeout=timeout)
-    #
-    # def test_GIVEN_front_detector_within_threhsold_distance_to_front_baffle_WHEN_set_to_move_away_THEN_motor_not_stopped(self):
-    #     self._setup_vac_tank_detectors_and_baffles()
-    #
-    #     fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
-    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
-    #
-    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
-    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
-    #
-    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
-    #     assert_axis_not_moving("FRONTDETZ", timeout=timeout)
-    #     self.ca.assert_that_pv_is_not("FRONTDETZ", fd_new_position, timeout=timeout)
-    #
-    #     fd_new_position = self.ca.get_pv_value("FRONTDETZ") - 200
-    #     self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
-    #
-    #     assert_axis_moving("FRONTDETZ", timeout=1)
-    #     self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 0, timeout=1)
-    #     timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
-    #     self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
+    def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_greater_than_threshold_THEN_motor_not_stopped(self):
+        fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL - 50
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+
+        timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+        self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
+
+    def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self):
+        fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+
+        self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
+        self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
+
+        timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+        assert_axis_not_moving("FRONTDETZ", timeout=timeout)
+        self.ca.assert_that_pv_is_not("FRONTDETZ", fd_new_position, timeout=timeout)
+
+    def test_GIVEN_front_detector_within_threhsold_distance_to_front_baffle_WHEN_set_to_move_away_THEN_motor_not_stopped(self):
+        fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+
+        self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
+        self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
+
+        timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+        assert_axis_not_moving("FRONTDETZ", timeout=timeout)
+        self.ca.assert_that_pv_is_not("FRONTDETZ", fd_new_position, timeout=timeout)
+
+        fd_new_position = self.ca.get_pv_value("FRONTDETZ") - 200
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+
+        assert_axis_moving("FRONTDETZ", timeout=1)
+        self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 0, timeout=1)
+        timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
+        self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
 
     def _get_axis_default_position(self, axis):
         if axis == "FRONTDETZ":
