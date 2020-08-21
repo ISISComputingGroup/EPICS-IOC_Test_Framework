@@ -626,3 +626,10 @@ class StabilityTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.Alarms.NONE)
+
+    def test_GIVEN_separator_stability_THEN_separator_stability_pv_has_no_units(self):
+        # GIVEN
+        units = self.ca.get_pv_value("STABILITY.EGU")
+
+        # THEN
+        self.assertEqual(units, "")
