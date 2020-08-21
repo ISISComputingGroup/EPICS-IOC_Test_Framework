@@ -14,7 +14,8 @@ galil_settings_path = os.path.realpath(
     )
 )
 
-GALIL_ADDR = "127.0.0.1"
+GALIL_ADDR1 = "127.0.0.1"
+GALIL_ADDR2 = "127.0.0.2"
 
 ioc_name = "FINS"
 fins_settings_path = os.path.join(EPICS_TOP, "ioc", "master", ioc_name, "exampleSettings", "SANS2D_vacuum")
@@ -28,7 +29,9 @@ IOCS = [
         "pv_for_existence": "MTR0101",
         "macros": {
             "MTRCTRL1": "01",
-            "GALILADDR1": GALIL_ADDR,
+            "GALILADDR1": GALIL_ADDR1,
+            "MTRCTRL2": "02",
+            "GALILADDR2": GALIL_ADDR2,
             "GALILCONFIGDIR": galil_settings_path.replace("\\", "/"),
         }
     },
@@ -39,7 +42,7 @@ IOCS = [
         "pv_for_existence": "HEARTBEAT",
         "macros": {
             "FINSCONFIGDIR": fins_settings_path.replace("\\", "/"),
-            "PLCIP": "127.0.0.1"
+            "PLCIP": "127.0.0.3"
         },
     }
 ]
