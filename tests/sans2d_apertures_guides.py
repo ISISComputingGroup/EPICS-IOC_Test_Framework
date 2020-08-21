@@ -30,7 +30,7 @@ IOCS = [
         "macros": {
             "MTRCTRL1": "01",
             "GALILADDR1": GALIL_ADDR1,
-            "MTRCTRL": "02",
+            "MTRCTRL2": "02",
             "GALILADDR2": GALIL_ADDR2,
             "GALILCONFIGDIR": galil_settings_path.replace("\\", "/"),
         }
