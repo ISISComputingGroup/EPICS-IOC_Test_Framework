@@ -129,7 +129,7 @@ def stability_set_up(ca):
 
     ca.assert_that_pv_is_number("UNSTABLETIME", 0.0)
 
-    ca.assert_that_pv_is("STABILITY", "stable")
+    ca.assert_that_pv_is("STABILITY", "Stable")
 
 
 def shared_setup(ca):
@@ -605,7 +605,7 @@ class StabilityTests(unittest.TestCase):
 
         self.ca.set_pv_value("_ADDCOUNTS", testvalue / SAMPLETIME, wait=True, sleep_after_set=0.0)
 
-        self.ca.assert_that_pv_is("STABILITY", "unstable")
+        self.ca.assert_that_pv_is("STABILITY", "Unstable")
 
         # THEN
         self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.Alarms.MAJOR)
@@ -622,7 +622,7 @@ class StabilityTests(unittest.TestCase):
 
         self.ca.set_pv_value("_ADDCOUNTS", testvalue / SAMPLETIME, wait=True, sleep_after_set=0.0)
 
-        self.ca.assert_that_pv_is("STABILITY", "unstable")
+        self.ca.assert_that_pv_is("STABILITY", "Unstable")
 
         # THEN
         self.ca.assert_that_pv_alarm_is("STABILITY", ChannelAccess.Alarms.NONE)
@@ -632,4 +632,4 @@ class StabilityTests(unittest.TestCase):
         # asserted in setup that separator is stable
 
         # THEN
-        self.ca.assert_that_pv_is("STABILITY", "stable")
+        self.ca.assert_that_pv_is("STABILITY", "Stable")
