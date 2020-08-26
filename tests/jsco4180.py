@@ -67,6 +67,7 @@ class Jsco4180Tests(unittest.TestCase):
     # there was a previous problem where if setpoint and readback differed a sleep and resend was started,
     # but the old state machine did not look to see if a new sp was issued while it was asleep and so then
     # resent the old out of date SP
+    @unstable_test(max_retries=2, wait_between_runs=60)
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_wrong_component_on_device_WHEN_send_new_sp_THEN_state_machine_aborts_resend(self):
         value = 50
@@ -83,7 +84,7 @@ class Jsco4180Tests(unittest.TestCase):
         delay = 30  # Increase delay to avoid race conditions
         self.ca.set_pv_value("ERROR:DELAY", delay)
         try:
-            with self.ca.assert_pv_not_processed("RESET:SP", timeout=1):
+            with self.ca.assert_pv_not_processed("RESET:SP"):
                 self._lewis.backdoor_set_on_device("component_A", value - 5)
                 self.ca.assert_that_pv_is("COMP:A", value - 5, timeout=5)
                 sleep(delay / 2.0)
