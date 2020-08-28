@@ -2,14 +2,22 @@ from __future__ import division
 
 import unittest
 import os
+from time import sleep
+
+from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
 
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.axis import set_axis_moving, assert_axis_moving, assert_axis_not_moving
+from utils.axis import assert_axis_moving, assert_axis_not_moving
 from utils.testing import parameterized_list, ManagerMode
 from math import ceil
+
+try:
+    from contextlib import nullcontext
+except ImportError:
+    from contextlib2 import nullcontext
 
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
@@ -42,23 +50,40 @@ IOCS.append(
 
 TEST_MODES = [TestModes.RECSIM]
 
-INTERVAL_PAIRS = [("FRONTDETZ", "FRONTBAFFLEZ"), ("FRONTBAFFLEZ", "REARBAFFLEZ"), ("REARBAFFLEZ", "REARDETZ"), ]
 
-INTERVAL_SETPOINT_PAIRS = [("FRONTDETZ:SP", "FRONTBAFFLEZ:SP"), ("FRONTBAFFLEZ:SP", "REARBAFFLEZ:SP"),
-                           ("REARBAFFLEZ:SP", "REARDETZ:SP")]
+class Interval(object):
+    def __init__(self, front_axis, rear_axis, name, interval_setpoint_name, minimum_interval):
+        self.front_axis = front_axis
+        self.front_axis_sp = front_axis + ":SP"
+        self.rear_axis = rear_axis
+        self.rear_axis_sp = rear_axis + ":SP"
+        self.name = name
+        self.setpoint_name = interval_setpoint_name
+        self.minimum_interval = minimum_interval
 
-BAFFLE_AND_DETECTORS_INTERVAL_NAMES = ["FDFB", "FBRB", "RBRD"]
+    def __repr__(self):
+        return "Interval between {} and {}".format(self.front_axis, self.rear_axis)
 
-BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES = ["FDSPFBSP", "FBSPRBSP", "RBSPRDSP"]
-
-BAFFLES_AND_DETECTORS_Z_AXES = ["REARDETZ", "REARBAFFLEZ", "FRONTBAFFLEZ", "FRONTDETZ"]
-
-MAJOR_ALARM_INTERVAL_THRESHOLD = 50
-MINOR_ALARM_INTERVAL_THRESHOLD = 100
 
 FD_FB_MINIMUM_INTERVAL = 150
 FB_RB_MINIMUM_INTERVAL = 210
 RB_RD_MINIMUM_INTERVAL = 350
+
+INTERVALS = [
+    Interval(front_axis="FRONTDETZ", rear_axis="FRONTBAFFLEZ",
+             name="FDFB", interval_setpoint_name="FDSPFBSP", minimum_interval=FD_FB_MINIMUM_INTERVAL),
+    Interval(front_axis="FRONTBAFFLEZ", rear_axis="REARBAFFLEZ",
+             name="FBRB", interval_setpoint_name="FBSPRBSP", minimum_interval=FB_RB_MINIMUM_INTERVAL),
+    Interval(front_axis="REARBAFFLEZ", rear_axis="REARDETZ",
+             name="RBRD", interval_setpoint_name="RBSPRDSP", minimum_interval=RB_RD_MINIMUM_INTERVAL),
+]
+
+
+BAFFLES_AND_DETECTORS_Z_AXES = set(
+    [interval.front_axis for interval in INTERVALS] + [interval.rear_axis for interval in INTERVALS])
+
+MAJOR_ALARM_INTERVAL_THRESHOLD = 50
+MINOR_ALARM_INTERVAL_THRESHOLD = 100
 
 TEST_SPEED = 200
 # acceleration is number of seconds until motor goes from 0 to full speed
@@ -71,149 +96,161 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.ca = ChannelAccess(device_prefix="MOT")
+        self.ca = ChannelAccess(device_prefix="MOT", default_timeout=30)
         with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+            self._disable_collision_avoidance()
 
             for axis in BAFFLES_AND_DETECTORS_Z_AXES:
                 current_position = self.ca.get_pv_value("{}".format(axis))
 
                 new_position = self._get_axis_default_position("{}".format(axis))
 
-                self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED)
-                self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED)
-                self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION)
+                self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED, sleep_after_set=0)
+                self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED, sleep_after_set=0)
+                self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION, sleep_after_set=0)
 
                 if current_position != new_position:
-                    self.ca.set_pv_value("{}:SP".format(axis), new_position)
+                    self.ca.set_pv_value("{}:SP".format(axis), new_position, sleep_after_set=0)
 
                 timeout = self._get_timeout_for_moving_to_position(axis, new_position)
                 self.ca.assert_that_pv_is("{}".format(axis), new_position, timeout=timeout)
 
             # re-enable collision avoidance
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 0)
+            self._enable_collision_avoidance()
 
-    @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
-    def test_GIVEN_motor_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, z_axes_pair, interval_name):
+    def _disable_collision_avoidance(self):
+        self._set_collision_avoidance_state(1, "DISABLED")
+
+    def _enable_collision_avoidance(self):
+        self._set_collision_avoidance_state(0, "ENABLED")
+
+    def _set_collision_avoidance_state(self, write_value, read_value):
+
+        # Do nothing if manager mode is already in correct state
+        if ChannelAccess().get_pv_value(ManagerMode.MANAGER_MODE_PV) != "Yes":
+            cm = ManagerMode(ChannelAccess())
+        else:
+            cm = nullcontext()
+
+        with cm:
+            err = None
+            for _ in range(20):
+                try:
+                    self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", write_value, sleep_after_set=0)
+                    break
+                except WriteAccessException as e:
+                    err = e
+                    sleep(1)
+            else:
+                raise err
+            self.ca.assert_that_pv_is("SANS2DVAC:COLLISION_AVOIDANCE", read_value)
+
+    @parameterized.expand(parameterized_list(INTERVALS))
+    def test_GIVEN_motor_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, interval):
         # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+        self._disable_collision_avoidance()
 
-        z_axis_a, z_axis_b = z_axes_pair
+        rear_axis_position = self.ca.get_pv_value(interval.rear_axis)
+        front_axis_position = rear_axis_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
+        expected_interval = rear_axis_position - front_axis_position
 
-        b_position = self.ca.get_pv_value(z_axis_b)
-        a_new_position = b_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
-        expected_interval = b_position - a_new_position
+        self.ca.set_pv_value(interval.front_axis_sp, front_axis_position)
 
-        self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
+        timeout = self._get_timeout_for_moving_to_position(interval.front_axis, front_axis_position)
+        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(interval.name), expected_interval, timeout=timeout, tolerance=0.1)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval.name), self.ca.Alarms.NONE)
 
-        timeout = self._get_timeout_for_moving_to_position(z_axis_a, a_new_position)
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=timeout)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.NONE)
-
-    @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
-                                                 BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES)))
-    def test_GIVEN_setpoint_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, z_axes_pair, interval_name):
+    @parameterized.expand(parameterized_list(INTERVALS))
+    def test_GIVEN_setpoint_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, interval):
         # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+        self._disable_collision_avoidance()
 
-        z_axis_a, z_axis_b = z_axes_pair
+        rear_axis_position = 1000
+        front_axis_position = rear_axis_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
+        expected_interval = rear_axis_position - front_axis_position
 
-        b_position = 1000
-        a_position = b_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
-        expected_interval = b_position - a_position
+        self.ca.set_pv_value(interval.front_axis_sp, front_axis_position)
+        self.ca.assert_that_pv_is_number(interval.front_axis, front_axis_position, tolerance=0.1, timeout=30)
+        self.ca.set_pv_value(interval.rear_axis_sp, rear_axis_position)
+        self.ca.assert_that_pv_is_number(interval.rear_axis, rear_axis_position, tolerance=0.1, timeout=30)
 
-        self.ca.set_pv_value(z_axis_a, a_position)
-        self.ca.set_pv_value(z_axis_b, b_position)
+        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(interval.name), expected_interval, timeout=5, tolerance=0.1)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval.name), self.ca.Alarms.NONE)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=5)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.NONE)
-
-    @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
-    def test_GIVEN_motor_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, z_axes_pair, interval_name):
+    @parameterized.expand(parameterized_list(INTERVALS))
+    def test_GIVEN_motor_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, interval):
         # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+        self._disable_collision_avoidance()
 
-        z_axis_a, z_axis_b = z_axes_pair
+        rear_position = self.ca.get_pv_value(interval.rear_axis)
+        front_new_position = rear_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
+        expected_interval = rear_position - front_new_position
 
-        b_position = self.ca.get_pv_value(z_axis_b)
-        a_new_position = b_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = b_position - a_new_position
+        self.ca.set_pv_value(interval.front_axis_sp, front_new_position, sleep_after_set=0)
 
-        self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
+        timeout = self._get_timeout_for_moving_to_position(interval.front_axis, front_new_position)
+        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(interval.name), expected_interval, timeout=timeout, tolerance=0.1)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval.name), self.ca.Alarms.MINOR)
 
-        timeout = self._get_timeout_for_moving_to_position(z_axis_a, a_new_position)
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=timeout)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MINOR)
-
-    @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
-                                                 BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES)))
-    def test_GIVEN_setpoint_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, z_axes_pair, interval_name):
+    @parameterized.expand(parameterized_list(INTERVALS))
+    def test_GIVEN_setpoint_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, interval):
         # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+        self._disable_collision_avoidance()
 
-        z_axis_a, z_axis_b = z_axes_pair
+        rear_axis_position = 1000
+        front_axis_position = rear_axis_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
+        expected_interval = rear_axis_position - front_axis_position
 
-        b_position = 1000
-        a_position = b_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = b_position - a_position
+        self.ca.set_pv_value(interval.front_axis_sp, front_axis_position, sleep_after_set=0)
+        self.ca.assert_that_pv_is_number(interval.front_axis, front_axis_position, tolerance=0.1, timeout=30)
+        self.ca.set_pv_value(interval.rear_axis_sp, rear_axis_position, sleep_after_set=0)
+        self.ca.assert_that_pv_is_number(interval.rear_axis, rear_axis_position, tolerance=0.1, timeout=30)
 
-        self.ca.set_pv_value(z_axis_a, a_position)
-        self.ca.set_pv_value(z_axis_b, b_position)
+        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(interval.name), expected_interval, timeout=5, tolerance=0.1)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval.name), self.ca.Alarms.MINOR)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=5)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MINOR)
-
-    @parameterized.expand(parameterized_list(zip(INTERVAL_PAIRS, BAFFLE_AND_DETECTORS_INTERVAL_NAMES)))
-    def test_GIVEN_motor_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, z_axes_pair, interval_name):
+    @parameterized.expand(parameterized_list(INTERVALS))
+    def test_GIVEN_motor_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, interval):
         # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
+        self._disable_collision_avoidance()
 
-        z_axis_a, z_axis_b = z_axes_pair
+        rear_axis_position = self.ca.get_pv_value(interval.rear_axis)
+        front_axis_position = rear_axis_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
+        expected_interval = rear_axis_position - front_axis_position
 
-        b_position = self.ca.get_pv_value(z_axis_b)
-        a_new_position = b_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = b_position - a_new_position
+        self.ca.set_pv_value(interval.front_axis_sp, front_axis_position, sleep_after_set=0)
 
-        self.ca.set_pv_value("{}:SP".format(z_axis_a), a_new_position)
+        timeout = self._get_timeout_for_moving_to_position(interval.front_axis, front_axis_position)
+        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(interval.name), expected_interval, timeout=timeout, tolerance=0.1)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval.name), self.ca.Alarms.MAJOR)
 
-        timeout = self._get_timeout_for_moving_to_position(z_axis_a, a_new_position)
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=timeout)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MAJOR)
-
-    @parameterized.expand(parameterized_list(zip(INTERVAL_SETPOINT_PAIRS,
-                                                 BAFFLE_AND_DETECTORS_INTERVAL_SETPOINT_NAMES)))
-    def test_GIVEN_setpoint_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, z_axes_pair, interval_name):
+    @parameterized.expand(parameterized_list(INTERVALS))
+    def test_GIVEN_setpoint_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, interval):
         # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", 1)
-            
-        z_axis_a, z_axis_b = z_axes_pair
+        self._disable_collision_avoidance()
 
-        b_position = 1000
-        a_position = b_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = b_position - a_position
+        rear_axis_position = 1000
+        front_axis_position = rear_axis_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
+        expected_interval = rear_axis_position - front_axis_position
 
-        self.ca.set_pv_value(z_axis_a, a_position)
-        self.ca.set_pv_value(z_axis_b, b_position)
+        self.ca.set_pv_value(interval.front_axis_sp, front_axis_position, sleep_after_set=0)
+        self.ca.assert_that_pv_is_number(interval.front_axis, front_axis_position, tolerance=0.1, timeout=30)
+        self.ca.set_pv_value(interval.rear_axis_sp, rear_axis_position, sleep_after_set=0)
+        self.ca.assert_that_pv_is_number(interval.rear_axis, rear_axis_position, tolerance=0.1, timeout=30)
 
-        self.ca.assert_that_pv_is("SANS2DVAC:{}:INTERVAL".format(interval_name), expected_interval, timeout=5)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval_name), self.ca.Alarms.MAJOR)
+        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(interval.name), expected_interval, timeout=5, tolerance=0.1)
+        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(interval.name), self.ca.Alarms.MAJOR)
 
     def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_greater_than_threshold_THEN_motor_not_stopped(self):
-        fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL - 50
-        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+        fd_new_position = self.ca.get_pv_value("FRONTDETZ") - FD_FB_MINIMUM_INTERVAL - 50
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position, sleep_after_set=0)
 
         timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
-        self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
+        self.ca.assert_that_pv_is_number("FRONTDETZ", fd_new_position, timeout=timeout, tolerance=0.1)
 
     def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self):
         fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
-        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position, sleep_after_set=0)
 
         self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
         self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
@@ -224,7 +261,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
     def test_GIVEN_front_detector_within_threhsold_distance_to_front_baffle_WHEN_set_to_move_away_THEN_motor_not_stopped(self):
         fd_new_position = self.ca.get_pv_value("FRONTBAFFLEZ") - FD_FB_MINIMUM_INTERVAL + 50
-        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position, sleep_after_set=0)
 
         self.ca.assert_that_pv_is("FRONTDETZ:MTR.MOVN", 1, timeout=1)
         self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 1, timeout=1)
@@ -234,12 +271,12 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.assert_that_pv_is_not("FRONTDETZ", fd_new_position, timeout=timeout)
 
         fd_new_position = self.ca.get_pv_value("FRONTDETZ") - 200
-        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position)
+        self.ca.set_pv_value("FRONTDETZ:SP", fd_new_position, sleep_after_set=0)
 
         assert_axis_moving("FRONTDETZ", timeout=1)
         self.ca.assert_that_pv_is("FRONTDETZ:MTR.TDIR", 0, timeout=1)
         timeout = self._get_timeout_for_moving_to_position("FRONTDETZ", fd_new_position)
-        self.ca.assert_that_pv_is("FRONTDETZ", fd_new_position, timeout=timeout)
+        self.ca.assert_that_pv_is_number("FRONTDETZ", fd_new_position, timeout=timeout, tolerance=0.1)
 
     def _get_axis_default_position(self, axis):
         if axis == "FRONTDETZ":
@@ -267,4 +304,4 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
         total_time = ceil(time_to_accelerate_and_decelerate + time_at_full_speed)
 
-        return total_time + 1
+        return total_time + 10  # +10 as a small tolerance to avoid instability
