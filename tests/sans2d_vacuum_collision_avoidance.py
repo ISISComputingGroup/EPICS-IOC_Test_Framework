@@ -150,7 +150,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         front_axis_position = rear_axis_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
         expected_interval = rear_axis_position - front_axis_position
 
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position)
+        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position, sleep_after_set=0)
 
         timeout = self._get_timeout_for_moving_to_position(axis_pair.front_axis, front_axis_position)
         self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), expected_interval, timeout=timeout, tolerance=0.1)
@@ -165,8 +165,8 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         front_axis_position = rear_axis_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
         expected_interval = rear_axis_position - front_axis_position
 
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position)
-        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_position)
+        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position, sleep_after_set=0)
+        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_position, sleep_after_set=0)
         self._assert_axis_position_reached(axis_pair.front_axis, front_axis_position)
         self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_position)
 
@@ -246,7 +246,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self._assert_axis_position_reached(axis_pair.front_axis, front_axis_new_position)
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_front_detector_moves_towards_front_baffle_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self, _, axis_pair):
+    def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self, _, axis_pair):
         front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval) + 50
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=0)
 
@@ -258,7 +258,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.assert_that_pv_is_not(axis_pair.front_axis, front_axis_new_position, timeout=timeout)
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_front_detector_within_threhsold_distance_to_front_baffle_WHEN_set_to_move_away_THEN_motor_not_stopped(self, _, axis_pair):
+    def test_GIVEN_front_axis_within_threhsold_distance_to_rear_axis_WHEN_set_to_move_away_THEN_motor_not_stopped(self, _, axis_pair):
         front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval) + 50
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=0)
 
@@ -275,6 +275,44 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         assert_axis_moving(axis_pair.front_axis, timeout=1)
         self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.front_axis), 0, timeout=1)
         self._assert_axis_position_reached(axis_pair.front_axis, front_axis_new_position)
+
+    @parameterized.expand(parameterized_list(AXIS_PAIRS))
+    def test_GIVEN_rear_axis_moves_towards_front_axis_WHEN_setpoint_interval_greater_than_threshold_THEN_motor_not_stopped(self, _, axis_pair):
+        rear_axis_position = (self.ca.get_pv_value(axis_pair.front_axis) + axis_pair.minimum_interval) + 50
+        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_position, sleep_after_set=0)
+
+        self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_position)
+
+    @parameterized.expand(parameterized_list(AXIS_PAIRS))
+    def test_GIVEN_rear_axis_moves_towards_front_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self, _, axis_pair):
+        rear_axis_new_position = (self.ca.get_pv_value(axis_pair.front_axis) + axis_pair.minimum_interval) - 50
+        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_new_position, sleep_after_set=0)
+
+        self.ca.assert_that_pv_is("{}:MTR.MOVN".format(axis_pair.rear_axis), 1, timeout=1)
+        self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.rear_axis), 0, timeout=1)
+
+        timeout = self._get_timeout_for_moving_to_position(axis_pair.rear_axis, rear_axis_new_position)
+        assert_axis_not_moving(axis_pair.rear_axis, timeout=timeout)
+        self.ca.assert_that_pv_is_not(axis_pair.rear_axis, rear_axis_new_position, timeout=timeout)
+
+    @parameterized.expand(parameterized_list(AXIS_PAIRS))
+    def test_GIVEN_rear_axis_within_threhsold_distance_to_front_axis_WHEN_set_to_move_away_THEN_motor_not_stopped(self, _, axis_pair):
+        rear_axis_new_position = (self.ca.get_pv_value(axis_pair.front_axis) + axis_pair.minimum_interval) - 50
+        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_new_position, sleep_after_set=0)
+
+        self.ca.assert_that_pv_is("{}:MTR.MOVN".format(axis_pair.rear_axis), 1, timeout=1)
+        self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.rear_axis), 0, timeout=1)
+
+        timeout = self._get_timeout_for_moving_to_position(axis_pair.rear_axis, rear_axis_new_position)
+        assert_axis_not_moving(axis_pair.rear_axis, timeout=timeout)
+        self.ca.assert_that_pv_is_not(axis_pair.rear_axis, rear_axis_new_position, timeout=timeout)
+
+        rear_axis_new_position = self.ca.get_pv_value(axis_pair.rear_axis) + 200
+        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_new_position, sleep_after_set=0)
+
+        assert_axis_moving(axis_pair.rear_axis, timeout=1)
+        self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.rear_axis), 1, timeout=1)
+        self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_new_position)
 
     def _get_axis_default_position(self, axis):
         if axis == "FRONTDETZ":
