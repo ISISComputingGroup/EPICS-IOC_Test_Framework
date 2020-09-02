@@ -18,6 +18,9 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MEZFLIPR"),
         "emulator": EMULATOR_NAME,
+        "macros": {
+            "PROTOCOL_VERSION": "2"
+        }
     },
 ]
 
