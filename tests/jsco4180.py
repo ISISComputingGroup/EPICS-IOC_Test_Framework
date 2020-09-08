@@ -22,7 +22,6 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
-
 ERROR_STATE_HARDWARE_FAULT = 4
 ERROR_STATE_NO_ERROR = 2
 
@@ -34,9 +33,10 @@ class Jsco4180Tests(unittest.TestCase):
     """
     Tests for the Jsco4180 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
         for pv in required_pvs:
             self.ca.assert_that_pv_exists(pv, timeout=30)
         self._lewis.backdoor_run_function_on_device("reset")
@@ -64,8 +64,49 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("COMP:B", expected_value_B, timeout=30)
         self.ca.assert_that_pv_is("COMP:C", expected_value_C, timeout=30)
 
+    # there was a previous problem where if setpoint and readback differed a sleep and resend was started,
+    # but the old state machine did not look to see if a new sp was issued while it was asleep and so then
+    # resent the old out of date SP
+    @unstable_test(max_retries=2, wait_between_runs=60)
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
-    def test_GIVEN_wrong_component_on_device_WHEN_running_continuous_THEN_retry_run_and_updates_component_in_correct_mode(self):
+    def test_GIVEN_wrong_component_on_device_WHEN_send_new_sp_THEN_state_machine_aborts_resend(self):
+        value = 50
+        self.ca.set_pv_value("COMP:A:SP", value)
+        self.ca.set_pv_value("COMP:B:SP", value)
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("STATUS", "Pumping", timeout=5)
+        self.ca.assert_that_pv_is("COMP:A", value, timeout=30)
+        self.ca.assert_that_pv_is("COMP:B", value, timeout=30)
+
+        # Setting an incorrect component on the device will result in the state machine attempting
+        # to rerun the pump and reset components after a delay
+        initial_delay = self.ca.get_pv_value("ERROR:DELAY")  # delay before state machine reset
+        delay = 30  # Increase delay to avoid race conditions
+        self.ca.set_pv_value("ERROR:DELAY", delay)
+        try:
+            with self.ca.assert_pv_not_processed("RESET:SP"):
+                self._lewis.backdoor_set_on_device("component_A", value - 5)
+                self.ca.assert_that_pv_is("COMP:A", value - 5, timeout=5)
+                sleep(delay / 2.0)
+
+                # however if we change setpoint, the loop should start again
+                self._lewis.backdoor_set_on_device("component_A", value - 5)
+                self.ca.set_pv_value("COMP:A:SP", value - 10)
+                self.ca.set_pv_value("COMP:B:SP", value + 10)
+                # reset should not have happened yet
+                self.ca.assert_that_pv_is("COMP:A", value - 5, timeout=delay / 2.0)
+                self.ca.assert_that_pv_value_is_unchanged("COMP:A", wait=delay / 2.0)
+
+            # Reset should now happen within a further timeout/2 seconds (but give it longer to avoid races)
+            with self.ca.assert_pv_processed("RESET:SP"):
+                self.ca.assert_that_pv_is("COMP:A", value - 10, timeout=delay * 2)
+        finally:
+            # Put error delay back to it's initial value
+            self.ca.set_pv_value("ERROR:DELAY", initial_delay)
+
+    @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
+    def test_GIVEN_wrong_component_on_device_WHEN_running_continuous_THEN_retry_run_and_updates_component_in_correct_mode(
+            self):
         value = 50
         expected_value = "Pumping"
         self.ca.set_pv_value("COMP:A:SP", value)
@@ -82,7 +123,8 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS", expected_value, timeout=30)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
-    def test_GIVEN_wrong_component_on_device_WHEN_running_timed_THEN_retry_run_and_updates_component_in_correct_mode(self):
+    def test_GIVEN_wrong_component_on_device_WHEN_running_timed_THEN_retry_run_and_updates_component_in_correct_mode(
+            self):
         value = 50
         expected_value = "Pumping"
         self.ca.set_pv_value("COMP:A:SP", value)
@@ -100,10 +142,14 @@ class Jsco4180Tests(unittest.TestCase):
 
     @skip_if_recsim("Flowrate device logic not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_flowrate_THEN_flowrate_setpoint_is_correct(self):
+
+        error_delay = float(self.ca.get_pv_value("ERROR:DELAY"))
+        sleep(2 * error_delay)  # To make sure we're not in the middle of the error-checking state machine
+
         expected_value = 1.000
         self.ca.set_pv_value("FLOWRATE:SP", expected_value)
 
-        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_value, timeout=5)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_value)
 
         self.ca.set_pv_value("TIME:RUN:SP", 100)
         self.ca.set_pv_value("START:SP", "Start")
@@ -112,18 +158,21 @@ class Jsco4180Tests(unittest.TestCase):
 
     @skip_if_recsim("LeWIS backdoor not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_flowrate_and_pump_volume_THEN_ioc_uses_rbv_for_calculation_of_remaining_time(self):
-        expected_sp_value = 0.000
-        expected_rbv_value = 1.000
+        expected_sp_value = 1.000
+        expected_rbv_value = 2.000
         pump_for_volume = 2
         expected_time_value = (pump_for_volume / expected_rbv_value) * 60
 
+        error_delay = float(self.ca.get_pv_value("ERROR:DELAY"))
+        sleep(2 * error_delay)  # To make sure we're not in the middle of the error-checking state machine
+
         # 1. set invalid flowrate setpoint (FLOWRATE:SP)
         self.ca.set_pv_value("FLOWRATE:SP", expected_sp_value)
-        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_sp_value, timeout=5)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_sp_value)
 
         # 2. set valid hardware flowrate (FLOWRATE:SP:RBV) via backdoor command
         self._lewis.backdoor_set_on_device("flowrate_rbv", expected_rbv_value)
-        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_rbv_value, timeout=5)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_rbv_value)
 
         # 3. set volume setpoint and start pump
         self.ca.set_pv_value("TIME:VOL:SP", pump_for_volume)
@@ -134,18 +183,21 @@ class Jsco4180Tests(unittest.TestCase):
 
     @skip_if_recsim("LeWIS backdoor not supported in RECSIM")
     def test_GIVEN_an_ioc_WHEN_set_flowrate_and_pump_time_THEN_ioc_uses_rbv_for_calculation_of_remaining_volume(self):
-        expected_sp_value = 0.000
-        expected_rbv_value = 1.000
+        expected_sp_value = 1.000
+        expected_rbv_value = 2.000
         pump_for_time = 120
         expected_volume_value = (pump_for_time * expected_rbv_value) / 60
 
+        error_delay = float(self.ca.get_pv_value("ERROR:DELAY"))
+        sleep(2 * error_delay)  # To make sure we're not in the middle of the error-checking state machine
+
         # 1. set invalid flowrate setpoint (FLOWRATE:SP)
         self.ca.set_pv_value("FLOWRATE:SP", expected_sp_value)
-        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_sp_value, timeout=5)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_sp_value)
 
         # 2. set valid hardware flowrate (FLOWRATE:SP:RBV) via backdoor command
         self._lewis.backdoor_set_on_device("flowrate_rbv", expected_rbv_value)
-        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_rbv_value, timeout=5)
+        self.ca.assert_that_pv_is("FLOWRATE:SP:RBV", expected_rbv_value)
 
         # 3. set time setpoint and start pump
         self.ca.set_pv_value("TIME:RUN:SP", pump_for_time)
@@ -156,7 +208,8 @@ class Jsco4180Tests(unittest.TestCase):
 
     # test to check that the IOC updates the flowrate RBV quickly enough
     # for the remaining volume calculation to be valid.  simulates operation of a script.
-    def test_GIVEN_an_ioc_WHEN_set_flowrate_and_immediately_set_pump_to_start_THEN_ioc_updates_rbv_for_calculation_of_remaining_volume(self):
+    def test_GIVEN_an_ioc_WHEN_set_flowrate_and_immediately_set_pump_to_start_THEN_ioc_updates_rbv_for_calculation_of_remaining_volume(
+            self):
         expected_sp_value = 2.000
         script_sp_value = 3.000
         pump_for_time = 120
@@ -242,7 +295,6 @@ class Jsco4180Tests(unittest.TestCase):
         expected_value = "No error"
 
         self.ca.assert_that_pv_is("ERROR", expected_value)
-
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_ioc_in_hardware_error_state_WHEN_get_error_THEN_hardware_error_returned(self):
@@ -343,5 +395,6 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.process_pv("PUMP_SET_VOLUME:SP")
 
-        self.ca.assert_that_pv_is_within_range("TIME:REMAINING", min_value=expected_time-20, max_value=expected_time+20)
+        self.ca.assert_that_pv_is_within_range("TIME:REMAINING", min_value=expected_time - 20,
+                                               max_value=expected_time + 20)
 

@@ -6,6 +6,7 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
 from parameterized import parameterized
 
 from utils.test_modes import TestModes
+from utils.testing import parameterized_list
 
 ioc_name = "FINS"
 test_path = os.path.join(EPICS_TOP, "ioc", "master", ioc_name, "exampleSettings", "SANS2D_vacuum")
@@ -163,3 +164,25 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self.ca.process_pv("SHUTTER:CLOSE_IF_AUTO")
 
         self.ca.assert_that_pv_is_not("SHUTTER:STATUS:SP", "CLOSE", timeout=5)
+
+
+class Sans2dVacuumTankTest(unittest.TestCase):
+    """
+    Tests for the SANS2D vacuum tank, based on a FINS PLC.
+    """
+
+    def setUp(self):
+        self._ioc = IOCRegister.get_running("FINS_01")
+        self.ca = ChannelAccess(device_prefix=ioc_prefix)
+
+    @parameterized.expand(parameterized_list([-5, 0, 3, 5, 7, 9, 16]))
+    def test_WHEN_set_tank_status_to_unknown_value_THEN_error_status(self, _, status_rval):
+        self.ca.set_pv_value("SIM:TANK:STATUS", status_rval)
+        self.ca.assert_that_pv_is("TANK:STATUS", "ERROR: STATUS UNKNOWN")
+        self.ca.assert_that_pv_alarm_is("TANK:STATUS", "MAJOR")
+
+    @parameterized.expand([(1, "ATMOSPHERE"), (2, "VAC DOWN"), (4, "AT VACUUM"), (8, "VENTING")])
+    def test_WHEN_set_tank_status_to_known_value_THEN_no_error(self, status_rval, status_val):
+        self.ca.set_pv_value("SIM:TANK:STATUS", status_rval)
+        self.ca.assert_that_pv_is("TANK:STATUS", status_val)
+        self.ca.assert_that_pv_alarm_is("TANK:STATUS", "NO_ALARM")

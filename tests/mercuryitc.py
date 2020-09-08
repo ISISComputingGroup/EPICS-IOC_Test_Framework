@@ -11,16 +11,16 @@ import os
 
 
 # These definitions should match self.channels in the emulator
-TEMP_CARDS = ["MB0", "DB2"]
-PRESSURE_CARDS = ["DB5"]
-LEVEL_CARDS = ["DB8"]
-HEATER_CARDS = ["MB1", "DB3", "DB6"]
-AUX_CARDS = ["DB1", "DB4", "DB7"]
+TEMP_CARDS = ["MB0.T0", "DB2.T1"]
+PRESSURE_CARDS = ["DB5.P0"]
+LEVEL_CARDS = ["DB8.L0"]
+HEATER_CARDS = ["MB1.H0", "DB3.H1", "DB6.H2"]
+AUX_CARDS = ["DB1.A0", "DB4.A1", "DB7.A2"]
 
 
 def get_card_pv_prefix(card):
     """
-    Given a card (e.g. "MB0", "DB1"), get the PV prefix in the IOC for it.
+    Given a card (e.g. "MB0.T1", "DB1.L1"), get the PV prefix in the IOC for it.
 
     Args:
         card (str): the card
@@ -76,7 +76,7 @@ GAS_FLOW_TEST_VALUES = PID_TEST_VALUES
 HEATER_PERCENT_TEST_VALUES = PID_TEST_VALUES
 GAS_LEVEL_TEST_VALUES = PID_TEST_VALUES
 
-PRIMARY_TEMPERATURE_CHANNEL = "MB0"
+PRIMARY_TEMPERATURE_CHANNEL = "MB0.T0"
 
 HEATER_MODES = ["Auto", "Manual"]
 GAS_FLOW_MODES = ["Auto", "Manual"]
@@ -84,7 +84,7 @@ AUTOPID_MODES = ["OFF", "ON"]
 HELIUM_READ_RATES = ["Slow", "Fast"]
 
 MOCK_NICKNAMES = ["MyNickName", "SomeOtherNickname"]
-MOCK_CALIB_FILES = ["FakeCalib", "OtherFakeCalib"]
+MOCK_CALIB_FILES = ["FakeCalib", "OtherFakeCalib", "test_calib.dat", "test space calib.dat"]
 
 
 class MercuryTests(unittest.TestCase):
@@ -316,3 +316,18 @@ class MercuryTests(unittest.TestCase):
         card_pv_prefix = get_card_pv_prefix(card)
         with ManagerMode(ChannelAccess()):
             self.ca.assert_setting_setpoint_sets_readback(test_value, "{}:CALFILE".format(card_pv_prefix))
+
+    @parameterized.expand(parameterized_list(["O", "R"]))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_resistance_suffix_is_changed_THEN_resistance_reads_correctly(self, _, resistance_suffix):
+        self._lewis.backdoor_set_on_device("resistance_suffix", resistance_suffix)
+        resistance_value = 3
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [PRIMARY_TEMPERATURE_CHANNEL, "resistance", resistance_value]
+        )
+        self.ca.assert_that_pv_is(
+            "{}:RESISTANCE".format(get_card_pv_prefix(PRIMARY_TEMPERATURE_CHANNEL)), resistance_value
+        )
+        self.ca.assert_that_pv_alarm_is(
+            "{}:RESISTANCE".format(get_card_pv_prefix(PRIMARY_TEMPERATURE_CHANNEL)), self.ca.Alarms.NONE
+        )
