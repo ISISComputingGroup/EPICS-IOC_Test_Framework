@@ -11,8 +11,10 @@ from utils.testing import get_running_lewis_and_ioc
 IOCS = [
     {
         "name": "motion_setpoints",
+        "custom_prefix": "MSP",
         "directory": os.path.join(EPICS_TOP, "support", "motionSetPoints", "master", "iocBoot",  "iocmotionSetPointsTest"),
-        "macros": {}
+        "macros": {},
+        "pv_for_existence": "MTR0",
     },
 ]
 
