@@ -21,7 +21,7 @@ except ImportError:
     from contextlib2 import nullcontext
 
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
+    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
 )
 
 GALIL_ADDR = "127.0.0.1"
