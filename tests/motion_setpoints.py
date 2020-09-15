@@ -8,7 +8,6 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
-from time import sleep
 
 GALIL_ADDR = "127.0.0.1"
 
