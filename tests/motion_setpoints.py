@@ -8,6 +8,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
+from time import sleep
 
 GALIL_ADDR = "127.0.0.1"
 
@@ -337,3 +338,42 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca10D.assert_that_pv_is("COORD{}:OFFSET.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:RBV:OFF.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:SET:RBV.EGU".format(motor_num), motor_pv)
+
+    def test_WHEN_lookup_modified_and_reset_called_THEN_new_position_names_picked_up(self):
+        lookup_file = os.path.join(test_path, "lookup10D.txt")
+        new_position_name = "NOT_Sample1"
+
+        self.assertTrue(new_position_name not in self.ca10D.get_pv_value("POSITIONS"))
+
+        with open(lookup_file, "r+") as f:
+            original_lookup_text = f.read()
+            f.seek(0)
+            f.write(original_lookup_text.replace("Sample1", new_position_name))
+
+        try:
+            self.ca10D.set_pv_value("RESET", 1)
+
+            self.assertTrue(new_position_name in self.ca10D.get_pv_value("POSITIONS"))
+
+        finally:
+            with open(lookup_file, "r+") as f:
+                f.write(original_lookup_text)
+
+    def test_WHEN_lookup_modified_to_be_in_error_and_reset_called_THEN_new_position_names_picked_up(self):
+        lookup_file = os.path.join(test_path, "lookup10D.txt")
+
+        with open(lookup_file, "r+") as f:
+            original_lookup_text = f.read()
+            f.seek(0)
+            f.write(original_lookup_text.replace("Sample1", ""))
+
+        try:
+            self.ca10D.set_pv_value("RESET", 1)
+
+            self.ca10D.assert_that_pv_is("POSITIONS", "", timeout=30)
+            self.ca10D.assert_that_pv_is("POSN", "", timeout=30)
+
+        finally:
+            with open(lookup_file, "r+") as f:
+                f.write(original_lookup_text)
+
