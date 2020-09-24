@@ -41,6 +41,19 @@ class UnitFlags(object):
     OFF = 0
 
 
+class KepcoStartupTests(unittest.TestCase):
+    """
+    Tests for the startup of a KEPCO.
+    """
+
+    def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("kepco", DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+
+    def test_GIVEN_kepco_started_THEN_in_remote_mode(self):
+        self.ca.assert_that_pv_is("REMOTE:GET", "ON")
+
+
 class KepcoTests(unittest.TestCase):
     """
     Tests for the KEPCO.
