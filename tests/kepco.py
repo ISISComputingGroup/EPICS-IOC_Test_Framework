@@ -3,7 +3,7 @@ import unittest
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 from distutils.util import strtobool
@@ -17,6 +17,7 @@ IOCS = [
         "directory": get_default_ioc_dir("KEPCO"),
         "macros": {},
         "emulator": "kepco",
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
@@ -39,19 +40,6 @@ class UnitFlags(object):
     CURRENT = 1
     ON = 1
     OFF = 0
-
-
-class KepcoStartupTests(unittest.TestCase):
-    """
-    Tests for the startup of a KEPCO.
-    """
-
-    def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("kepco", DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
-
-    def test_GIVEN_kepco_started_THEN_in_remote_mode(self):
-        self.ca.assert_that_pv_is("REMOTE:GET", "ON")
 
 
 class KepcoTests(unittest.TestCase):
@@ -150,5 +138,14 @@ class KepcoTests(unittest.TestCase):
         self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
 
         self.ca.process_pv(setpoint_pv)
+
+        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
+
+    @skip_if_recsim("No lewis backdoor in recsim")
+    def test_WHEN_ioc_restarted_THEN_set_into_remote_mode(self):
+        self._lewis.backdoor_set_on_device("remote_comms_enabled", False)
+        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
+
+        self._ioc.start_ioc()
 
         self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
