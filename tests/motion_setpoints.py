@@ -377,40 +377,45 @@ class MotionSetpointsTests(unittest.TestCase):
         modify_file_and_assert_test(self.ca10D, lookup_file, "Sample1", "", test_position_empty)
 
     def test_GIVEN_in_position_WHEN_lookup_modified_and_reset_called_THEN_no_longer_in_position(self):
-        lookup_file = os.path.join(test_path, "lookup1D.txt")
+        lookup_file = os.path.join(test_path, "lookup2D.txt")
         new_coord = 7
 
-        self.ca1D.set_pv_value("POSN:SP", POSITION_IN)
+        self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE1)
 
-        self.ca1D.assert_that_pv_is("POSITIONED", 1, timeout=10)
-        self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_IN)
-        self.ca1D.assert_that_pv_is("POSN", POSITION_IN)
+        self.ca2D.assert_that_pv_is("POSITIONED", 1, timeout=10)
+        self.ca2D.assert_that_pv_is("POSN:SP:RBV", POSITION_SAMPLE1)
+        self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE1)
 
         def test_not_in_position():
-            self.ca1D.assert_that_pv_is("POSITIONED", 0, timeout=10)
-            self.ca1D.assert_that_pv_is_not("POSN", POSITION_IN)
-            self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_IN)
-            self.motor_ca.assert_that_pv_is("MTR0101.RBV", MOTOR_POSITION_IN)
+            self.ca2D.assert_that_pv_is("POSITIONED", 0, timeout=10)
+            self.ca2D.assert_that_pv_is_not("POSN", POSITION_SAMPLE1)
+            self.ca2D.assert_that_pv_is("POSN:SP:RBV", POSITION_SAMPLE1)
+            self.motor_ca.assert_that_pv_is("MTR0101.RBV", MOTOR_POSITION_SAMPLE1_COORD0)
+            self.motor_ca.assert_that_pv_is("MTR0102.RBV", MOTOR_POSITION_SAMPLE1_COORD1)
 
-        modify_file_and_assert_test(self.ca1D, lookup_file, MOTOR_POSITION_IN, new_coord, test_not_in_position)
+        modify_file_and_assert_test(self.ca2D, lookup_file, MOTOR_POSITION_SAMPLE1_COORD1, new_coord,
+                                    test_not_in_position)
 
     def test_GIVEN_in_position_WHEN_lookup_modified_and_move_to_updated_position_THEN_go_to_new_position(self):
-        lookup_file = os.path.join(test_path, "lookup1D.txt")
+        lookup_file = os.path.join(test_path, "lookup2D.txt")
         new_coord = 7
 
-        self.ca1D.set_pv_value("POSN:SP", POSITION_IN)
+        self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE1)
 
-        self.ca1D.assert_that_pv_is("POSITIONED", 1, timeout=10)
-        self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_IN)
-        self.ca1D.assert_that_pv_is("POSN", POSITION_IN)
+        self.ca2D.assert_that_pv_is("POSITIONED", 1, timeout=10)
+        self.ca2D.assert_that_pv_is("POSN:SP:RBV", POSITION_SAMPLE1)
+        self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE1)
 
         def test_moves_to_new_position():
-            self.ca1D.set_pv_value("POSN:SP", POSITION_OUT)
-            self.ca1D.assert_that_pv_is("POSITIONED", 1, timeout=10)
-            self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_OUT)
-            self.ca1D.assert_that_pv_is("POSN", POSITION_OUT)
-            self.motor_ca.assert_that_pv_is("MTR0101.RBV", new_coord)
+            self.ca2D.assert_that_pv_is("POSITIONED", 0, timeout=10)
+            self.ca2D.set_pv_value("POSN:SP", POSITION_SAMPLE2)
+            self.ca2D.assert_that_pv_is("POSITIONED", 1, timeout=10)
+            self.ca2D.assert_that_pv_is("POSN:SP:RBV", POSITION_SAMPLE2)
+            self.ca2D.assert_that_pv_is("POSN", POSITION_SAMPLE2)
+            self.motor_ca.assert_that_pv_is("MTR0101.RBV", MOTOR_POSITION_SAMPLE2_COORD0)
+            self.motor_ca.assert_that_pv_is("MTR0102.RBV", new_coord)
 
-        modify_file_and_assert_test(self.ca1D, lookup_file, MOTOR_POSITION_OUT, new_coord, test_moves_to_new_position)
+        modify_file_and_assert_test(self.ca2D, lookup_file, MOTOR_POSITION_SAMPLE2_COORD1, new_coord,
+                                    test_moves_to_new_position)
 
 
