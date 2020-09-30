@@ -78,6 +78,24 @@ def get_motor_pv_from_axis_num(axis_num):
     return "MTR0{}0{}".format(controller, axis_num)
 
 
+def modify_file_and_assert_test(channel_access, lookup_file, old_text, new_text, test):
+    """Modifies lookup_file by replacing any instances of old_text with new_text, calls the supplied test and
+    then reverts the file to it's original state.
+    """
+    with open(lookup_file, "r+") as f:
+        original_lookup_text = f.read()
+        f.seek(0)
+        f.write(original_lookup_text.replace(str(old_text), str(new_text)))
+
+    try:
+        channel_access.set_pv_value("RESET", 1)
+        test()
+
+    finally:
+        with open(lookup_file, "r+") as f:
+            f.write(original_lookup_text)
+
+
 class MotionSetpointsTests(unittest.TestCase):
     """
     Tests the motion setpoints.
@@ -344,35 +362,55 @@ class MotionSetpointsTests(unittest.TestCase):
 
         self.assertTrue(new_position_name not in self.ca10D.get_pv_value("POSITIONS"))
 
-        with open(lookup_file, "r+") as f:
-            original_lookup_text = f.read()
-            f.seek(0)
-            f.write(original_lookup_text.replace("Sample1", new_position_name))
-
-        try:
-            self.ca10D.set_pv_value("RESET", 1)
-
+        def test_position_updated():
             self.assertTrue(new_position_name in self.ca10D.get_pv_value("POSITIONS"))
 
-        finally:
-            with open(lookup_file, "r+") as f:
-                f.write(original_lookup_text)
+        modify_file_and_assert_test(self.ca10D, lookup_file, "Sample1", new_position_name, test_position_updated)
 
     def test_WHEN_lookup_modified_to_be_in_error_and_reset_called_THEN_new_position_names_picked_up(self):
         lookup_file = os.path.join(test_path, "lookup10D.txt")
 
-        with open(lookup_file, "r+") as f:
-            original_lookup_text = f.read()
-            f.seek(0)
-            f.write(original_lookup_text.replace("Sample1", ""))
-
-        try:
-            self.ca10D.set_pv_value("RESET", 1)
-
+        def test_position_empty():
             self.ca10D.assert_that_pv_is("POSITIONS", "", timeout=30)
             self.ca10D.assert_that_pv_is("POSN", "", timeout=30)
 
-        finally:
-            with open(lookup_file, "r+") as f:
-                f.write(original_lookup_text)
+        modify_file_and_assert_test(self.ca10D, lookup_file, "Sample1", "", test_position_empty)
+
+    def test_GIVEN_in_position_WHEN_lookup_modified_and_reset_called_THEN_no_longer_in_position(self):
+        lookup_file = os.path.join(test_path, "lookup1D.txt")
+        new_coord = 7
+
+        self.ca1D.set_pv_value("POSN:SP", POSITION_IN)
+
+        self.ca1D.assert_that_pv_is("POSITIONED", 1, timeout=10)
+        self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_IN)
+        self.ca1D.assert_that_pv_is("POSN", POSITION_IN)
+
+        def test_not_in_position():
+            self.ca1D.assert_that_pv_is("POSITIONED", 0, timeout=10)
+            self.ca1D.assert_that_pv_is_not("POSN", POSITION_IN)
+            self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_IN)
+            self.motor_ca.assert_that_pv_is("MTR0101.RBV", MOTOR_POSITION_IN)
+
+        modify_file_and_assert_test(self.ca1D, lookup_file, MOTOR_POSITION_IN, new_coord, test_not_in_position)
+
+    def test_GIVEN_in_position_WHEN_lookup_modified_and_move_to_updated_position_THEN_go_to_new_position(self):
+        lookup_file = os.path.join(test_path, "lookup1D.txt")
+        new_coord = 7
+
+        self.ca1D.set_pv_value("POSN:SP", POSITION_IN)
+
+        self.ca1D.assert_that_pv_is("POSITIONED", 1, timeout=10)
+        self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_IN)
+        self.ca1D.assert_that_pv_is("POSN", POSITION_IN)
+
+        def test_moves_to_new_position():
+            self.ca1D.set_pv_value("POSN:SP", POSITION_OUT)
+            self.ca1D.assert_that_pv_is("POSITIONED", 1, timeout=10)
+            self.ca1D.assert_that_pv_is("POSN:SP:RBV", POSITION_OUT)
+            self.ca1D.assert_that_pv_is("POSN", POSITION_OUT)
+            self.motor_ca.assert_that_pv_is("MTR0101.RBV", new_coord)
+
+        modify_file_and_assert_test(self.ca1D, lookup_file, MOTOR_POSITION_OUT, new_coord, test_moves_to_new_position)
+
 
