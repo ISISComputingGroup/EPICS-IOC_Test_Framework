@@ -1,5 +1,7 @@
 import itertools
 import unittest
+from datetime import time
+from time import sleep
 
 from parameterized import parameterized
 
@@ -18,7 +20,12 @@ HEATER_CARDS = ["MB1.H0", "DB3.H1", "DB6.H2"]
 AUX_CARDS = ["DB1.A0", "DB4.A1", "DB7.A2"]
 
 FULL_AUTO_MIN_PRESSURE = 5.00
-FULL_AUTO_TEMP_DEADBAND = 1
+FULL_AUTO_MAX_PRESSURE = 35.00
+FULL_AUTO_TEMP_DEADBAND = 2.5
+
+FULL_AUTO_OFFSET = 2.5
+FULL_AUTO_OFFSET_DURATION = 5.0 / 60.0  # make it go up 0.5 mbar a second for testing
+
 
 
 def get_card_pv_prefix(card):
@@ -51,6 +58,10 @@ macros["FULL_AUTO_TEMP1"] = 1
 macros["FULL_AUTO_PRESSURE1"] = 1
 macros["FULL_AUTO_MIN_PRESSURE"] = FULL_AUTO_MIN_PRESSURE
 macros["FULL_AUTO_TEMP_DEADBAND"] = FULL_AUTO_TEMP_DEADBAND
+macros["FULL_AUTO_MAX_PRESSURE"] = FULL_AUTO_MAX_PRESSURE
+macros["FULL_AUTO_OFFSET"] = FULL_AUTO_OFFSET
+macros["FULL_AUTO_OFFSET_DURATION"] = FULL_AUTO_OFFSET_DURATION
+
 
 DEVICE_PREFIX = "MERCURY_01"
 
@@ -91,6 +102,30 @@ HELIUM_READ_RATES = ["Slow", "Fast"]
 
 MOCK_NICKNAMES = ["MyNickName", "SomeOtherNickname"]
 MOCK_CALIB_FILES = ["FakeCalib", "OtherFakeCalib", "test_calib.dat", "test space calib.dat"]
+
+# Taken from the calibration file, minimum temperature, pressure
+PRESSSURE_FOR =[(0, 35),
+                (4, 35),
+                (10, 25),
+                (20, 14),
+                (50, 10),
+                (100, 8),
+                (150, 8),
+                (200, 8),
+                (280, 8)]
+
+def pressure_for(setpoint_temp):
+    """
+    For a given pressure return the base pressure
+    :param setpoint_temp: set point to get pressure for
+    :return: pressure
+    """
+    last_pressure = -10
+    for temp, pressure in PRESSSURE_FOR:
+        if setpoint_temp < temp:
+            return last_pressure
+        last_pressure = pressure
+    return last_pressure
 
 
 class MercuryTests(unittest.TestCase):
@@ -373,7 +408,7 @@ class MercuryTests(unittest.TestCase):
         self.ca.assert_that_pv_is("{}:FLOW:STAT:SP".format(pressure_card_pv_prefix), "Manual")
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_auto_flow_set_on_and_temp_low_THEN_pressure_set_to_minimum_pressure(self):
+    def test_WHEN_auto_flow_set_on_and_temp_lower_than_2_deadbands_THEN_pressure_set_to_minimum_pressure(self):
         set_point = 10
         reading = 10 - FULL_AUTO_TEMP_DEADBAND * 2.1
         card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
@@ -384,5 +419,36 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", reading])
 
-        self.ca.assert_that_pv_is("{}:PRESSURE".format(pressure_card_pv_prefix), FULL_AUTO_MIN_PRESSURE)
+        self.ca.assert_that_pv_is("{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), FULL_AUTO_MIN_PRESSURE)
 
+
+    @parameterized.expand([(10, ), (1, ), (300, )])
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_auto_flow_set_on_and_temp_low_but_within_1_to_2_deadbands_THEN_pressure_set_to_pressure_for_setpoint_temp_and_does_not_ramp(self, set_point):
+        reading = set_point- FULL_AUTO_TEMP_DEADBAND * 1.5
+        card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        self.ca.set_pv_value("{}:FULL_AUTO:SP".format(card_pv_prefix), "On")
+        self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", reading])
+
+        self.ca.assert_that_pv_is("{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), pressure_for(set_point))
+        sleep(1.5)
+        self.ca.assert_that_pv_is("{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), pressure_for(set_point))
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_auto_flow_set_on_and_temp_low_but_within_deadband_THEN_pressure_set_to_pressure_for_setpoint_temp_and_does_ramp(self):
+        set_point = 10
+        reading = set_point- FULL_AUTO_TEMP_DEADBAND * 0.9
+        card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        self.ca.set_pv_value("{}:FULL_AUTO:SP".format(card_pv_prefix), "On")
+        self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", reading])
+
+        self.ca.assert_that_pv_is_number("{}:FULL_AUTO:SP".format(pressure_card_pv_prefix), pressure_for(set_point), tolerance=FULL_AUTO_OFFSET/2)  # should see number in ramp
+        self.ca.assert_that_pv_is("{}:FULL_AUTO:SP".format(pressure_card_pv_prefix), pressure_for(set_point) + FULL_AUTO_OFFSET)  # final value
