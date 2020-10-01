@@ -17,6 +17,9 @@ LEVEL_CARDS = ["DB8.L0"]
 HEATER_CARDS = ["MB1.H0", "DB3.H1", "DB6.H2"]
 AUX_CARDS = ["DB1.A0", "DB4.A1", "DB7.A2"]
 
+FULL_AUTO_MIN_PRESSURE = 5.00
+FULL_AUTO_TEMP_DEADBAND = 1
+
 
 def get_card_pv_prefix(card):
     """
@@ -44,7 +47,10 @@ macros = {}
 macros.update({"TEMP_{}".format(key): val for key, val in enumerate(TEMP_CARDS, start=1)})
 macros.update({"PRESSURE_{}".format(key): val for key, val in enumerate(PRESSURE_CARDS, start=1)})
 macros.update({"LEVEL_{}".format(key): val for key, val in enumerate(LEVEL_CARDS, start=1)})
-
+macros["FULL_AUTO_TEMP1"] = 1
+macros["FULL_AUTO_PRESSURE1"] = 1
+macros["FULL_AUTO_MIN_PRESSURE"] = FULL_AUTO_MIN_PRESSURE
+macros["FULL_AUTO_TEMP_DEADBAND"] = FULL_AUTO_TEMP_DEADBAND
 
 DEVICE_PREFIX = "MERCURY_01"
 
@@ -65,7 +71,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM] # TODO add back in, TestModes.RECSIM]
 
 
 PID_PARAMS = ["P", "I", "D"]
@@ -331,3 +337,52 @@ class MercuryTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is(
             "{}:RESISTANCE".format(get_card_pv_prefix(PRIMARY_TEMPERATURE_CHANNEL)), self.ca.Alarms.NONE
         )
+
+    def test_WHEN_auto_flow_set_THEN_pv_updates_and_states_are_set(self):
+        card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        self.ca.set_pv_value("{}:PID:AUTO:SP".format(card_pv_prefix), "OFF")
+        self.ca.set_pv_value("{}:FLOW:STAT:SP".format(card_pv_prefix), "Auto")
+        self.ca.set_pv_value("{}:HEATER:MODE:SP".format(card_pv_prefix), "Manual")
+        self.ca.set_pv_value("{}:FLOW:STAT:SP".format(pressure_card_pv_prefix), "Manual")
+
+        self.ca.assert_setting_setpoint_sets_readback(
+            "ON", set_point_pv="{}:FULL_AUTO:SP".format(card_pv_prefix),
+            readback_pv="{}:FULL_AUTO".format(card_pv_prefix))
+        self.ca.assert_that_pv_is("{}:PID:AUTO:SP".format(card_pv_prefix), "ON")
+        self.ca.assert_that_pv_is("{}:FLOW:STAT:SP".format(card_pv_prefix), "Manual")
+        self.ca.assert_that_pv_is("{}:HEATER:MODE".format(card_pv_prefix), "Auto")
+        self.ca.assert_that_pv_is("{}:FLOW:STAT:SP".format(pressure_card_pv_prefix), "Auto")
+
+    def test_WHEN_auto_flow_set_off_THEN_pv_updates_and_states_are_not_set(self):
+        card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        self.ca.set_pv_value("{}:PID:AUTO:SP".format(card_pv_prefix), "OFF")
+        self.ca.set_pv_value("{}:FLOW:STAT:SP".format(card_pv_prefix), "Auto")
+        self.ca.set_pv_value("{}:HEATER:MODE:SP".format(card_pv_prefix), "Manual")
+        self.ca.set_pv_value("{}:FLOW:STAT:SP".format(pressure_card_pv_prefix), "Manual")
+
+        self.ca.assert_setting_setpoint_sets_readback(
+            "OFF", set_point_pv="{}:FULL_AUTO:SP".format(card_pv_prefix),
+            readback_pv="{}:FULL_AUTO".format(card_pv_prefix))
+        self.ca.assert_that_pv_is("{}:PID:AUTO:SP".format(card_pv_prefix), "OFF")
+        self.ca.assert_that_pv_is("{}:FLOW:STAT:SP".format(card_pv_prefix), "Auto")
+        self.ca.assert_that_pv_is("{}:HEATER:MODE".format(card_pv_prefix), "Manual")
+        self.ca.assert_that_pv_is("{}:FLOW:STAT:SP".format(pressure_card_pv_prefix), "Manual")
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_auto_flow_set_on_and_temp_low_THEN_pressure_set_to_minimum_pressure(self):
+        set_point = 10
+        reading = 10 - FULL_AUTO_TEMP_DEADBAND * 2.1
+        card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        self.ca.set_pv_value("{}:FULL_AUTO:SP".format(card_pv_prefix), "On")
+        self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", reading])
+
+        self.ca.assert_that_pv_is("{}:PRESSURE".format(pressure_card_pv_prefix), FULL_AUTO_MIN_PRESSURE)
+
