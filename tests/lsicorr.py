@@ -175,5 +175,10 @@ class LSITests(unittest.TestCase):
                                                                 lambda pv_value: np.allclose(pv_value, test_data))
 
 
-    def test_GIVEN_device_setter_WHEN_invalid_value_written_THEN_pv_does_not_update(self):
-        pass
+    def test_GIVEN_start_pressed_WHEN_measurement_already_on_THEN_new_run_not_started(self):
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+
+        error_message = "LSI --- Cannot configure: Measurement active"
+
+        self.ca.assert_that_pv_is("ERRORMSG", error_message)
