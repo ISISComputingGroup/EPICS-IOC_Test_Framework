@@ -10,6 +10,8 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, Proc
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list, ManagerMode, unstable_test
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 ioc_number = 1
 DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
 
@@ -21,6 +23,7 @@ IOCS = [
         "directory": get_default_ioc_dir("LSICORR", iocnum=ioc_number),
         "started_text": "IOC started",
         "macros": {
+            "OUTPUTFILE": os.path.join(dir_path, "..", "test-reports", "lsicorr_test_save.dat")
         }
     }
 
@@ -166,8 +169,11 @@ class LSITests(unittest.TestCase):
 
         elements_in_correlation_function = self.ca.get_pv_value("CORRELATION_FUNCTION.NELM")
 
-        test_data = np.linspace(0, elements_in_correlation_function, elements_in_correlation_function).tolist()
+        test_data = np.linspace(0, elements_in_correlation_function, elements_in_correlation_function)
 
-        correlation_function = self.ca.get_pv_value("CORRELATION_FUNCTION")
+        self.ca.assert_that_pv_value_causes_func_to_return_true("CORRELATION_FUNCTION",
+                                                                lambda pv_value: np.allclose(pv_value, test_data))
 
-        self.assertListEqual(test_data, correlation_function)
+
+    def test_GIVEN_device_setter_WHEN_invalid_value_written_THEN_pv_does_not_update(self):
+        pass
