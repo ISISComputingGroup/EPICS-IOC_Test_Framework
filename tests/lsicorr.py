@@ -1,6 +1,7 @@
 import os
 import unittest
 import time
+import numpy as np
 
 from parameterized import parameterized
 
@@ -159,3 +160,14 @@ class LSITests(unittest.TestCase):
     @parameterized.expand(parameterized_list(PV_NAMES))
     def test_GIVEN_pv_WHEN_pv_read_THEN_pv_has_no_alarms(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+
+    def test_GIVEN_fake_data_WHEN_start_pressed_THEN_fake_data_returned(self):
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+
+        elements_in_correlation_function = self.ca.get_pv_value("CORRELATION_FUNCTION.NELM")
+
+        test_data = np.linspace(0, elements_in_correlation_function, elements_in_correlation_function).tolist()
+
+        correlation_function = self.ca.get_pv_value("CORRELATION_FUNCTION")
+
+        self.assertListEqual(test_data, correlation_function)
