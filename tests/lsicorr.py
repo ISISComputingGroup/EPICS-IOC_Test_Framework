@@ -164,18 +164,20 @@ class LSITests(unittest.TestCase):
     def test_GIVEN_pv_WHEN_pv_read_THEN_pv_has_no_alarms(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
-    def test_GIVEN_fake_data_WHEN_start_pressed_THEN_fake_data_returned(self):
+    @parameterized.expand(parameterized_list([
+        "CORRELATION_FUNCTION",
+        "LAGS"
+    ]))
+    def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_correlation_and_lags_populated(self, _, pv):
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
 
-        elements_in_correlation_function = self.ca.get_pv_value("CORRELATION_FUNCTION.NELM")
+        array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
 
-        test_data = np.linspace(0, elements_in_correlation_function, elements_in_correlation_function)
+        test_data = np.linspace(0, array_size, array_size)
 
-        self.ca.assert_that_pv_value_causes_func_to_return_true("CORRELATION_FUNCTION",
-                                                                lambda pv_value: np.allclose(pv_value, test_data))
+        self.ca.assert_that_pv_value_causes_func_to_return_true(pv, lambda pv_value: np.allclose(pv_value, test_data))
 
-
-    def test_GIVEN_start_pressed_WHEN_measurement_already_on_THEN_new_run_not_started(self):
+    def test_GIVEN_start_pressed_WHEN_measurement_already_on_THEN_error_raised(self):
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
 
