@@ -76,7 +76,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
             raise AssertionError("Failed to call sets:{}".format(error_message_calls))
 
         # Assert that setpoint pv values have been reapplied
-        error_message_setpoints = []
+        error_message_setpoints = ""
         for pv, value in pv_values.items():
             try:
                 self.ca.assert_that_pv_is(pv, value)
