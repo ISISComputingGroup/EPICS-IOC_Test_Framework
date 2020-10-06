@@ -35,12 +35,28 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
     def setUp(self):
         super(KepcoNoRemTests, self).setUp()
 
+    def lewis_set_and_assert_list(self, lewis_vars_and_vals):
+        for var, val in lewis_vars_and_vals:
+            self._lewis.backdoor_set_and_assert_set(var, val)
+
+    def assert_lewis_set_counts_incremented(self, lewis_vars_and_vals):
+        # Assert that correct calls have been made to write to setpoints
+        error_message_calls = ""
+        for var, val in lewis_vars_and_vals:
+            try:
+                self._lewis.assert_that_emulator_value_is(var, val + 1, cast=int)
+            except AssertionError as e:
+                error_message_calls += "\n{}".format(e.message)
+        if error_message_calls != "":
+            raise AssertionError("Failed to call sets:{}".format(error_message_calls))
+
     @skip_if_recsim("Lewis not available in recsim")
     def test_GIVEN_kepco_started_THEN_reset_and_params_resent(self):
         # Reset data
         self._lewis.backdoor_run_function_on_device("reset")
 
         # Set setpoint pvs to something different to their initial values
+        # Keep dict to check autosave has maintained the sets after reset
         pv_values = {
             "CURRENT:SP": float(self._lewis.backdoor_get_from_device("setpoint_current")) + 5.0,
             "VOLTAGE:SP": float(self._lewis.backdoor_get_from_device("setpoint_voltage")) + 5.0,
@@ -51,10 +67,12 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
             self.ca.set_pv_value(pv, value)
 
         # Set counts to zero and remote mode to false
+        # We want lewis_vars and lewis_vals separate as they are checked later
         lewis_vars = ["voltage_set_count", "current_set_count", "output_mode_set_count", "output_status_set_count"]
         lewis_vals = [0, 0, 0, 0]
-        for var, val in zip(lewis_vars + ["reset_count", "remote_comms_enabled"], lewis_vals + [0, False]):
-            self._lewis.backdoor_set_and_assert_set(var, val)
+        self.lewis_set_and_assert_list(
+            zip(lewis_vars + ["reset_count", "remote_comms_enabled"], lewis_vals + [0, False])
+        )
 
         # Restart the ioc, initiating a reset and sending of values after 100 microseconds
         self._ioc.start_ioc()
@@ -65,23 +83,8 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         # Wait for reset to be done as is done in the IOC
         time.sleep(1)
 
-        # Assert that correct calls have been made to write to setpoints
-        error_message_calls = ""
-        for var, val in zip(lewis_vars, lewis_vals):
-            try:
-                self._lewis.assert_that_emulator_value_is(var, val + 1, cast=int)
-            except AssertionError as e:
-                error_message_calls += "\n{}".format(e.message)
-        if error_message_calls != "":
-            raise AssertionError("Failed to call sets:{}".format(error_message_calls))
+        # Assert correct calls made
+        self.assert_lewis_set_counts_incremented(zip(lewis_vars, lewis_vals))
 
-        # Assert that setpoint pv values have been reapplied
-        error_message_setpoints = ""
-        for pv, value in pv_values.items():
-            try:
-                self.ca.assert_that_pv_is(pv, value)
-            except AssertionError as e:
-                error_message_setpoints += "\n{}".format(e.message)
-        if error_message_setpoints != "":
-            raise AssertionError("Failed to set setpoints:{}".format(error_message_setpoints))
-
+        # Assert autosave has correctly set pvs
+        self.ca.assert_dict_of_pvs_have_given_values(pv_values)
