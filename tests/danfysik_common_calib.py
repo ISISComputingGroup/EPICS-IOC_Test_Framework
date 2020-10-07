@@ -14,6 +14,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("DFKPS"),
         "macros": {
+            "DEV_TYPE": "8000",
             "CALIBRATED": "1",
             "LOCAL_CALIB": "no",
             "CALIB_FILE": "default_calib.dat",  # 1:1 calibration useful for testing

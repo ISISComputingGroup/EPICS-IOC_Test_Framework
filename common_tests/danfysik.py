@@ -1,6 +1,6 @@
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, skip_if_condition
+from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, skip_if_condition, ManagerMode
 from utils.ioc_launcher import IOCRegister, MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT
 from parameterized import parameterized
 
@@ -29,6 +29,7 @@ class DanfysikBase(object):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
+
         self._lewis.backdoor_run_function_on_device("reinitialise")
         self._lewis.backdoor_set_on_device("comms_initialized", True)
 
@@ -36,7 +37,25 @@ class DanfysikBase(object):
         self.id_prefixes = [""]
 
         self.current_readback_factor = 1
-        self.ca.set_pv_value("AUTOONOFF", 0)
+
+        self.set_autoonoff(False)
+
+    def set_autoonoff(self, state):
+        """
+        Sets the status of the AUTOONOFF pv.
+
+        Args:
+            state (bool): True to enable AUTOONOFF, false otherwise
+        """
+        state_desc = "Enabled" if state else "Disabled"
+        state_int = 1 if state else 0
+
+        if self.ca.get_pv_value("AUTOONOFF") != state_desc:
+            old_autoonoff_disp = int(self.ca.get_pv_value("AUTOONOFF.DISP"))
+            self.ca.set_pv_value("AUTOONOFF.DISP", 0, wait=True, sleep_after_set=0)
+            self.ca.set_pv_value("AUTOONOFF", state, sleep_after_set=0)
+            self.ca.assert_that_pv_is("AUTOONOFF", state_desc)
+            self.ca.set_pv_value("AUTOONOFF.DISP", old_autoonoff_disp, sleep_after_set=0)
 
 
 class DanfysikCommon(DanfysikBase):
@@ -139,45 +158,45 @@ class DanfysikCommon(DanfysikBase):
 
     @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_on_and_zero_sp_WHEN_enabling_auto_onoff_THEN_device_is_powered_off(self):
-        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 1)
         self.ca.set_pv_value("CURR:SP", 0)
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
-        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.set_autoonoff(True)
 
         self.ca.assert_that_pv_is("POWER:SP", "Off")
 
     @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_off_and_non_zero_sp_WHEN_enabling_auto_onoff_THEN_device_is_powered_on(self):
-        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 0)
         self.ca.set_pv_value("CURR:SP", 10)
         self.ca.assert_that_pv_is("POWER:SP", "Off")
 
-        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.set_autoonoff(True)
 
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
     @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_off_and_zero_sp_WHEN_enabling_auto_onoff_THEN_device_remains_off(self):
-        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 0)
         self.ca.set_pv_value("CURR:SP", 0)
         self.ca.assert_that_pv_is("POWER:SP", "Off")
 
-        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.set_autoonoff(True)
 
         self.ca.assert_that_pv_is("POWER:SP", "Off")
 
     @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_on_and_non_zero_sp_WHEN_enabling_auto_onoff_THEN_device_remains_on(self):
-        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 1)
         self.ca.set_pv_value("CURR:SP", 10)
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
-        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.set_autoonoff(True)
 
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
@@ -185,7 +204,7 @@ class DanfysikCommon(DanfysikBase):
     def test_GIVEN_power_on_and_auto_onoff_enabled_WHEN_setting_zero_value_THEN_device_is_powered_off(self):
         self.ca.set_pv_value("POWER:SP", 1)
         self.ca.set_pv_value("CURR:SP", 10)
-        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.set_autoonoff(True)
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
         self.ca.set_pv_value("CURR:SP", 0)
@@ -194,7 +213,7 @@ class DanfysikCommon(DanfysikBase):
 
     @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_off_and_auto_onoff_enabled_WHEN_setting_non_zero_value_THEN_device_is_powered_on(self):
-        self.ca.set_pv_value("AUTOONOFF", 1)
+        self.set_autoonoff(True)
         self.ca.set_pv_value("POWER:SP", 0)
         self.ca.set_pv_value("CURR:SP", 0)
         self.ca.assert_that_pv_is("POWER:SP", "Off")
@@ -205,7 +224,7 @@ class DanfysikCommon(DanfysikBase):
 
     @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_auto_onoff_disabled_WHEN_sweep_to_zero_and_turn_off_triggered_THEN_actioned_by_enabling_auto_onoff_and_setting_sp_to_zero(self):
-        self.ca.set_pv_value("AUTOONOFF", 0)
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 1)
         self.ca.set_pv_value("CURR:SP", 10)
         self.ca.assert_that_pv_is("CURR", 10)
@@ -225,7 +244,9 @@ class DanfysikCommon(DanfysikBase):
     @skip_if_recsim("In rec sim this test fails as there is nothing holding the device state")
     def test_WHEN_IOC_is_restarted_THEN_current_and_powered_are_not_changed(self, _, power_state, current):
         self.ca.set_pv_value("POWER:SP", int(power_state))
+        self.ca.assert_that_pv_is("POWER", "On" if power_state else "Off")
         self.ca.set_pv_value("CURR:SP", current)
+        self.ca.assert_that_pv_is("CURR", current)
 
         self._ioc.start_ioc()
 
