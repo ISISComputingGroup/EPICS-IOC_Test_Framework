@@ -45,6 +45,7 @@ class JawsTestsBase(object):
         self._ioc = IOCRegister.get_running("jaws")
         self.ca = ChannelAccess(default_timeout=30)
         for mtr in self.UNDERLYING_MTRS.values():
+            self.ca.set_pv_value("{}.DISP", 0)
             self.ca.set_pv_value("{}.VMAX".format(mtr), 100)
             self.ca.set_pv_value("{}.VELO".format(mtr), 100)
 
