@@ -23,7 +23,9 @@ IOCS = [
         "directory": get_default_ioc_dir("LSICORR", iocnum=ioc_number),
         "started_text": "IOC started",
         "macros": {
-            "OUTPUTFILE": os.path.join(dir_path, "..", "test-reports", "lsicorr_test_save.dat")
+            "FILEPATH": os.path.join(dir_path, "..", "test-reports", "lsicorr_test_save.dat"),
+            "ADDR": "127.0.0.1",
+            "FIRMWARE_REVISION": "0"
         }
     }
 
