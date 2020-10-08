@@ -1,6 +1,6 @@
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, skip_if_condition, ManagerMode
+from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, skip_if_condition
 from utils.ioc_launcher import IOCRegister, MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT
 from parameterized import parameterized
 
@@ -48,7 +48,6 @@ class DanfysikBase(object):
             state (bool): True to enable AUTOONOFF, false otherwise
         """
         state_desc = "Enabled" if state else "Disabled"
-        state_int = 1 if state else 0
 
         if self.ca.get_pv_value("AUTOONOFF") != state_desc:
             old_autoonoff_disp = int(self.ca.get_pv_value("AUTOONOFF.DISP"))
