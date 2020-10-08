@@ -31,13 +31,15 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
+SLOTS = ["B", "CB", "CT", "GT", "T", "WB", "WT"]
+
 
 class SampleChangerTests(unittest.TestCase):
     """
     Base class for jaws tests
     """
     def setUp(self):
-        self.ca = ChannelAccess(default_timeout=30)
+        self.ca = ChannelAccess(default_timeout=5)
 
         self.ca.assert_that_pv_exists("SAMPCHNG:SLOT")
         for axis in AXES:
@@ -45,7 +47,7 @@ class SampleChangerTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list([
         {
-            "slot_name": "",
+            "slot_name": "_ALL",
             "positions_exist": ["{}CB".format(n) for n in range(1, 14+1)] + ["{}CT".format(n) for n in range(1, 14+1)],
             "positions_not_exist": [],
         },
@@ -71,3 +73,20 @@ class SampleChangerTests(unittest.TestCase):
         for pos in settings["positions_not_exist"]:
             self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
                                                                     func=lambda val: pos not in val)
+
+    def test_WHEN_invalid_slot_is_entered_THEN_old_slot_kept(self):
+        # First set a valid slot
+        self.ca.assert_setting_setpoint_sets_readback(readback_pv="SAMPCHNG:SLOT", value="CT")
+
+        self.ca.set_pv_value("SAMPCHNG:SLOT:SP", "does_not_exist", sleep_after_set=0)
+        self.ca.assert_that_pv_alarm_is("SAMPCHNG:SLOT:SP", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_is("SAMPCHNG:SLOT", "CT")
+        self.ca.assert_that_pv_value_is_unchanged("SAMPCHNG:SLOT", wait=3)
+
+        for pos in ["{}CT".format(n) for n in range(1, 14+1)]:
+            self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+                                                                    func=lambda val: pos in val)
+
+    def test_available_slots_can_be_loaded(self):
+        self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
+                                                                func=lambda val: all(s in val for s in SLOTS))
