@@ -14,7 +14,7 @@ MTR_01 = "GALIL_01"
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "sampleChanger", "master", "settings", "sans_sample_changer"))
 
-AXES = ["SAMPLECHANGER:X", "SAMPLECHANGER:Y"]
+AXES = ["SC:X", "SC:Y"]
 
 IOCS = [
     {
