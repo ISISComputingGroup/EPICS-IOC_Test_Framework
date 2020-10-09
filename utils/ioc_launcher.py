@@ -291,6 +291,7 @@ class ProcServLauncher(BaseLauncher):
 
         self.telnet = None
         self.autorestart = True
+        self.original_macros = ioc.get("macros", {})
 
     def get_environment_vars(self):
         settings = super(ProcServLauncher, self).get_environment_vars()
@@ -431,6 +432,25 @@ class ProcServLauncher(BaseLauncher):
         arguments_match = all([args in process_arguments for args in ioc_start_arguments])
 
         return arguments_match
+
+    def start_with_macros(self, macros):
+        """
+        Restart the ioc with the given macros
+
+        Args
+            macros (dict): A dictionary of macros to restart the ioc with.
+        """
+        self.macros = macros
+        self.create_macros_file()
+        self.start_ioc()
+
+    def start_with_original_macros(self):
+        """
+        Restart the ioc with the macros originally set.
+        """
+        self.macros = self.original_macros
+        self.create_macros_file()
+        self.start_ioc()
 
 
 class IocLauncher(BaseLauncher):

@@ -27,9 +27,14 @@ class UnitFlags(object):
     ON = 1
     OFF = 0
 
+
+IDN_NO_REM = ("KEPCO, BIT 4886 100-2 123456 1.8-", 1.8)
+
+IDN_REM = ("KEPCO, BIT 4886 100-2, 123456, 3.3-", 3.7)
+
 IDN_LIST = [
-    ("KEPCO, BIT 4886 100-2 123456 1.8-", 1.8),
-    ("KEPCO, BIT 4886 100-2, 123456, 3.3-", 3.7),
+    IDN_NO_REM,
+    IDN_REM,
     ("KEPCO,BIT 4886 100-2,123456,", 2.2),
     ("KEPCO,BIT 4886 100-2,123456 ", 1.4),
     # With current and voltage
