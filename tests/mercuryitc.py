@@ -138,7 +138,8 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("connected", True)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
         card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
-        self.ca.assert_setting_setpoint_sets_readback("OFF", readback_pv="{}:SPC".format(card_pv_prefix))
+        self.ca.assert_setting_setpoint_sets_readback("OFF", readback_pv="{}:SPC".format(card_pv_prefix),
+                                                      expected_alarm=self.ca.Alarms.MAJOR)
 
     @parameterized.expand(parameterized_list(
         itertools.product(PID_PARAMS, PID_TEST_VALUES, TEMP_CARDS + PRESSURE_CARDS)))
@@ -406,7 +407,7 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             "OFF", set_point_pv="{}:SPC:SP".format(card_pv_prefix),
-            readback_pv="{}:SPC".format(card_pv_prefix))
+            readback_pv="{}:SPC".format(card_pv_prefix), expected_alarm=self.ca.Alarms.MAJOR)
         self.ca.assert_that_pv_is("{}:PID:AUTO".format(card_pv_prefix), "OFF")
         self.ca.assert_that_pv_is("{}:FLOW:STAT".format(card_pv_prefix), "Auto")
         self.ca.assert_that_pv_is("{}:HEATER:MODE".format(card_pv_prefix), "Manual")
@@ -512,6 +513,7 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
 
+    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_auto_flow_on_but_error_in_temp_readback_THEN_pressure_is_not_updated(self):
         diff = 1000
         set_point = 10
