@@ -2,15 +2,13 @@ import unittest
 import os
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
 from parameterized import parameterized
-from collections import OrderedDict
 
 MTR_01 = "GALIL_01"
 
-# Tests will fail if JAWS support module is not up to date and built
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "sampleChanger", "master", "settings", "sans_sample_changer"))
 
@@ -36,7 +34,7 @@ SLOTS = ["B", "CB", "CT", "GT", "T", "WB", "WT"]
 
 class SampleChangerTests(unittest.TestCase):
     """
-    Base class for jaws tests
+    Tests for the sample changer.
     """
     def setUp(self):
         self.ca = ChannelAccess(default_timeout=5)
