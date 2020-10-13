@@ -357,13 +357,15 @@ class ProcServLauncher(BaseLauncher):
         if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
 
-    def start_ioc(self):
+    def start_ioc(self, wait=False):
         """
         Sends the start/restart IOC command to procserv. (^X)
 
         """
         start_command = "\x18"
         self.telnet.write("{cmd}\n".format(cmd=start_command))
+        if wait:
+            self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
     def quit_ioc(self):
         """
@@ -433,7 +435,7 @@ class ProcServLauncher(BaseLauncher):
 
         return arguments_match
 
-    def start_with_macros(self, macros):
+    def start_with_macros(self, macros, wait=False):
         """
         Restart the ioc with the given macros
 
@@ -442,15 +444,15 @@ class ProcServLauncher(BaseLauncher):
         """
         self.macros = macros
         self.create_macros_file()
-        self.start_ioc()
+        self.start_ioc(wait)
 
-    def start_with_original_macros(self):
+    def start_with_original_macros(self, wait=False):
         """
         Restart the ioc with the macros originally set.
         """
         self.macros = self.original_macros
         self.create_macros_file()
-        self.start_ioc()
+        self.start_ioc(wait)
 
 
 class IocLauncher(BaseLauncher):

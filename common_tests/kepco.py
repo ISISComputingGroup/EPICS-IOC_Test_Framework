@@ -124,6 +124,7 @@ class KepcoTests(object):
     @parameterized.expand(parameterized_list(IDN_LIST))
     def test_GIVEN_idn_set_WHEN_read_THEN_idn_is_as_expected(self, _, idn_no_firmware, firmware):
         expected_idn = self._set_IDN(idn_no_firmware, firmware)
+        self.ca.process_pv("IDN")
         self.ca.assert_that_pv_is("IDN", expected_idn)
 
     @skip_if_recsim("In rec sim you can not diconnect the device")
@@ -137,4 +138,5 @@ class KepcoTests(object):
     @parameterized.expand(parameterized_list(IDN_LIST))
     def test_GIVEN_idn_set_AND_firmware_set_THEN_firmware_pv_correct(self, _, idn_no_firmware, firmware):
         self._set_IDN(idn_no_firmware, firmware)
+        self.ca.process_pv("FIRMWARE")
         self.ca.assert_that_pv_is("FIRMWARE", firmware)

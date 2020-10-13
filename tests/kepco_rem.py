@@ -10,6 +10,8 @@ from distutils.util import strtobool
 
 from parameterized import parameterized
 
+import time
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
@@ -17,7 +19,6 @@ IOCS = [
         "macros": {},
         "emulator": emulator_name,
         "ioc_launcher_class": ProcServLauncher,
-        "lewis_protocol": "with_rem",
     },
 ]
 
@@ -33,35 +34,50 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         super(KepcoRemTests, self).setUp()
         self._set_IDN(IDN_REM[0], IDN_REM[1])
 
-    @parameterized.expand(parameterized_list([
-        "OUTPUTMODE:SP",
-        "CURRENT:SP",
-        "VOLTAGE:SP",
-        "OUTPUTSTATUS:SP",
-    ]))
-    @skip_if_recsim("Complex behaviour not simulated in recsim")
-    def test_GIVEN_psu_in_local_mode_WHEN_setpoint_is_sent_THEN_power_supply_put_into_remote_first(self, _,
-                                                                                                   setpoint_pv):
-        self._lewis.backdoor_set_on_device("remote_comms_enabled", False)
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
-
-        self.ca.process_pv(setpoint_pv)
-
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
+    # @parameterized.expand(parameterized_list([
+    #     "OUTPUTMODE:SP",
+    #     "CURRENT:SP",
+    #     "VOLTAGE:SP",
+    #     "OUTPUTSTATUS:SP",
+    # ]))
+    # @skip_if_recsim("Complex behaviour not simulated in recsim")
+    # def test_GIVEN_psu_in_local_mode_WHEN_setpoint_is_sent_THEN_power_supply_put_into_remote_first(self, _,
+    #                                                                                                setpoint_pv):
+    #     self._lewis.backdoor_set_on_device("remote_comms_enabled", False)
+    #     self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
+    #
+    #     self.ca.process_pv(setpoint_pv)
+    #
+    #     self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
 
     @parameterized.expand(parameterized_list([
         (IDN_REM[0], IDN_REM[1], {}),
-        (IDN_REM[0], IDN_REM[1], {"ON_START": 0}),
-        (IDN_REM[0], IDN_REM[1], {"ON_START": 2}),
-        (IDN_NO_REM[0], IDN_NO_REM[1], {"ON_START": 2}),
+        (IDN_REM[0], IDN_REM[1], {"RESET_ON_START": 0}),
+        (IDN_REM[0], IDN_REM[1], {"RESET_ON_START": 1}),
     ]))
     @skip_if_recsim("Lewis not available in recsim")
-    def test_GIVEN_kepco_started_THEN_remote_command_sent(self, _, idn_no_firmware, firmware, macros):
+    def test_GIVEN_kepco_firmware_supports_SYSTREM_THEN_remote_command_sent_AND_no_reset(
+            self, _, idn_no_firmware, firmware, macros):
         self._set_IDN(idn_no_firmware, firmware)
         self._lewis.backdoor_set_and_assert_set("reset_count", 0)
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
-        self._ioc.start_with_macros(macros)
+        self._ioc.start_with_macros(macros, wait=True)
+        self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
 
         self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
         self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
+
+    @skip_if_recsim("Lewis not available in recsim")
+    def test_GIVEN_kepco_firmware_does_not_support_SYSTREM_WHEN_on_start_is_2_THEN_no_remote_mode_AND_no_reset(self):
+        idn_no_firmware, firmware, macros = IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 0}
+        self._set_IDN(idn_no_firmware, firmware)
+        self._lewis.backdoor_set_and_assert_set("reset_count", 0)
+        self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
+
+        self._ioc.start_with_macros(macros, wait=True)
+        self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
+
+        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
+        self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
+
