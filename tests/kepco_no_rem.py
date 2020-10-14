@@ -51,7 +51,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
             try:
                 self._lewis.assert_that_emulator_value_is(var, set_func(val), cast=int)
             except AssertionError as e:
-                error_message_calls += "\n{}".format(e.message)
+                error_message_calls += "\n{}\n{}".format(var, e.message)
         if error_message_calls != "":
             raise AssertionError("Failed to call sets:{}".format(error_message_calls))
 
@@ -92,7 +92,9 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         )
 
         # Restart the ioc, initiating a reset and sending of values after 100 microseconds
-        self._ioc.start_with_macros(macros)
+        self._ioc.start_with_macros(macros, wait=True)
+        self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
+
 
         # Assert reset occurred
         self._lewis.assert_that_emulator_value_is("reset_count", 1, cast=int)
