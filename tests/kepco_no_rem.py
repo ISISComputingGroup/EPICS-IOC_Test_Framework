@@ -107,4 +107,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
 
         # Assert autosave has correctly set pvs
         self.ca.assert_dict_of_pvs_have_given_values(pv_values)
-        self._ioc.start_with_original_macros()
+
+        # Reset the macros for subsequent tests
+        self._ioc.start_with_original_macros(wait=True)
+        self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
