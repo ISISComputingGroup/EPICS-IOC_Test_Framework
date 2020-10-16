@@ -36,11 +36,9 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 class DanfysikUnipolarTest(DanfysikBase, unittest.TestCase):
     """
-    Test for disabling danfysik automatic PSU on/off capability. In a seperate file to the other tests
-    due to inability to change macro DISABLE_AUTOONOFF at runtime and the fact that most tests require DISABLE_AUTOONOFF
-    to be 0. Tests inherited from DanfysikBase.
+    Tests for unipolar danfysik. Separate test class as macros cannot be set at runtime.
     """
-    def test_GIVEN_polarity_is_bipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
+    def test_GIVEN_polarity_is_unipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
         # set to non-zero value initially to test minimum value is actually set
         initial_curr = 10
         self.ca.set_pv_value("CURR:SP", initial_curr)
