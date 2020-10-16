@@ -6,6 +6,8 @@ from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED
 from utils.testing import skip_if_recsim
 
+MAX_RAW_SETPOINT = 1000000
+MIN_RAW_SETPOINT = MAX_RAW_SETPOINT * (-1)
 
 IOCS = [
     {
@@ -18,6 +20,8 @@ IOCS = [
             "FACTOR_READ_V": "1",
             "FACTOR_WRITE_I": "1",
             "DISABLE_AUTOONOFF": "0",
+            "MAX_RAW_SETPOINT": MAX_RAW_SETPOINT,
+            "POLARITY": "BIPOLAR",
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8800",
@@ -65,3 +69,9 @@ class Danfysik8800Tests(DanfysikCommon, unittest.TestCase):
             self.ca.assert_that_pv_is(ilk_pv, HAS_TRIPPED[True])
             self._lewis.backdoor_command(["device", "disable_interlock", ilk_name])
             self.ca.assert_that_pv_is(ilk_pv, HAS_TRIPPED[False])
+
+    def test_GIVEN_polarity_is_bipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
+        self.ca.set_pv_value("CURR:SP", MIN_RAW_SETPOINT * 2)
+
+        self.ca.assert_that_pv_is("RAW:SP", MIN_RAW_SETPOINT)
+        self.ca.assert_that_pv_is("RAW", MIN_RAW_SETPOINT)

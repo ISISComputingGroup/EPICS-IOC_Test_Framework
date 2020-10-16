@@ -1,0 +1,54 @@
+import unittest
+
+from utils.test_modes import TestModes
+from utils.ioc_launcher import get_default_ioc_dir
+
+
+from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
+
+from utils.ioc_launcher import ProcServLauncher
+
+MAX_RAW_SETPOINT = 1000000
+MIN_RAW_SETPOINT = MAX_RAW_SETPOINT * (-1)
+
+IOCS = [
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("DFKPS"),
+        "macros": {
+            "DEV_TYPE": "8000",
+            "CALIBRATED": "0",
+            "FACTOR_READ_I": "1",
+            "FACTOR_READ_V": "1",
+            "FACTOR_WRITE_I": "1",
+            "DISABLE_AUTOONOFF": "1",
+            "POLARITY": "UNIPOLAR",
+            "MAX_RAW_SETPOINT": MAX_RAW_SETPOINT
+        },
+        "emulator": EMULATOR_NAME,
+        "lewis_protocol": "model8000",
+        "ioc_launcher_class": ProcServLauncher,
+    },
+]
+
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+
+
+class DanfysikUnipolarTest(DanfysikBase, unittest.TestCase):
+    """
+    Test for disabling danfysik automatic PSU on/off capability. In a seperate file to the other tests
+    due to inability to change macro DISABLE_AUTOONOFF at runtime and the fact that most tests require DISABLE_AUTOONOFF
+    to be 0. Tests inherited from DanfysikBase.
+    """
+    def test_GIVEN_polarity_is_bipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
+        # set to non-zero value initially to test minimum value is actually set
+        initial_curr = 10
+        self.ca.set_pv_value("CURR:SP", initial_curr)
+        self.ca.assert_that_pv_is("RAW:SP", initial_curr)
+        self.ca.assert_that_pv_is("RAW", initial_curr)
+
+        self.ca.set_pv_value("CURR:SP", MIN_RAW_SETPOINT * 2)
+
+        self.ca.assert_that_pv_is("RAW:SP", 0)
+        self.ca.assert_that_pv_is("RAW", 0)
+
