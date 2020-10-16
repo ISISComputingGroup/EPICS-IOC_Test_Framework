@@ -9,7 +9,7 @@ from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
 from utils.ioc_launcher import ProcServLauncher
 
 MAX_RAW_SETPOINT = 1000000
-MIN_RAW_SETPOINT = MAX_RAW_SETPOINT * (-1)
+MIN_RAW_SETPOINT = 0
 
 IOCS = [
     {
@@ -38,15 +38,15 @@ class DanfysikUnipolarTest(DanfysikBase, unittest.TestCase):
     """
     Tests for unipolar danfysik. Separate test class as macros cannot be set at runtime.
     """
-    def test_GIVEN_polarity_is_unipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
+    def test_GIVEN_polarity_is_unipolar_WHEN_setting_negative_current_THEN_current_is_set_to_zero(self):
         # set to non-zero value initially to test minimum value is actually set
         initial_curr = 10
         self.ca.set_pv_value("CURR:SP", initial_curr)
         self.ca.assert_that_pv_is("RAW:SP", initial_curr)
         self.ca.assert_that_pv_is("RAW", initial_curr)
 
-        self.ca.set_pv_value("CURR:SP", MIN_RAW_SETPOINT * 2)
+        self.ca.set_pv_value("CURR:SP", MAX_RAW_SETPOINT * (-1))
 
         self.ca.assert_that_pv_is("RAW:SP", 0)
-        self.ca.assert_that_pv_is("RAW", 0)
+        self.ca.assert_that_pv_is("RAW", MIN_RAW_SETPOINT)
 
