@@ -54,5 +54,6 @@ class InstEtcTests(unittest.TestCase):
 
     def test_GIVEN_loaded_WHEN_set_and_read_button_THEN_running_set(self):
         for var_index in range(NUM_USER_BUTTONS + 1):
-            self.ca.assert_setting_setpoint_sets_readback("Running", readback_pv="USER:BUTTON{}".format(var_index))
+            self.ca.assert_setting_setpoint_sets_readback("Running", readback_pv="USER:BUTTON{}:SP".format(var_index),
+                                                          set_point_pv="USER:BUTTON{}:SP".format(var_index))
         self.ca.assert_that_pv_does_not_exist("USER:BUTTON{}".format(NUM_USER_VARS + 1))
