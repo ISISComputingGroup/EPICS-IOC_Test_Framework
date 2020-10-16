@@ -77,7 +77,7 @@ class _AssertLogContext(object):
         return True
 
 
-def get_running_lewis_and_ioc(emulator_name, ioc_name):
+def get_running_lewis_and_ioc(emulator_name=None, ioc_name=None):
     """
     Assert that the emulator and ioc have been started if needed.
 
