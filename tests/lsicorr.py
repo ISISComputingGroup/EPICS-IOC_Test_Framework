@@ -23,7 +23,7 @@ IOCS = [
         "directory": get_default_ioc_dir("LSICORR", iocnum=ioc_number),
         "started_text": "IOC started",
         "macros": {
-            "FILEPATH": os.path.join(dir_path, "..", "test-reports", "lsicorr_test_save.dat"),
+            "FILEPATH": os.path.join(dir_path, "..", "test-reports"),
             "ADDR": "127.0.0.1",
             "FIRMWARE_REVISION": "0"
         }
@@ -71,11 +71,11 @@ SETTING_PVS = [("CORRELATIONTYPE", "CROSS"),
                ("START", "YES"),
                ("STOP", "YES"),
                ("REPETITIONS", 5),
-               ("SCATTERING_ANGLE", 4.4),
+               ("SCATTERING_ANGLE", 110),
                ("SAMPLE_TEMP", 298),
-               ("SOLVENT_VISCOSITY", 2200),
-               ("SOLVENT_REFRACTIVE_INDEX", 2.2),
-               ("LASER_WAVELENGTH", 580)]
+               ("SOLVENT_VISCOSITY", 1),
+               ("SOLVENT_REFRACTIVE_INDEX", 1.33),
+               ("LASER_WAVELENGTH", 642)]
 
 
 class LSITests(unittest.TestCase):
@@ -171,6 +171,8 @@ class LSITests(unittest.TestCase):
         "LAGS"
     ]))
     def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_correlation_and_lags_populated(self, _, pv):
+        self.ca.assert_that_pv_is("RUNNING", "NO", timeout=10)
+
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
 
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
