@@ -6,6 +6,7 @@ import os
 import subprocess
 
 import sys
+import datetime
 from time import sleep, time
 from functools import partial
 import six
@@ -16,6 +17,9 @@ from utils.log_file import log_filename
 from utils.formatters import format_value
 
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
+
+DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
+
 
 
 class EmulatorRegister(object):
@@ -59,9 +63,10 @@ class EmulatorRegister(object):
 @six.add_metaclass(abc.ABCMeta)
 class EmulatorLauncher(object):
 
-    def __init__(self, device, var_dir, port, options):
+    def __init__(self, test_name, device, var_dir, port, options):
         """
         Args:
+            test_name: The name of the test we are creating a device emulator for
             device: The name of the device to emulate
             var_dir: The directory in which to store logs
             port: The TCP port to listen on for connections
@@ -72,6 +77,7 @@ class EmulatorLauncher(object):
         self._var_dir = var_dir
         self._port = port
         self._options = options
+        self._test_name = test_name
 
     def __enter__(self):
         self._open()
@@ -169,6 +175,23 @@ class EmulatorLauncher(object):
             Nothing.
         """
 
+    def backdoor_set_and_assert_set(self, variable, value, *args, **kwargs):
+        """
+        Sets a value on the emulator via the backdoor and gets it back to assert it's been set
+
+        Args:
+            variable: The name of the variable to set
+            value: The value to set
+            args: arbitrary arguments
+            kwargs: arbitrary keyword arguments
+
+        Raises:
+            AssertionError: if emulator property is not the expected value
+            UnableToConnectToPVException: if emulator property does not exist within timeout
+        """
+        self.backdoor_set_on_device(variable, value)
+        self.assert_that_emulator_value_is(variable, str(value))
+
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None,
                                       cast=lambda val: val):
         """
@@ -262,23 +285,23 @@ class EmulatorLauncher(object):
         return wait_for_lambda()
 
     def assert_that_emulator_value_is_greater_than(self, emulator_property, min_value, timeout=None):
-            """
-            Assert that an emulator property has a value greater than the expected value.
+        """
+        Assert that an emulator property has a value greater than the expected value.
 
-            Args:
-                 emulator_property (string): Name of the numerical emulator property.
-                 min_value (float): Minimum value (inclusive).Emulator backdoor always returns a string, so the value
-                 should be a string.
-                 timeout: if it hasn't changed within this time raise assertion error
-            Raises:
-                 AssertionError: if value does not become requested value
-                 UnableToConnectToPVException: if pv does not exist within timeout
-            """
+        Args:
+             emulator_property (string): Name of the numerical emulator property.
+             min_value (float): Minimum value (inclusive).Emulator backdoor always returns a string, so the value
+             should be a string.
+             timeout: if it hasn't changed within this time raise assertion error
+        Raises:
+             AssertionError: if value does not become requested value
+             UnableToConnectToPVException: if pv does not exist within timeout
+        """
 
-            message = "Expected emulator property {} to have a value greater than or equal to {}".format(
-                emulator_property, min_value)
-            return self.assert_that_emulator_value_causes_func_to_return_true(
-                emulator_property, lambda value: min_value <= float(value), timeout, message)
+        message = "Expected emulator property {} to have a value greater than or equal to {}".format(
+            emulator_property, min_value)
+        return self.assert_that_emulator_value_causes_func_to_return_true(
+            emulator_property, lambda value: min_value <= float(value), timeout, message)
 
 
 class NullEmulatorLauncher(EmulatorLauncher):
@@ -309,24 +332,25 @@ class LewisLauncher(EmulatorLauncher):
     _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
     _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH, "scripts")
 
-    def __init__(self, device, var_dir, port, options):
+    def __init__(self, test_name, device, var_dir, port, options):
         """
         Constructor that also launches Lewis.
 
         Args:
+            test_name: name of test we are creating device emulator for
             device: device to start
             var_dir: location of directory to write log file and macros directories
             port: the port to use
         """
-        super(LewisLauncher, self).__init__(device, var_dir, port, options)
+        super(LewisLauncher, self).__init__(test_name, device, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
         self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
-        self._lewis_additional_path = options.get("lewis_additional_path",
-                                                  os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master"))
+        self._lewis_additional_path = options.get("lewis_additional_path", DEVICE_EMULATOR_PATH)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
         self._default_timeout = options.get("default_timeout", 5)
+        self._speed = options.get("speed", 100)
 
         self._process = None
         self._logFile = None
@@ -352,7 +376,7 @@ class LewisLauncher(EmulatorLauncher):
         """
 
         self._control_port = str(get_free_ports(1)[0])
-        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis.exe"),
+        lewis_command_line = [self._python_path, "-m", "lewis",
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
                                   .format(protocol=self._lewis_protocol, port=self._port)])
@@ -360,7 +384,9 @@ class LewisLauncher(EmulatorLauncher):
             lewis_command_line.extend(["-a", self._lewis_additional_path])
         if self._lewis_package is not None:
             lewis_command_line.extend(["-k", self._lewis_package])
-        lewis_command_line.extend(["-e", "100", self._device])
+
+        # Set lewis speed
+        lewis_command_line.extend(["-e", str(self._speed), self._device])
 
         print("Starting Lewis")
         self._logFile = open(self._log_filename(), "w")
@@ -373,7 +399,7 @@ class LewisLauncher(EmulatorLauncher):
         self._connected = True
 
     def _log_filename(self):
-        return log_filename("lewis", self._emulator_id, False, self._var_dir)
+        return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
 
     def check(self):
         """
@@ -436,7 +462,8 @@ class LewisLauncher(EmulatorLauncher):
         lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis-control.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
-        self._logFile.write("lewis backdoor command: {0}\n".format(" ".join(lewis_command_line)))
+        time_stamp = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
+        self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
         try:
             p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             for i in range(1, 30):
@@ -484,8 +511,8 @@ class LewisLauncher(EmulatorLauncher):
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
 
-    def __init__(self, device, var_dir, port, options):
-        super(CommandLineEmulatorLauncher, self).__init__(device, var_dir, port, options)
+    def __init__(self, test_name, device, var_dir, port, options):
+        super(CommandLineEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
         try:
             self.command_line = options["emulator_command_line"]
         except KeyError:
@@ -501,7 +528,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         self._log_file = None
 
     def _open(self):
-        self._log_file = open(log_filename("cmdemulator", self._device, True, self._var_dir), "w")
+        self._log_file = open(log_filename(self._test_name, "cmdemulator", self._device, True, self._var_dir), "w")
         self._call_command_line(self.command_line.format(port=self._port))
 
     def _call_command_line(self, command_line):
@@ -537,7 +564,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
 
 class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
 
-    def __init__(self, device, var_dir, port, options):
+    def __init__(self, test_name, device, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
             self.solution_path = options["solution_path"]
@@ -551,11 +578,31 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
         if os.path.exists(automation_tools_binary):
             plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
             self.beckhoff_command_line = '{} "{}" '.format(automation_tools_binary, plc_to_start)
-            self.startup_command = self.beckhoff_command_line + "activate run"
+            self.startup_command = self.beckhoff_command_line + "activate run " + options.get("plc_name", "")
 
             options["emulator_command_line"] = self.startup_command
             options["emulator_wait_to_finish"] = True
-            super(BeckhoffEmulatorLauncher, self).__init__(device, var_dir, port, options)
+            super(BeckhoffEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
         else:
             raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
                           " {} \n".format(automation_tools_dir))
+
+
+class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
+    def __init__(self, test_name, device, var_dir, port, options):
+        labview_scripts_dir = os.path.join(DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
+        self.start_command = os.path.join(labview_scripts_dir, "start_sim.bat")
+        self.stop_command = os.path.join(labview_scripts_dir, "stop_sim.bat")
+        options["emulator_command_line"] = self.start_command
+        options["emulator_wait_to_finish"] = True
+        super(DAQMxEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
+
+    def _close(self):
+        self.disconnect_device()
+        super(DAQMxEmulatorLauncher, self)._close()
+
+    def disconnect_device(self):
+        self._call_command_line(self.stop_command)
+
+    def reconnect_device(self):
+        self._call_command_line(self.start_command)

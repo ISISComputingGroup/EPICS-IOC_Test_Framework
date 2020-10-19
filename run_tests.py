@@ -76,14 +76,14 @@ def make_device_launchers_from_module(test_module, mode):
         macros['LOG_PORT'] = free_port[1]
 
         ioc_launcher_class = ioc.get("ioc_launcher_class", IocLauncher)
-        ioc_launcher = ioc_launcher_class(ioc, mode, var_dir)
+        ioc_launcher = ioc_launcher_class(test_module.__name__, ioc, mode, var_dir)
 
         if "emulator" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulator_launcher_class", LewisLauncher)
-            emulator_launcher = emulator_launcher_class(ioc["emulator"], var_dir,
+            emulator_launcher = emulator_launcher_class(test_module.__name__, ioc["emulator"], var_dir,
                                                         emmulator_port, ioc)
         elif "emulator" in ioc:
-            emulator_launcher = NullEmulatorLauncher(ioc["emulator"], var_dir, None, ioc)
+            emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], var_dir, None, ioc)
         else:
             emulator_launcher = None
 
@@ -92,7 +92,7 @@ def make_device_launchers_from_module(test_module, mode):
     return device_launchers
 
 
-def load_and_run_tests(test_names, failfast, ask_before_running_tests):
+def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mode=None):
     """
     Loads and runs the dotted unit tests to be run.
 
@@ -100,6 +100,7 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
         test_names: List of dotted unit tests to run.
         failfast: Determines if tests abort after first failure.
         ask_before_running_tests: ask whether to run the tests before running them
+        tests_mode: test mode to run (default: both RECSIM and DEVSIM)
 
     Returns:
         boolean: True if all tests pass and false otherwise.
@@ -118,18 +119,17 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests):
     test_results = []
 
     for mode in modes:
+        if tests_mode is not None and mode != tests_mode:
+            continue
+
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
             clean_environment()
             device_launchers = make_device_launchers_from_module(module.file, mode)
-            try:
-                test_results.append(
-                    run_tests(arguments.prefix, module.tests, device_collection_launcher(device_launchers),
-                              failfast, ask_before_running_tests))
-            except Exception:
-                print("Error while attempting to load test suite: {}".format(traceback.format_exc()))
-                test_results.append(False)  # Fail the tests which threw an exception, but keep running other tests.
+            test_results.append(
+                run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
+                          failfast, ask_before_running_tests))
 
     return all(test_result is True for test_result in test_results)
 
@@ -156,12 +156,40 @@ def prompt_user_to_run_tests(test_names):
             return
 
 
-def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
+class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
+    """
+    Class to allow reporting of an error to run any tests.
+
+    Args:
+        failing_module_name:   Name of module that failed.
+        msg:                   Error message explaining failure.
+
+    Returns:
+        None
+    """
+    def __init__(self, failing_module_name, msg):
+        # strictly we should use and pass (*args, **kwargs) but we only call 
+        # this directly ourselves and not from a test suite.
+        # We create a function based on fail_with_msg() to get a better test summary.
+        func_name = "{}_module_failed_to_load".format(failing_module_name)
+        setattr(self, func_name, self.fail_with_msg)
+        super(ReportFailLoadTestsuiteTestCase,self).__init__(func_name)
+        self.msg = msg
+
+    def fail_with_msg(self):
+        """
+        Function to be used as basis of "runTest" unittest.TestCase function.
+        """
+        self.fail(self.msg)
+
+
+def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_switch, ask_before_running_tests=False):
     """
     Runs dotted unit tests.
 
     Args:
         prefix: The instrument prefix.
+        module_name: Name of module containing tests.
         tests_to_run: List of dotted unit tests to be run.
         device_launchers: Context manager that launches the necessary iocs and associated emulators.
         failfast_switch: Determines if test suit aborts after first failure.
@@ -179,15 +207,17 @@ def run_tests(prefix, tests_to_run, device_launchers, failfast_switch, ask_befor
 
     test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
 
-    with modified_environment(**settings), device_launchers:
-        if ask_before_running_tests:
-            prompt_user_to_run_tests(test_names)
+    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
+    test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
 
-        runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
-
-        test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
-        result = runner.run(test_suite).wasSuccessful()
-
+    try:
+        with modified_environment(**settings), device_launchers:
+            if ask_before_running_tests:
+                prompt_user_to_run_tests(test_names)
+            result = runner.run(test_suite).wasSuccessful()
+    except Exception:
+        msg = "Error while attempting to load test suite: {}".format(traceback.format_exc())
+        result = runner.run(ReportFailLoadTestsuiteTestCase(module_name, msg)).wasSuccessful()
     return result
 
 
@@ -227,6 +257,8 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--ask-before-running', action='store_true',
                         help="""Pauses after starting emulator and ioc. Allows you to use booted
                         emulator/IOC or attach debugger for tests""")
+    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM','RECSIM'],
+                        help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
 
     arguments = parser.parse_args()
 
@@ -259,8 +291,14 @@ if __name__ == '__main__':
     failfast = arguments.failfast
     ask_before_running_tests = arguments.ask_before_running
 
+    tests_mode = None
+    if arguments.tests_mode == "RECSIM":
+        tests_mode = TestModes.RECSIM
+    if arguments.tests_mode == "DEVSIM":
+        tests_mode = TestModes.DEVSIM
+
     try:
-        success = load_and_run_tests(tests, failfast, ask_before_running_tests)
+        success = load_and_run_tests(tests, failfast, ask_before_running_tests, tests_mode)
     except Exception as e:
         print("---\n---\n---\nAn Error occurred loading the tests: ")
         traceback.print_exc()

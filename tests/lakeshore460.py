@@ -1,9 +1,9 @@
 import unittest
-from unittest import skipIf
+from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
+from utils.ioc_launcher import get_default_ioc_dir
 
 vectors = {1: "XYZ", 2: "XY", 3: "XZ", 4: "YZ", 5: "X-Y"}
 channels = ["X", "Y", "Z", "V"]
@@ -62,11 +62,11 @@ class Lakeshore460Tests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix="LKSH460_01", default_timeout=30)
         self.ca.assert_that_pv_exists("IDN")
 
-    def test_GIVEN_unit_set_gauss_WHEN_read_THEN_unit_is_gauss(self):
+    @parameterized.expand([("tesla", UnitFlags.TESLA, UnitStrings.TESLA),
+                           ("gauss", UnitFlags.GAUSS, UnitStrings.GAUSS)])
+    def test_GIVEN_unit_set_to_value_WHEN_read_THEN_unit_is_value(self, _, unit_flag, unit_string):
         self.ca.set_pv_value("CHANNEL", "X")
-        unit_string = UnitStrings.GAUSS
-        unit_flag = UnitFlags.GAUSS
-        self.ca.assert_setting_setpoint_sets_readback(unit_flag, "UNIT", "UNIT:SP", unit_string)
+        self.ca.assert_setting_setpoint_sets_readback(unit_flag, "UNIT", expected_value=unit_string)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_magnetic_field_reading_set_WHEN_read_THEN_magnetic_field_reading_is_set_value(self):
@@ -81,35 +81,21 @@ class Lakeshore460Tests(unittest.TestCase):
             set_prms = UnitFlags.PEAK
             expected_prms = UnitStrings.PEAK
             self.ca.assert_setting_setpoint_sets_readback(set_prms, "{}:PRMS".format(chan),
-                                                          "{}:PRMS:SP".format(chan), expected_prms, timeout=15)
-    
-    def test_GIVEN_unit_set_tesla_WHEN_read_THEN_unit_is_tesla(self):
-        unit_string = UnitStrings.TESLA
-        unit_flag = UnitFlags.TESLA
-        self.ca.set_pv_value("CHANNEL", "X")
-        self.ca.assert_setting_setpoint_sets_readback(unit_flag, "UNIT", "UNIT:SP", unit_string)
+                                                          expected_value=expected_prms, timeout=15)
 
     def test_GIVEN_source_set_WHEN_read_THEN_source_is_set_value(self):
         for key in vectors:
             set_value = key
             expected_value = vectors[key]
-            self.ca.assert_setting_setpoint_sets_readback(set_value, "SOURCE", "SOURCE:SP", expected_value)
+            self.ca.assert_setting_setpoint_sets_readback(set_value, "SOURCE", expected_value=expected_value)
 
+    @parameterized.expand([("DC", UnitFlags.DC, UnitStrings.DC),
+                           ("AC", UnitFlags.AC, UnitStrings.AC)])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_output_mode_set_DC_WHEN_read_THEN_output_mode_is_dc(self):
+    def test_GIVEN_output_mode_set_to_value_WHEN_read_THEN_output_mode_is_value(self, _, unit_flag, unit_string):
         for chan in channels:
-            mode_set = UnitFlags.DC
-            expected_mode = UnitStrings.DC
-            self.ca.assert_setting_setpoint_sets_readback(mode_set, "{}:MODE".format(chan),
-                                                          "{}:MODE:SP".format(chan), expected_mode)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_output_mode_set_AC_WHEN_read_THEN_output_mode_is_ac(self):
-        for chan in channels:
-            mode_set = UnitFlags.AC
-            expected_mode = UnitStrings.AC
-            self.ca.assert_setting_setpoint_sets_readback(mode_set, "{}:MODE".format(chan),
-                                                          "{}:MODE:SP".format(chan), expected_mode)
+            self.ca.assert_setting_setpoint_sets_readback(unit_flag, "{}:MODE".format(chan),
+                                                          expected_value=unit_string)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_prms_set_rms_WHEN_read_THEN_prms_is_rms(self):
@@ -117,119 +103,69 @@ class Lakeshore460Tests(unittest.TestCase):
             set_prms = UnitFlags.RMS
             expected_prms = UnitStrings.RMS
             self.ca.assert_setting_setpoint_sets_readback(set_prms, "{}:PRMS".format(chan),
-                                                          "{}:PRMS:SP".format(chan), expected_prms, timeout=15)
+                                                          expected_value=expected_prms, timeout=15)
 
+    @parameterized.expand([("ON", UnitFlags.ON, UnitStrings.ON),
+                           ("OFF", UnitFlags.OFF, UnitStrings.OFF)])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_display_filter_set_on_WHEN_read_THEN_display_filter_is_set_value(self):
+    def test_GIVEN_display_filter_set_to_val_WHEN_read_THEN_display_filter_is_set_value(self, _, unit_flag, unit_string):
         for chan in channels:
-            set_filter = UnitFlags.ON
-            expected_filter = UnitStrings.ON
-            self.ca.assert_setting_setpoint_sets_readback(set_filter, "{}:FILTER".format(chan),
-                                                          "{}:FILTER:SP".format(chan), expected_filter)
+            self.ca.assert_setting_setpoint_sets_readback(unit_flag, "{}:FILTER".format(chan),
+                                                          expected_value=unit_string)
 
+    @parameterized.expand([("ON", UnitFlags.ON, UnitStrings.ON),
+                           ("OFF", UnitFlags.OFF, UnitStrings.OFF)])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_display_filter_set_off_WHEN_read_THEN_display_filter_is_set_value(self):
+    def test_GIVEN_rel_mode_status_set_to_val_WHEN_read_THEN_rel_mode_status_is_set_value(self, _, unit_flag, unit_string):
         for chan in channels:
-            set_filter = UnitFlags.OFF
-            expected_filter = UnitStrings.OFF
-            self.ca.assert_setting_setpoint_sets_readback(set_filter, "{}:FILTER".format(chan),
-                                                          "{}:FILTER:SP".format(chan), expected_filter)
+            self.ca.assert_setting_setpoint_sets_readback(unit_flag, "{}:RELMODE".format(chan),
+                                                          expected_value=unit_string)
 
+    @parameterized.expand(parameterized_list([10.4, 20, 3]))
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_rel_mode_status_set_on_WHEN_read_THEN_rel_mode_status_is_set_value(self):
+    def test_GIVEN_rel_mode_setpoint_set_to_val_WHEN_read_THEN_rel_mode_setpoint_is_set_value(self, _, value):
         for chan in channels:
-            set_rel_mode_status = UnitFlags.ON
-            expected_rel_mode_status = UnitStrings.ON
-            self.ca.assert_setting_setpoint_sets_readback(set_rel_mode_status, "{}:RELMODE".format(chan),
-                                                          "{}:RELMODE:SP".format(chan), expected_rel_mode_status)
+            self.ca.assert_setting_setpoint_sets_readback(value, "{}:RELMODESET".format(chan))
 
+    @parameterized.expand([("ON", UnitFlags.ON, UnitStrings.ON),
+                           ("OFF", UnitFlags.OFF, UnitStrings.OFF)])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_rel_mode_status_set_off_WHEN_read_THEN_rel_mode_status_is_set_value(self):
+    def test_GIVEN_auto_mode_status_set_to_value_WHEN_read_THEN_auto_mode_status_is_set_value(self, _, unit_flag, unit_string):
         for chan in channels:
-            set_rel_mode_status = UnitFlags.OFF
-            expected_rel_mode_status = UnitStrings.OFF
-            self.ca.assert_setting_setpoint_sets_readback(set_rel_mode_status, "{}:RELMODE".format(chan),
-                                                          "{}:RELMODE:SP".format(chan), expected_rel_mode_status)
+            self.ca.assert_setting_setpoint_sets_readback(unit_flag, "{}:AUTO".format(chan),
+                                                          expected_value=unit_string)
 
+    @parameterized.expand([("ON", UnitFlags.ON, UnitStrings.ON),
+                           ("OFF", UnitFlags.OFF, UnitStrings.OFF)])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_auto_mode_status_set_on_WHEN_read_THEN_auto_mode_status_is_set_value(self):
+    def test_GIVEN_max_hold_status_set_to_value_WHEN_read_THEN_max_hold_status_is_set_value(self, _, unit_flag, unit_string):
         for chan in channels:
-            set_auto_mode_status = UnitFlags.ON
-            expected_auto_mode_status = UnitStrings.ON
-            self.ca.assert_setting_setpoint_sets_readback(set_auto_mode_status, "{}:AUTO".format(chan),
-                                                          "{}:AUTO:SP".format(chan), expected_auto_mode_status)
+            self.ca.assert_setting_setpoint_sets_readback(unit_flag, "{}:MAXHOLD".format(chan),
+                                                          expected_value=unit_string)
 
+    @parameterized.expand([("ON", UnitFlags.CHANNEL_ON, UnitStrings.CHANNEL_ON),
+                           ("OFF", UnitFlags.CHANNEL_OFF, UnitStrings.CHANNEL_OFF)])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_auto_mode_status_set_off_WHEN_read_THEN_auto_mode_status_is_set_value(self):
+    def test_GIVEN_channel_status_set_on_WHEN_read_THEN_channel_status_is_set_value(self, _, unit_flag, unit_string):
         for chan in channels:
-            set_auto_mode_status = UnitFlags.OFF
-            expected_auto_mode_status = UnitStrings.OFF
-            self.ca.assert_setting_setpoint_sets_readback(set_auto_mode_status, "{}:AUTO".format(chan),
-                                                          "{}:AUTO:SP".format(chan), expected_auto_mode_status)
+            self.ca.assert_setting_setpoint_sets_readback(unit_flag, "{}:STATUS".format(chan),
+                                                          expected_value=unit_string)
 
+    @parameterized.expand([("11_alarm_major", 11, "MAJOR"),
+                           ("4_no_alarm", 4, "NO_ALARM")])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_max_hold_status_set_on_WHEN_read_THEN_max_hold_status_is_set_value(self):
+    def test_GIVEN_filter_windows_set_WHEN_read_THEN_alarm_is_as_expected(self, _, filter_windows, exp_alarm):
         for chan in channels:
-            set_max_hold_status = UnitFlags.ON
-            expected_max_hold_status = UnitStrings.ON
-            self.ca.assert_setting_setpoint_sets_readback(set_max_hold_status, "{}:MAXHOLD".format(chan),
-                                                          "{}:MAXHOLD:SP".format(chan), expected_max_hold_status)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_max_hold_status_set_off_WHEN_read_THEN_max_hold_status_is_set_value(self):
-        for chan in channels:
-            set_max_hold_status = UnitFlags.OFF
-            expected_max_hold_status = UnitStrings.OFF
-            self.ca.assert_setting_setpoint_sets_readback(set_max_hold_status, "{}:MAXHOLD".format(chan),
-                                                          "{}:MAXHOLD:SP".format(chan), expected_max_hold_status)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_channel_status_set_on_WHEN_read_THEN_channel_status_is_set_value(self):
-        for chan in channels:
-            set_channel_status = UnitFlags.CHANNEL_ON
-            expected_channel_status = UnitStrings.CHANNEL_ON
-            self.ca.assert_setting_setpoint_sets_readback(set_channel_status, "{}:STATUS".format(chan),
-                                                          "{}:STATUS:SP".format(chan), expected_channel_status)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_channel_status_set_off_WHEN_read_THEN_channel_status_is_set_value(self):
-        for chan in channels:
-            set_channel_status = UnitFlags.CHANNEL_OFF
-            expected_channel_status = UnitStrings.CHANNEL_OFF
-            self.ca.assert_setting_setpoint_sets_readback(set_channel_status, "{}:STATUS".format(chan),
-                                                          "{}:STATUS:SP".format(chan), expected_channel_status)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_filter_windows_set_WHEN_read_THEN_alarm_is_major(self):
-        for chan in channels:
-            filter_windows = 11
             self.ca.assert_setting_setpoint_sets_readback(filter_windows, "{}:FWIN".format(chan),
-                                                          "{}:FWIN:SP".format(chan), filter_windows,
-                                                          expected_alarm="MAJOR")
+                                                          expected_alarm=exp_alarm)
 
+    @parameterized.expand([("65_alarm_major", 65, "MAJOR"),
+                           ("10_no_alarm", 10, "NO_ALARM")])
     @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_filter_windows_set_WHEN_read_THEN_alarm_is_none(self):
+    def test_GIVEN_filter_points_set_WHEN_read_THEN_alarm_is_major(self, _, filter_points, exp_alarm):
         for chan in channels:
-            filter_windows = 4
-            self.ca.assert_setting_setpoint_sets_readback(filter_windows, "{}:FWIN".format(chan),
-                                                          "{}:FWIN:SP".format(chan), filter_windows,
-                                                          expected_alarm="NO_ALARM")
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_filter_points_set_WHEN_read_THEN_alarm_is_major(self):
-        for chan in channels:
-            filter_points = 65
             self.ca.assert_setting_setpoint_sets_readback(filter_points, "{}:FNUM".format(chan),
-                                                          "{}:FNUM:SP".format(chan), filter_points,
-                                                          expected_alarm="MAJOR")
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_GIVEN_filter_points_set_WHEN_read_THEN_alarm_is_none(self):
-        for chan in channels:
-            filter_points = 10
-            self.ca.assert_setting_setpoint_sets_readback(filter_points, "{}:FNUM".format(chan),
-                                                          "{}:FNUM:SP".format(chan), filter_points,
-                                                          expected_alarm="NO_ALARM")
+                                                          expected_alarm=exp_alarm)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_range_set_WHEN_read_THEN_range_is_set_value(self):
@@ -238,4 +174,4 @@ class Lakeshore460Tests(unittest.TestCase):
                 set_range = key
                 expected_range = ranges[key]
                 self.ca.assert_setting_setpoint_sets_readback(set_range, "{}:RANGE".format(chan),
-                                                              "{}:RANGE:SP".format(chan), expected_range)
+                                                              expected_value=expected_range)

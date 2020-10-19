@@ -1,30 +1,35 @@
+import json
 import os
 import unittest
-import time
 from contextlib import contextmanager
-from math import tan, radians
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 
 GALIL_ADDR = "128.0.0.0"
-DEVICE_PREFIX = "REFL"
 OUT_COMP_INIT_POS = -2.0
 IN_COMP_INIT_POS = 1.0
 DET_INIT_POS = 5.0
 DET_INIT_POS_AUTOSAVE = 1.0
 FAST_VELOCITY = 10
 
-REFL_PATH = os.path.join(EPICS_TOP, "ISIS", "inst_servers", "master")
+ioc_number = 1
+DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
 GALIL_PREFIX = "GALIL_01"
-test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "refl_init"))
+test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
+test_var_path = os.path.join(test_config_path, "var_init")
+
+REFL_MACROS = json.dumps({"CONFIG_FILE": "config_init.py",  # tested implicitly by entire suite
+                          "OPTIONAL_1": True,
+                          "OPTIONAL_2": False, })
+
 IOCS = [
     {
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
-        "pv_for_existence": "MOT:MTR0101",
+        "pv_for_existence": "MTR0101",
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
@@ -40,17 +45,16 @@ IOCS = [
         }
     },
     {
-        "ioc_launcher_class": PythonIOCLauncher,
+        "ioc_launcher_class": ProcServLauncher,
         "name": DEVICE_PREFIX,
-        "directory": REFL_PATH,
-        "python_script_commandline": [os.path.join(REFL_PATH, "ReflectometryServer", "reflectometry_server.py")],
+        "directory": get_default_ioc_dir("REFL", iocnum=ioc_number),
         "started_text": "Reflectometry IOC started",
-        "pv_for_existence": "BL:STAT",
-        "macros": {
-        },
+        "pv_for_existence": "STAT",
         "environment_vars": {
+            "REFL_MACROS": REFL_MACROS,
+            "IOC_TEST": "1",
             "ICPCONFIGROOT": test_config_path,
-            "ICPVARDIR": test_config_path,
+            "ICPVARDIR": test_var_path,
         }
     },
 
@@ -122,3 +126,11 @@ class ReflTests(unittest.TestCase):
         expected = IN_COMP_INIT_POS
 
         self.ca.assert_that_pv_is("PARAM:IN_POS", expected)
+
+    def test_GIVEN_optional_macro_is_set_to_true_THEN_true_value_passed_into_reflectometry_config(self):
+        # See macro values in IOC dict above
+        self.ca.assert_that_pv_exists("CONST:OPTIONAL_1")
+
+    def test_GIVEN_optional_macro_is_set_to_false_THEN_false_value_passed_into_reflectometry_config(self):
+        # See macro values in IOC dict above
+        self.ca.assert_that_pv_does_not_exist("CONST:OPTIONAL_2")

@@ -1,7 +1,7 @@
 import unittest
 
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED
 from utils.testing import skip_if_recsim
@@ -17,9 +17,11 @@ IOCS = [
             "FACTOR_READ_I": "1",
             "FACTOR_READ_V": "1",
             "FACTOR_WRITE_I": "1",
+            "DISABLE_AUTOONOFF": "0",
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8800",
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 

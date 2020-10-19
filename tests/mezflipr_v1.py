@@ -28,6 +28,7 @@ IOCS = [
         "macros": {
             "POLARISERPRESENT": "yes",
             "ANALYSERPRESENT": "yes",
+            "PROTOCOL_VERSION": "1",
         },
     },
 ]

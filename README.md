@@ -75,7 +75,13 @@ By default the framework searches for tests inside `.\tests\`. If you wish to sp
 It is sometimes useful to attach a debugger to the test using this option means that the framework will ask to run tests before it starts the setup for the test.
 This gives you time to attach a debugger. It also allows you an easy way to set up the system with emmulator and ioc attached to each other for unscripted testing.
 
->  `python run_tests.py -a will ask if you want to run test before it runs them.
+>  `python run_tests.py -a` will ask if you want to run test before it runs them.
+
+### Run test in a specific mode
+
+Sometimes you might want to run all the tests only in RECSIM or only in DEVSIM. You can do this by doing:
+
+>  `python run_tests.py -tm RECSIM`
 
 ## Troubleshooting 
 

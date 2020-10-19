@@ -41,11 +41,13 @@ class _MonitorAssertion:
         """
         self.pv = pv
         self._full_pv_name = channel_access.create_pv_with_prefix(pv)
-        self._value = None
+        self.all_values = []
+        self.latest_value = None
         CaChannelWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
 
     def _set_val(self, value, alarm_severity, alarm_status):
-        self._value = value
+        self.latest_value = value
+        self.all_values.append(value)
 
     @property
     def value(self):
@@ -53,7 +55,7 @@ class _MonitorAssertion:
         Returns: value monitor set
         """
         CaChannelWrapper.poll()
-        return self._value
+        return self.latest_value
 
 
 class ChannelAccess(object):
@@ -73,9 +75,14 @@ class ChannelAccess(object):
 
     def __init__(self, default_timeout=5, device_prefix=None):
         """
+        Initializes this ChannelAccess object.
+
         Args:
-            device_prefix: the device prefix which will be added to the start of all pvs
-            default_timeout: the default time out to wait for
+            device_prefix: The device prefix which will be added to the start of all pvs.
+            default_timeout: The default time out to wait for an assertion on a PV to become true.
+
+        Returns:
+            None.
         """
         self.ca = CaChannelWrapper()
 
@@ -353,6 +360,25 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: not self._within_tolerance_condition(val, restricted, tolerance), timeout, message=message)
 
+    def assert_that_pv_after_processing_is_number(self, pv, expected_value, tolerance=0.0, timeout=None):
+        """
+        Assert that the pv has the expected number value after the pv is processed
+        or that it becomes the expected number value within the timeout.
+
+        Args:
+            pv: The name of the pv to test.
+            expected_value: The expected value of the pv.
+            tolerance: The allowable deviation from the expected value.
+            timeout: If it hasn't changed within this time raise assertion error.
+
+        Raises:
+            AssertionError: If value does not become requested value.
+            UnableToConnectToPVException: If pv does not exist within timeout.
+        """
+
+        self.process_pv(pv)
+        return self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, timeout=None)
+
     def assert_that_pv_is_one_of(self, pv, expected_values, timeout=None):
         """
         Assert that the pv has one of the expected values or that it becomes one of the expected value within the
@@ -526,11 +552,29 @@ class ChannelAccess(object):
         partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.ne)
 
     @contextmanager
+    def assert_that_pv_monitor_gets_values(self, pv, expected_values):
+        """
+        Assert that a pv has received a number of values set by a monitor event
+        Args:
+            pv: the pv name. Must not be the same PV which is written to in the test.
+            expected_values (list): list of the expected values
+        Raises:
+            AssertionError: if the value of the pv did not satisfy the comparator
+        """
+        monitor = _MonitorAssertion(self, pv)
+
+        yield
+
+        for i, expected_value in enumerate(expected_values):
+            if expected_value != monitor.all_values[i]:
+                raise AssertionError("Monitor got {} but expected {}".format(monitor.all_values[i], expected_value))
+
+    @contextmanager
     def assert_that_pv_monitor_is(self, pv, expected_value):
         """
         Assert that a pv has a given value set by a monitor event
         Args:
-            pv: the pv name
+            pv: the pv name. Must not be the same PV which is written to in the test.
             expected_value: the expected value
         Raises:
             AssertionError: if the value of the pv did not satisfy the comparator
@@ -546,7 +590,7 @@ class ChannelAccess(object):
         """
         Assert that a pv value is set by a monitor event and is within a tolerance
         Args:
-            pv: the pv name
+            pv: the pv name. Must not be the same PV which is written to in the test.
             expected_value: the expected value
             tolerance: tolerance
 
@@ -558,3 +602,49 @@ class ChannelAccess(object):
         yield
 
         self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, pv_value_source=pv_value_source)
+
+    @contextmanager
+    def assert_pv_processed(self, pv):
+        """
+        Asserts that a PV was processed by putting a monitor on the PV and asserting it's called.
+
+        Args:
+            pv: the PV on which to check processing
+        """
+        pv_with_prefix = self.create_pv_with_prefix(pv)
+
+        class PvUpdateTimeValueSource(object):
+            @property
+            def value(self):
+                return CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        time_before = PvUpdateTimeValueSource().value
+
+        yield
+        
+        self.assert_that_pv_value_causes_func_to_return_true(
+            pv=pv_with_prefix, func=lambda val: val != time_before, pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was not processed".format(pv))
+
+    @contextmanager
+    def assert_pv_not_processed(self, pv):
+        """
+        Asserts that a PV was processed by getting the time
+
+        Args:
+            pv: the PV on which to check (lack of) processing
+        """
+        pv_with_prefix = self.create_pv_with_prefix(pv)
+
+        class PvUpdateTimeValueSource(object):
+            @property
+            def value(self):
+                return CaChannelWrapper.get_pv_timestamp(pv_with_prefix)
+
+        time_before = PvUpdateTimeValueSource().value
+
+        yield
+
+        self.assert_that_pv_value_causes_func_to_return_true(
+            pv=pv_with_prefix, func=lambda val: val == time_before, pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was processed".format(pv))
