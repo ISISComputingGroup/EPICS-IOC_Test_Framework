@@ -38,7 +38,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 TEST_RAMPS = [[(0.0, 10000.0), [1.12]],
               [(5000.0, 25000.0), [1.12, 0.547, 0.038]],
               [(-5000.0, -25000.0), [1.12, 0.547, 0.038]],
