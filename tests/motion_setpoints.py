@@ -161,7 +161,7 @@ class MotionSetpointsTests(unittest.TestCase):
     @parameterized.expand(
         parameterized_list([1, 2, 10])
     )
-    def test_GIVEN_1D_WHEN_get_numaxes_THEN_return_1(self, _, axis_num):
+    def test_GIVEN_XD_WHEN_get_numaxes_THEN_return_X(self, _, axis_num):
         channel_access = self.channel_access_instances[axis_num]
         channel_access.assert_that_pv_is("NUMAXES", axis_num)
 
