@@ -139,3 +139,18 @@ class KepcoTests(unittest.TestCase):
         self.ca.process_pv(setpoint_pv)
 
         self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
+
+    def test_GIVEN_rampon_WHEN_target_set_THEN_current_ramps_to_target(self):
+        start_current, target_current, ramp_rate = 1, 2, 2
+        self.ca.set_pv_value("CURRENT:SP", start_current)
+        self.ca.set_pv_value("RATE:SP", ramp_rate)
+        self.ca.set_pv_value("RAMPON:SP", "ON")
+        self.ca.set_pv_value("RAMP:TARGET:SP", target_current, sleep_after_set=0.0)
+
+        self.ca.assert_that_pv_value_is_increasing("CURRENT:SP:RBV", wait=7)
+        self.ca.assert_that_pv_is("RAMPING", "YES")
+
+        self.ca.assert_that_pv_is("RAMPING", "NO", timeout=60)
+        self.ca.assert_that_pv_value_is_unchanged("CURRENT:SP:RBV", wait=7)
+
+        self.ca.set_pv_value("RAMPON:SP", "OFF")
