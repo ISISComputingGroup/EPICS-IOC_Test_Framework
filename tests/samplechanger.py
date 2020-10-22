@@ -96,7 +96,7 @@ class SampleChangerTests(unittest.TestCase):
 
     def test_GIVEN_sample_chnager_file_modified_WHEN_reload_called_THEN_new_positions_available(self):
         file_paths = [os.path.join(test_path, "samplechanger.xml"), os.path.join(test_path, "rack_definitions.xml")]
-        new_slot_name = "ND"
+        new_slot_name = "NEWSLOT"
         xml_trees = {}
 
         for file_path in file_paths:
@@ -119,3 +119,6 @@ class SampleChangerTests(unittest.TestCase):
             for file_path in file_paths:
                 os.remove(file_path)
                 shutil.move(file_path + ".backup", file_path)
+
+        self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
+                                                                func=lambda val: new_slot_name not in val)
