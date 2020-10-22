@@ -18,6 +18,8 @@ MTR_01 = "GALIL_01"
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "sampleChanger", "master", "settings", "sans_sample_changer"))
 
+generated_file_path = os.path.join("C:\\", "Instrument", "var", "tmp", "sample.txt")
+
 AXES = ["SC:X", "SC:Y"]
 
 IOCS = [
@@ -48,6 +50,9 @@ class SampleChangerTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("SAMPCHNG:SLOT")
         for axis in AXES:
             self.ca.assert_that_pv_exists("MOT:{}".format(axis))
+
+        # Select one of the standard slots.
+        self.ca.assert_setting_setpoint_sets_readback(readback_pv="SAMPCHNG:SLOT", value=SLOTS[0])
 
     @parameterized.expand(parameterized_list([
         {
@@ -108,9 +113,10 @@ class SampleChangerTests(unittest.TestCase):
         try:
             for path, tree in xml_trees.iteritems():
                 slot = tree.find("//slot")
-                new_slot = copy.deepcopy(slot)
-                new_slot.set("name", new_slot_name)
-                slot.getparent().insert(0, new_slot)
+
+                # Overwrite an existing slot rather than duplicating, otherwise we end up with duplicate positions
+                # and the file fails to write correctly.
+                slot.set("name", new_slot_name)
 
                 tree.write(path)
 
@@ -123,14 +129,13 @@ class SampleChangerTests(unittest.TestCase):
 
     def new_slot_positions_exist(self, new_slot_name):
         def _wrapper(val):
-            # Prefixes for positions are either numeric (e.g. 1) or alphabetic (e.g. A)
-            return any(prefix + new_slot_name in val for prefix in ["A", "1"])
+            return any(prefix + new_slot_name in val for prefix in ["1", "A"])
         return _wrapper
 
     def new_slot_positions_do_not_exist(self, new_slot_name):
         def _wrapper(val):
-            # Prefixes for positions are either numeric (e.g. 1) or alphabetic (e.g. A)
-            return all(prefix + new_slot_name not in val for prefix in ["A", "1"])
+            # Check none of first 5 positions exist
+            return all(str(prefix) + new_slot_name not in val for prefix in ["1", "A"])
         return _wrapper
 
     def test_GIVEN_sample_changer_file_modified_THEN_new_changer_available(self):
@@ -143,7 +148,7 @@ class SampleChangerTests(unittest.TestCase):
         self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
                                                                 func=lambda val: new_slot_name not in val)
 
-    def test_GIVEN_sample_changer_file_modified_THEN_new_positions_available(self):
+    def test_GIVEN_sample_changer_file_modified_and_selected_THEN_new_positions_available_without_needing_recalc(self):
         new_slot_name = "NEWSLOT"
         with self._temporarily_add_slot(new_slot_name):
             # assert new slot has been picked up
@@ -164,6 +169,33 @@ class SampleChangerTests(unittest.TestCase):
 
         # Use all positions from all available changers
         self.ca.set_pv_value("SAMPCHNG:SLOT:SP", "_ALL")
+
+        # Positions from the now-deleted changer shouldn't exist
+        self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+                                                                func=self.new_slot_positions_do_not_exist(new_slot_name))
+
+    def test_GIVEN_sample_changer_file_modified_THEN_new_positions_available(self):
+        # Select all positions from all changers
+        self.ca.set_pv_value("SAMPCHNG:SLOT:SP", "_ALL")
+
+        new_slot_name = "NEWSLOT"
+        with self._temporarily_add_slot(new_slot_name):
+            # assert new slot has been picked up
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
+                                                                    func=lambda val: new_slot_name in val)
+
+            self.ca.set_pv_value("SAMPCHNG:RECALC.PROC", 1)
+
+            # Assert positions from newly added sample changer exist
+            self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+                                                                    func=self.new_slot_positions_exist(new_slot_name))
+
+        # Now out of context manager, NEWSLOT no longer exists
+        self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
+                                                                func=lambda val: new_slot_name not in val)
+
+        # Explicit recalc as we are still looking at all positions so haven't changed sample changer.
+        self.ca.set_pv_value("SAMPCHNG:RECALC.PROC", 1)
 
         # Positions from the now-deleted changer shouldn't exist
         self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
