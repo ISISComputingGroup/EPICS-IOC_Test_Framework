@@ -1,5 +1,7 @@
 import unittest
 import os
+from lxml import etree
+import copy
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -88,3 +90,36 @@ class SampleChangerTests(unittest.TestCase):
     def test_available_slots_can_be_loaded(self):
         self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
                                                                 func=lambda val: all(s in val for s in SLOTS))
+
+    def test_GIVEN_sample_chnager_file_modified_WHEN_reload_called_THEN_new_positions_available(self):
+        file_paths = [os.path.join(test_path, "samplechanger.xml"), os.path.join(test_path, "rack_definitions.xml")]
+        new_slot_name = "ND"
+        original_files = {}
+        xml_trees = {}
+
+        for file_path in file_paths:
+            xml_trees[file_path] = etree.parse(file_path)
+            with open(file_path) as f:
+                original_files[file_path] = f.readlines()
+
+        try:
+            for path, tree in xml_trees.iteritems():
+                slot = tree.find("//slot")
+                new_slot = copy.deepcopy(slot)
+                new_slot.set("name", new_slot_name)
+                slot.getparent().insert(0, new_slot)
+
+                tree.write(path)
+
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
+                                                                    func=lambda val: new_slot_name not in val)
+
+            self.ca.set_pv_value("SAMPCHNG:RECALC", 1)
+
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
+                                                                    func=lambda val: new_slot_name in val)
+
+        finally:
+            for path, original in original_files.iteritems():
+                with open(path, 'w') as f:
+                    f.writelines(original)
