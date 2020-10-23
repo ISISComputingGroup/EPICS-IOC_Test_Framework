@@ -140,17 +140,23 @@ class KepcoTests(unittest.TestCase):
 
         self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
 
-    def test_GIVEN_rampon_WHEN_target_set_THEN_current_ramps_to_target(self):
-        start_current, target_current, ramp_rate = 1, 2, 2
+    def _test_ramp_to_target(self, start_current, target_current, ramp_rate, step_number, wait_between_changes):
         self.ca.set_pv_value("CURRENT:SP", start_current)
-        self.ca.set_pv_value("RATE:SP", ramp_rate)
+        self.ca.set_pv_value("RAMP:RATE:SP", ramp_rate)
+        self.ca.set_pv_value("RAMP:STEPS:SP", step_number)
         self.ca.set_pv_value("RAMPON:SP", "ON")
         self.ca.set_pv_value("RAMP:TARGET:SP", target_current, sleep_after_set=0.0)
-
-        self.ca.assert_that_pv_value_is_increasing("CURRENT:SP:RBV", wait=7)
+        if start_current < target_current:
+            self.ca.assert_that_pv_value_is_increasing("CURRENT:SP:RBV", wait=wait_between_changes)
+        else:
+            self.ca.assert_that_pv_value_is_decreasing("CURRENT:SP:RBV", wait=wait_between_changes)
         self.ca.assert_that_pv_is("RAMPING", "YES")
-
-        self.ca.assert_that_pv_is("RAMPING", "NO", timeout=60)
-        self.ca.assert_that_pv_value_is_unchanged("CURRENT:SP:RBV", wait=7)
-
+        self.ca.assert_that_pv_is("RAMPING", "NO", timeout=40)
+        self.ca.assert_that_pv_value_is_unchanged("CURRENT:SP:RBV", wait=wait_between_changes)
         self.ca.set_pv_value("RAMPON:SP", "OFF")
+
+    def test_GIVEN_rampon_WHEN_target_set_THEN_current_ramps_to_target(self):
+        self._test_ramp_to_target(1, 2, 2, 20, 7)
+
+    def test_GIVEN_rampon_WHEN_target_set_with_different_step_rate_THEN_current_ramps_to_target_more_finely(self):
+        self._test_ramp_to_target(4, 3, 2, 60, 2)
