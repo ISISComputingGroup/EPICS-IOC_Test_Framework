@@ -3,9 +3,7 @@ import shutil
 import unittest
 import os
 
-import six
 from lxml import etree
-import copy
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -17,8 +15,6 @@ MTR_01 = "GALIL_01"
 
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "sampleChanger", "master", "settings", "sans_sample_changer"))
-
-generated_file_path = os.path.join("C:\\", "Instrument", "var", "tmp", "sample.txt")
 
 AXES = ["SC:X", "SC:Y"]
 
