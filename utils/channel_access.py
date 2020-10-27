@@ -656,12 +656,11 @@ class ChannelAccess(object):
         Args:
             pvs_and_values_dict: A dictionary with keys as pvs and expected values as the value.
         """
-        # Assert that setpoint pv values have been reapplied
-        error_message_setpoints = ""
+        error_message = ""
         for pv, value in pvs_and_values_dict.items():
             try:
                 self.assert_that_pv_is(pv, value)
             except AssertionError as e:
-                error_message_setpoints += "\n{}".format(e.message)
-        if error_message_setpoints != "":
-            raise AssertionError("Failed to set setpoints:{}".format(error_message_setpoints))
+                error_message += "\n{}".format(e.message)
+        if error_message != "":
+            raise AssertionError("Not all PVs have given values, see errors: {}".format(error_message))
