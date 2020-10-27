@@ -62,6 +62,10 @@ macros["SPC_OFFSET"] = SPC_OFFSET
 macros["SPC_OFFSET_DURATION"] = SPC_OFFSET_DURATION
 macros["SPC_GAIN"] = SPC_GAIN
 
+macros["CALIB_BASE_DIR"] = EPICS_TOP
+macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings")
+macros["SPC_TABLE_FILE"] = "little_blue_cryostat.txt"
+
 
 DEVICE_PREFIX = "MERCURY_01"
 
