@@ -60,14 +60,14 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("reset_count", 0)
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
-        self._ioc.start_with_macros(macros, wait=True)
+        self._ioc.start_with_macros(macros)
         self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
 
         self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
         self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
 
         # Reset the macros for subsequent tests
-        self._ioc.start_with_original_macros(wait=True)
+        self._ioc.start_with_original_macros()
         self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
 
     @skip_if_recsim("Lewis not available in recsim")
@@ -77,13 +77,13 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("reset_count", 0)
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
-        self._ioc.start_with_macros(macros, wait=True)
+        self._ioc.start_with_macros(macros)
         self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
 
         self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
         self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
 
         # Reset the macros for subsequent tests
-        self._ioc.start_with_original_macros(wait=True)
+        self._ioc.start_with_original_macros()
         self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
 

@@ -92,7 +92,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         )
 
         # Restart the ioc, initiating a reset and sending of values after 100 microseconds
-        self._ioc.start_with_macros(macros, wait=True)
+        self._ioc.start_with_macros(macros)
         self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
 
 
@@ -109,5 +109,5 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         self.ca.assert_dict_of_pvs_have_given_values(pv_values)
 
         # Reset the macros for subsequent tests
-        self._ioc.start_with_original_macros(wait=True)
+        self._ioc.start_with_original_macros()
         self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)

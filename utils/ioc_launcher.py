@@ -435,7 +435,7 @@ class ProcServLauncher(BaseLauncher):
 
         return arguments_match
 
-    def start_with_macros(self, macros, wait=False):
+    def start_with_macros(self, macros, wait=True):
         """
         Restart the ioc with the given macros
 
@@ -446,7 +446,7 @@ class ProcServLauncher(BaseLauncher):
         self.create_macros_file()
         self.start_ioc(wait)
 
-    def start_with_original_macros(self, wait=False):
+    def start_with_original_macros(self, wait=True):
         """
         Restart the ioc with the macros originally set.
         """
