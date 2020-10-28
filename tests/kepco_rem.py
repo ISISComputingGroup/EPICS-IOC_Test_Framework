@@ -60,11 +60,9 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("reset_count", 0)
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
-        self._ioc.start_with_macros(macros)
-        self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
-
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
-        self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
+        with self._ioc.start_with_macros(macros, "VOLTAGE"):
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
+            self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
 
     @skip_if_recsim("Lewis not available in recsim")
     def test_GIVEN_kepco_firmware_does_not_support_SYSTREM_WHEN_on_start_is_2_THEN_no_remote_mode_AND_no_reset(self):
@@ -73,9 +71,7 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("reset_count", 0)
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
-        self._ioc.start_with_macros(macros)
-        self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
-
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
-        self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
+        with self._ioc.start_with_macros(macros, "VOLTAGE"):
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
+            self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
 

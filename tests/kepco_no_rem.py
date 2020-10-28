@@ -92,18 +92,15 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         )
 
         # Restart the ioc, initiating a reset and sending of values after 100 microseconds
-        self._ioc.start_with_macros(macros)
-        self.ca.assert_that_pv_exists("VOLTAGE", timeout=60)
+        with self._ioc.start_with_macros(macros, "VOLTAGE"):
+            # Assert reset occurred
+            self._lewis.assert_that_emulator_value_is("reset_count", 1, cast=int)
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
+            # Wait for reset to be done as is done in the IOC
+            time.sleep(1)
 
+            # Assert correct calls made
+            self.assert_lewis_set_counts_incremented(zip(lewis_vars, lewis_vals))
 
-        # Assert reset occurred
-        self._lewis.assert_that_emulator_value_is("reset_count", 1, cast=int)
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
-        # Wait for reset to be done as is done in the IOC
-        time.sleep(1)
-
-        # Assert correct calls made
-        self.assert_lewis_set_counts_incremented(zip(lewis_vars, lewis_vals))
-
-        # Assert autosave has correctly set pvs
-        self.ca.assert_dict_of_pvs_have_given_values(pv_values)
+            # Assert autosave has correctly set pvs
+            self.ca.assert_dict_of_pvs_have_given_values(pv_values)
