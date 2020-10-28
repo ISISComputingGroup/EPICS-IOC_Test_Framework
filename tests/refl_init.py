@@ -51,7 +51,7 @@ IOCS = [
         "started_text": "Reflectometry IOC started",
         "pv_for_existence": "STAT",
         "environment_vars": {
-            "REFL_MACROS": REFL_MACROS,
+            "MACROS": REFL_MACROS,
             "IOC_TEST": "1",
             "ICPCONFIGROOT": test_config_path,
             "ICPVARDIR": test_var_path,
