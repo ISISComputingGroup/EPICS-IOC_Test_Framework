@@ -225,10 +225,12 @@ class BaseLauncher(object):
         full_dir = os.path.join(self._var_dir, "tmp")
         if not os.path.exists(full_dir):
             os.makedirs(full_dir)
+
         with open(os.path.join(full_dir, "test_macros.txt"), mode="w") as f:
             for macro, value in self.macros.items():
-                f.write('{ioc_name}__{macro}={value}\n'.format(ioc_name=self._device, macro=macro, value=value))
-
+                f.write("{ioc_name}__{macro}={value}\n".format(ioc_name=self._device,
+                                                               macro=macro, value=value))
+          
     def get_environment_vars(self):
         """
         Get the current environment variables and add in the extra ones needed for starting the IOC in DEVSIM/RECSIM.
@@ -249,6 +251,7 @@ class BaseLauncher(object):
 
         for env_name, setting in self._extra_environment_vars.items():
             settings[env_name] = setting
+
         return settings
 
     def set_simulated_value(self, pv_name, value):

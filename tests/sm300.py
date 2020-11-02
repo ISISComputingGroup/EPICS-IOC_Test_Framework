@@ -57,7 +57,8 @@ IOCS = [
             "DHLM2": 640,
             "DLLM2": -0.2
           },
-        "emulator": "sm300"
+        "emulator": "sm300",
+        "pv_for_existence": "AXIS1"
     },
 ]
 
