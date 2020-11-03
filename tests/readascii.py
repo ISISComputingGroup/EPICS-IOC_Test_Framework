@@ -28,6 +28,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": os.path.join(EPICS_TOP, "support", "ReadASCII", "master", "iocBoot", "iocReadASCIITest"),
+        "pv_for_existence": "DIRBASE",
     },
 ]
 

@@ -54,6 +54,8 @@ IOCS = [
         },
         "inits": {
             "MTR0102.VMAX": INITIAL_VELOCITY,
+            "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
+            "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0104.VMAX": INITIAL_VELOCITY,
             "MTR0105.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
             "MTR0107.VMAX": FAST_VELOCITY,
@@ -63,8 +65,6 @@ IOCS = [
             "MTR0105.HLM": SOFT_LIMIT_HI,
             "MTR0107.ERES": 0.001,
             "MTR0107.MRES": 0.001,
-            "MTR0108.ERES": 0.001,
-            "MTR0108.MRES": 0.001
         }
     },
     {
@@ -78,8 +78,8 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
-            "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
-            "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
+            "MTR0208.ERES": 0.001,
+            "MTR0208.MRES": 0.001
         }
     },
     {

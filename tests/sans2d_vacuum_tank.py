@@ -1,14 +1,18 @@
+import time
 import unittest
 import os
+
+from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
 
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.axis import set_axis_moving, assert_axis_moving, assert_axis_not_moving
+from utils.testing import ManagerMode, unstable_test
 
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d")
+    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
 )
 
 GALIL_ADDR = "127.0.0.1"
@@ -28,6 +32,14 @@ IOCS = [
     } for i in [3, 4, 5]
 ]
 
+IOCS.append(
+        {
+            "name": "INSTETC",
+            "directory": get_default_ioc_dir("INSTETC"),
+            "custom_prefix": "CS",
+            "pv_for_existence": "MANAGER",
+        })
+
 TEST_MODES = [TestModes.RECSIM]
 
 AXES_TO_STOP = [
@@ -45,10 +57,26 @@ class Sans2dVacTankTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix="MOT")
 
+    def _set_collision_avoidance_state_with_retries(self, state):
+        with ManagerMode(ChannelAccess()):
+            for _ in range(5):
+                try:
+                    self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", state)
+                    break
+                except WriteAccessException as e:
+                    err = e
+                    time.sleep(1)
+            else:
+                raise err
+
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_axis_moving_WHEN_stop_all_THEN_axis_stopped(self, axis):
+        self._set_collision_avoidance_state_with_retries(1)
+
         for _ in range(3):
             set_axis_moving(axis)
             assert_axis_moving(axis)
             self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL", 1)
             assert_axis_not_moving(axis)
+
+        self._set_collision_avoidance_state_with_retries(0)
