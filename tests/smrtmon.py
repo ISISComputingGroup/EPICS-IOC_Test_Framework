@@ -1,25 +1,26 @@
 import unittest
 from parameterized import parameterized
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
+from utils.testing import get_running_lewis_and_ioc
 
 IOC_NAME = "SMRTMON"
 IOC_PREFIX = "SMRTMON_01"
 
 IOCS = [
     {
-        "name": "SMRTMON_01",
+        "name": IOC_PREFIX,
         "directory": get_default_ioc_dir(IOC_NAME),
-        "custom_prefix": IOC_PREFIX,
-        "pv_for_existence": "HEARTBEAT",
-        "macros": {
-        },
+        "macros": {},
         "emulator": "smrtmon"
     },
 ]
 
+# All of these have their own PVs plus PVNAME:OPLM and PVNAME:LIMS
+DEVICE_PVS = ["TEMP1", "TEMP2", "TEMP3", "TEMP4", "TEMP5", "TEMP6", "VOLT1", "VOLT2", "VOLT3"]
+
+STAT_EXTRA_PVS = ["MI", "STATUS"]
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
@@ -71,22 +72,25 @@ class SmrtmonTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MAGNETSTATUS", status)
 
     def test_WHEN_stat_changes_THEN_buffer_changes(self):
-        stat = 123456789
+        stat = "1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,1,2"
         self._write_stat(stat)
         self.ca.assert_that_pv_is("STATBUFFER", stat)
 
     def test_WHEN_oplm_changes_THEN_buffer_changes(self):
-        oplm = 123456789
+        oplm = "1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0"
         self._write_oplms(oplm)
         self.ca.assert_that_pv_is("OPLMBUFFER", oplm)
 
     def test_WHEN_lims_changes_THEN_buffer_changes(self):
-        lims = 123456789
+        lims = "1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0"
         self._write_lims(lims)
         self.ca.assert_that_pv_is("LIMSBUFFER", lims)
 
     def test_WHEN_stat_changes_THEN_pvs_change(self):
-        pass
+        # TODO: make this parametrized somehow
+        temp = 1.0
+        self._write_stat("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1,2".format(str(temp)))
+        self.ca.assert_that_pv_is("TEMP1", temp)
 
     def test_WHEN_oplm_changes_THEN_pvs_change(self):
         pass
