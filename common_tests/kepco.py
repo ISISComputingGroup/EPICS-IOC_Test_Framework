@@ -1,24 +1,11 @@
-import unittest
+from utils.channel_access import ChannelAccess
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
 from parameterized import parameterized
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
-from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-from distutils.util import strtobool
-
 DEVICE_PREFIX = "KEPCO_01"
-
-
-IOCS = [
-    {
-        "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("KEPCO"),
-        "macros": {},
-        "emulator": "kepco",
-    },
-]
+emulator_name = "kepco"
 
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
@@ -41,7 +28,24 @@ class UnitFlags(object):
     OFF = 0
 
 
-class KepcoTests(unittest.TestCase):
+IDN_NO_REM = ("KEPCO, BIT 4886 100-2 123456 1.8-", 1.8)
+
+IDN_REM = ("KEPCO, BIT 4886 100-2, 123456, 3.3-", 3.7)
+
+IDN_LIST = [
+    IDN_NO_REM,
+    IDN_REM,
+    ("KEPCO,BIT 4886 100-2,123456,", 2.2),
+    ("KEPCO,BIT 4886 100-2,123456 ", 1.4),
+    # With current and voltage
+    ("KEPCO, BIT 4886 100-2, 23.4, 36.8, 123456 3.8-", 3.8),
+    ("KEPCO, BIT 4886 100-2 28.9 10.2 123456 1.9-", 1.7),
+    ("KEPCO,BIT 4886 100-2, 1.1, 0, 123456,", 2.2),
+    ("KEPCO,BIT 4886 100-2, 8.0, 9.0 123456 ", 1.4),
+]
+
+
+class KepcoTests(object):
     """
     Tests for the KEPCO.
     """
@@ -60,9 +64,16 @@ class KepcoTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("current", expected_current)
         self._ioc.set_simulated_value("SIM:CURRENT", expected_current)
 
-    def _set_IDN(self, expected_idn):
-        self._lewis.backdoor_set_on_device("idn", expected_idn)
+    def _set_IDN(self, expected_idn_no_firmware, expected_firmware):
+        self._lewis.backdoor_set_on_device("idn_no_firmware", expected_idn_no_firmware)
+        self._lewis.backdoor_set_on_device("firmware", expected_firmware)
+        expected_idn = "{}{}".format(expected_idn_no_firmware, str(expected_firmware))[:39]  # EPICS limited to 40 chars
         self._ioc.set_simulated_value("SIM:IDN", expected_idn)
+        self._ioc.set_simulated_value("SIM:FIRMWARE", str(expected_firmware))
+        # Both firmware and IDN are passive so must be updated
+        self.ca.process_pv("FIRMWARE")
+        self.ca.process_pv("IDN")
+        return expected_idn
 
     def _set_output_mode(self, expected_output_mode):
         self._lewis.backdoor_set_on_device("output_mode", expected_output_mode)
@@ -110,10 +121,9 @@ class KepcoTests(unittest.TestCase):
         self.ca.set_pv_value("OUTPUTSTATUS:SP", expected_output_status_flag)
         self.ca.assert_that_pv_is("OUTPUTSTATUS:SP:RBV", expected_output_status_str)
 
-    def test_GIVEN_idn_set_WHEN_read_THEN_idn_is_as_expected(self):
-        expected_idn = "000000000000000000111111111111111111111"
-        self._set_IDN(expected_idn)
-        # Made Proc field force scan as IDN scan is passive
+    @parameterized.expand(parameterized_list(IDN_LIST))
+    def test_GIVEN_idn_set_WHEN_read_THEN_idn_is_as_expected(self, _, idn_no_firmware, firmware):
+        expected_idn = self._set_IDN(idn_no_firmware, firmware)
         self.ca.process_pv("IDN")
         self.ca.assert_that_pv_is("IDN", expected_idn)
 
@@ -161,3 +171,9 @@ class KepcoTests(unittest.TestCase):
 
     def test_GIVEN_rampon_WHEN_target_set_with_different_step_rate_THEN_current_ramps_to_target_more_finely(self):
         self._test_ramp_to_target(4, 3, 2, 60, 2)
+
+    @parameterized.expand(parameterized_list(IDN_LIST))
+    def test_GIVEN_idn_set_AND_firmware_set_THEN_firmware_pv_correct(self, _, idn_no_firmware, firmware):
+        self._set_IDN(idn_no_firmware, firmware)
+        self.ca.process_pv("FIRMWARE")
+        self.ca.assert_that_pv_is("FIRMWARE", firmware)
