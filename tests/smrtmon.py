@@ -40,7 +40,7 @@ class SmrtmonTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("smrtmon", IOC_PREFIX)
         self.ca = ChannelAccess(device_prefix=IOC_PREFIX)
-        self._lewis.backdoor_set_on_device('connected', True)
+        self._lewis.backdoor_run_function_on_device("reset_values")
         self.ca.assert_that_pv_alarm_is_not("STAT", ChannelAccess.Alarms.INVALID)
 
     @parameterized.expand(MAGNET_STATUS.items())
@@ -71,3 +71,25 @@ class SmrtmonTests(unittest.TestCase):
     def test_WHEN_disconnected_THEN_in_alarm(self, _, pv):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
+
+    @parameterized.expand(enumerate(DEVICE_PVS))
+    def test_GIVEN_oplm_WHEN_stat_greater_than_oplm_THEN_minor_alarm(self, num, pv):
+        oplm_value = 123
+        stat_value = 124
+        lims_value = 125
+        self._lewis.backdoor_command(["device", "set_oplm", str(num), str(oplm_value)])
+        self._lewis.backdoor_command(["device", "set_lims", str(num), str(lims_value)])
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+        self._lewis.backdoor_command(["device", "set_stat", str(num), str(stat_value)])
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.MINOR)
+
+    @parameterized.expand(enumerate(DEVICE_PVS))
+    def test_GIVEN_lims_WHEN_stat_greater_than_lims_THEN_major_alarm(self, num, pv):
+        oplm_value = 123
+        stat_value = 125
+        lims_value = 124
+        self._lewis.backdoor_command(["device", "set_oplm", str(num), str(oplm_value)])
+        self._lewis.backdoor_command(["device", "set_lims", str(num), str(lims_value)])
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+        self._lewis.backdoor_command(["device", "set_stat", str(num), str(stat_value)])
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.MAJOR)
