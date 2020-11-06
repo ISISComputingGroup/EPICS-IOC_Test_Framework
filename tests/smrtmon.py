@@ -3,7 +3,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 IOC_NAME = "SMRTMON"
 IOC_PREFIX = "SMRTMON_01"
@@ -86,18 +86,29 @@ class SmrtmonTests(unittest.TestCase):
         self._write_lims(lims)
         self.ca.assert_that_pv_is("LIMSBUFFER", lims)
 
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_WHEN_stat_changes_THEN_pvs_change(self):
         # TODO: make this parametrized somehow
+        #backdoor_set_on_device
         temp = 1.0
         self._write_stat("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1,2".format(str(temp)))
         self.ca.assert_that_pv_is("TEMP1", temp)
 
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_WHEN_oplm_changes_THEN_pvs_change(self):
+        # TODO: make this parametrized somehow
         oplm = 3
-        self._write_oplm("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1,2".format(str(oplm)))
+        self._write_oplm("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0".format(str(oplm)))
         self.ca.assert_that_pv_is("TEMP1:OPLM", oplm)
 
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_WHEN_lims_changes_THEN_pvs_change(self):
+        # TODO: make this parametrized somehow
         lims = 4
-        self._write_lims("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1,2".format(str(lims)))
+        self._write_lims("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0".format(str(lims)))
         self.ca.assert_that_pv_is("TEMP1:LIMS", lims)
+
+    def test_WHEN_temp1_changes_THEN_pvs_change(self):
+        temp1 = 123
+        self._lewis.backdoor_set_on_device("temp1", temp1)
+        self.ca.assert_that_pv_is("TEMP1", temp1)
