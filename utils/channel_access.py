@@ -648,3 +648,19 @@ class ChannelAccess(object):
         self.assert_that_pv_value_causes_func_to_return_true(
             pv=pv_with_prefix, func=lambda val: val == time_before, pv_value_source=PvUpdateTimeValueSource(),
             message="PV {} was processed".format(pv))
+
+    def assert_dict_of_pvs_have_given_values(self, pvs_and_values_dict):
+        """
+        Assert that the pvs (keys of the passed dict) have the given values (values of the dict).
+
+        Args:
+            pvs_and_values_dict: A dictionary with keys as pvs and expected values as the value.
+        """
+        error_message = ""
+        for pv, value in pvs_and_values_dict.items():
+            try:
+                self.assert_that_pv_is(pv, value)
+            except AssertionError as e:
+                error_message += "\n{}".format(e.message)
+        if error_message != "":
+            raise AssertionError("Not all PVs have given values, see errors: {}".format(error_message))
