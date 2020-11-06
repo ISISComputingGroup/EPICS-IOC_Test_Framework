@@ -45,24 +45,6 @@ class SmrtmonTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MAGNETSTATUS", status)
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
-    def test_WHEN_stat_changes_THEN_buffer_changes(self):
-        stat = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,1,2]
-        self._lewis.backdoor_set_on_device("stat", stat)
-        self.ca.assert_that_pv_is("STATBUFFER", stat)
-
-    @skip_if_recsim("Lewis backdoor not available in RecSim")
-    def test_WHEN_oplm_changes_THEN_buffer_changes(self):
-        oplm = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0]
-        self._lewis.backdoor_set_on_device("oplm", oplm)
-        self.ca.assert_that_pv_is("OPLMBUFFER", oplm)
-
-    @skip_if_recsim("Lewis backdoor not available in RecSim")
-    def test_WHEN_lims_changes_THEN_buffer_changes(self):
-        lims = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0]
-        self._lewis.backdoor_set_on_device("lims", lims)
-        self.ca.assert_that_pv_is("LIMSBUFFER", lims)
-
-    @skip_if_recsim("Lewis backdoor not available in RecSim")
     @parameterized.expand(enumerate(DEVICE_PVS + STAT_EXTRA_PVS))
     def test_WHEN_stat_changes_THEN_pvs_change(self, num, pv):
         stat_value = 1.0
