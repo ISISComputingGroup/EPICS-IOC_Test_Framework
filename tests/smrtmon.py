@@ -4,6 +4,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from time import sleep
 
 MAGNET_STATUS_PV_NAME = "MAGNETSTATUS"
 
@@ -39,6 +40,10 @@ class SmrtmonTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("smrtmon", IOC_PREFIX)
         self.ca = ChannelAccess(device_prefix=IOC_PREFIX)
+        self._lewis.backdoor_set_on_device('connected', True)
+        self.ca.assert_that_pv_alarm_is_not("STAT", ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is_not("OPLM", ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is_not("LIMS", ChannelAccess.Alarms.INVALID)
 
     @parameterized.expand(MAGNET_STATUS.items())
     def test_WHEN_status_changes_THEN_magnetstatus_enum_is_updated(self, num, status):
@@ -62,4 +67,9 @@ class SmrtmonTests(unittest.TestCase):
     def test_WHEN_lims_changes_THEN_pvs_change(self, num, pv):
         lims_value = 1.0
         self._lewis.backdoor_command(["device", "set_lims", str(num), str(lims_value)])
-        self.ca.assert_that_pv_is(pv, lims_value)
+        self.ca.assert_that_pv_is(pv, lims_value, timeout=1)
+
+    @parameterized.expand(enumerate(DEVICE_PVS + [pv + ":OPLM" for pv in DEVICE_PVS] + [pv + ":LIMS" for pv in DEVICE_PVS] ))
+    def test_WHEN_disconnected_THEN_in_alarm(self, _, pv):
+        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
