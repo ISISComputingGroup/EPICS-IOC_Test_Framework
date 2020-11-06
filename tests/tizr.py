@@ -3,7 +3,6 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.test_modes import TestModes
-from utils.testing import unstable_test
 import os
 from genie_python import genie as g
 
@@ -60,7 +59,7 @@ class TiZrTests(unittest.TestCase):
     def set_safe_values(self):
         self.ca.set_pv_value(SIMPLE_VALUE_ONE, 0.5*PVONE_MAX)
         self.ca.set_pv_value(SIMPLE_VALUE_TWO, 0.5*PVTWO_MAX)
-        self.ca.set_pv_value("TIZR_01:TIZRWARNING", 0)
+        self.ca.set_pv_value(WARNING_PV, 0)
 
     def test_GIVEN_PVONE_above_max_WHEN_PVTWO_goes_out_of_range_THEN_alarm_and_safe_value_written_to_PVONE(self):
         self.ca.set_pv_value(SIMPLE_VALUE_ONE, 2.0*PVONE_MAX)
@@ -70,7 +69,7 @@ class TiZrTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
 
-        self.ca.assert_that_pv_alarm_is("TIZR_01:TIZRWARNING", self.ca.Alarms.MAJOR)
+        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.MAJOR)
 
     def test_GIVEN_PVTWO_above_max_WHEN_PVONE_out_of_range_THEN_alarm_and_safe_value_written_to_PVONE(self):
         self.ca.set_pv_value(SIMPLE_VALUE_TWO, 2.0*PVTWO_MAX)
@@ -78,7 +77,7 @@ class TiZrTests(unittest.TestCase):
 
         self.ca.set_pv_value(SIMPLE_VALUE_ONE, 2.0*PVONE_MAX)
 
-        self.ca.assert_that_pv_alarm_is("TIZR_01:TIZRWARNING", self.ca.Alarms.MAJOR)
+        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.MAJOR)
 
         self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
 
@@ -89,7 +88,7 @@ class TiZrTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, 0.5*PVONE_MAX)
         self.ca.assert_that_pv_is_number(SIMPLE_VALUE_TWO, 0.5*PVTWO_MAX)
 
-        self.ca.assert_that_pv_alarm_is("TIZR_01:TIZRWARNING", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.NONE)
 
         self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_ONE, self.ca.Alarms.NONE)
         self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_TWO, self.ca.Alarms.NONE)
