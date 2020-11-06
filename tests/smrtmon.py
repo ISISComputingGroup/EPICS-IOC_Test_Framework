@@ -43,7 +43,7 @@ class SmrtmonTests(unittest.TestCase):
     @parameterized.expand(MAGNET_STATUS.items())
     def test_WHEN_status_changes_THEN_magnetstatus_enum_is_updated(self, num, status):
         # Check when the STATUS value updates the MAGNETSTATUS enum is updated with the correct string
-        self._lewis.backdoor_command(["device", "set_stat", str(11), str(num)])
+        self._lewis.backdoor_command(["device", "set_stat", str(10), str(num)])
         self.ca.assert_that_pv_is(MAGNET_STATUS_PV_NAME, status)
 
     @parameterized.expand(enumerate(DEVICE_PVS + STAT_EXTRA_PVS))
