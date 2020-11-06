@@ -26,9 +26,9 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 MAGNET_STATUS = {
     0: "",
-    1: "Magnet Is At Room Temperature",
-    2: "Magnet Is Cooling Down",
-    3: "Magnet Is At Operating Temperature",
+    1: "At Room Temperature",
+    2: "Cooling Down",
+    3: "At Operating Temperature",
     4: "A Fault Has Occurred"
 }
 
@@ -39,15 +39,15 @@ class SmrtmonTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=IOC_PREFIX)
 
     def _write_stat(self, expected_stat):
-        self._lewis.backdoor_set_on_device("stat1", expected_stat)
+        self._lewis.backdoor_set_on_device("stat", expected_stat)
         self._ioc.set_simulated_value("SIM:STAT", expected_stat)
 
-    def _write_oplms(self, expected_oplm):
-        self._lewis.backdoor_set_on_device("oplm1", expected_oplm)
+    def _write_oplm(self, expected_oplm):
+        self._lewis.backdoor_set_on_device("oplm", expected_oplm)
         self._ioc.set_simulated_value("SIM:OPLM", expected_oplm)
 
     def _write_lims(self, expected_lims):
-        self._lewis.backdoor_set_on_device("lims1", expected_lims)
+        self._lewis.backdoor_set_on_device("lims", expected_lims)
         self._ioc.set_simulated_value("SIM:LIMS", expected_lims)
 
     def test_WHEN_stat_changes_THEN_pv_also_changes(self):
@@ -57,7 +57,7 @@ class SmrtmonTests(unittest.TestCase):
 
     def test_WHEN_oplm_changes_THEN_pv_also_changes(self):
         oplm = 1
-        self._write_oplms(oplm)
+        self._write_oplm(oplm)
         self.ca.assert_that_pv_is("OPLM", oplm)
 
     def test_WHEN_lims_changes_THEN_pv_also_changes(self):
@@ -78,7 +78,7 @@ class SmrtmonTests(unittest.TestCase):
 
     def test_WHEN_oplm_changes_THEN_buffer_changes(self):
         oplm = "1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0"
-        self._write_oplms(oplm)
+        self._write_oplm(oplm)
         self.ca.assert_that_pv_is("OPLMBUFFER", oplm)
 
     def test_WHEN_lims_changes_THEN_buffer_changes(self):
@@ -93,7 +93,11 @@ class SmrtmonTests(unittest.TestCase):
         self.ca.assert_that_pv_is("TEMP1", temp)
 
     def test_WHEN_oplm_changes_THEN_pvs_change(self):
-        pass
+        oplm = 3
+        self._write_oplm("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1,2".format(str(oplm)))
+        self.ca.assert_that_pv_is("TEMP1:OPLM", oplm)
 
     def test_WHEN_lims_changes_THEN_pvs_change(self):
-        pass
+        lims = 4
+        self._write_lims("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1,2".format(str(lims)))
+        self.ca.assert_that_pv_is("TEMP1:LIMS", lims)
