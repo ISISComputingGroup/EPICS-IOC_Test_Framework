@@ -38,77 +38,47 @@ class SmrtmonTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("smrtmon", IOC_PREFIX)
         self.ca = ChannelAccess(device_prefix=IOC_PREFIX)
 
-    def _write_stat(self, expected_stat):
-        self._lewis.backdoor_set_on_device("stat", expected_stat)
-        self._ioc.set_simulated_value("SIM:STAT", expected_stat)
-
-    def _write_oplm(self, expected_oplm):
-        self._lewis.backdoor_set_on_device("oplm", expected_oplm)
-        self._ioc.set_simulated_value("SIM:OPLM", expected_oplm)
-
-    def _write_lims(self, expected_lims):
-        self._lewis.backdoor_set_on_device("lims", expected_lims)
-        self._ioc.set_simulated_value("SIM:LIMS", expected_lims)
-
-    def test_WHEN_stat_changes_THEN_pv_also_changes(self):
-        stat = 1
-        self._write_stat(stat)
-        self.ca.assert_that_pv_is("STAT", stat)
-
-    def test_WHEN_oplm_changes_THEN_pv_also_changes(self):
-        oplm = 1
-        self._write_oplm(oplm)
-        self.ca.assert_that_pv_is("OPLM", oplm)
-
-    def test_WHEN_lims_changes_THEN_pv_also_changes(self):
-        lims = 1
-        self._write_lims(lims)
-        self.ca.assert_that_pv_is("LIMS", lims)
-
     @parameterized.expand(MAGNET_STATUS.items())
     def test_WHEN_status_changes_THEN_magnetstatus_enum_is_updated(self, num, status):
         # Check when the STATUS value updates the MAGNETSTATUS enum is updated with the correct string
         self.ca.set_pv_value("STATUS", num)
         self.ca.assert_that_pv_is("MAGNETSTATUS", status)
 
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_WHEN_stat_changes_THEN_buffer_changes(self):
-        stat = "1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,1,2"
-        self._write_stat(stat)
+        stat = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,1,2]
+        self._lewis.backdoor_set_on_device("stat", stat)
         self.ca.assert_that_pv_is("STATBUFFER", stat)
 
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_WHEN_oplm_changes_THEN_buffer_changes(self):
-        oplm = "1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0"
-        self._write_oplm(oplm)
+        oplm = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0]
+        self._lewis.backdoor_set_on_device("oplm", oplm)
         self.ca.assert_that_pv_is("OPLMBUFFER", oplm)
 
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_WHEN_lims_changes_THEN_buffer_changes(self):
-        lims = "1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0"
-        self._write_lims(lims)
+        lims = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0]
+        self._lewis.backdoor_set_on_device("lims", lims)
         self.ca.assert_that_pv_is("LIMSBUFFER", lims)
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
-    def test_WHEN_stat_changes_THEN_pvs_change(self):
-        # TODO: make this parametrized somehow
-        #backdoor_set_on_device
-        temp = 1.0
-        self._write_stat("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1,2".format(str(temp)))
-        self.ca.assert_that_pv_is("TEMP1", temp)
+    @parameterized.expand(enumerate(DEVICE_PVS + STAT_EXTRA_PVS))
+    def test_WHEN_stat_changes_THEN_pvs_change(self, num, pv):
+        stat_value = 1.0
+        self._lewis.backdoor_command(["device", "set_stat", str(num), str(stat_value)])
+        self.ca.assert_that_pv_is(pv, stat_value)
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
-    def test_WHEN_oplm_changes_THEN_pvs_change(self):
-        # TODO: make this parametrized somehow
-        oplm = 3
-        self._write_oplm("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0".format(str(oplm)))
-        self.ca.assert_that_pv_is("TEMP1:OPLM", oplm)
+    @parameterized.expand(enumerate([pv+":OPLM" for pv in DEVICE_PVS]))
+    def test_WHEN_oplm_changes_THEN_pvs_change(self, num, pv):
+        oplm_value = 1.0
+        self._lewis.backdoor_command(["device", "set_oplm", str(num), str(oplm_value)])
+        self.ca.assert_that_pv_is(pv, oplm_value)
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
-    def test_WHEN_lims_changes_THEN_pvs_change(self):
-        # TODO: make this parametrized somehow
-        lims = 4
-        self._write_lims("{},0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0".format(str(lims)))
-        self.ca.assert_that_pv_is("TEMP1:LIMS", lims)
-
-    def test_WHEN_temp1_changes_THEN_pvs_change(self):
-        temp1 = 123
-        self._lewis.backdoor_set_on_device("temp1", temp1)
-        self.ca.assert_that_pv_is("TEMP1", temp1)
+    @parameterized.expand(enumerate([pv + ":LIMS" for pv in DEVICE_PVS]))
+    def test_WHEN_oplm_changes_THEN_pvs_change(self, num, pv):
+        lims_value = 1.0
+        self._lewis.backdoor_command(["device", "set_lims", str(num), str(lims_value)])
+        self.ca.assert_that_pv_is(pv, lims_value)
