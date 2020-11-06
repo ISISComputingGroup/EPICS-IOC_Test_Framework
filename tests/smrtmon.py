@@ -67,7 +67,7 @@ class SmrtmonTests(unittest.TestCase):
         self._lewis.backdoor_command(["device", "set_lims", str(num), str(lims_value)])
         self.ca.assert_that_pv_is(pv, lims_value)
 
-    @parameterized.expand(enumerate(DEVICE_PVS + [pv + ":OPLM" for pv in DEVICE_PVS] + [pv + ":LIMS" for pv in DEVICE_PVS] ))
+    @parameterized.expand(enumerate(DEVICE_PVS + [pv + ":OPLM" for pv in DEVICE_PVS] + [pv + ":LIMS" for pv in DEVICE_PVS] + ["MAGNETSTATUS"]))
     def test_WHEN_disconnected_THEN_in_alarm(self, _, pv):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
