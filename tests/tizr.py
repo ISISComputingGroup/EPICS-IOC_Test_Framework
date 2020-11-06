@@ -3,8 +3,10 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.test_modes import TestModes
+from utils.testing import parameterized_list
 import os
 from genie_python import genie as g
+from parameterized import parameterized
 
 
 IOC_PREFIX = "TIZR_01"
@@ -92,3 +94,11 @@ class TiZrTests(unittest.TestCase):
 
         self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_ONE, self.ca.Alarms.NONE)
         self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_TWO, self.ca.Alarms.NONE)
+
+    @parameterized.expand(parameterized_list([(SIMPLE_VALUE_ONE, 0.5*PVONE_MAX), (SIMPLE_VALUE_TWO, 0.5*PVTWO_MAX)]))
+    def test_GIVEN_PVONE_and_PVTWO_in_range_WHEN_out_of_range_value_written_to_one_THEN_no_alarm_and_value_written(
+            self, _, pv, in_range_value):
+        self.ca.set_pv_value(pv, in_range_value)
+        self.ca.assert_that_pv_is_number(pv, in_range_value)
+        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
