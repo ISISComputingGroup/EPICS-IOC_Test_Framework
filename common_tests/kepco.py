@@ -1,7 +1,7 @@
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-
+from distutils.util import strtobool
 from parameterized import parameterized
 
 DEVICE_PREFIX = "KEPCO_01"
