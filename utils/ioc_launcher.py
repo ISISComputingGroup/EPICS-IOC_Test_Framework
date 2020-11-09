@@ -368,6 +368,8 @@ class ProcServLauncher(BaseLauncher):
         start_command = "\x18"
         self.telnet.write("{cmd}\n".format(cmd=start_command))
         if wait:
+            # Write a return so that an epics terminal will appear after boot
+            self._process.stdin.write("\n")
             self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
     def quit_ioc(self):
