@@ -49,7 +49,7 @@ class CryoSMSTests(unittest.TestCase):
         if IOCRegister.uses_rec_sim:
             self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         else:
-            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=30)
+            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=60)
             self.ca.set_pv_value("PAUSE:SP", 0)
             self.ca.set_pv_value("ABORT:SP", 0)
             self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
