@@ -39,6 +39,7 @@ IOCS = [
         "directory": get_default_ioc_dir("TIZR"),
         "macros": tizr_macros,
         "ioc_launcher_class": ProcServLauncher,
+        "pv_for_existence": "TIZRWARNING",
     },
     {
         "name": "SIMPLE",
