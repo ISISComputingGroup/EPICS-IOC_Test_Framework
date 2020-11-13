@@ -58,7 +58,7 @@ class CryoSMSTests(unittest.TestCase):
         if IOCRegister.uses_rec_sim:
             self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         else:
-            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=30)
+            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=60)
             self._lewis.backdoor_set_on_device("mid_target", 0)
             self._lewis.backdoor_set_on_device("output", 0)
             self.ca.set_pv_value("MID:SP", 0)
