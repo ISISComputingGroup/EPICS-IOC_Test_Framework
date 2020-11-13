@@ -42,7 +42,7 @@ def get_beamline(macros):
     add_parameter(InBeamParameter("SMInBeam", sm_comp), modes=[nr, polarised], mode_inits=[(polarised, True)])
     add_driver(
         IocDriver(sm_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0107"), out_of_beam_positions=[SM_OUT_POS]))
-    add_driver(IocDriver(sm_comp, ChangeAxis.ANGLE, MotorPVWrapper("MOT:MTR0108")))
+    add_driver(IocDriver(sm_comp, ChangeAxis.ANGLE, MotorPVWrapper("MOT:MTR0208")))
 
     # THETA
     theta = add_component(ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2 * SPACING, 90)))

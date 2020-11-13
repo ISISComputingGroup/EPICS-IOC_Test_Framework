@@ -23,11 +23,12 @@ IOCS = [
             "FACTOR_READ_V": "1",
             "FACTOR_WRITE_I": write_scale_factor,
             "MAX_RAW_SETPOINT": max_raw_setpoint,
+            "DISABLE_AUTOONOFF": "0",
+            "SP_AT_STARTUP": "NO",
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8000",
         "pv_for_existence": "FIELD",
-        "DISABLE_AUTOONOFF": "0",
         "ioc_launcher_class": ProcServLauncher
     },
 ]

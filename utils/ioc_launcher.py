@@ -4,6 +4,7 @@ Code that launches an IOC/application under test
 import subprocess
 import os
 import time
+from contextlib import contextmanager
 
 import psutil
 from time import sleep
@@ -224,11 +225,12 @@ class BaseLauncher(object):
         full_dir = os.path.join(self._var_dir, "tmp")
         if not os.path.exists(full_dir):
             os.makedirs(full_dir)
-        with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
-            for macro, value in self.macros.items():
-                f.write('epicsEnvSet("{macro}", "{value}")\n'
-                        .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
 
+        with open(os.path.join(full_dir, "test_macros.txt"), mode="w") as f:
+            for macro, value in self.macros.items():
+                f.write("{ioc_name}__{macro}={value}\n".format(ioc_name=self._device,
+                                                               macro=macro, value=value))
+          
     def get_environment_vars(self):
         """
         Get the current environment variables and add in the extra ones needed for starting the IOC in DEVSIM/RECSIM.
@@ -249,6 +251,7 @@ class BaseLauncher(object):
 
         for env_name, setting in self._extra_environment_vars.items():
             settings[env_name] = setting
+
         return settings
 
     def set_simulated_value(self, pv_name, value):
@@ -291,6 +294,7 @@ class ProcServLauncher(BaseLauncher):
 
         self.telnet = None
         self.autorestart = True
+        self.original_macros = ioc.get("macros", {})
 
     def get_environment_vars(self):
         settings = super(ProcServLauncher, self).get_environment_vars()
@@ -356,13 +360,15 @@ class ProcServLauncher(BaseLauncher):
         if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
 
-    def start_ioc(self):
+    def start_ioc(self, wait=False):
         """
         Sends the start/restart IOC command to procserv. (^X)
 
         """
         start_command = "\x18"
         self.telnet.write("{cmd}\n".format(cmd=start_command))
+        if wait:
+            self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
     def quit_ioc(self):
         """
@@ -431,6 +437,45 @@ class ProcServLauncher(BaseLauncher):
         arguments_match = all([args in process_arguments for args in ioc_start_arguments])
 
         return arguments_match
+
+    @contextmanager
+    def start_with_macros(self, macros, pv_to_wait_for):
+        """
+        A context manager to start the ioc with the given macros and then at the end start
+        the ioc again with the original macros.
+
+        Args:
+             macros (dict): A dictionary of macros to restart the ioc with.
+             pv_to_wait_for (str): A pv to wait for 60 seconds to appear after starting the ioc.
+        """
+        try:
+            self._start_with_macros(macros)
+            self.ca.assert_that_pv_exists(pv_to_wait_for, timeout=60)
+            yield
+        finally:
+            self._start_with_original_macros()
+            self.ca.assert_that_pv_exists(pv_to_wait_for, timeout=60)
+
+    def _start_with_macros(self, macros, wait=True):
+        """
+        Restart the ioc with the given macros
+
+        Args
+            macros (dict): A dictionary of macros to restart the ioc with.
+        """
+        self.macros = macros
+        self.create_macros_file()
+        time.sleep(1)
+        self.start_ioc(wait)
+
+    def _start_with_original_macros(self, wait=True):
+        """
+        Restart the ioc with the macros originally set.
+        """
+        self.macros = self.original_macros
+        self.create_macros_file()
+        time.sleep(1)
+        self.start_ioc(wait)
 
 
 class IocLauncher(BaseLauncher):
