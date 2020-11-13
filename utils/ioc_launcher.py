@@ -126,6 +126,7 @@ class BaseLauncher(object):
             var_dir: The directory into which the launcher will save log files.
         """
         self._device = ioc_config['name']
+        self._device_icp_config_name = ioc_config.get('icpconfigname', ioc_config['name'])
         self._directory = ioc_config['directory']
         self._prefix = ioc_config.get('custom_prefix', self._device)
         self._ioc_started_text = ioc_config.get("started_text", DEFAULT_IOC_START_TEXT)
@@ -228,8 +229,7 @@ class BaseLauncher(object):
 
         with open(os.path.join(full_dir, "test_macros.txt"), mode="w") as f:
             for macro, value in self.macros.items():
-                f.write("{ioc_name}__{macro}={value}\n".format(ioc_name=self._device,
-                                                               macro=macro, value=value))
+                f.write("{ioc_name}__{macro}=\"{value}\"\n".format(ioc_name=self._device_icp_config_name, macro=macro, value=value))
           
     def get_environment_vars(self):
         """
