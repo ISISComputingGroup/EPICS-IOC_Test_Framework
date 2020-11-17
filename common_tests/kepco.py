@@ -135,21 +135,6 @@ class KepcoTests(object):
         self.ca.assert_that_pv_alarm_is("CURRENT", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("VOLTAGE", self.ca.Alarms.INVALID)
 
-    @parameterized.expand(parameterized_list([
-        "OUTPUTMODE:SP",
-        "CURRENT:SP",
-        "VOLTAGE:SP",
-        "OUTPUTSTATUS:SP",
-    ]))
-    @skip_if_recsim("Complex behaviour not simulated in recsim")
-    def test_GIVEN_psu_in_local_mode_WHEN_setpoint_is_sent_THEN_power_supply_put_into_remote_first(self, _, setpoint_pv):
-        self._lewis.backdoor_set_on_device("remote_comms_enabled", False)
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
-
-        self.ca.process_pv(setpoint_pv)
-
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
-
     def _test_ramp_to_target(self, start_current, target_current, ramp_rate, step_number, wait_between_changes):
         self.ca.set_pv_value("CURRENT:SP", start_current)
         self.ca.assert_that_pv_is("CURRENT:SP:RBV", start_current)
