@@ -56,7 +56,6 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
             raise AssertionError("Failed to call sets:{}".format(error_message_calls))
 
     @parameterized.expand(parameterized_list([
-        (IDN_NO_REM[0], IDN_NO_REM[1], {}),
         (IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 1}),
         (IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 2}),
         (IDN_REM[0], IDN_REM[1], {"RESET_ON_START": 2}),
