@@ -96,19 +96,12 @@ class SmrtmonTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(SET_STAT, [num, stat_value])
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.MAJOR)
 
-
     @parameterized.expand(MAGNET_STATUS.items())
     def test_GIVEN_when_magnet_status_pv_changed_THEN_magnet_power_is_calculated_correctly(self, num, _):
-        expected_val = 1
         self._lewis.backdoor_run_function_on_device(SET_STAT, [10, num])
-        if num == 0:
-            expected_val = 0
-        self.ca.assert_that_pv_is(MAGNET_POWER_ON_CALC, expected_val)
+        self.ca.assert_that_pv_is(MAGNET_POWER_ON_CALC, 1 if num > 0 else 0)
 
     @parameterized.expand(MAGNET_STATUS.items())
     def test_GIVEN_when_magnet_status_pv_changed_THEN_magnet_power_on_pv_is_changed(self, num, _):
-        expected_val = "ENERGISED"
         self._lewis.backdoor_run_function_on_device(SET_STAT, [10, num])
-        if num == 0:
-            expected_val = "OFF"
-        self.ca.assert_that_pv_is(MAGNET_POWER_ON_PV, expected_val)
+        self.ca.assert_that_pv_is(MAGNET_POWER_ON_PV, "ENERGISED" if num > 0 else "OFF")
