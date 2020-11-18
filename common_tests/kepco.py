@@ -169,45 +169,27 @@ class KepcoTests(object):
         self.ca.process_pv("FIRMWARE")
         self.ca.assert_that_pv_is("FIRMWARE", firmware)
 
+    @parameterized.expand(parameterized_list([
+        ("default_calib.dat", 100, 100),
+        ("field_double_amps.dat", 100, 50),
+    ]))
     @skip_if_recsim("Calibration lookup does not work in recsim")
-    def test_GIVEN_default_calibration_WHEN_field_set_THEN_current_equal(self):
-        test_value = 100
-
-        with use_calibration_file(self.ca, "default_calib.dat", "default_calib.dat"):
-            self.ca.set_pv_value("FIELD:SP", test_value)
-            self.ca.assert_that_pv_is("CURRENT:SP", test_value)
-            self.ca.assert_that_pv_is("CURRENT:SP:RBV", test_value)
-            self.ca.assert_that_pv_is("FIELD:SP:RBV", test_value)
-
-    @skip_if_recsim("Calibration lookup does not work in recsim")
-    def test_GIVEN_calibration_of_double_amps_WHEN_field_set_THEN_current_double(self):
-        test_field = 100
-        expected_current = 50
-
-        with use_calibration_file(self.ca, "field_double_amps.dat", "default_calib.dat"):
-            self.ca.set_pv_value("FIELD:SP", test_field)
-            self.ca.assert_that_pv_is("FIELD:SP:RBV", test_field)
+    def test_GIVEN_calibration_WHEN_field_set_THEN_current_as_expected(self, _, calibration_file, field, expected_current):
+        with use_calibration_file(self.ca, calibration_file, "default_calib.dat"):
+            self.ca.set_pv_value("FIELD:SP", field)
+            self.ca.assert_that_pv_is("FIELD:SP:RBV", field)
             self.ca.assert_that_pv_is("CURRENT:SP", expected_current)
             self.ca.assert_that_pv_is("CURRENT:SP:RBV", expected_current)
 
+    @parameterized.expand(parameterized_list([
+        ("default_calib.dat", 100, 100),
+        ("field_double_amps.dat", 100, 200),
+    ]))
     @skip_if_recsim("Calibration lookup does not work in recsim")
-    def test_GIVEN_default_calibration_WHEN_current_set_THEN_field_equal(self):
-        test_current = 100
-        expected_field = 100
-
-        with use_calibration_file(self.ca, "default_calib.dat", "default_calib.dat"):
-            self._write_current(test_current)
-            self.ca.assert_that_pv_is("CURRENT", test_current)
-            self.ca.assert_that_pv_is("FIELD", expected_field)
-
-    @skip_if_recsim("Calibration lookup does not work in recsim")
-    def test_GIVEN_calibration_of_field_double_amps_WHEN_current_set_THEN_field_double(self):
-        test_current = 100
-        expected_field = 200
-
-        with use_calibration_file(self.ca, "field_double_amps.dat", "default_calib.dat"):
-            self._write_current(test_current)
-            self.ca.assert_that_pv_is("CURRENT", test_current)
+    def test_GIVEN_calibration_WHEN_current_set_THEN_field_as_expected(self, _, calibration_file, current, expected_field):
+        with use_calibration_file(self.ca, calibration_file, "default_calib.dat"):
+            self._write_current(current)
+            self.ca.assert_that_pv_is("CURRENT", current)
             self.ca.assert_that_pv_is("FIELD", expected_field)
 
 
