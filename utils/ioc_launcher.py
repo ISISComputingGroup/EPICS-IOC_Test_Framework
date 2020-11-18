@@ -126,6 +126,7 @@ class BaseLauncher(object):
             var_dir: The directory into which the launcher will save log files.
         """
         self._device = ioc_config['name']
+        self._device_icp_config_name = ioc_config.get('icpconfigname', ioc_config['name'])
         self._directory = ioc_config['directory']
         self._prefix = ioc_config.get('custom_prefix', self._device)
         self._ioc_started_text = ioc_config.get("started_text", DEFAULT_IOC_START_TEXT)
@@ -228,8 +229,7 @@ class BaseLauncher(object):
 
         with open(os.path.join(full_dir, "test_macros.txt"), mode="w") as f:
             for macro, value in self.macros.items():
-                f.write("{ioc_name}__{macro}={value}\n".format(ioc_name=self._device,
-                                                               macro=macro, value=value))
+                f.write("{ioc_name}__{macro}=\"{value}\"\n".format(ioc_name=self._device_icp_config_name, macro=macro, value=value))
           
     def get_environment_vars(self):
         """
@@ -360,15 +360,53 @@ class ProcServLauncher(BaseLauncher):
         if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
 
+    def send_telnet_command_and_retry_if_not_detected_condition_for_success(
+            self, command, condition_for_success, retry_limit):
+        """
+        Send a command over telnet and detect if the condition for success has been met.
+        Retry until the limit is reached and if the condition is not met raise an AssertionError.
+
+        Args:
+            command (str): The command to send over telnet
+            condition_for_success (func): A function that returns True if condition met, and False if not
+            retry_limit (int): The number of times you
+
+        Raises:
+            AssertionError: If the text has not been detected in the log after the given number of retries
+        """
+        for i in range(retry_limit):
+            self.telnet.write("{cmd}\n".format(cmd=command))
+            if condition_for_success():
+                break
+            else:
+                self.telnet.close()
+                self.telnet.open("localhost", self.procserv_port, timeout=20)
+        else:  # If condition for success not detected, raise an assertion error
+            raise AssertionError("Sending telnet command {} failed {} times".format(command, retry_limit))
+
     def start_ioc(self, wait=False):
         """
-        Sends the start/restart IOC command to procserv. (^X)
+        Start/restart IOC over telnet. (^X)
 
+        Args:
+            wait (bool): If this is true send the command and wait for the ioc started text to appear in the log,
+                if the text doesn't appear retry (retries at most 3 times). If false just send the command and
+                don't wait or retry.
         """
         start_command = "\x18"
-        self.telnet.write("{cmd}\n".format(cmd=start_command))
         if wait:
-            self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+            def condition_for_success():
+                try:
+                    self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+                except AssertionError:
+                    return False
+                else:
+                    return True
+            self.send_telnet_command_and_retry_if_not_detected_condition_for_success(
+                start_command, condition_for_success, 3
+            )
+        else:
+            self.telnet.write("{cmd}\n".format(cmd=start_command))
 
     def quit_ioc(self):
         """
