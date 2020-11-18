@@ -64,9 +64,13 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
             self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
             self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
 
+    @parameterized.expand(parameterized_list([
+        (IDN_NO_REM[0], IDN_NO_REM[1], {}),
+        (IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 0})
+    ]))
     @skip_if_recsim("Lewis not available in recsim")
-    def test_GIVEN_kepco_firmware_does_not_support_SYSTREM_WHEN_on_start_is_0_THEN_no_remote_mode_AND_no_reset(self):
-        idn_no_firmware, firmware, macros = IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 0}
+    def test_GIVEN_kepco_firmware_does_not_support_SYSTREM_WHEN_on_start_is_0_THEN_no_remote_mode_AND_no_reset(
+            self, _, idn_no_firmware, firmware, macros):
         self._set_IDN(idn_no_firmware, firmware)
         self._lewis.backdoor_set_and_assert_set("reset_count", 0)
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
