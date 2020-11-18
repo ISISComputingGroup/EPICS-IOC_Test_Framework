@@ -25,14 +25,16 @@ DEVICE_LIMS_PVS = [pv + ":LIMS" for pv in DEVICE_PVS]
 DEVICE_OPLM_PVS = [pv + ":OPLM" for pv in DEVICE_PVS]
 MAGNET_STATUS_PV_NAME = "MAGNETSTATUS"
 STAT_EXTRA_PVS = ["MI", "STATUS"]
+MAGNET_POWER_ON_PV = "MAGNET_POWER_ON"
+MAGNET_POWER_ON_CALC = "MAGNET_POWER_ON_CALC"
 TEST_MODES = [TestModes.DEVSIM]
 
 MAGNET_STATUS = {
-    0: "",
-    1: "At Room Temperature",
+    0: "Off",
+    1: "Room Temp",
     2: "Cooling Down",
-    3: "At Operating Temperature",
-    4: "A Fault Has Occurred"
+    3: "Operating Temp",
+    4: "Fault Occurred"
 }
 
 
@@ -93,3 +95,20 @@ class SmrtmonTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
         self._lewis.backdoor_run_function_on_device(SET_STAT, [num, stat_value])
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.MAJOR)
+
+
+    @parameterized.expand(MAGNET_STATUS.items())
+    def test_GIVEN_when_magnet_status_pv_changed_THEN_magnet_power_is_calculated_correctly(self, num, _):
+        expected_val = 1
+        self._lewis.backdoor_run_function_on_device(SET_STAT, [10, num])
+        if num == 0:
+            expected_val = 0
+        self.ca.assert_that_pv_is(MAGNET_POWER_ON_CALC, expected_val)
+
+    @parameterized.expand(MAGNET_STATUS.items())
+    def test_GIVEN_when_magnet_status_pv_changed_THEN_magnet_power_on_pv_is_changed(self, num, _):
+        expected_val = "ENERGISED"
+        self._lewis.backdoor_run_function_on_device(SET_STAT, [10, num])
+        if num == 0:
+            expected_val = "OFF"
+        self.ca.assert_that_pv_is(MAGNET_POWER_ON_PV, expected_val)
