@@ -19,14 +19,14 @@ def set_calibration_file(channel_access, filename):
         raise Exception("Couldn't set calibration file to '{}' after {} tries".format(filename, max_retries))
 
 
-def reset_calibration_file(channel_access):
-    set_calibration_file(channel_access, "None.txt")
+def reset_calibration_file(channel_access, default_file="None.txt"):
+    set_calibration_file(channel_access, default_file)
 
 
 @contextmanager
-def use_calibration_file(channel_access, filename):
+def use_calibration_file(channel_access, filename, default_file="None.txt"):
     set_calibration_file(channel_access, filename)
     try:
         yield
     finally:
-        reset_calibration_file(channel_access)
+        reset_calibration_file(channel_access, default_file)
