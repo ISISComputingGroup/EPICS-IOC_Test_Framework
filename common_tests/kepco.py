@@ -1,7 +1,7 @@
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-
+from distutils.util import strtobool
 from parameterized import parameterized
 
 DEVICE_PREFIX = "KEPCO_01"
@@ -134,6 +134,28 @@ class KepcoTests(object):
         self.ca.assert_that_pv_alarm_is("OUTPUTMODE", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("CURRENT", self.ca.Alarms.INVALID)
         self.ca.assert_that_pv_alarm_is("VOLTAGE", self.ca.Alarms.INVALID)
+
+    def _test_ramp_to_target(self, start_current, target_current, ramp_rate, step_number, wait_between_changes):
+        self.ca.set_pv_value("CURRENT:SP", start_current)
+        self.ca.assert_that_pv_is("CURRENT:SP:RBV", start_current)
+        self.ca.set_pv_value("RAMP:RATE:SP", ramp_rate)
+        self.ca.set_pv_value("RAMP:STEPS:SP", step_number)
+        self.ca.set_pv_value("RAMPON:SP", "ON")
+        self.ca.set_pv_value("CURRENT:SP", target_current, sleep_after_set=0.0)
+        if start_current < target_current:
+            self.ca.assert_that_pv_value_is_increasing("CURRENT:SP:RBV", wait=wait_between_changes)
+        else:
+            self.ca.assert_that_pv_value_is_decreasing("CURRENT:SP:RBV", wait=wait_between_changes)
+        self.ca.assert_that_pv_is("RAMPING", "YES")
+        self.ca.assert_that_pv_is("RAMPING", "NO", timeout=40)
+        self.ca.assert_that_pv_value_is_unchanged("CURRENT:SP:RBV", wait=wait_between_changes)
+        self.ca.set_pv_value("RAMPON:SP", "OFF")
+
+    def test_GIVEN_rampon_WHEN_target_set_THEN_current_ramps_to_target(self):
+        self._test_ramp_to_target(1, 2, 2, 20, 7)
+
+    def test_GIVEN_rampon_WHEN_target_set_with_different_step_rate_THEN_current_ramps_to_target_more_finely(self):
+        self._test_ramp_to_target(4, 3, 2, 60, 2)
 
     @parameterized.expand(parameterized_list(IDN_LIST))
     def test_GIVEN_idn_set_AND_firmware_set_THEN_firmware_pv_correct(self, _, idn_no_firmware, firmware):

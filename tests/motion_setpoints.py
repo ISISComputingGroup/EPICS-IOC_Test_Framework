@@ -148,6 +148,8 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca1D.assert_that_pv_is("POSN", expected_position)
             self.ca1D.assert_that_pv_alarm_is("POSN", ChannelAccess.Alarms.NONE)
             self.ca1D.assert_that_pv_is("IPOSN", index)
+            self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index), 1)
+            self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index+1), 0)
 
     def test_GIVEN_1D_WHEN_set_position_by_index_THEN_position_is_set_and_motor_moves_to_position(self):
         for index, (expected_position, expected_motor_position) in enumerate(POSITIONS_1D):
@@ -157,6 +159,8 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca1D.assert_that_pv_is("IPOSN", index)
             self.ca1D.assert_that_pv_is("POSN", expected_position)
             self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position)
+            self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index), 1)
+            self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index + 1), 0)
 
     @parameterized.expand(
         parameterized_list([1, 2, 10])
@@ -177,6 +181,8 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca2D.assert_that_pv_is("IPOSN", index)
             self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position_cord1)
             self.motor_ca.assert_that_pv_is("MTR0102.RBV", expected_motor_position_cord2)
+            self.ca2D.assert_that_pv_is("INPOS{index}".format(index=index), 1)
+            self.ca2D.assert_that_pv_is("INPOS{index}".format(index=index + 1), 0)
 
 
     @parameterized.expand(
@@ -194,11 +200,15 @@ class MotionSetpointsTests(unittest.TestCase):
             channel_access.assert_that_pv_is("STATIONARY{}".format(axis), 0)
         channel_access.assert_that_pv_is("STATIONARY".format(axis), 0)
         channel_access.assert_that_pv_is("POSITIONED", 0)
+        channel_access.assert_that_pv_is("INPOS0", 0)
+        channel_access.assert_that_pv_is("INPOS1", 0)
 
         channel_access.assert_that_pv_is("POSITIONED", 1, timeout=10)
         for axis in range(axis_num):
             channel_access.assert_that_pv_is("STATIONARY{}".format(axis), 1)
         channel_access.assert_that_pv_is("STATIONARY".format(axis), 1)
+        channel_access.assert_that_pv_is("INPOS0", 0)
+        channel_access.assert_that_pv_is("INPOS1", 1)
 
     @parameterized.expand(
         parameterized_list([1, 2, 10])
@@ -213,16 +223,22 @@ class MotionSetpointsTests(unittest.TestCase):
         channel_access.set_pv_value("POSN:SP", POSITION_TABLES[axis_num][0][0])
         channel_access.assert_that_pv_is("POSN", POSITION_TABLES[axis_num][0][0])
         channel_access.assert_that_pv_is("POSITIONED", 1)
+        channel_access.assert_that_pv_is("INPOS0", 1)
+        channel_access.assert_that_pv_is("INPOS1", 0)
 
         for axis in range(axis_num):
             channel_access.set_pv_value("COORD{}:OFFSET:SP".format(axis), expected_offsets[axis])
         channel_access.assert_that_pv_is("POSITIONED", 0)
+        channel_access.assert_that_pv_is("INPOS0", 0)
+        channel_access.assert_that_pv_is("INPOS1", 0)
 
         channel_access.assert_that_pv_is("POSITIONED", 1)
         for axis in range(axis_num):
             channel_access.assert_that_pv_is("COORD{}:OFFSET".format(axis), expected_offsets[axis])
             motor_pv = get_motor_pv_from_axis_num(axis)
             self.motor_ca.assert_that_pv_is("{}.RBV".format(motor_pv), expected_motor_positions[axis])
+        channel_access.assert_that_pv_is("INPOS0", 1)
+        channel_access.assert_that_pv_is("INPOS1", 0)
 
     def test_GIVEN_1D_WHEN_set_large_offset_THEN_current_position_set_correctly(self):
         offset = POSITIONS_1D[1][1] - POSITIONS_1D[0][1]
@@ -346,6 +362,8 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca10D.assert_that_pv_alarm_is("POSN", ChannelAccess.Alarms.NONE)
             self.ca10D.assert_that_pv_is("POSN:SP:RBV", sample_name)
             self.ca10D.assert_that_pv_is("IPOSN", sample_num)
+            self.ca10D.assert_that_pv_is("INPOS{index}".format(index=sample_num), 1)
+            self.ca10D.assert_that_pv_is("INPOS{index}".format(index=sample_num + 1), 0)
 
     def test_GIVEN_10D_WHEN_units_of_motor_set_THEN_units_of_coordinates_also_set(self):
         motor_pvs = ["MTR010{}".format(i) for i in range(1, 9)]

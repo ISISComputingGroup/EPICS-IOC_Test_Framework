@@ -3,13 +3,14 @@ import unittest
 from utils.test_modes import TestModes
 from utils.ioc_launcher import EPICS_TOP
 from utils.emulator_launcher import DAQMxEmulatorLauncher
-from common_tests.DAQmx import DAQmxTests, DEVICE_PREFIX
+from common_tests.DAQmx import DAQmxTests, DEVICE_PREFIX, ICPCONFIGNAME
 
 import os
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
+        "icpconfigname": ICPCONFIGNAME,
         "directory": os.path.join(EPICS_TOP, "support", "DAQmxBase", "master", "iocBoot",  "iocDAQmx"),
         "emulator": DEVICE_PREFIX,
         "emulator_launcher_class": DAQMxEmulatorLauncher,
