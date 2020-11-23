@@ -8,6 +8,7 @@ import os
 from genie_python import genie as g
 from parameterized import parameterized
 import time
+from contextlib import contextmanager
 
 
 IOC_PREFIX = "TIZR_01"
@@ -49,6 +50,7 @@ IOCS = [
 ]
 
 WARNING_PV = "{}:TIZRWARNING".format(IOC_PREFIX)
+MONITORING_ON_PV = "{}:MONITORING_ON".format(IOC_PREFIX)
 
 TEST_MODES = [TestModes.RECSIM]
 
@@ -66,57 +68,99 @@ class TiZrTests(unittest.TestCase):
             self.ca.assert_that_pv_exists(pv)
 
         self.set_safe_values()
+        self.ca.set_pv_value(MONITORING_ON_PV, "No")
+        self.ca.assert_that_pv_is(MONITORING_ON_PV, "No")
+
+    @contextmanager
+    def monitoring_on(self):
+        try:
+            self.ca.set_pv_value(MONITORING_ON_PV, "Yes")
+            self.ca.assert_that_pv_is(MONITORING_ON_PV, "Yes")
+            yield
+        finally:
+            self.ca.set_pv_value(MONITORING_ON_PV, "No")
+            self.ca.assert_that_pv_is(MONITORING_ON_PV, "No")
 
     def set_safe_values(self):
         self.ca.set_pv_value(SIMPLE_VALUE_ONE, IN_RANGE_PVONE_VAL)
         self.ca.set_pv_value(SIMPLE_VALUE_TWO, IN_RANGE_PVTWO_VAL)
         self.ca.set_pv_value(WARNING_PV, 0)
 
-    def test_GIVEN_PVONE_above_max_WHEN_PVTWO_goes_out_of_range_THEN_alarm_and_safe_value_written_to_PVONE(self):
+    def test_GIVEN_monitor_on_AND_PVONE_above_max_WHEN_PVTWO_goes_out_of_range_THEN_alarm_and_safe_value_written_to_PVONE(self):
+        with self.monitoring_on():
+            self.ca.set_pv_value(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL)
+            self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL, tolerance=1e-4)
+
+            self.ca.set_pv_value(SIMPLE_VALUE_TWO, OUT_OF_RANGE_PVTWO_VAL)
+
+            self.ca.assert_that_pv_is_not_number(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL, tolerance=1e-4)
+            self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
+
+            self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.MAJOR)
+
+    def test_GIVEN_monitor_off_AND_PVONE_above_max_WHEN_PVTWO_goes_out_of_range_THEN_no_alarm_and_no_safe_value_written_to_PVONE(self):
         self.ca.set_pv_value(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL)
         self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL, tolerance=1e-4)
 
         self.ca.set_pv_value(SIMPLE_VALUE_TWO, OUT_OF_RANGE_PVTWO_VAL)
 
-        self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
+        self.ca.assert_that_pv_is_not_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
+        self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL, tolerance=1e-4)
 
-        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.MAJOR)
+        self.ca.assert_that_pv_alarm_is_not(WARNING_PV, self.ca.Alarms.MAJOR)
 
-    def test_GIVEN_PVTWO_above_max_WHEN_PVONE_out_of_range_THEN_alarm_and_safe_value_written_to_PVONE(self):
+    def test_GIVEN_monitor_on_AND_PVTWO_above_max_WHEN_PVONE_out_of_range_THEN_alarm_and_safe_value_written_to_PVONE(self):
+        with self.monitoring_on():
+            self.ca.set_pv_value(SIMPLE_VALUE_TWO, OUT_OF_RANGE_PVTWO_VAL)
+            self.ca.assert_that_pv_is_number(SIMPLE_VALUE_TWO, OUT_OF_RANGE_PVTWO_VAL, tolerance=1e-4)
+
+            self.ca.set_pv_value(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL)
+
+            self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.MAJOR)
+
+            self.ca.assert_that_pv_is_not_number(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL, tolerance=1e-4)
+            self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
+
+    def test_GIVEN_monitor_off_AND_PVTWO_above_max_WHEN_PVONE_out_of_range_THEN_no_alarm_and_no_safe_value_written_to_PVONE(self):
         self.ca.set_pv_value(SIMPLE_VALUE_TWO, OUT_OF_RANGE_PVTWO_VAL)
         self.ca.assert_that_pv_is_number(SIMPLE_VALUE_TWO, OUT_OF_RANGE_PVTWO_VAL, tolerance=1e-4)
 
         self.ca.set_pv_value(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL)
 
-        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.MAJOR)
+        self.ca.assert_that_pv_alarm_is_not(WARNING_PV, self.ca.Alarms.MAJOR)
 
-        self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
+        self.ca.assert_that_pv_is_not_number(SIMPLE_VALUE_ONE, SAFE_VALUE, tolerance=1e-4)
+        self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL, tolerance=1e-4)
 
-    def test_GIVEN_PVONE_and_PVTWO_in_range_WHEN_in_range_value_written_THEN_no_alarm_and_value_written(self):
-        self.ca.set_pv_value(SIMPLE_VALUE_ONE, IN_RANGE_PVONE_VAL)
-        self.ca.set_pv_value(SIMPLE_VALUE_TWO, IN_RANGE_PVTWO_VAL)
+    def test_GIVEN_monitor_on_AND_PVONE_and_PVTWO_in_range_WHEN_in_range_value_written_THEN_no_alarm_and_value_written(self):
+        with self.monitoring_on():
+            self.ca.set_pv_value(SIMPLE_VALUE_ONE, IN_RANGE_PVONE_VAL)
+            self.ca.set_pv_value(SIMPLE_VALUE_TWO, IN_RANGE_PVTWO_VAL)
 
-        self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, IN_RANGE_PVONE_VAL)
-        self.ca.assert_that_pv_is_number(SIMPLE_VALUE_TWO, IN_RANGE_PVTWO_VAL)
+            self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, IN_RANGE_PVONE_VAL)
+            self.ca.assert_that_pv_is_number(SIMPLE_VALUE_TWO, IN_RANGE_PVTWO_VAL)
 
-        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.NONE)
 
-        self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_ONE, self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_TWO, self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_ONE, self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is(SIMPLE_VALUE_TWO, self.ca.Alarms.NONE)
 
     @parameterized.expand(parameterized_list([
         (SIMPLE_VALUE_ONE, IN_RANGE_PVONE_VAL), (SIMPLE_VALUE_TWO, IN_RANGE_PVTWO_VAL)
     ]))
-    def test_GIVEN_pvs_in_range_WHEN_one_goes_out_of_range_THEN_no_alarm_and_value_written(self, _, pv, in_range_value):
-        self.ca.set_pv_value(pv, in_range_value)
-        self.ca.assert_that_pv_is_number(pv, in_range_value)
-        self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+    def test_GIVEN_monitor_on_AND_pvs_in_range_WHEN_one_goes_out_of_range_THEN_no_alarm_and_value_written(self, _, pv, in_range_value):
+        with self.monitoring_on():
+            self.ca.set_pv_value(pv, in_range_value)
+            self.ca.assert_that_pv_is_number(pv, in_range_value)
+            self.ca.assert_that_pv_alarm_is(WARNING_PV, self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
-    def test_GIVEN_safe_value_is_out_of_range_WHEN_safe_value_set_THEN_alarm_persisted(self):
+    def test_GIVEN_monitor_on_AND_safe_value_is_out_of_range_WHEN_safe_value_set_THEN_alarm_persisted(self):
         macros = tizr_macros
         macros["SAFE_VALUE"] = OUT_OF_RANGE_PVONE_VAL
+        macros["MONITORING_ON"] = "1"
         with self._ioc.start_with_macros(macros, "TIZRWARNING"):
+            self.ca.assert_that_pv_is(MONITORING_ON_PV, "Yes")
             self.ca.set_pv_value(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL)
             self.ca.assert_that_pv_is_number(SIMPLE_VALUE_ONE, OUT_OF_RANGE_PVONE_VAL, tolerance=1e-4)
 
