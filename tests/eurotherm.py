@@ -1,3 +1,4 @@
+import os
 import unittest
 from parameterized import parameterized
 
@@ -5,7 +6,7 @@ import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, set_calibration_file, use_calibration_file
 
 # Internal Address of device (must be 2 characters)
@@ -193,7 +194,7 @@ class EurothermTests(unittest.TestCase):
     def _assert_using_mock_table_location(self):
         for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
-            self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Apps/epics/support")
+            self.ca.assert_that_pv_is("{}.BDIR".format(pv), EPICS_TOP.replace("\\", "/") + "support")
 
     @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
