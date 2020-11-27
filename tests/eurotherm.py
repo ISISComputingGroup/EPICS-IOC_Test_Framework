@@ -1,13 +1,13 @@
+import os
 import unittest
-from contextlib import contextmanager
 from parameterized import parameterized
 
 import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
+from utils.calibration_utils import reset_calibration_file, set_calibration_file, use_calibration_file
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
@@ -64,35 +64,9 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
 
-    def _set_calibration_file(self, filename):
-        """
-        Sets a calibration file. Retries if it didn't set properly first time.
-        """
-        max_retries = 10
-
-        for _ in range(max_retries):
-            self.ca.set_pv_value("CAL:SEL", filename)
-            self.ca.assert_that_pv_alarm_is("CAL:SEL", self.ca.Alarms.NONE)
-            time.sleep(1)
-            if self.ca.get_pv_value("CAL:RBV") == filename:
-                break
-        else:
-            self.fail("Couldn't set calibration file to '{}' after {} tries".format(filename, max_retries))
-
-    def _reset_calibration_file(self):
-        self._set_calibration_file("None.txt")
-
-    @contextmanager
-    def _use_calibration_file(self, filename):
-        self._set_calibration_file(filename)
-        try:
-            yield
-        finally:
-            self._reset_calibration_file()
-
     def _reset_device_state(self):
         self._lewis.backdoor_set_on_device('connected', True)
-        self._reset_calibration_file()
+        reset_calibration_file(self.ca)
 
         intial_temp = 0.0
 
@@ -199,10 +173,10 @@ class EurothermTests(unittest.TestCase):
         rbv_change_timeout = 10
         tolerance = 0.01
         self.ca.set_pv_value("RAMPON:SP", 0)
-        self._reset_calibration_file()
+        reset_calibration_file(self.ca)
         self.ca.set_pv_value("TEMP:SP", temperature)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
-        self._set_calibration_file("C006.txt")
+        set_calibration_file(self.ca, "C006.txt")
         self.ca.assert_that_pv_is_not_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
         # Act
@@ -220,34 +194,34 @@ class EurothermTests(unittest.TestCase):
     def _assert_using_mock_table_location(self):
         for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
-            self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Apps/EPICS/support")
+            self.ca.assert_that_pv_is("{}.BDIR".format(pv), EPICS_TOP.replace("\\", "/") + "support")
 
     @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
         self._assert_using_mock_table_location()
-        with self._use_calibration_file("K.txt"):
+        with use_calibration_file(self.ca, "K.txt"):
             self._assert_units("K")
 
     @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_is_in_units_of_C_THEN_egu_of_temperature_pvs_is_C(self):
         self._assert_using_mock_table_location()
-        with self._use_calibration_file("C.txt"):
+        with use_calibration_file(self.ca, "C.txt"):
             self._assert_units("C")
 
     @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_has_no_units_THEN_egu_of_temperature_pvs_is_K(self):
         self._assert_using_mock_table_location()
-        with self._use_calibration_file("None.txt"):
+        with use_calibration_file(self.ca, "None.txt"):
             self._assert_units("K")
 
     @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_config_file_and_temperature_unit_changed_THEN_then_ramp_rate_unit_changes(self):
         self._assert_using_mock_table_location()
-        with self._use_calibration_file("None.txt"):
+        with use_calibration_file(self.ca, "None.txt"):
             self._assert_units("K")
             self.ca.assert_that_pv_is("RATE.EGU", "K/min")
 
-        with self._use_calibration_file("C.txt"):
+        with use_calibration_file(self.ca, "C.txt"):
             self._assert_units("C")
             self.ca.assert_that_pv_is("RATE.EGU", "C/min")
 
@@ -262,7 +236,7 @@ class EurothermTests(unittest.TestCase):
         # Arrange
 
         self._assert_using_mock_table_location()
-        with self._use_calibration_file("None.txt"):
+        with use_calibration_file(self.ca, "None.txt"):
             self.ca.assert_that_pv_exists("CAL:RANGE")
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
 
@@ -285,7 +259,7 @@ class EurothermTests(unittest.TestCase):
         # Arrange
 
         self._assert_using_mock_table_location()
-        with self._use_calibration_file("None.txt"):
+        with use_calibration_file(self.ca, "None.txt"):
             self.ca.assert_that_pv_exists("CAL:RANGE")
             self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
 
@@ -304,13 +278,13 @@ class EurothermTests(unittest.TestCase):
 
         # Arrange
         self._assert_using_mock_table_location()
-        with self._use_calibration_file("None.txt"):
+        with use_calibration_file(self.ca, "None.txt"):
             self.ca.assert_that_pv_exists("CAL:RANGE")
             self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
 
         # Act:
-        self._set_calibration_file("C006.txt")
+        set_calibration_file(self.ca, "C006.txt")
 
         # Assert
         self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)

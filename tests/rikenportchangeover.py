@@ -20,6 +20,7 @@ IOCS = [{
         "CHAIN2_ID1": "RQ20",
         "CHAIN2_ADR1": 1,
     },
+    "pv_for_existence": "RQ18:POWER",
 }]
 
 

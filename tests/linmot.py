@@ -44,6 +44,7 @@ IOCS = [
             "AXIS1": "yes",
         },
         "emulator": DEVICE_NAME,
+        "pv_for_existence": "AXIS1",
     },
 ]
 
