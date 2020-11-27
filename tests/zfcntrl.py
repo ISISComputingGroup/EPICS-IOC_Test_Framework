@@ -312,7 +312,7 @@ class ZeroFieldTests(unittest.TestCase):
         While this context manager is active, the readback values from all power supplies will be marked as INVALID
         (this simulates the device not being plugged in, for example)
         """
-        pvs_to_make_invalid = ("CURRENT", "CURRENT:SP:RBV", "OUTPUTMODE", "OUTPUTSTATUS", "VOLTAGE", "VOLTAGE:SP:RBV")
+        pvs_to_make_invalid = ("CURRENT", "_CURRENT:SP:RBV", "OUTPUTMODE", "OUTPUTSTATUS", "VOLTAGE", "VOLTAGE:SP:RBV")
 
         for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs_to_make_invalid):
             # 3 is the Enum value for an invalid alarm
