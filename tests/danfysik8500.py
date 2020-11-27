@@ -8,6 +8,9 @@ from time import sleep
 
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, POWER_STATES
 
+MAX_RAW_SETPOINT = 1000000
+MIN_RAW_SETPOINT = MAX_RAW_SETPOINT * (-1)
+
 DEVICE_ADDRESS = 75
 
 IOCS = [
@@ -22,6 +25,8 @@ IOCS = [
             "FACTOR_WRITE_I": "1",
             "ADDRESS": DEVICE_ADDRESS,
             "DISABLE_AUTOONOFF": "0",
+            "MAX_RAW_SETPOINT": MAX_RAW_SETPOINT,
+            "POLARITY": "BIPOLAR",
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8500",
@@ -115,3 +120,9 @@ class Danfysik8500Tests(DanfysikCommon, unittest.TestCase):
         self.ca.assert_that_pv_is("ADDRESS", self.get_emulator_address())
 
         self.set_to_correct_address()
+
+    def test_GIVEN_polarity_is_bipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
+        self.ca.set_pv_value("CURR:SP", MIN_RAW_SETPOINT * 2)
+
+        self.ca.assert_that_pv_is("CURR:SP:RBV", MIN_RAW_SETPOINT)
+        self.ca.assert_that_pv_is("CURR", MIN_RAW_SETPOINT)
