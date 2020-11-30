@@ -7,7 +7,7 @@ from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
-from utils.calibration_utils import reset_calibration_file, set_calibration_file, use_calibration_file
+from utils.calibration_utils import reset_calibration_file, use_calibration_file
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
@@ -176,14 +176,14 @@ class EurothermTests(unittest.TestCase):
         reset_calibration_file(self.ca)
         self.ca.set_pv_value("TEMP:SP", temperature)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
-        set_calibration_file(self.ca, "C006.txt")
-        self.ca.assert_that_pv_is_not_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
+        with use_calibration_file(self.ca, "C006.txt"):
+            self.ca.assert_that_pv_is_not_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
-        # Act
-        self.ca.set_pv_value("TEMP:SP", temperature)
+            # Act
+            self.ca.set_pv_value("TEMP:SP", temperature)
 
-        # Assert
-        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
+            # Assert
+            self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
     def _assert_units(self, units):
         # High timeouts because setting units does not cause processing - wait for normal scan loop to come around.
@@ -284,11 +284,11 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
 
         # Act:
-        set_calibration_file(self.ca, "C006.txt")
+        with use_calibration_file(self.ca, "C006.txt"):
 
-        # Assert
-        self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
-        self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
+            # Assert
+            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
+            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
 
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
     @skip_if_recsim("Can not test disconnection in rec sim")
