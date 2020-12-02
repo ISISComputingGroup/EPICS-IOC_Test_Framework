@@ -329,7 +329,7 @@ class LewisLauncher(EmulatorLauncher):
     Launches Lewis.
     """
 
-    _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
+    _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
     _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH, "scripts")
 
     def __init__(self, test_name, device, var_dir, port, options):
@@ -459,14 +459,14 @@ class LewisLauncher(EmulatorLauncher):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
-        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis-control.exe"),
+        lewis_command_line = [os.path.join(self._lewis_path, "lewis-control.exe"),
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(lewis_command)
         time_stamp = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
         self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
         try:
             p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-            for i in range(1, 30):
+            for i in range(1, 40):
                 code = p.poll()
                 if code == 0:
                     break
