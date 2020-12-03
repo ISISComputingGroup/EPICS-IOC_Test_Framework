@@ -1,5 +1,8 @@
 from __future__ import division
+
+import time
 import unittest
+from contextlib import contextmanager
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -53,6 +56,22 @@ class Ilm200Tests(unittest.TestCase):
     @staticmethod
     def ch_pv(channel, pv):
         return "CH{}:{}".format(channel, pv)
+
+    @contextmanager
+    def intermittent_bad_replies(self):
+        self._lewis.backdoor_set_on_device("giving_intermittent_bad_replies", True)
+        try:
+            yield
+        finally:
+            self._lewis.backdoor_set_on_device("giving_intermittent_bad_replies", False)
+
+    @contextmanager
+    def disconnected_device(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+        try:
+            yield
+        finally:
+            self._lewis.backdoor_set_on_device("connected", True)
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ilm200", DEVICE_PREFIX)
@@ -152,3 +171,17 @@ class Ilm200Tests(unittest.TestCase):
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, False)
             self.ca.assert_that_pv_is(self.ch_pv(i, self.CURRENT), "Off")
+
+    @skip_if_recsim("cannot simulate bad replies in recsim")
+    def test_GIVEN_intermittent_bad_replies_THEN_channel_readings_are_not_in_error(self):
+        with self.intermittent_bad_replies():
+            for _ in range(30):
+                for chan in self.channel_range():
+                    self.ca.assert_that_pv_alarm_is(self.ch_pv(chan, "LEVEL"), self.ca.Alarms.NONE, timeout=0.5)
+                    time.sleep(1)
+
+    @skip_if_recsim("cannot simulate bad replies in recsim")
+    def test_GIVEN_persistent_comms_issue_THEN_channel_readings_are_in_error(self):
+        with self.disconnected_device():
+            for chan in self.channel_range():
+                self.ca.assert_that_pv_alarm_is(self.ch_pv(chan, "LEVEL"), self.ca.Alarms.MAJOR)
