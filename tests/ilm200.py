@@ -9,16 +9,36 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 # Device prefix
 DEVICE_PREFIX = "ILM200_01"
 
+ALARM_THRESHOLDS = {
+    1: 10,
+    2: 10,
+    3: -1,
+}
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("ILM200"),
-        "macros": {},
+        "macros": {
+            "CH1_ALARM_THRESHOLD": ALARM_THRESHOLDS[1],
+            "CH2_ALARM_THRESHOLD": ALARM_THRESHOLDS[2],
+            "CH3_ALARM_THRESHOLD": ALARM_THRESHOLDS[3],
+        },
         "emulator": "ilm200",
     },
 ]
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+
+
+class Ilm200ChannelTypes:
+    """
+    Channel types on an ILM200. Must match the definitions in the emulator.
+    """
+    NOT_IN_USE = 0
+    NITROGEN = 1
+    HELIUM = 2
+    HELIUM_CONT = 3
 
 
 class Ilm200Tests(unittest.TestCase):
@@ -60,6 +80,10 @@ class Ilm200Tests(unittest.TestCase):
         self.ca.assert_that_pv_exists("VERSION", timeout=30)
         self._lewis.backdoor_set_on_device("cycle", False)
 
+        self._lewis.backdoor_run_function_on_device("set_cryo_type", (1, Ilm200ChannelTypes.NITROGEN))
+        self._lewis.backdoor_run_function_on_device("set_cryo_type", (2, Ilm200ChannelTypes.HELIUM))
+        self._lewis.backdoor_run_function_on_device("set_cryo_type", (3, Ilm200ChannelTypes.HELIUM_CONT))
+
     def set_level_via_backdoor(self, channel, level):
         self._lewis.backdoor_command(["device", "set_level", str(channel), str(level)])
 
@@ -80,8 +104,12 @@ class Ilm200Tests(unittest.TestCase):
             self.ca.assert_that_pv_is_not(self.ch_pv(i, self.TYPE), "Not in use")
             self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.TYPE), self.ca.Alarms.NONE)
 
+    @skip_if_recsim("no backdoor in recsim")
     def test_GIVEN_ilm_200_THEN_can_read_level(self):
         for i in self.channel_range():
+            level = ALARM_THRESHOLDS[i] + 10
+            self.set_level_via_backdoor(i, level)
+            self.ca.assert_that_pv_is_number(self.ch_pv(i, self.LEVEL), level, tolerance=0.1)
             self.ca.assert_that_pv_alarm_is(self.ch_pv(i, self.LEVEL), self.ca.Alarms.NONE)
 
     @skip_if_recsim("Cannot do back door of dynamic behaviour in recsim")
@@ -152,3 +180,23 @@ class Ilm200Tests(unittest.TestCase):
         for i in self.helium_channels():
             self.set_helium_current_via_backdoor(i, False)
             self.ca.assert_that_pv_is(self.ch_pv(i, self.CURRENT), "Off")
+
+    @skip_if_recsim("cannot do back door in recsim")
+    def test_GIVEN_not_in_use_channel_THEN_being_in_neither_fast_nor_slow_mode_does_not_cause_alarm(self):
+        self._lewis.backdoor_run_function_on_device("set_cryo_type", (1, Ilm200ChannelTypes.NOT_IN_USE))
+
+        # Assert in neither fast nor slow mode
+        self.ca.assert_that_pv_is(self.ch_pv(1, "STAT:RAW.B1"), "0")
+        self.ca.assert_that_pv_is(self.ch_pv(1, "STAT:RAW.B2"), "0")
+
+        # Assert that this does not cause an alarm
+        self.ca.assert_that_pv_alarm_is(self.ch_pv(1, "RATE:ASSERT"), self.ca.Alarms.NONE)
+
+    @skip_if_recsim("no backdoor in recsim")
+    def test_GIVEN_level_reading_is_below_threshold_THEN_goes_into_alarm(self):
+        for channel in self.channel_range():
+            self.set_level_via_backdoor(channel, ALARM_THRESHOLDS[channel] + 0.1)
+            self.ca.assert_that_pv_alarm_is(self.ch_pv(channel, "LEVEL"), self.ca.Alarms.NONE)
+
+            self.set_level_via_backdoor(channel, ALARM_THRESHOLDS[channel] - 0.1)
+            self.ca.assert_that_pv_alarm_is(self.ch_pv(channel, "LEVEL"), self.ca.Alarms.MAJOR)
