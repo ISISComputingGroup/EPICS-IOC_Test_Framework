@@ -1,5 +1,3 @@
-from __future__ import division
-
 import contextlib
 import unittest
 import os

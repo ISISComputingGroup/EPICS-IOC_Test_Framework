@@ -1,4 +1,3 @@
-from __future__ import division
 from parameterized import parameterized
 import unittest
 from time import sleep, perf_counter
