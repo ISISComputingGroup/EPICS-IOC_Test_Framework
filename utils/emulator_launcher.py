@@ -506,7 +506,8 @@ class LewisLauncher(EmulatorLauncher):
         :param variable_name: name of the variable
         :return: the variables value, as a string
         """
-        return "".join(self.backdoor_command(["device", str(variable_name)]))
+        # backdoor_command returns a list of bytes and join takes str so convert them here
+        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))
 
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
