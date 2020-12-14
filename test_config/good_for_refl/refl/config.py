@@ -51,9 +51,11 @@ def get_beamline(macros):
     # S3
     s3_comp = add_component(Component("s3", PositionAndAngle(0.0, 3 * SPACING, 90)))
     add_parameter(AxisParameter("S3", s3_comp, ChangeAxis.POSITION), modes=[nr, polarised, testing])
+    add_parameter(AxisParameter("S3_long", s3_comp, ChangeAxis.LONG_AXIS, autosave=False), modes=[nr])
     add_parameter(InBeamParameter("s3inbeam", s3_comp), modes=[nr, polarised, testing])
     add_driver(IocDriver(s3_comp, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0102"),
                           out_of_beam_positions=[S3_OUT_POS_LOW, S3_OUT_POS_HIGH]))
+    add_driver(IocDriver(s3_comp, ChangeAxis.LONG_AXIS, MotorPVWrapper("MOT:MTR0106")))
 
     # S4
     s4_comp = add_component(Component("s4", PositionAndAngle(0.0, 3.5 * SPACING, 90)))

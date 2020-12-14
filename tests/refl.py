@@ -127,6 +127,7 @@ class ReflTests(unittest.TestCase):
         self.ca.set_pv_value("PARAM:THETA:SP", 0)
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
+        self.ca.set_pv_value("PARAM:S3_LONG:SP", 0)
         self.ca.set_pv_value("PARAM:S3INBEAM:SP", "IN")
         self.ca.set_pv_value("PARAM:CHOICE:SP", "MTR0205")
         self.ca_galil.set_pv_value("MTR0207", 0)
@@ -779,3 +780,21 @@ class ReflTests(unittest.TestCase):
             self.ca.assert_that_pv_is("PARAM:NOTINMODE", expected_offset, timeout=20)
             self.ca_galil.assert_that_pv_is_number("MTR0205.RBV", mot0205, timeout=20)
             self.ca_galil.assert_that_pv_is_number("MTR0207.RBV", mot0207, timeout=20)
+
+    def test_GIVEN_theta_WHEN_detector_long_axis_changes_THEN_detector_tracks(self):
+        theta_angle = 2
+        long_axis_addition = 1
+        self.ca.set_pv_value("PARAM:THETA:SP", theta_angle)
+        self.ca.set_pv_value("BL:MOVE", 1)
+
+        # theta set
+        self._check_param_pvs("THETA", theta_angle)
+
+        self.ca.set_pv_value("PARAM:S3_LONG:SP", long_axis_addition)
+        self.ca.set_pv_value("BL:MOVE", 1)
+
+        expected_s3_value = (SPACING + long_axis_addition) * tan(radians(theta_angle * 2.0))
+
+        self._check_param_pvs("S3_LONG", long_axis_addition)
+        self._check_param_pvs("S3", 0.0)
+        self.ca_galil.assert_that_pv_is_number("MTR0102", expected_s3_value, 0.01)
