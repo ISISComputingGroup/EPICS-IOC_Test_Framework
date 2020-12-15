@@ -1,5 +1,3 @@
-from __future__ import division
-
 import unittest
 from time import sleep
 from parameterized import parameterized

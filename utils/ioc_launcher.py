@@ -182,7 +182,8 @@ class BaseLauncher(object):
                                              env=settings)
 
             # Write a return so that an epics terminal will appear after boot
-            self._process.stdin.write("\n")
+            self._process.stdin.write("\n".encode("utf-8"))
+            self._process.stdin.flush()
             self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
             for key, value in self._init_values.items():
@@ -357,7 +358,7 @@ class ProcServLauncher(BaseLauncher):
         # Wait for procServ to become responsive by checking for the IOC started text ("epics>")
         init_output = self.telnet.read_until(self._ioc_started_text.encode(), timeout)
 
-        if "Welcome to procServ" not in init_output:
+        if b"Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
 
     def send_telnet_command_and_retry_if_not_detected_condition_for_success(
@@ -556,7 +557,8 @@ class IocLauncher(BaseLauncher):
 
         if self._process is not None:
             #  use write not communicate so that we don't wait for exit before continuing
-            self._process.stdin.write("exit\n")
+            self._process.stdin.write("exit\n".encode("utf-8"))
+            self._process.stdin.flush()
 
             max_wait_for_ioc_to_die = 60
             wait_per_loop = 0.1
