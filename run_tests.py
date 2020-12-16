@@ -126,6 +126,9 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
 
         for module in modules_to_be_tested_in_current_mode:
             clean_environment()
+            # call anything test module specific that must be done before ioc is launched
+            if "pre_ioc_launch_hook" in dir(module.file):
+                module.file.pre_ioc_launch_hook()
             device_launchers = make_device_launchers_from_module(module.file, mode)
             test_results.append(
                 run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
