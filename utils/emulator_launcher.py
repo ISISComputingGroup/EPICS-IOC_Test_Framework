@@ -430,7 +430,7 @@ class LewisLauncher(EmulatorLauncher):
         Returns: value as a string for the backdoor
 
         """
-        return "{}".format(value) if isinstance(value, str) else str(value)
+        return "'{}'".format(value) if isinstance(value, str) else str(value)
 
     def backdoor_set_on_device(self, variable_name, value, *_, **__):
         """
@@ -440,7 +440,7 @@ class LewisLauncher(EmulatorLauncher):
         :param value: new value it should have
         :return:
         """
-        self.backdoor_command(["device", str(variable_name), value])
+        self.backdoor_command(["device", str(variable_name), self._convert_to_string_for_backdoor(value)])
 
     def backdoor_run_function_on_device(self, function_name, arguments=None):
         """
@@ -465,7 +465,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: lines from the command output
         """
         try:
-            return call_method(self.remote, lewis_command[0], lewis_command[1], lewis_command[2:])
+            return str(call_method(self.remote, lewis_command[0], lewis_command[1], lewis_command[2:]))
         except Exception as e:
             sys.stderr.write(f"Error using backdoor: {e}\n")
 
@@ -496,7 +496,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: the variables value, as a string
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
-        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))
+        return self.backdoor_command(["device", str(variable_name)])
 
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
