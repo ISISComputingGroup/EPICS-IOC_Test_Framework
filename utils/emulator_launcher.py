@@ -18,6 +18,9 @@ from utils.formatters import format_value
 
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
 
+from lewis.scripts.control import call_method
+from lewis.core.control_client import ControlClient
+
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
 
 
@@ -397,6 +400,8 @@ class LewisLauncher(EmulatorLauncher):
                                          stdout=self._logFile,
                                          stderr=subprocess.STDOUT)
         self._connected = True
+        self.remote = ControlClient("127.0.0.1", self._control_port, timeout=4000).get_object_collection()
+
 
     def _log_filename(self):
         return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
@@ -459,26 +464,10 @@ class LewisLauncher(EmulatorLauncher):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
-        lewis_command_line = [os.path.join(self._lewis_path, "lewis-control.exe"),
-                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-        lewis_command_line.extend(lewis_command)
-        time_stamp = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
-        self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
         try:
-            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-            for i in range(1, 40):
-                code = p.poll()
-                if code == 0:
-                    break
-                sleep(0.1)
-            else:
-                p.terminate()
-                print("Lewis backdoor did not finish!")
-            return [line.strip() for line in p.stdout]
-        except subprocess.CalledProcessError as ex:
-            sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
-            sys.stderr.write("Error code {0}\n".format(ex.returncode))
-            raise ex
+            return str(call_method(self.remote, lewis_command[0], lewis_command[1], lewis_command[2:]))
+        except Exception as e:
+            sys.stderr.write(f"Error using backdoor: {e}\n")
 
     def backdoor_emulator_disconnect_device(self):
         """
@@ -507,7 +496,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: the variables value, as a string
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
-        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))
+        return self.backdoor_command(["device", str(variable_name)])
 
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
