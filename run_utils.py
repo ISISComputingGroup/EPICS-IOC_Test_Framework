@@ -1,4 +1,3 @@
-import imp
 import importlib
 import os
 from contextlib import contextmanager
@@ -11,10 +10,7 @@ def package_contents(package_name):
     :param package_name: the name of the package
     :return: a set containing all the module names
     """
-    filename, pathname, description = imp.find_module(package_name)
-    if filename:
-        raise ImportError('Not a package: %r', package_name)
-    # Use a set because some may be both source and compiled.
+    pathname = importlib.machinery.PathFinder().find_spec(package_name).name
     return set([os.path.splitext(module)[0] for module in os.listdir(pathname)
                 if module.endswith('.py') and not module.startswith("__init__")])
 
