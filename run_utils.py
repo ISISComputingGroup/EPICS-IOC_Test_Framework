@@ -10,7 +10,7 @@ def package_contents(package_name):
     :param package_name: the name of the package
     :return: a set containing all the module names
     """
-    pathname = importlib.machinery.PathFinder().find_spec(package_name).name
+    pathname = importlib.util.find_spec(package_name).name
     return set([os.path.splitext(module)[0] for module in os.listdir(pathname)
                 if module.endswith('.py') and not module.startswith("__init__")])
 
