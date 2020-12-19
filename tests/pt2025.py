@@ -36,7 +36,7 @@ class Pt2025Tests(unittest.TestCase):
     @parameterized.expand(DATA_LOCKED)
     def test_when_locked_THEN_all_other_Pvs_change_appropriately(self, data):
         self._lewis.backdoor_set_on_device("data", data)
-        self.ca.assert_that_pv_is("FIELD_STRENGTH", data)
+        self.ca.assert_that_pv_is("FIELD:RAW", data)
         self.ca.assert_that_pv_is("LOCKED", "LOCKED")
         self.ca.assert_that_pv_is("FIELD_TESLA", float(data[1:-1]))
         self.ca.assert_that_pv_is("FIELD_GAUSS", float(data[1:-1]) * 10000)
@@ -44,7 +44,7 @@ class Pt2025Tests(unittest.TestCase):
     @parameterized.expand(DATA_UNLOCKED)
     def test_when_not_locked_THEN_all_other_Pvs_do_not_change(self, data):
         self._lewis.backdoor_set_on_device("data", data)
-        self.ca.assert_that_pv_is("FIELD_STRENGTH", data)
+        self.ca.assert_that_pv_is("FIELD:RAW", data)
         self.ca.assert_that_pv_is("LOCKED", "UNLOCKED")
         self.ca.assert_that_pv_is("CALC_FIELD", -1.0)
         self.ca.assert_that_pv_is("FIELD_GAUSS", -1.0)
