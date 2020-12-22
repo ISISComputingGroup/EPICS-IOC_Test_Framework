@@ -119,7 +119,7 @@ pipeline {
 	stage("Clean Up") {
       steps {
 	    bat """
-		  rmdir "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
+		  rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
 		  exit /b %ERRCODE%
 		"""
 	  }
