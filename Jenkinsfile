@@ -115,15 +115,6 @@ pipeline {
          }
       }
     }
-	
-	stage("Clean Up") {
-      steps {
-	    bat """
-		  rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
-		  exit /b %ERRCODE%
-		"""
-	  }
-	}
   }
   
   post {
@@ -131,6 +122,17 @@ pipeline {
       archiveArtifacts artifacts: 'test-logs/*.log', caseSensitive: false
       junit "test-reports/**/*.xml"
     }
+	
+	cleanup {
+	  bat """
+		if exist "C:\\Instrument\\Apps\\EPICS" (
+          call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
+          rmdir "C:\\Instrument\\Apps\\EPICS"
+        )
+		rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
+		exit /b %ERRCODE%
+	  """
+	}
   }
 
 }
