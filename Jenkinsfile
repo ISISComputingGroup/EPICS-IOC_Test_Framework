@@ -115,6 +115,15 @@ pipeline {
          }
       }
     }
+	
+	stage("Clean Up") {
+      steps {
+	    bat """
+		  rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
+		  exit /b %ERRCODE%
+		"""
+	  }
+	}
   }
   
   post {
