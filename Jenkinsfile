@@ -110,6 +110,8 @@ pipeline {
              call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat"
              set ERRCODE=%ERRORLEVEL%
              robocopy "C:\\Instrument\\Var\\logs\\IOCTestFramework" "%WORKSPACE%\\test-logs" /E /PURGE /R:2 /MT /NFL /NDL /NP /NC /NS /LOG:NUL
+             call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
+             rmdir "C:\\Instrument\\Apps\\EPICS"
              exit /b %ERRCODE%
              """
          }
@@ -122,14 +124,10 @@ pipeline {
       archiveArtifacts artifacts: 'test-logs/*.log', caseSensitive: false
       junit "test-reports/**/*.xml"
     }
-	
+
     cleanup {
       bat """
         set \"MYJOB=${env.JOB_NAME}\"
-        if exist "C:\\Instrument\\Apps\\EPICS" (
-            call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
-            rmdir "C:\\Instrument\\Apps\\EPICS"
-        )
         rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
         exit /b 0
       """
