@@ -123,16 +123,17 @@ pipeline {
       junit "test-reports/**/*.xml"
     }
 	
-	cleanup {
-	  bat """
-		if exist "C:\\Instrument\\Apps\\EPICS" (
-          call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
-          rmdir "C:\\Instrument\\Apps\\EPICS"
+    cleanup {
+      bat """
+        set \"MYJOB=${env.JOB_NAME}\"
+        if exist "C:\\Instrument\\Apps\\EPICS" (
+            call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
+            rmdir "C:\\Instrument\\Apps\\EPICS"
         )
-		rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
-		exit /b %ERRCODE%
-	  """
-	}
+        rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
+        exit /b 0
+      """
+    }
   }
 
 }
