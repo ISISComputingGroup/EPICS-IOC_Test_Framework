@@ -3,6 +3,7 @@ import unittest
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
 
+from genie_python.genie_cachannel_wrapper import WriteAccessException
 
 from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
 
@@ -32,5 +33,6 @@ class DanfysikDisableautonoffTest(DanfysikBase, unittest.TestCase):
     """
     def test_WHEN_disableautonoff_true_THEN_autoonoff_cannot_be_set(self):
         self.ca.assert_that_pv_is("AUTOONOFF", "Disabled")
-        self.ca.set_pv_value("AUTOONOFF", "Enabled")
+        with self.assertRaises(WriteAccessException, msg="Genie python should notify of DISP being set"):
+            self.ca.set_pv_value("AUTOONOFF", "Enabled")
         self.ca.assert_that_pv_is("AUTOONOFF", "Disabled")

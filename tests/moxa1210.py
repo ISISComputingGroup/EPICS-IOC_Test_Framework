@@ -1,4 +1,3 @@
-from __future__ import division
 import unittest
 
 from utils.test_modes import TestModes
@@ -21,7 +20,8 @@ IOCS = [
             "IEOS": r"\\r\\n",
             "OEOS": r"\\r\\n",
             "MODELNO": "1210"
-        }
+        },
+        "pv_for_existence": "CH1:DI",
     },
 ]
 

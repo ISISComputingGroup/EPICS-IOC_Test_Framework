@@ -90,7 +90,7 @@ class LoqApertureTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
         self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
-        self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINT.values()[closest_stop], tolerance=TOLERANCE)
+        self.ca.assert_that_pv_is_number(MOTOR, list(MOTION_SETPOINT.values())[closest_stop], tolerance=TOLERANCE)
 
     # Closest positions defined in ticket 3623
     @parameterized.expand([
@@ -104,7 +104,7 @@ class LoqApertureTests(unittest.TestCase):
         # GIVEN
         # Move 25 per cent forwards and backwards off centre of setpoint
         for fraction_moved_off_setpoint in [0.25, -0.25]:
-            initial_position = MOTION_SETPOINT.values()[start_index] + (fraction_moved_off_setpoint * SETPOINT_GAP)
+            initial_position = list(MOTION_SETPOINT.values())[start_index] + (fraction_moved_off_setpoint * SETPOINT_GAP)
             self.ca.set_pv_value(MOTOR, initial_position)
             self.ca.assert_that_pv_is_number(MOTOR, initial_position, tolerance=TOLERANCE)
 
@@ -117,4 +117,4 @@ class LoqApertureTests(unittest.TestCase):
             # THEN
             self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
             self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
-            self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINT.values()[closest_stop], tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number(MOTOR, list(MOTION_SETPOINT.values())[closest_stop], tolerance=TOLERANCE)

@@ -222,6 +222,9 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
 
 if __name__ == '__main__':
+    if six.PY2:
+        print("IOC system tests should now be run under python 3. Aborting.")
+        sys.exit(-1)
 
     pythondir = os.environ.get("PYTHONDIR", None)
 

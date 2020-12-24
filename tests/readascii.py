@@ -1,5 +1,3 @@
-from __future__ import division
-
 import os
 import unittest
 import shutil
@@ -28,6 +26,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": os.path.join(EPICS_TOP, "support", "ReadASCII", "master", "iocBoot", "iocReadASCIITest"),
+        "pv_for_existence": "DIRBASE",
     },
 ]
 

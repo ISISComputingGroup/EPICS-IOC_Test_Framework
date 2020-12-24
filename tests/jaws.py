@@ -45,6 +45,7 @@ class JawsTestsBase(object):
         self._ioc = IOCRegister.get_running("jaws")
         self.ca = ChannelAccess(default_timeout=30)
         for mtr in self.UNDERLYING_MTRS.values():
+            self.ca.set_pv_value("{}.DISP".format(mtr), 0)
             self.ca.set_pv_value("{}.VMAX".format(mtr), 100)
             self.ca.set_pv_value("{}.VELO".format(mtr), 100)
 
@@ -130,10 +131,10 @@ class JawsTestsBase(object):
     def test_GIVEN_some_jaws_have_state_set_THEN_overall_state_is_unknown(self, key, expected):
         disabled_val = 0
         enabled_val = 1
-        for mtr in self.UNDERLYING_MTRS.values()[:2]:
+        for mtr in list(self.UNDERLYING_MTRS.values())[:2]:
             mtr_status_pv = "{}_{}".format(mtr, key)
             self.ca.set_pv_value(mtr_status_pv, enabled_val)
-        for mtr in self.UNDERLYING_MTRS.values()[2:]:
+        for mtr in list(self.UNDERLYING_MTRS.values())[2:]:
             mtr_status_pv = "{}_{}".format(mtr, key)
             self.ca.set_pv_value(mtr_status_pv, disabled_val)
 

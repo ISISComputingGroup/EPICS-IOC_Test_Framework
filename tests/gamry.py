@@ -14,10 +14,12 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("GAMRY"),
         "emulator": "gamry",
+        "pv_for_existence": "CHARGE:STAT",
     },
 ]
 
 TEST_MODES = [TestModes.DEVSIM]
+
 
 class GamryTests(unittest.TestCase):
     """
