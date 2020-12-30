@@ -22,7 +22,6 @@ pipeline {
   // The options directive is for configuration that applies to the whole job.
   options {
     buildDiscarder(logRotator(numToKeepStr:'7', daysToKeepStr: '7'))
-    timeout(time: 1800, unit: 'MINUTES')
     disableConcurrentBuilds()
     timestamps()
     office365ConnectorWebhooks([[
@@ -91,6 +90,7 @@ pipeline {
     stage("IOC Tests") {
       steps {
          lock(resource: ELOCK, inversePrecedence: true) {
+           timeout(time: 1800, unit: 'MINUTES') {
            bat """
              set \"MYJOB=${env.JOB_NAME}\"
              if exist "C:\\Instrument\\Apps\\EPICS" (
@@ -114,6 +114,7 @@ pipeline {
              rmdir "C:\\Instrument\\Apps\\EPICS"
              exit /b %ERRCODE%
              """
+           }
          }
       }
     }
