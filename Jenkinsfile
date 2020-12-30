@@ -129,6 +129,11 @@ pipeline {
     cleanup {
       bat """
         set \"MYJOB=${env.JOB_NAME}\"
+        REM not ideal to call without lock, and retaking lock may be a potential race condition
+        REM however the directory junction will only exist if the previous step times out      
+        if exist "C:\\Instrument\\Apps\\EPICS" (
+            call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
+        )
         rmdir /s /q "C:\\Instrument\\Apps\\EPICS-%MYJOB%"
         exit /b 0
       """
