@@ -109,7 +109,7 @@ pipeline {
              del /q C:\\Instrument\\Var\\logs\\IOCTestFramework\\*.*
              call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat"
              set ERRCODE=%ERRORLEVEL%
-             robocopy "C:\\Instrument\\Var\\logs\\IOCTestFramework" "%WORKSPACE%\\test-logs" /E /PURGE /R:2 /MT /NFL /NDL /NP /NC /NS /LOG:NUL
+             robocopy "C:\\Instrument\\Var\\logs\\IOCTestFramework" "%WORKSPACE%\\test-logs" /E /R:2 /MT /NFL /NDL /NP /NC /NS /LOG:NUL
              call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
              rmdir "C:\\Instrument\\Apps\\EPICS"
              exit /b %ERRCODE%
