@@ -293,7 +293,7 @@ class ProcServLauncher(BaseLauncher):
 
         self.procserv_port = get_free_ports(1)[0]
 
-        self.telnet = None
+        self._telnet = None
         self.autorestart = True
         self.original_macros = ioc.get("macros", {})
 
@@ -353,12 +353,12 @@ class ProcServLauncher(BaseLauncher):
 
         timeout = 20
 
-        self.telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
+        self._telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
 
         # Wait for procServ to become responsive by checking for the IOC started text ("epics>")
-        init_output = self.telnet.read_until(self._ioc_started_text.encode(), timeout)
+        init_output = self._telnet.read_until(self._ioc_started_text.encode('ascii'), timeout).decode("ascii")
 
-        if b"Welcome to procServ" not in init_output:
+        if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
 
     def send_telnet_command_and_retry_if_not_detected_condition_for_success(
@@ -376,14 +376,22 @@ class ProcServLauncher(BaseLauncher):
             AssertionError: If the text has not been detected in the log after the given number of retries
         """
         for i in range(retry_limit):
-            self.telnet.write("{cmd}\n".format(cmd=command))
+            self.send_telnet_command(command)
             if condition_for_success():
                 break
             else:
-                self.telnet.close()
-                self.telnet.open("localhost", self.procserv_port, timeout=20)
+                self._telnet.close()
+                self._telnet.open("localhost", self.procserv_port, timeout=20)
         else:  # If condition for success not detected, raise an assertion error
             raise AssertionError("Sending telnet command {} failed {} times".format(command, retry_limit))
+
+    def send_telnet_command(self, command: str):
+        """
+        Send a command to the ioc via telnet. Command is sent and newline is appended
+        Args:
+            command: command to set
+        """
+        self._telnet.write("{cmd}\n".format(cmd=command).encode('ascii'))
 
     def start_ioc(self, wait=False):
         """
@@ -407,7 +415,7 @@ class ProcServLauncher(BaseLauncher):
                 start_command, condition_for_success, 3
             )
         else:
-            self.telnet.write("{cmd}\n".format(cmd=start_command))
+            self.send_telnet_command(start_command)
 
     def quit_ioc(self):
         """
@@ -415,18 +423,18 @@ class ProcServLauncher(BaseLauncher):
 
         """
         quit_command = "\x11"
-        self.telnet.write("{cmd}\n".format(cmd=quit_command))
+        self.send_telnet_command(quit_command)
 
     def toggle_autorestart(self):
         """
         Toggles whether the IOC is auto-restarts or not.
 
         """
-        self.telnet.read_very_eager()
+        self._telnet.read_very_eager()
 
         autorestart_command = "-"
-        self.telnet.write("{cmd}\n".format(cmd=autorestart_command))
-        response = self.telnet.read_very_eager()
+        self.send_telnet_command(autorestart_command)
+        response = self._telnet.read_very_eager().decode("ascii")
 
         if "OFF" in response:
             self.autorestart = False
@@ -440,8 +448,8 @@ class ProcServLauncher(BaseLauncher):
         Shuts telnet connection and kills IOC. Identifies the spawned procServ processes and kills them
         """
 
-        if self.telnet is not None:
-            self.telnet.close()
+        if self._telnet is not None:
+            self._telnet.close()
 
         at_least_one_killed = False
         for process in psutil.process_iter(attrs=['pid', 'name']):
