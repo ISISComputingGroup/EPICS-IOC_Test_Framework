@@ -356,7 +356,7 @@ class ProcServLauncher(BaseLauncher):
         self.telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
 
         # Wait for procServ to become responsive by checking for the IOC started text ("epics>")
-        init_output = self.telnet.read_until(self._ioc_started_text.encode(), timeout)
+        init_output = self.telnet.read_until(self._ioc_started_text.encode('ascii'), timeout)
 
         if b"Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
@@ -376,7 +376,7 @@ class ProcServLauncher(BaseLauncher):
             AssertionError: If the text has not been detected in the log after the given number of retries
         """
         for i in range(retry_limit):
-            self.telnet.write("{cmd}\n".format(cmd=command))
+            self.telnet.write("{cmd}\n".format(cmd=command).encode('ascii'))
             if condition_for_success():
                 break
             else:
@@ -407,7 +407,7 @@ class ProcServLauncher(BaseLauncher):
                 start_command, condition_for_success, 3
             )
         else:
-            self.telnet.write("{cmd}\n".format(cmd=start_command))
+            self.telnet.write("{cmd}\n".format(cmd=start_command).encode('ascii'))
 
     def quit_ioc(self):
         """
@@ -415,7 +415,7 @@ class ProcServLauncher(BaseLauncher):
 
         """
         quit_command = "\x11"
-        self.telnet.write("{cmd}\n".format(cmd=quit_command))
+        self.telnet.write("{cmd}\n".format(cmd=quit_command).encode('ascii'))
 
     def toggle_autorestart(self):
         """
@@ -425,12 +425,12 @@ class ProcServLauncher(BaseLauncher):
         self.telnet.read_very_eager()
 
         autorestart_command = "-"
-        self.telnet.write("{cmd}\n".format(cmd=autorestart_command))
+        self.telnet.write("{cmd}\n".format(cmd=autorestart_command).encode('ascii'))
         response = self.telnet.read_very_eager()
 
-        if "OFF" in response:
+        if b"OFF" in response:
             self.autorestart = False
-        elif "ON" in response:
+        elif b"ON" in response:
             self.autorestart = True
         else:
             raise OSError("No response from procserv")
