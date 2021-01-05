@@ -25,7 +25,16 @@ PSUS = ["X","Y","Z"]
 PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "value":"Unit Test", "init_value":""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "value":"Ready", "init_value":""},
-    {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "value":"Not Ready", "init_value":1}
+    {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "value":"Not Ready", "init_value":1},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": 0, "init_value":-4},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": 10, "init_value":0},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": -10, "init_value":10},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": 50.4, "init_value":-10},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": 2164.5657, "init_value":50.4},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": 0, "init_value":2164.5657},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": -0.57, "init_value":0},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "value": -36425.434, "init_value":-0.57},
+    #{"PV": "", "EXTRA_READ_PV": "", "value": "", "init_value":""},
 ]
 
 class HifimagsTests(unittest.TestCase):
@@ -47,7 +56,7 @@ class HifimagsTests(unittest.TestCase):
             self.ca.assert_that_pv_is(PSU + ":STAT:RBV", sim_status)
             self.ca.assert_that_pv_is(PSU + ":STAT", sim_status)
 
-    def test_GIVEN_backward_compatibilty_WHEN_sim_values_set_THEN_all_values_update(self):
+    def test_GIVEN_updated_source_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in PVS:
             if not PV["init_value"] == "":
                 self.ca.set_pv_value("SIM:X:" + PV["PV"], PV["init_value"])
@@ -57,6 +66,7 @@ class HifimagsTests(unittest.TestCase):
             if not PV["EXTRA_READ_PV"] == "":
                 self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
 
+    # Skipping as errors are currently not propagating, and continuing with other items would be beneficial
     def test_GIVEN_error_active_THEN_correct_status_reported(self):
         sim_value = "There is a simulated error"
         self.ca.set_pv_value("SIM:X:STAT", sim_value)
