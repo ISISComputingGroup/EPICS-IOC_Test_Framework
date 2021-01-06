@@ -98,3 +98,8 @@ class HifimagsTests(unittest.TestCase):
         sim_value = "Aborting X"
         self.ca.set_pv_value("X:ABORT:SP", 1)
         self.ca.assert_that_pv_is("SIM:X:ABORT", sim_value)
+
+    def test_GIVEN_z_switching_is_needed_WHEN_the_ramp_rate_is_altered_THEN_it_should_be_propagated(self):
+        sim_value = 1.546
+        self.ca.set_pv_value("Z:RAMP:RATE:SP", sim_value)
+        self.ca.assert_that_pv_is("Z:RAMP:RATE", sim_value)
