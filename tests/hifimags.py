@@ -48,6 +48,9 @@ WRITE_PVS = [
     {"MAG": "Z", "PV": "FIELD:MAX", "EXTRA_READ_PV": "", "values": SWITCHINGMAX, "init_value": ""},
     {"MAG": "Z", "PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
 ]
+MAIN_PVS = [
+    {"PV": "STAT", "EXTRA_READ_PV":"MAIN:STAT:RBV", "values":STATUSES, "init_value": ""},
+]
 
 class HifimagsTests(unittest.TestCase):
     """
@@ -58,6 +61,7 @@ class HifimagsTests(unittest.TestCase):
 
     # RECSIM Tests
 
+    @skip_if_recsim
     def test_GIVEN_sim_status_WHEN_sim_status_is_updated_THEN_all_statuses_match(self):
         sim_status = "Unit Test"
         for PSU in PSUS:
@@ -70,6 +74,7 @@ class HifimagsTests(unittest.TestCase):
             self.ca.assert_that_pv_is(PSU + ":STAT:RBV", sim_status)
             self.ca.assert_that_pv_is(PSU + ":STAT", sim_status)
 
+    @skip_if_recsim
     def test_GIVEN_readback_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in READ_PVS:
             if not PV["init_value"] == "":
@@ -81,6 +86,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in WRITE_PVS:
             if not PV["init_value"] == "":
@@ -92,6 +98,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(self):
         sim_value = "There is a simulated error"
         self.ca.set_pv_value("SIM:X:STAT", sim_value)
@@ -100,8 +107,19 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:X:ERROR", "No Error")
         self.ca.assert_that_pv_is("X:ERRORS:RBV", "")
 
+    @skip_if_recsim
     def test_GIVEN_abort_requested_THEN_abort_is_propagated(self):
         sim_value = "Aborting X"
         self.ca.set_pv_value("X:ABORT:SP", 1)
         self.ca.assert_that_pv_is("SIM:X:ABORT", sim_value)
 
+    def test_GIVEN_readback_values_WHEN_sim_main_values_set_THEN_all_values_update(self):
+        for PV in MAIN_PVS:
+            if not PV["init_value"] == "":
+                self.ca.set_pv_value("SIM:M:" + PV["PV"], PV["init_value"])
+            for value in PV["values"]:
+                sim_value = value
+                self.ca.set_pv_value("SIM:M:" + PV["PV"], sim_value)
+                self.ca.assert_that_pv_is("M:" + PV["PV"], sim_value)
+                if not PV["EXTRA_READ_PV"] == "":
+                    self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
