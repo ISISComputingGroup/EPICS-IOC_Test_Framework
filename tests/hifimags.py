@@ -27,15 +27,18 @@ READYS = ["Ready", "Not Ready"]
 GAUSS = [0,10,-10,50.4,2164.5657,0,-0.57,-36425.434]
 AMPSANDVOLTS = [0,1,-1,0.435,1.1,0,-0.3687,-0.97]
 TIMES = ["11:24:32"]
-PVS = [
+ABORTS = ["Aborting X"]
+READ_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
     {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "values":GAUSS, "init_value":-4},
     {"PV": "OUTPUT:CURR", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value":-0.4},
     {"PV": "OUTPUT:VOLT", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value": -0.4},
     {"PV": "TARGET:TIME", "EXTRA_READ_PV": "", "values":TIMES, "init_value":""},
-    {"PV": "TARGET", "EXTRA_READ_PV": "", "values":GAUSS, "init_value":-4},
     #{"PV": "", "EXTRA_READ_PV": "", "values": "", "init_value":""},
+]
+WRITE_PVS = [
+    {"PV": "TARGET", "EXTRA_READ_PV": "", "values": GAUSS, "init_value": -4},
 ]
 
 class HifimagsTests(unittest.TestCase):
@@ -59,14 +62,25 @@ class HifimagsTests(unittest.TestCase):
             self.ca.assert_that_pv_is(PSU + ":STAT:RBV", sim_status)
             self.ca.assert_that_pv_is(PSU + ":STAT", sim_status)
 
-    def test_GIVEN_updated_source_values_in_arrays_WHEN_sim_values_set_THEN_all_values_update(self):
-        for PV in PVS:
+    def test_GIVEN_readback_values_WHEN_sim_values_set_THEN_all_values_update(self):
+        for PV in READ_PVS:
             if not PV["init_value"] == "":
                 self.ca.set_pv_value("SIM:X:" + PV["PV"], PV["init_value"])
             for value in PV["values"]:
                 sim_value = value
                 self.ca.set_pv_value("SIM:X:" + PV["PV"], sim_value)
                 self.ca.assert_that_pv_is("X:" + PV["PV"], sim_value)
+                if not PV["EXTRA_READ_PV"] == "":
+                    self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
+
+    def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
+        for PV in WRITE_PVS:
+            if not PV["init_value"] == "":
+                self.ca.set_pv_value("X:" + PV["PV"], PV["init_value"])
+            for value in PV["values"]:
+                sim_value = value
+                self.ca.set_pv_value("X:" + PV["PV"], sim_value)
+                self.ca.assert_that_pv_is("SIM:X:" + PV["PV"], sim_value)
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
 
