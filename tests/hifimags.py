@@ -28,6 +28,7 @@ GAUSS = [0,10,-10,50.4,2164.5657,0,-0.57,-36425.434]
 AMPSANDVOLTS = [0,1,-1,0.435,1.1,0,-0.3687,-0.97]
 TIMES = ["11:24:32"]
 ABORTS = ["Aborting X"]
+QUENCHES = ["Quenched", ""]
 READ_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
@@ -35,6 +36,7 @@ READ_PVS = [
     {"PV": "OUTPUT:CURR", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value":-0.4},
     {"PV": "OUTPUT:VOLT", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value": -0.4},
     {"PV": "TARGET:TIME", "EXTRA_READ_PV": "", "values":TIMES, "init_value":""},
+    {"PV": "QUENCH", "EXTRA_READ_PV": "", "values":QUENCHES, "init_value":""},
     #{"PV": "", "EXTRA_READ_PV": "", "values": "", "init_value":""},
 ]
 WRITE_PVS = [
@@ -76,10 +78,10 @@ class HifimagsTests(unittest.TestCase):
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in WRITE_PVS:
             if not PV["init_value"] == "":
-                self.ca.set_pv_value("X:" + PV["PV"], PV["init_value"])
+                self.ca.set_pv_value("X:" + PV["PV"] + ":SP", PV["init_value"])
             for value in PV["values"]:
                 sim_value = value
-                self.ca.set_pv_value("X:" + PV["PV"], sim_value)
+                self.ca.set_pv_value("X:" + PV["PV"] + ":SP", sim_value)
                 self.ca.assert_that_pv_is("SIM:X:" + PV["PV"], sim_value)
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
@@ -94,5 +96,5 @@ class HifimagsTests(unittest.TestCase):
 
     def test_GIVEN_abort_requested_THEN_abort_is_propagated(self):
         sim_value = "Aborting X"
-        self.ca.set_pv_value("X:ABORT", 1)
+        self.ca.set_pv_value("X:ABORT:SP", 1)
         self.ca.assert_that_pv_is("SIM:X:ABORT", sim_value)
