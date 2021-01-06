@@ -112,3 +112,8 @@ class HifimagsTests(unittest.TestCase):
         sim_value = 20005
         self.ca.set_pv_value("Z:FIELD:MAX:SP", sim_value)
         self.ca.assert_that_pv_is("Z:FIELD:MAX", sim_value)
+
+    def test_GIVEN_z_switching_is_needed_WHEN_the_mid_field_is_altered_THEN_it_should_be_propagated(self):
+        sim_value = 523.8
+        self.ca.set_pv_value("Z:FIELD:MID:SP", sim_value)
+        self.ca.assert_that_pv_is("Z:FIELD:MID", sim_value)
