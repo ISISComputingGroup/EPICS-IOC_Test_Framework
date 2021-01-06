@@ -34,6 +34,7 @@ PVS = [
     {"PV": "OUTPUT:CURR", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value":-0.4},
     {"PV": "OUTPUT:VOLT", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value": -0.4},
     {"PV": "TARGET:TIME", "EXTRA_READ_PV": "", "values":TIMES, "init_value":""},
+    {"PV": "TARGET", "EXTRA_READ_PV": "", "values":GAUSS, "init_value":-4},
     #{"PV": "", "EXTRA_READ_PV": "", "values": "", "init_value":""},
 ]
 
