@@ -45,6 +45,8 @@ class HifimagsTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
+    # RECSIM Tests
+
     def test_GIVEN_sim_status_WHEN_sim_status_is_updated_THEN_all_statuses_match(self):
         sim_status = "Unit Test"
         for PSU in PSUS:
@@ -68,11 +70,15 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
 
-    # Skipping as errors are currently not propagating, and continuing with other items would be beneficial
-    def test_GIVEN_error_active_THEN_correct_status_reported(self):
+    def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(self):
         sim_value = "There is a simulated error"
         self.ca.set_pv_value("SIM:X:STAT", sim_value)
         self.ca.set_pv_value("SIM:X:ERROR", "Error")
         self.ca.assert_that_pv_is("X:ERRORS:RBV", sim_value)
         self.ca.set_pv_value("SIM:X:ERROR", "No Error")
         self.ca.assert_that_pv_is("X:ERRORS:RBV", "")
+
+    def test_GIVEN_abort_requested_THEN_abort_is_propagated(self):
+        sim_value = "Aborting X"
+        self.ca.set_pv_value("X:ABORT", 1)
+        self.ca.assert_that_pv_is("SIM:X:ABORT", sim_value)
