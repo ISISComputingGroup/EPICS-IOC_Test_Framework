@@ -13,27 +13,28 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("HIFIMAGS"),
-        "macros": {},
+        "macros": {"X_IOC": "NA", "Y_IOC": "NA", "Z_IOC": "NA"},
         # "pv_for_existence": "",
     },
 ]
-
 
 TEST_MODES = [TestModes.RECSIM]
 
 PSUS = ["X","Y","Z"]
 
-STATS = ["Unit Test"]
+STATUSES = ["Unit Test"]
 READYS = ["Ready", "Not Ready"]
 GAUSS = [0,10,-10,50.4,2164.5657,0,-0.57,-36425.434]
 AMPSANDVOLTS = [0,1,-1,0.435,1.1,0,-0.3687,-0.97]
+TIMES = ["11:24:32"]
 PVS = [
-    {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATS, "init_value":""},
+    {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
     {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "values":GAUSS, "init_value":-4},
-    {"PV": "OUTPUT:CURR", "EXTRA_READ_PV": "", "valuea":AMPSANDVOLTS, "init_value":-0.4},
+    {"PV": "OUTPUT:CURR", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value":-0.4},
     {"PV": "OUTPUT:VOLT", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value": -0.4},
-    #{"PV": "", "EXTRA_READ_PV": "", "value": "", "init_value":""},
+    {"PV": "TARGET:TIME", "EXTRA_READ_PV": "", "values":TIMES, "init_value":""},
+    #{"PV": "", "EXTRA_READ_PV": "", "values": "", "init_value":""},
 ]
 
 class HifimagsTests(unittest.TestCase):
