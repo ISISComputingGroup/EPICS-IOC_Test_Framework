@@ -20,7 +20,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM]
 
-PSUS = ["X","Y","Z"]
+PSUS = ["X","Y","Z","M"]
 
 STATUSES = ["Unit Test"]
 READYS = ["Ready", "Not Ready"]
@@ -29,6 +29,9 @@ AMPSANDVOLTS = [0,1,-1,0.435,1.1,0,-0.3687,-0.97]
 TIMES = ["11:24:32"]
 ABORTS = ["Aborting X"]
 QUENCHES = ["Quenched", ""]
+SWITCHINGRAMPRATE = [1.546]
+SWITCHINGMAX = [20005]
+SWTICHINGMID = [523.8]
 READ_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
@@ -40,7 +43,10 @@ READ_PVS = [
     #{"PV": "", "EXTRA_READ_PV": "", "values": "", "init_value":""},
 ]
 WRITE_PVS = [
-    {"PV": "TARGET", "EXTRA_READ_PV": "", "values": GAUSS, "init_value": -4},
+    {"MAG": "X", "PV": "TARGET", "EXTRA_READ_PV": "", "values": GAUSS, "init_value": -4},
+    {"MAG": "Z", "PV": "RAMP:RATE", "EXTRA_READ_PV": "", "values": SWITCHINGRAMPRATE, "init_value": ""},
+    {"MAG": "Z", "PV": "FIELD:MAX", "EXTRA_READ_PV": "", "values": SWITCHINGMAX, "init_value": ""},
+    {"MAG": "Z", "PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
 ]
 
 class HifimagsTests(unittest.TestCase):
@@ -78,13 +84,13 @@ class HifimagsTests(unittest.TestCase):
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in WRITE_PVS:
             if not PV["init_value"] == "":
-                self.ca.set_pv_value("X:" + PV["PV"] + ":SP", PV["init_value"])
+                self.ca.set_pv_value(PV["MAG"] + ":" + PV["PV"] + ":SP", PV["init_value"])
             for value in PV["values"]:
                 sim_value = value
-                self.ca.set_pv_value("X:" + PV["PV"] + ":SP", sim_value)
-                self.ca.assert_that_pv_is("SIM:X:" + PV["PV"], sim_value)
+                self.ca.set_pv_value(PV["MAG"] + ":" + PV["PV"] + ":SP", sim_value)
+                self.ca.assert_that_pv_is("SIM:" + PV["MAG"] + ":" + PV["PV"], sim_value)
                 if not PV["EXTRA_READ_PV"] == "":
-                    self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
+                    self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
     def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(self):
         sim_value = "There is a simulated error"
@@ -99,17 +105,3 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("X:ABORT:SP", 1)
         self.ca.assert_that_pv_is("SIM:X:ABORT", sim_value)
 
-    def test_GIVEN_z_switching_is_needed_WHEN_the_ramp_rate_is_altered_THEN_it_should_be_propagated(self):
-        sim_value = 1.546
-        self.ca.set_pv_value("Z:RAMP:RATE:SP", sim_value)
-        self.ca.assert_that_pv_is("Z:RAMP:RATE", sim_value)
-
-    def test_GIVEN_z_switching_is_needed_WHEN_the_max_field_is_altered_THEN_it_should_be_propagated(self):
-        sim_value = 20005
-        self.ca.set_pv_value("Z:FIELD:MAX:SP", sim_value)
-        self.ca.assert_that_pv_is("Z:FIELD:MAX", sim_value)
-
-    def test_GIVEN_z_switching_is_needed_WHEN_the_mid_field_is_altered_THEN_it_should_be_propagated(self):
-        sim_value = 523.8
-        self.ca.set_pv_value("Z:FIELD:MID:SP", sim_value)
-        self.ca.assert_that_pv_is("Z:FIELD:MID", sim_value)
