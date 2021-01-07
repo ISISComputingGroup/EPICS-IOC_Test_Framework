@@ -57,6 +57,7 @@ MAIN_PVS = [
     {"PV": "READY", "EXTRA_READ_PV": "MAIN:READY:RBV", "values": READYS, "init_value": ""},
     {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "MAIN:OUT:RBV", "values":GAUSS, "init_value":-4},
     {"PV": "TARGET:TIME", "EXTRA_READ_PV": "MAIN:MINTO:RBV", "values":TIMES, "init_value":""},
+    {"PV": "OUTPUT:FIELD:PERSIST:GAUSS", "EXTRA_READ_PV": "", "values":GAUSS, "init_value":""},
 ]
 
 class HifimagsTests(unittest.TestCase):
