@@ -32,6 +32,7 @@ QUENCHES = ["Quenched", ""]
 SWITCHINGRAMPRATE = [1.546]
 SWITCHINGMAX = [20005]
 SWTICHINGMID = [523.8]
+LEADS = ["Not Ramping", "Ramping"]
 READ_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
@@ -47,6 +48,7 @@ WRITE_PVS = [
     {"MAG": "Z", "PV": "RAMP:RATE", "EXTRA_READ_PV": "", "values": SWITCHINGRAMPRATE, "init_value": ""},
     {"MAG": "Z", "PV": "FIELD:MAX", "EXTRA_READ_PV": "", "values": SWITCHINGMAX, "init_value": ""},
     {"MAG": "Z", "PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
+    {"MAG": "M", "PV": "RAMP:LEADS", "EXTRA_READ_PV": "", "values": LEADS, "init_value": ""},
 ]
 MAIN_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"MAIN:STAT:RBV", "values":STATUSES, "init_value": ""},
@@ -64,6 +66,7 @@ class HifimagsTests(unittest.TestCase):
 
     # RECSIM Tests
 
+    @skip_if_recsim
     def test_GIVEN_sim_status_WHEN_sim_status_is_updated_THEN_all_statuses_match(self):
         sim_status = "Unit Test"
         for PSU in PSUS:
@@ -76,6 +79,7 @@ class HifimagsTests(unittest.TestCase):
             self.ca.assert_that_pv_is(PSU + ":STAT:RBV", sim_status)
             self.ca.assert_that_pv_is(PSU + ":STAT", sim_status)
 
+    @skip_if_recsim
     def test_GIVEN_readback_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in READ_PVS:
             if not PV["init_value"] == "":
@@ -87,6 +91,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in WRITE_PVS:
             if not PV["init_value"] == "":
@@ -98,6 +103,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(self):
         # Errors for Main PSU different, so use M rather than X
         sim_value = "There is a simulated error"
@@ -109,6 +115,7 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:ERRORS:RBV", "")
         self.ca.assert_that_pv_is("MAIN:ERRORS:RBV", "")
 
+    @skip_if_recsim
     def test_GIVEN_abort_requested_THEN_abort_is_propagated(self):
         sim_value = "Aborting X"
         self.ca.set_pv_value("X:ABORT:SP", 1)
