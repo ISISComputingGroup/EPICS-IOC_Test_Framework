@@ -34,6 +34,8 @@ SWITCHINGMAX = [20005]
 SWTICHINGMID = [523.8]
 LEADS = ["Not Ramping", "Ramping"]
 PERSISTS = ["Non persisting", "Persisting"]
+OPMODES = ["Idle", "High Field", "Low Field", "Z Switching"]
+HALLS = [0,12.456,-0.45,20113.89]
 READ_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
@@ -51,6 +53,7 @@ WRITE_PVS = [
     {"MAG": "Z", "PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
     {"MAG": "M", "PV": "RAMP:LEADS", "EXTRA_READ_PV": "", "values": LEADS, "init_value": ""},
     {"MAG": "M", "PV": "PERSIST", "EXTRA_READ_PV": "", "values": PERSISTS, "init_value": ""},
+    {"MAG": "", "PV": "OPMODE", "EXTRA_READ_PV": "OPMODE:RBV", "values": OPMODES, "init_value": 2},
 ]
 MAIN_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"MAIN:STAT:RBV", "values":STATUSES, "init_value": ""},
@@ -58,6 +61,13 @@ MAIN_PVS = [
     {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "MAIN:OUT:RBV", "values":GAUSS, "init_value":-4},
     {"PV": "TARGET:TIME", "EXTRA_READ_PV": "MAIN:MINTO:RBV", "values":TIMES, "init_value":""},
     {"PV": "OUTPUT:FIELD:PERSIST:GAUSS", "EXTRA_READ_PV": "", "values":GAUSS, "init_value":""},
+]
+SYS_READ_PVS = [
+    {"PV": "HALL:SENS1", "EXTRA_READ_PV": "HALL:SENS1:RBV", "values": HALLS, "init_value": -1},
+    {"PV": "HALL:SENS2", "EXTRA_READ_PV": "HALL:SENS2:RBV", "values": HALLS, "init_value": -1},
+]
+SYS_WRITE_PVS = [
+    {"PV": "OPMODE", "EXTRA_READ_PV": "OPMODE:RBV", "values": OPMODES, "init_value": "High Field"},
 ]
 
 class HifimagsTests(unittest.TestCase):
@@ -94,6 +104,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in WRITE_PVS:
             if not PV["init_value"] == "":
@@ -123,6 +134,7 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("X:ABORT:SP", 1)
         self.ca.assert_that_pv_is("SIM:X:ABORT", sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_readback_values_WHEN_sim_main_values_set_THEN_all_values_update(self):
         for PV in MAIN_PVS:
             if not PV["init_value"] == "":
@@ -131,5 +143,27 @@ class HifimagsTests(unittest.TestCase):
                 sim_value = value
                 self.ca.set_pv_value("SIM:M:" + PV["PV"], sim_value)
                 self.ca.assert_that_pv_is("M:" + PV["PV"], sim_value)
+                if not PV["EXTRA_READ_PV"] == "":
+                    self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
+
+    def test_GIVEN_readback_values_WHEN_system_values_set_THEN_all_values_update(self):
+        for PV in SYS_READ_PVS:
+            if not PV["init_value"] == "":
+                self.ca.set_pv_value("SIM:" + PV["PV"], PV["init_value"])
+            for value in PV["values"]:
+                sim_value = value
+                self.ca.set_pv_value("SIM:" + PV["PV"], sim_value)
+                self.ca.assert_that_pv_is(PV["PV"], sim_value)
+                if not PV["EXTRA_READ_PV"] == "":
+                    self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
+
+    def test_GIVEN_settable_values_WHEN_system_values_set_THEN_all_values_update(self):
+        for PV in SYS_WRITE_PVS:
+            if not PV["init_value"] == "":
+                self.ca.set_pv_value(PV["PV"] + ":SP", PV["init_value"])
+            for value in PV["values"]:
+                sim_value = value
+                self.ca.set_pv_value(PV["PV"] + ":SP", sim_value)
+                self.ca.assert_that_pv_is("SIM:" + PV["PV"], sim_value)
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
