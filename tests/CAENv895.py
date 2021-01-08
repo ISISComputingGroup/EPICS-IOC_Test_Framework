@@ -6,6 +6,8 @@ import shutil
 import time
 from contextlib import contextmanager
 
+from genie_python import genie as g
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 
@@ -31,12 +33,42 @@ IOCS = [
     },
 ]
 
+DEFAULTS_FILENAME = "vmeconfig_ioctestdefaults.cfg"
+TEST_DEFAULTS_FILE = f"test_data/caenv895/{DEFAULTS_FILENAME}"
+AUTOSAVE_DEFAULTS_FILE = os.path.join(AUTOSAVE_DIR, DEFAULTS_FILENAME)
+
+
 # copy a configmenu configuration "ioctestdefaults" ready for use by ioc
 def pre_ioc_launch_hook():
+    """
+    A hook that happens before launching the ioc. Write a defaults config file for autosave to use.
+    """
     os.makedirs(AUTOSAVE_DIR, exist_ok=True)
-    shutil.copyfile("test_data/caenv895/vmeconfig_ioctestdefaults.cfg", os.path.join(AUTOSAVE_DIR,"vmeconfig_ioctestdefaults.cfg"))
+    defaults_contents: str = get_defaults_file_as_string()
+    defaults_contents_with_pv_prefix = defaults_contents.replace("{pv_prefix}", g.my_pv_prefix)
+    write_defaults_to_autosave_configuration(defaults_contents_with_pv_prefix)
+
+
+def get_defaults_file_as_string() -> str:
+    """
+    Gets a contents of a file as a string.
+    :return: Te string contents of the file.
+    """
+    with open(TEST_DEFAULTS_FILE, "r") as defaults_file:
+        return defaults_file.read()
+
+
+def write_defaults_to_autosave_configuration(defaults_contents: str):
+    """
+    Write the defaults_contents to the autosave defaults file.
+    :param defaults_contents: The contents to write to file.
+    """
+    with open(AUTOSAVE_DEFAULTS_FILE, "w+") as defaults_file:
+        defaults_file.write(defaults_contents)
+
 
 TEST_MODES = [TestModes.DEVSIM]
+
 
 class CAENv895Tests(unittest.TestCase):
     """
