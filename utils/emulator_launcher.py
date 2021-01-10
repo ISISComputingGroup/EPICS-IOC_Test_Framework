@@ -493,7 +493,7 @@ class LewisLauncher(EmulatorLauncher):
         """
         Return the string of a value on a device from lewis.
         :param variable_name: name of the variable
-        :return: the variables value, as a string
+        :return: the variables value
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
         return self.backdoor_command(["device", str(variable_name)])
