@@ -465,7 +465,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: lines from the command output
         """
         try:
-            return str(call_method(self.remote, lewis_command[0], lewis_command[1], lewis_command[2:]))
+            return call_method(self.remote, lewis_command[0], lewis_command[1], lewis_command[2:])
         except Exception as e:
             sys.stderr.write(f"Error using backdoor: {e}\n")
 
@@ -493,7 +493,7 @@ class LewisLauncher(EmulatorLauncher):
         """
         Return the string of a value on a device from lewis.
         :param variable_name: name of the variable
-        :return: the variables value, as a string
+        :return: the variables value
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
         return self.backdoor_command(["device", str(variable_name)])
