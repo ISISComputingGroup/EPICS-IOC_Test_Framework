@@ -13,7 +13,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("HIFIMAGS"),
-        "macros": {"X_IOC": "NA", "Y_IOC": "NA", "Z_IOC": "NA"},
+        "macros": {},
         # "pv_for_existence": "",
     },
 ]
@@ -36,6 +36,9 @@ LEADS = ["Not Ramping", "Ramping"]
 PERSISTS = ["Non persisting", "Persisting"]
 OPMODES = ["Idle", "High Field", "Low Field", "Z Switching"]
 HALLS = [0,12.456,-0.45,20113.89]
+COMP_TEXTS = ["Compressor Error", ""]
+ERRORS = ["No Error", "Error"]
+ONOFF = ["Off", "On"]
 READ_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
@@ -65,6 +68,12 @@ MAIN_PVS = [
 SYS_READ_PVS = [
     {"PV": "HALL:SENS1", "EXTRA_READ_PV": "HALL:SENS1:RBV", "values": HALLS, "init_value": -1},
     {"PV": "HALL:SENS2", "EXTRA_READ_PV": "HALL:SENS2:RBV", "values": HALLS, "init_value": -1},
+    {"PV": "COMP:R:ERROR:TEXT:RBV", "EXTRA_READ_PV": "", "values": COMP_TEXTS, "init_value": "Testing"},
+    {"PV": "COMP:L:ERROR:TEXT:RBV", "EXTRA_READ_PV": "", "values": COMP_TEXTS, "init_value": "Testing"},
+    {"PV": "COMP:R:ERROR:STAT:RBV", "EXTRA_READ_PV": "", "values": ERRORS, "init_value": "Error"},
+    {"PV": "COMP:L:ERROR:STAT:RBV", "EXTRA_READ_PV": "", "values": ERRORS, "init_value": "Error"},
+    {"PV": "COMP:R:ON:RBV", "EXTRA_READ_PV": "", "values": ONOFF, "init_value": "On"},
+    {"PV": "COMP:L:ON:RBV", "EXTRA_READ_PV": "", "values": ONOFF, "init_value": "On"},
 ]
 SYS_WRITE_PVS = [
     {"PV": "OPMODE", "EXTRA_READ_PV": "OPMODE:RBV", "values": OPMODES, "init_value": "High Field"},
