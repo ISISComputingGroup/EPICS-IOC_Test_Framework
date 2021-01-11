@@ -181,6 +181,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_active_temperature_sesnors_WHEN_sensor_is_updated_THEN_value_is_updated(self):
         for SENSOR in TEMPERATURE_SENSORS:
             self.ca.set_pv_value("SIM:TEMP:" + SENSOR, 2.5)
@@ -188,3 +189,11 @@ class HifimagsTests(unittest.TestCase):
                 sim_value = value
                 self.ca.set_pv_value("SIM:TEMP:" + SENSOR, sim_value)
                 self.ca.assert_that_pv_is("TEMP:" + SENSOR, sim_value)
+
+    def test_GIVEN_all_magnets_on_WHEN_magnets_off_is_requested_THEN_all_magnets_are_ready_at_zero(self):
+        for PSU in PSUS:
+            self.ca.set_pv_value(PSU + ":TARGET:SP", 1)
+        self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
+        for PSU in PSUS:
+            self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
+            self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
