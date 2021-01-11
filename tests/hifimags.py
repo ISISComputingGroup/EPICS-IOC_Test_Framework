@@ -39,6 +39,8 @@ HALLS = [0,12.456,-0.45,20113.89]
 COMP_TEXTS = ["Compressor Error", ""]
 ERRORS = ["No Error", "Error"]
 ONOFF = ["Off", "On"]
+TEMPERATURES = [0,5.681,856.187,191.3]
+TEMPERATURE_SENSORS = ["STAGE1", "SHIELD", "SWITCH", "STAGE2A", "STAGE2B", "INRABAS"]
 READ_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
@@ -155,6 +157,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_readback_values_WHEN_system_values_set_THEN_all_values_update(self):
         for PV in SYS_READ_PVS:
             if not PV["init_value"] == "":
@@ -166,6 +169,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_settable_values_WHEN_system_values_set_THEN_all_values_update(self):
         for PV in SYS_WRITE_PVS:
             if not PV["init_value"] == "":
@@ -176,3 +180,11 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.assert_that_pv_is("SIM:" + PV["PV"], sim_value)
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
+
+    def test_GIVEN_active_temperature_sesnors_WHEN_sensor_is_updated_THEN_value_is_updated(self):
+        for SENSOR in TEMPERATURE_SENSORS:
+            self.ca.set_pv_value("SIM:TEMP:" + SENSOR, 2.5)
+            for value in TEMPERATURES:
+                sim_value = value
+                self.ca.set_pv_value("SIM:TEMP:" + SENSOR, sim_value)
+                self.ca.assert_that_pv_is("TEMP:" + SENSOR, sim_value)
