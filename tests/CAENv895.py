@@ -2,9 +2,6 @@ from __future__ import division
 
 import os
 import unittest
-import shutil
-import time
-from contextlib import contextmanager
 
 from genie_python import genie as g
 
@@ -18,6 +15,16 @@ AUTOSAVE_DIR = os.path.join("C:/", "Instrument", "var", "autosave", "CAENV895_01
 
 DEVICE_PREFIX = "CAENV895_01"
 
+# copy a configmenu configuration "ioctestdefaults" ready for use by ioc
+def pre_ioc_launch_hook():
+    """
+    A hook that happens before launching the ioc. Write a defaults config file for autosave to use.
+    """
+    os.makedirs(AUTOSAVE_DIR, exist_ok=True)
+    defaults_contents: str = get_defaults_file_as_string()
+    defaults_contents_with_pv_prefix = defaults_contents.replace("{pv_prefix}", g.my_pv_prefix)
+    write_defaults_to_autosave_configuration(defaults_contents_with_pv_prefix)
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
@@ -29,7 +36,7 @@ IOCS = [
         "environment_vars": {
             "DEFAULTCFG": "ioctestdefaults",
         },
-
+        "pre_ioc_launch_hook": pre_ioc_launch_hook
     },
 ]
 
@@ -38,21 +45,10 @@ TEST_DEFAULTS_FILE = f"test_data/caenv895/{DEFAULTS_FILENAME}"
 AUTOSAVE_DEFAULTS_FILE = os.path.join(AUTOSAVE_DIR, DEFAULTS_FILENAME)
 
 
-# copy a configmenu configuration "ioctestdefaults" ready for use by ioc
-def pre_ioc_launch_hook():
-    """
-    A hook that happens before launching the ioc. Write a defaults config file for autosave to use.
-    """
-    os.makedirs(AUTOSAVE_DIR, exist_ok=True)
-    defaults_contents: str = get_defaults_file_as_string()
-    defaults_contents_with_pv_prefix = defaults_contents.replace("{pv_prefix}", g.my_pv_prefix)
-    write_defaults_to_autosave_configuration(defaults_contents_with_pv_prefix)
-
-
 def get_defaults_file_as_string() -> str:
     """
     Gets a contents of a file as a string.
-    :return: Te string contents of the file.
+    :return: The string contents of the file.
     """
     with open(TEST_DEFAULTS_FILE, "r") as defaults_file:
         return defaults_file.read()
