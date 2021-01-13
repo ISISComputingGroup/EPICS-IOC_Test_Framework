@@ -43,6 +43,13 @@ LOOP_STATES = ["On", "Off"]
 
 HEATER_PERCENTAGES = [0, 0.01, 12.34, 99.99, 100.]
 RANGES = ["0%", "0.01%", "0.1%", "1%", "10%", "100%"]
+EXCITATIONS = [
+    "Off",
+    "30 nA", "100 nA", "300 nA",
+    "1 uA", "3 uA", "10 uA", "30 uA", "100 uA", "300 uA",
+    "1 mA",
+    "10 mV", "1 mV"
+]
 
 
 class Lakeshore340Tests(unittest.TestCase):
@@ -100,3 +107,7 @@ class Lakeshore340Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(RANGES))
     def test_WHEN_heater_range_set_THEN_can_be_read_back(self, _, range):
         self.ca.assert_setting_setpoint_sets_readback(range, "RANGE")
+
+    @parameterized.expand(parameterized_list(EXCITATIONS))
+    def test_WHEN_heater_range_set_THEN_can_be_read_back(self, _, excitation):
+        self.ca.assert_setting_setpoint_sets_readback(excitation, "EXCITATION")
