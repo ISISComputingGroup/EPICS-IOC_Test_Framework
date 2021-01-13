@@ -58,7 +58,6 @@ WRITE_PVS = [
     {"MAG": "Z", "PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
     {"MAG": "M", "PV": "RAMP:LEADS", "EXTRA_READ_PV": "", "values": LEADS, "init_value": ""},
     {"MAG": "M", "PV": "PERSIST", "EXTRA_READ_PV": "", "values": PERSISTS, "init_value": ""},
-    {"MAG": "", "PV": "OPMODE", "EXTRA_READ_PV": "OPMODE:RBV", "values": OPMODES, "init_value": 2},
 ]
 MAIN_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"MAIN:STAT:RBV", "values":STATUSES, "init_value": ""},
@@ -193,6 +192,9 @@ class HifimagsTests(unittest.TestCase):
     def test_GIVEN_all_magnets_on_WHEN_magnets_off_is_requested_THEN_all_magnets_are_ready_at_zero(self):
         for PSU in PSUS:
             self.ca.set_pv_value(PSU + ":TARGET:SP", 1)
+            self.ca.set_pv_value(PSU + ":SET:SP", 1)
+            self.ca.assert_that_pv_is("SIM:" + PSU + ":SET:SP", "Ramping " + PSU)
+            self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 1)
         self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
         for PSU in PSUS:
             self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
