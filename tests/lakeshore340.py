@@ -110,4 +110,4 @@ class Lakeshore340Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(EXCITATIONS))
     def test_WHEN_heater_range_set_THEN_can_be_read_back(self, _, excitation):
-        self.ca.assert_setting_setpoint_sets_readback(excitation, "EXCITATION")
+        self.ca.assert_setting_setpoint_sets_readback(excitation, "EXCITATIONA")
