@@ -88,7 +88,7 @@ class IpsTests(unittest.TestCase):
         # Wait for statemachine to reach "at field" state after every test.
         self.ca.assert_that_pv_is("STATEMACHINE", "At field")
 
-        self.assertEqual(self._lewis.backdoor_get_from_device("quenched"), "False")
+        self.assertEqual(self._lewis.backdoor_get_from_device("quenched"), False)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -162,7 +162,7 @@ class IpsTests(unittest.TestCase):
         persistent_field = float(self.ca.get_pv_value("MAGNET:FIELD:PERSISTENT"))
 
         # Set the new field. This will cause all of the following events based on the state machine.
-        self.ca.set_pv_value("FIELD:SP", val)
+        self.ca.set_pv_value("FIELD:SP", val, sleep_after_set=1.0)
 
         # PSU should be ramped to match the persistent field inside the magnet (if there was one)
         self._assert_field_is(persistent_field)

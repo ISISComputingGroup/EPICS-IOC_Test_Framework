@@ -193,7 +193,7 @@ class EmulatorLauncher(object):
             UnableToConnectToPVException: if emulator property does not exist within timeout
         """
         self.backdoor_set_on_device(variable, value)
-        self.assert_that_emulator_value_is(variable, str(value))
+        self.assert_that_emulator_value_is(variable, value)
 
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None,
                                       cast=lambda val: val):
