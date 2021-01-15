@@ -162,7 +162,7 @@ class IpsTests(unittest.TestCase):
         persistent_field = float(self.ca.get_pv_value("MAGNET:FIELD:PERSISTENT"))
 
         # Set the new field. This will cause all of the following events based on the state machine.
-        self.ca.set_pv_value("FIELD:SP", val, sleep_after_set=1.0)
+        self.ca.set_pv_value("FIELD:SP", val)
 
         # PSU should be ramped to match the persistent field inside the magnet (if there was one)
         self._assert_field_is(persistent_field)
