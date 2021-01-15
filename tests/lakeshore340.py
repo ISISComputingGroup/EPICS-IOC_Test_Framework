@@ -2,6 +2,7 @@ import unittest
 
 import itertools
 from parameterized import parameterized
+import os
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -11,11 +12,16 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameteriz
 DEVICE_PREFIX = "LKSH340_01"
 _EMULATOR_NAME = "lakeshore340"
 
+THRESHOLD_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data", "lakeshore340")
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("LKSH340"),
         "emulator": _EMULATOR_NAME,
+        "macros": {
+            "THRESHOLD_FILES_DIR": THRESHOLD_FILES_DIR
+        }
     },
 ]
 
@@ -50,6 +56,8 @@ EXCITATIONS = [
     "1 mA",
     "10 mV", "1 mV"
 ]
+
+THRESHOLD_FILES = ["None.txt", "Test1.txt"]
 
 
 class Lakeshore340Tests(unittest.TestCase):
@@ -109,5 +117,10 @@ class Lakeshore340Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(range, "RANGE")
 
     @parameterized.expand(parameterized_list(EXCITATIONS))
-    def test_WHEN_heater_range_set_THEN_can_be_read_back(self, _, excitation):
+    def test_WHEN_excitation_a_set_THEN_can_be_read_back(self, _, excitation):
         self.ca.assert_setting_setpoint_sets_readback(excitation, "EXCITATIONA")
+
+    @parameterized.expand(parameterized_list(THRESHOLD_FILES))
+    def test_WHEN_setting_excitation_threshold_file_AND_file_exists_and_is_valid_THEN_threshold_file_set(
+            self, _, filepath):
+        self.ca.assert_setting_setpoint_sets_readback(filepath, "THRESHOLDS_FILE")
