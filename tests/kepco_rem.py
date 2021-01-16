@@ -42,11 +42,11 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
     def test_GIVEN_psu_in_local_mode_WHEN_setpoint_is_sent_THEN_power_supply_put_into_remote_first(self, _,
                                                                                                    setpoint_pv):
         self._lewis.backdoor_set_on_device("remote_comms_enabled", False)
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
+        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False)
 
         self.ca.process_pv(setpoint_pv)
 
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
+        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True)
 
     @parameterized.expand(parameterized_list([
         (IDN_REM[0], IDN_REM[1], {}),
@@ -61,8 +61,8 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
         with self._ioc.start_with_macros(macros, "VOLTAGE"):
-            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
-            self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True)
+            self._lewis.assert_that_emulator_value_is("reset_count", 0)
 
     @parameterized.expand(parameterized_list([
         (IDN_NO_REM[0], IDN_NO_REM[1], {}),
@@ -76,6 +76,6 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
         with self._ioc.start_with_macros(macros, "VOLTAGE"):
-            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False, cast=strtobool)
-            self._lewis.assert_that_emulator_value_is("reset_count", 0, cast=int)
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False)
+            self._lewis.assert_that_emulator_value_is("reset_count", 0)
 

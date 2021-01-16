@@ -49,7 +49,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         error_message_calls = ""
         for var, val in lewis_vars_and_vals:
             try:
-                self._lewis.assert_that_emulator_value_is(var, set_func(val), cast=int)
+                self._lewis.assert_that_emulator_value_is(var, set_func(val))
             except AssertionError as e:
                 error_message_calls += "\n{}\n{}".format(var, e.message)
         if error_message_calls != "":
@@ -93,8 +93,8 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         # Restart the ioc, initiating a reset and sending of values after 100 microseconds
         with self._ioc.start_with_macros(macros, "VOLTAGE"):
             # Assert reset occurred
-            self._lewis.assert_that_emulator_value_is("reset_count", 1, cast=int)
-            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
+            self._lewis.assert_that_emulator_value_is("reset_count", 1)
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True)
             # Wait for reset to be done as is done in the IOC
             time.sleep(1)
 
