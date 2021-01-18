@@ -400,8 +400,8 @@ class LewisLauncher(EmulatorLauncher):
                                          stdout=self._logFile,
                                          stderr=subprocess.STDOUT)
         self._connected = True
-        self.remote = ControlClient("127.0.0.1", self._control_port, timeout=4000).get_object_collection()
 
+        self.remote = ControlClient("127.0.0.1", self._control_port)
 
     def _log_filename(self):
         return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
@@ -465,7 +465,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: lines from the command output
         """
         try:
-            return call_method(self.remote, lewis_command[0], lewis_command[1], lewis_command[2:])
+            return call_method(self.remote .get_object_collection(), lewis_command[0], lewis_command[1], lewis_command[2:])
         except Exception as e:
             sys.stderr.write(f"Error using backdoor: {e}\n")
 
