@@ -215,7 +215,7 @@ class ScanningSetupTests(unittest.TestCase):
         # Then:
         number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
             "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0]
-        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than("1")))
+        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than(b"1")))
 
     @parameterized.expand(parameterized_list([
         [1, 2], [1, 2, 3, 4], [6, 7, 8, 9], [1, 5, 10]

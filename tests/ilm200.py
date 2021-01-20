@@ -1,4 +1,3 @@
-from __future__ import division
 import unittest
 
 from utils.channel_access import ChannelAccess

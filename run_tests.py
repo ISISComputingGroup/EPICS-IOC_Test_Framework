@@ -35,6 +35,20 @@ def clean_environment():
             print("Failed to delete {}: {}".format(autosave_file, e))
 
 
+def check_and_do_pre_ioc_launch_hook(ioc):
+    """
+    Check if the IOC dictionary contains a pre_ioc_launch_hook, if it does and is callable, call it, else do nothing.
+
+    :param ioc: A dictionary representing an ioc.
+    """
+    do_nothing = lambda *args: None
+    pre_ioc_launch_hook = ioc.get("pre_ioc_launch_hook", do_nothing)
+    if callable(pre_ioc_launch_hook):
+        pre_ioc_launch_hook()
+    else:
+        raise ValueError("Pre IOC launch hook not callable, so nothing has been done for it.")
+
+
 def make_device_launchers_from_module(test_module, mode):
     """
     Returns a list of device launchers for the given test module.
@@ -64,6 +78,8 @@ def make_device_launchers_from_module(test_module, mode):
 
     device_launchers = []
     for ioc in iocs:
+
+        check_and_do_pre_ioc_launch_hook(ioc)
 
         free_port = get_free_ports(2)
         try:
@@ -167,13 +183,14 @@ class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     Returns:
         None
     """
+
     def __init__(self, failing_module_name, msg):
         # strictly we should use and pass (*args, **kwargs) but we only call 
         # this directly ourselves and not from a test suite.
         # We create a function based on fail_with_msg() to get a better test summary.
         func_name = "{}_module_failed_to_load".format(failing_module_name)
         setattr(self, func_name, self.fail_with_msg)
-        super(ReportFailLoadTestsuiteTestCase,self).__init__(func_name)
+        super(ReportFailLoadTestsuiteTestCase, self).__init__(func_name)
         self.msg = msg
 
     def fail_with_msg(self):
@@ -222,6 +239,9 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
 
 if __name__ == '__main__':
+    if six.PY2:
+        print("IOC system tests should now be run under python 3. Aborting.")
+        sys.exit(-1)
 
     pythondir = os.environ.get("PYTHONDIR", None)
 
@@ -257,7 +277,7 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--ask-before-running', action='store_true',
                         help="""Pauses after starting emulator and ioc. Allows you to use booted
                         emulator/IOC or attach debugger for tests""")
-    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM','RECSIM'],
+    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM'],
                         help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
 
     arguments = parser.parse_args()

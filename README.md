@@ -142,6 +142,7 @@ Optional attributes:
 - `emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
 - `emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
 - `emulator_launcher_class`: Used if you want to launch an emulator that is not Lewis see [other emulators.](#other-emulators)
+- `pre_ioc_launch_hook`: Pass a callable to execute before this ioc is launched. Defaults to do nothing
 
 Example:
 

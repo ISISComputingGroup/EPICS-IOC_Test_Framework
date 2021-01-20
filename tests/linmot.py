@@ -104,14 +104,14 @@ class LinmotTests(unittest.TestCase):
         # Driver converts the input velocity units mm (from the motor record) into a value the device uses.
         # See SET_VELOCITY in the devLinMot.cc driver for more information
         target_velocity_value = "0.2"
-        expected_value = "104"
+        expected_value = 104
         self.ca_linmot.set_pv_value(MTR_VELOCITY, target_velocity_value)
         self.ca_linmot.set_pv_value(MTR_SETPOINT, 10)
 
         self._lewis.assert_that_emulator_value_is("velocity", expected_value, timeout=5)
 
     def test_GIVEN_start_up_WHEN_get_motor_warn_status_THEN_it_is_correct(self):
-        expected_value = "256"
+        expected_value = 256
         device_value = self._lewis.backdoor_get_from_device("motor_warn_status_int")
         self.assertEqual(device_value, expected_value)
 
