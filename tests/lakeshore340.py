@@ -11,6 +11,7 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameteriz
 DEVICE_PREFIX = "LKSH340_01"
 _EMULATOR_NAME = "lakeshore340"
 
+THRESHOLDS_FILE = "Test1.txt"
 
 IOCS = [
     {
@@ -18,6 +19,9 @@ IOCS = [
         "directory": get_default_ioc_dir("LKSH340"),
         "emulator": _EMULATOR_NAME,
         "ioc_launcher_class": ProcServLauncher,
+        "macros": {
+            "EXCITATION_THRESHOLD_FILE": THRESHOLDS_FILE
+        }
     },
 ]
 
@@ -54,6 +58,8 @@ EXCITATIONS = [
 ]
 
 THRESHOLD_FILE_PV = "THRESHOLDS:FILE"
+THRESHOLD_EXCITATIONS_PV = "THRESHOLDS:EXCITATION"
+THRESHOLD_TEMP_PV = "THRESHOLDS:TEMP"
 THRESHOLD_FILES_DIR = "C:/Instrument/Apps/EPICS/support/lakeshore340/master/excitation_thresholds/"
 
 
@@ -125,9 +131,16 @@ class Lakeshore340Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("EXCITATIONA", excitation)
 
     def test_WHEN_initialise_with_no_macro_THEN_threshold_file_is_none(self):
-        self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + "None.txt")
+        self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + THRESHOLDS_FILE)
 
     def test_WHEN_initialise_with_macro_THEN_threshold_file_is_correct(self):
-        filename = "Test1.txt"
+        filename = "None.txt"
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
             self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
+
+    def test_WHEN_set_temp_sp_THEN_thresholds_recalculated(self):
+        self.ca.assert_setting_setpoint_sets_readback(13, THRESHOLD_TEMP_PV, set_point_pv=THRESHOLD_TEMP_PV)
+        self.ca.assert_setting_setpoint_sets_readback("1 mV", THRESHOLD_EXCITATIONS_PV, set_point_pv=THRESHOLD_EXCITATIONS_PV)
+        self.ca.set_pv_value("A:TEMP:SP", 13)
+        self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, "30 nA")
+        self.ca.assert_that_pv_is(THRESHOLD_TEMP_PV, 2)
