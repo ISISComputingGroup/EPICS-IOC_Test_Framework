@@ -68,8 +68,10 @@ def get_beamline(macros):
 
     # DETECTOR
     detector = add_component(TiltingComponent("Detector", PositionAndAngle(0.0, 4*SPACING, 90)))
+    add_parameter(AxisParameter("det_long", detector, ChangeAxis.LONG_AXIS), modes=[nr, polarised, disabled])
     add_parameter(AxisParameter("det_pos", detector, ChangeAxis.POSITION), modes=[nr, polarised, testing, disabled])
     add_parameter(AxisParameter("det_ang", detector, ChangeAxis.ANGLE), modes=[nr, polarised, disabled])
+    add_driver(IocDriver(detector, ChangeAxis.LONG_AXIS, MotorPVWrapper("MOT:MTR0106")))
     add_driver(IocDriver(detector, ChangeAxis.POSITION, MotorPVWrapper("MOT:MTR0104")))
     add_driver(IocDriver(detector, ChangeAxis.ANGLE, MotorPVWrapper("MOT:MTR0105")))
     theta.add_angle_to(detector)
