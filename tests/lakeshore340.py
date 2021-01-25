@@ -2,26 +2,22 @@ import unittest
 
 import itertools
 from parameterized import parameterized
-import os
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
 DEVICE_PREFIX = "LKSH340_01"
 _EMULATOR_NAME = "lakeshore340"
 
-THRESHOLD_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data", "lakeshore340")
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("LKSH340"),
         "emulator": _EMULATOR_NAME,
-        "macros": {
-            "THRESHOLD_FILES_DIR": THRESHOLD_FILES_DIR
-        }
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
@@ -57,7 +53,8 @@ EXCITATIONS = [
     "10 mV", "1 mV"
 ]
 
-THRESHOLD_FILES = ["None.txt", "Test1.txt"]
+THRESHOLD_FILE_PV = "THRESHOLDS:FILE"
+THRESHOLD_FILES_DIR = "C:/Instrument/Apps/EPICS/support/lakeshore340/master/excitation_thresholds/"
 
 
 class Lakeshore340Tests(unittest.TestCase):
@@ -67,6 +64,7 @@ class Lakeshore340Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
+        self._ioc.send_telnet_command("dbl")
 
     def test_WHEN_device_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -120,7 +118,16 @@ class Lakeshore340Tests(unittest.TestCase):
     def test_WHEN_excitation_a_set_THEN_can_be_read_back(self, _, excitation):
         self.ca.assert_setting_setpoint_sets_readback(excitation, "EXCITATIONA")
 
-    @parameterized.expand(parameterized_list(THRESHOLD_FILES))
-    def test_WHEN_setting_excitation_threshold_file_AND_file_exists_and_is_valid_THEN_threshold_file_set(
-            self, _, filepath):
-        self.ca.assert_setting_setpoint_sets_readback(filepath, "THRESHOLDS_FILE")
+    @parameterized.expand(parameterized_list(EXCITATIONS))
+    @skip_if_recsim
+    def test_WHEN_excitation_set_by_backdoor_THEN_can_be_read_back(self, _, excitation):
+        self._lewis.backdoor_set_on_device("excitationa", EXCITATIONS.index(excitation))
+        self.ca.assert_that_pv_is("EXCITATIONA", excitation)
+
+    def test_WHEN_initialise_with_no_macro_THEN_threshold_file_is_none(self):
+        self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + "None.txt")
+
+    def test_WHEN_initialise_with_macro_THEN_threshold_file_is_correct(self):
+        filename = "Test1.txt"
+        with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
+            self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
