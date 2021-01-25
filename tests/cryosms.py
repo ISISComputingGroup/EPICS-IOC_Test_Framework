@@ -15,15 +15,15 @@ IOCS = [
         "directory": get_default_ioc_dir("CRYOSMS"),
         "emulator": EMULATOR_NAME,
         "macros": {
-            "MAX_CURR": 135,
             "T_TO_A": 0.037,
+            "MAX_CURR": 135,
             "MAX_VOLT": 9.9,
             "WRITE_UNIT": "AMPS",
             "DISPLAY_UNIT": "GAUSS",
             "RAMP_FILE": "C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\test.txt",
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.01,
-            "ALLOW_PERSIST": "No",
+            "ALLOW_PERSIST": "Yes",
             "USE_SWITCH": "No",
             "USE_MAGNET_TEMP": "No",
             "COMP_OFF_ACT": "No",
@@ -33,12 +33,17 @@ IOCS = [
             "VOLT_TOLERANCE": 0.2,
             "FAST_RATE": 0.5,
             "RESTORE_WRITE_UNIT_TIMEOUT": 10,
+            "FAST_FILTER_VALUE": 1,
+            "FILTER_VALUE": 0.1,
+            "NPP": 0.0005,
+            "FAST_PERSISTANT_SETTLETIME": 5,
+            "PERSISTANT_SETTLETIME": 60,
         }
     },
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]#, TestModes.RECSIM]
 TEST_RAMPS = [[(0.0, 10000.0), [1.12]],
               [(5000.0, 25000.0), [1.12, 0.547, 0.038]],
               [(-5000.0, -25000.0), [1.12, 0.547, 0.038]],
