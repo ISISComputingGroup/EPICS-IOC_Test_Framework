@@ -208,4 +208,7 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("OPMODE", "Idle")
         # Verify that all the disable controls are True
         # Verify that each target cannot be set, and that all other controls are inoperative except Magnets Off
-        
+
+        # Start with X disable
+        self.ca.assert_that_pv_is("X:DIS", "X DISABLED")
+
