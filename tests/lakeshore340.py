@@ -56,6 +56,12 @@ EXCITATIONS = [
     "1 mA",
     "10 mV", "1 mV"
 ]
+TEMP_SP_EXCITATIONS = [
+    {"TEMP:SP": 5.2, "THRESHOLDS:TEMP": 0.0, "THRESHOLDS:EXCITATION": "Off"},
+    {"TEMP:SP": 15.3, "THRESHOLDS:TEMP": 15.0, "THRESHOLDS:EXCITATION": "1 mV"},
+    {"TEMP:SP": 19.2, "THRESHOLDS:TEMP": 18.0, "THRESHOLDS:EXCITATION": "100 nA"},
+    {"TEMP:SP": 300.8, "THRESHOLDS:TEMP": 20.0, "THRESHOLDS:EXCITATION": "30 nA"}
+]
 
 THRESHOLD_FILE_PV = "THRESHOLDS:FILE"
 THRESHOLD_EXCITATIONS_PV = "THRESHOLDS:EXCITATION"
@@ -70,7 +76,6 @@ class Lakeshore340Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
-        self._ioc.send_telnet_command("dbl")
 
     def test_WHEN_device_is_started_THEN_it_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -138,9 +143,13 @@ class Lakeshore340Tests(unittest.TestCase):
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
             self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
 
-    def test_WHEN_set_temp_sp_THEN_thresholds_recalculated(self):
-        self.ca.assert_setting_setpoint_sets_readback(13, THRESHOLD_TEMP_PV, set_point_pv=THRESHOLD_TEMP_PV)
-        self.ca.assert_setting_setpoint_sets_readback("1 mV", THRESHOLD_EXCITATIONS_PV, set_point_pv=THRESHOLD_EXCITATIONS_PV)
-        self.ca.set_pv_value("A:TEMP:SP", 13)
-        self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, "30 nA")
-        self.ca.assert_that_pv_is(THRESHOLD_TEMP_PV, 2)
+    @parameterized.expand(parameterized_list(TEMP_SP_EXCITATIONS))
+    def test_WHEN_set_temp_sp_THEN_thresholds_recalculated(self, _, temp_sp_excitations_map):
+        new_temp_sp = temp_sp_excitations_map["TEMP:SP"]
+        expected_thresholds_temp = temp_sp_excitations_map["THRESHOLDS:TEMP"]
+        expected_thresholds_excitation = temp_sp_excitations_map["THRESHOLDS:EXCITATION"]
+        self.ca.assert_setting_setpoint_sets_readback(0, THRESHOLD_TEMP_PV, set_point_pv=THRESHOLD_TEMP_PV)
+        self.ca.assert_setting_setpoint_sets_readback("Off", THRESHOLD_EXCITATIONS_PV, set_point_pv=THRESHOLD_EXCITATIONS_PV)
+        self.ca.set_pv_value("A:TEMP:SP", new_temp_sp)
+        self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, expected_thresholds_excitation)
+        self.ca.assert_that_pv_is(THRESHOLD_TEMP_PV, expected_thresholds_temp)
