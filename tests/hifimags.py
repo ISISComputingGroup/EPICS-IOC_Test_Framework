@@ -189,6 +189,7 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.set_pv_value("SIM:TEMP:" + SENSOR, sim_value)
                 self.ca.assert_that_pv_is("TEMP:" + SENSOR, sim_value)
 
+    @skip_if_recsim
     def test_GIVEN_all_magnets_on_WHEN_magnets_off_is_requested_THEN_all_magnets_are_ready_at_zero(self):
         for PSU in PSUS:
             self.ca.set_pv_value(PSU + ":TARGET:SP", 1)
@@ -199,3 +200,12 @@ class HifimagsTests(unittest.TestCase):
         for PSU in PSUS:
             self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
             self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
+
+    #@skip_if_recsim
+    def test_WHEN_in_idle_mode_THEN_only_magnets_off_can_be_controlled(self):
+        self.ca.set_pv_value("OPMODE:SP", 1)
+        self.ca.set_pv_value("OPMODE:SP", 0)
+        self.ca.assert_that_pv_is("OPMODE", "Idle")
+        # Verify that all the disable controls are True
+        # Verify that each target cannot be set, and that all other controls are inoperative except Magnets Off
+        
