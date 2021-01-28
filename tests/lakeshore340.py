@@ -154,12 +154,13 @@ class Lakeshore340Tests(unittest.TestCase):
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
             self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "File Not Found")
 
-    def reset_thresholds_values(self, thresholds_excitations, thresholds_temp, excitationa, error, delay_change):
+    def reset_thresholds_values(self, thresholds_excitations, thresholds_temp, excitationa, error, delay_change, temp):
         self.ca.assert_setting_setpoint_sets_readback(excitationa, EXCITATIONA_PV)
         self.ca.set_pv_value(THRESHOLD_TEMP_PV, thresholds_temp)
         self.ca.set_pv_value(THRESHOLD_EXCITATIONS_PV, thresholds_excitations)
         self.ca.set_pv_value(THRESHOLDS_DELAY_CHANGE_PV, delay_change)
         self.ca.set_pv_value(THRESHOLDS_ERROR_PV, error)
+        self._lewis.backdoor_set_on_device("temp_a", temp)
 
     def assert_threshold_values(self, thresholds_excitations, thresholds_temp, excitationa, error, delay_change):
         self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, thresholds_excitations)
@@ -174,7 +175,7 @@ class Lakeshore340Tests(unittest.TestCase):
         expected_thresholds_temp = temp_sp_excitations_map["THRESHOLDS:TEMP"]
         expected_thresholds_excitation = temp_sp_excitations_map["THRESHOLDS:EXCITATION"]
         # Reset pv values to test
-        self.reset_thresholds_values("Off", 0, "Off", "No Error", "NO")
+        self.reset_thresholds_values("Off", 0, "Off", "No Error", "NO", 0)
         # Set setpoint
         self.ca.assert_setting_setpoint_sets_readback(new_temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP")
         # Confirm change is delayed but threshold temp is set
@@ -189,7 +190,7 @@ class Lakeshore340Tests(unittest.TestCase):
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
             for temp_sp, temp, excitation in [(5.2, 3.1, "30 nA"), (16.4, 18.2, "100 nA"), (20.9, 0, "Off"), (400.2, 20.3, "1 mV")]:
                 # Reset pv values to test
-                self.reset_thresholds_values(excitation, temp, excitation, "No Error", "NO")
+                self.reset_thresholds_values(excitation, temp, excitation, "No Error", "NO", 0)
                 # Set temp
                 self.ca.assert_setting_setpoint_sets_readback(temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP")
                 self._lewis.backdoor_set_on_device("temp_a", temp_sp)
@@ -201,7 +202,7 @@ class Lakeshore340Tests(unittest.TestCase):
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
             for temp_sp, temp, excitation in [(5.2, 3.1, "30 nA"), (16.4, 18.2, "100 nA"), (20.9, 0, "Off"), (400.2, 20.3, "1 mV")]:
                 # Reset pv values to test
-                self.reset_thresholds_values(excitation, temp, excitation, "No Error", "NO")
+                self.reset_thresholds_values(excitation, temp, excitation, "No Error", "NO", 0)
                 # Set temp
                 self.ca.set_pv_value("A:TEMP:SP", temp_sp)
                 self.ca.assert_setting_setpoint_sets_readback(temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP")
