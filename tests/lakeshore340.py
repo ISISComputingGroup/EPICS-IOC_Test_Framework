@@ -7,6 +7,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
+import pdb
 
 DEVICE_PREFIX = "LKSH340_01"
 _EMULATOR_NAME = "lakeshore340"
@@ -57,14 +58,14 @@ EXCITATIONS = [
     "10 mV", "1 mV"
 ]
 TEMP_SP_EXCITATIONS = [
-    {"TEMP:SP": 5.2, "THRESHOLDS:TEMP": 0.0, "THRESHOLDS:EXCITATION": "Off"},
+    {"TEMP:SP": 5.2, "THRESHOLDS:TEMP": 18.0, "THRESHOLDS:EXCITATION": "100 nA"},  # Gets last value from Test1.txt
     {"TEMP:SP": 15.3, "THRESHOLDS:TEMP": 15.0, "THRESHOLDS:EXCITATION": "1 mV"},
-    {"TEMP:SP": 19.2, "THRESHOLDS:TEMP": 18.0, "THRESHOLDS:EXCITATION": "100 nA"},
+    {"TEMP:SP": 19.2, "THRESHOLDS:TEMP": 15.0, "THRESHOLDS:EXCITATION": "1 mV"},
     {"TEMP:SP": 300.8, "THRESHOLDS:TEMP": 20.0, "THRESHOLDS:EXCITATION": "30 nA"}
 ]
 
 THRESHOLD_FILE_PV = "THRESHOLDS:FILE"
-THRESHOLD_EXCITATIONS_PV = "THRESHOLDS:EXCITATION"
+THRESHOLD_EXCITATIONS_PV = "EXCITATIONA"
 THRESHOLD_TEMP_PV = "THRESHOLDS:TEMP"
 THRESHOLD_FILES_DIR = "C:/Instrument/Apps/EPICS/support/lakeshore340/master/excitation_thresholds/"
 
@@ -137,11 +138,18 @@ class Lakeshore340Tests(unittest.TestCase):
 
     def test_WHEN_initialise_with_no_macro_THEN_threshold_file_is_none(self):
         self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + THRESHOLDS_FILE)
+        self.ca.assert_that_pv_is("THRESHOLDS:ERROR", "No Error")
 
     def test_WHEN_initialise_with_macro_THEN_threshold_file_is_correct(self):
         filename = "None.txt"
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
             self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
+            self.ca.assert_that_pv_is("THRESHOLDS:ERROR", "No Error")
+
+    def test_WHEN_initialise_with_incorrect_macro_THEN_pv_is_in_alarm(self):
+        filename = "DoesNotExist.txt"
+        with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
+            self.ca.assert_that_pv_is("THRESHOLDS:ERROR", "File Not Found")
 
     @parameterized.expand(parameterized_list(TEMP_SP_EXCITATIONS))
     def test_WHEN_set_temp_sp_THEN_thresholds_recalculated(self, _, temp_sp_excitations_map):
@@ -149,7 +157,17 @@ class Lakeshore340Tests(unittest.TestCase):
         expected_thresholds_temp = temp_sp_excitations_map["THRESHOLDS:TEMP"]
         expected_thresholds_excitation = temp_sp_excitations_map["THRESHOLDS:EXCITATION"]
         self.ca.assert_setting_setpoint_sets_readback(0, THRESHOLD_TEMP_PV, set_point_pv=THRESHOLD_TEMP_PV)
-        self.ca.assert_setting_setpoint_sets_readback("Off", THRESHOLD_EXCITATIONS_PV, set_point_pv=THRESHOLD_EXCITATIONS_PV)
-        self.ca.set_pv_value("A:TEMP:SP", new_temp_sp)
-        self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, expected_thresholds_excitation)
-        self.ca.assert_that_pv_is(THRESHOLD_TEMP_PV, expected_thresholds_temp)
+        self.ca.assert_setting_setpoint_sets_readback("Off", THRESHOLD_EXCITATIONS_PV)
+        self.ca.assert_setting_setpoint_sets_readback(new_temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP")
+        self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, expected_thresholds_excitation, timeout=3)
+        self.ca.assert_that_pv_is(THRESHOLD_TEMP_PV, expected_thresholds_temp, timeout=3)
+
+    @parameterized.expand(parameterized_list(["None.txt", "DoesNotExist.txt"]))
+    def test_GIVEN_none_txt_OR_file_does_not_exist_WHEN_set_temp_sp_THEN_thresholds_recalculated(self, _, filename):
+        with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
+            for temp_sp, temp, excitation in [(5.2, 3.1, "30 nA"), (16.4, 18.2, "100 nA"), (20.9, 0, "Off"), (400.2, 20.3, "1 mV")]:
+                self.ca.assert_setting_setpoint_sets_readback(temp, THRESHOLD_TEMP_PV, set_point_pv=THRESHOLD_TEMP_PV)
+                self.ca.assert_setting_setpoint_sets_readback(excitation, THRESHOLD_EXCITATIONS_PV)
+                self.ca.set_pv_value("A:TEMP:SP", temp_sp)
+                self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, excitation)
+                self.ca.assert_that_pv_is(THRESHOLD_TEMP_PV, temp)
