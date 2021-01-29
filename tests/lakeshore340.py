@@ -7,7 +7,6 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-import pdb
 
 DEVICE_PREFIX = "LKSH340_01"
 _EMULATOR_NAME = "lakeshore340"
