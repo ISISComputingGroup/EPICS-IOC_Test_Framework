@@ -261,5 +261,18 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("M:SET:SP", 1)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 3.4)
 
+        self.ca.set_pv_value("M:RAMP:LEADS:SP", 1)
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
+        self.ca.set_pv_value("M:RAMP:LEADS:SP", 0)
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Not Ramping")
 
-#Verify that the State of Ramp Leads and Persistent Mode can be altered
+        self.ca.set_pv_value("M:PERSIST:SP", 1)
+        self.ca.assert_that_pv_is("M:PERSIST", "Persisting")
+        self.ca.set_pv_value("M:PERSIST:SP", 0)
+        self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
+
+        self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
+        for PSU in PSUS:
+            self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
+            self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
+            
