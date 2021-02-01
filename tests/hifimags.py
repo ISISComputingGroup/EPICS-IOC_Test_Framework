@@ -246,11 +246,20 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("Z:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 1)
+        self.ca.assert_that_pv_is("X:DIS", "X DISABLED")
+        self.ca.assert_that_pv_is("Y:DIS", "Y DISABLED")
+        self.ca.assert_that_pv_is("Z:SWITCH:DIS", "Z DISABLED")
+        self.ca.assert_that_pv_is("Z:DIS", "Z ENABLED")
+        self.ca.assert_that_pv_is("M:DIS", "M ENABLED")
+        self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
+
+        self.ca.set_pv_value("Z:TARGET:SP", 1.4)
+        self.ca.set_pv_value("Z:SET:SP", 1)
+        self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
+
+        self.ca.set_pv_value("M:TARGET:SP", 3.4)
+        self.ca.set_pv_value("M:SET:SP", 1)
+        self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 3.4)
 
 
-#Verify that the X, Y, and Z:SWITCH :DIS controls are True
-#Verify that the Z, M, and M:EXTRAS :DIS controls are False
-#Verify that the Z target can be set
-#Verify that Z switching doesn’t make any changes
-#Verify that the M target can be set
 #Verify that the State of Ramp Leads and Persistent Mode can be altered
