@@ -87,6 +87,12 @@ class HifimagsTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
+    def setZeroes(self):
+        for PSU in PSUS:
+            self.ca.set_pv_value(PSU + ":ZERO", 0.2)
+            self.ca.set_pv_value(PSU + ":ZEROFIELD", 0.3)
+
+
     def overrideDisables(self):
         for PSU in PSUS:
             self.ca.set_pv_value(PSU + ":DIS", 0)
@@ -215,10 +221,7 @@ class HifimagsTests(unittest.TestCase):
             self.setTarget(PSU, 1)
             self.ca.assert_that_pv_is("SIM:" + PSU + ":SET:SP", "Ramping " + PSU)
             self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 1)
-        self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
-        for PSU in PSUS:
-            self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
-            self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
+        self.checkMagnetsOff()
 
     def test_WHEN_in_idle_mode_THEN_only_magnets_off_can_be_controlled(self):
         self.ca.set_pv_value("OPMODE:SP", 1)
@@ -238,10 +241,9 @@ class HifimagsTests(unittest.TestCase):
         self.checkMagnetsOff()
 
     def test_WHEN_in_high_field_mode_THEN_only_main_and_z_can_be_controlled(self):
+        self.setZeroes()
         self.overrideDisables()
-
         for PSU in PSUS:
-            self.ca.set_pv_value(PSU + ":ZERO", 0.2)
             self.setTarget(PSU, 1)
 
         self.ca.set_pv_value("OPMODE:SP", 0)
@@ -271,11 +273,9 @@ class HifimagsTests(unittest.TestCase):
         self.checkMagnetsOff()
 
     def test_WHEN_in_low_field_mode_THEN_x_y_z_and_m_extras_can_be_controlled(self):
+        self.setZeroes()
         self.overrideDisables()
-
         for PSU in PSUS:
-            self.ca.set_pv_value(PSU + ":ZERO", 0.2)
-            self.ca.set_pv_value(PSU + ":ZEROFIELD", 0.3)
             self.setTarget(PSU, 1)
 
         self.ca.set_pv_value("OPMODE:SP", 0)
@@ -311,10 +311,9 @@ class HifimagsTests(unittest.TestCase):
         self.checkMagnetsOff()
 
     def test_WHEN_in_z_switching_mode_THEN_m_and_z_switch_can_be_controlled(self):
+        self.setZeroes()
         self.overrideDisables()
-
         for PSU in PSUS:
-            self.ca.set_pv_value(PSU + ":ZERO", 0.2)
             self.setTarget(PSU, 1)
 
         self.ca.set_pv_value("OPMODE:SP", 0)
