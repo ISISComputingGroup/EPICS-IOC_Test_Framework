@@ -301,18 +301,18 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
         self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
 
-        self.ca.assert_that_pv_is("X:DIS", "X DISABLED")
-        self.ca.assert_that_pv_is("Y:DIS", "Y DISABLED")
+        self.ca.assert_that_pv_is("X:DIS", "X ENABLED")
+        self.ca.assert_that_pv_is("Y:DIS", "Y ENABLED")
         self.ca.assert_that_pv_is("Z:SWITCH:DIS", "Z DISABLED")
         self.ca.assert_that_pv_is("Z:DIS", "Z ENABLED")
         self.ca.assert_that_pv_is("M:DIS", "M DISABLED")
         self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
 
         self.setTarget("X", 1.4)
-        self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
+        self.ca.assert_that_pv_is("X:OUTPUT:FIELD:GAUSS", 1.4)
 
         self.setTarget("Y", 1.4)
-        self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 1.4)
+        self.ca.assert_that_pv_is("Y:OUTPUT:FIELD:GAUSS", 1.4)
 
         self.setTarget("Z", 1.4)
         self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
