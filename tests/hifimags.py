@@ -323,7 +323,7 @@ class HifimagsTests(unittest.TestCase):
 
         self.checkMagnetsOff()
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_WHEN_in_z_switching_mode_THEN_m_and_z_switch_can_be_controlled(self):
         self.overrideDisables()
 
@@ -363,3 +363,11 @@ class HifimagsTests(unittest.TestCase):
         self.togglePersist()
 
         self.checkMagnetsOff()
+
+    #@skip_if_recsim
+    def test_WHEN_a_magnet_sees_a_quench_THEN_system_goes_into_idle_mode(self):
+        self.ca.set_pv_value("OPMODE:SP", 2)
+        self.ca.set_pv_value("SIM:M:QUENCH", 1)
+        self.ca.assert_that_pv_is("M:QUENCH", "M Quenched")
+        self.ca.assert_that_pv_is("OPMODE", "Idle")
+
