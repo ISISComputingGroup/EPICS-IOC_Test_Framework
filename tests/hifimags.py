@@ -103,6 +103,18 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value(PSU + ":TARGET:SP", target)
         self.ca.set_pv_value(PSU + ":SET:SP", 1)
 
+    def toggleRampLeads(self):
+        self.ca.set_pv_value("M:RAMP:LEADS:SP", 1)
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
+        self.ca.set_pv_value("M:RAMP:LEADS:SP", 0)
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Not Ramping")
+
+    def togglePersist(self):
+        self.ca.set_pv_value("M:PERSIST:SP", 1)
+        self.ca.assert_that_pv_is("M:PERSIST", "Persisting")
+        self.ca.set_pv_value("M:PERSIST:SP", 0)
+        self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
+
     # RECSIM Tests
 
     @skip_if_recsim
@@ -236,7 +248,7 @@ class HifimagsTests(unittest.TestCase):
 
         self.checkMagnetsOff()
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_WHEN_in_high_field_mode_THEN_only_main_and_z_can_be_controlled(self):
         self.overrideDisables()
 
@@ -264,16 +276,50 @@ class HifimagsTests(unittest.TestCase):
         self.setTarget("M", 3.4)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 3.4)
 
-        self.ca.set_pv_value("M:RAMP:LEADS:SP", 1)
-        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
-        self.ca.set_pv_value("M:RAMP:LEADS:SP", 0)
-        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Not Ramping")
+        self.toggleRampLeads()
 
-        self.ca.set_pv_value("M:PERSIST:SP", 1)
-        self.ca.assert_that_pv_is("M:PERSIST", "Persisting")
-        self.ca.set_pv_value("M:PERSIST:SP", 0)
-        self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
+        self.togglePersist()
 
         self.checkMagnetsOff()
 
+    #@skip_if_recsim
+    def test_WHEN_in_low_field_mode_THEN_x_y_z_and_m_extras_can_be_controlled(self):
+        self.overrideDisables()
+
+        for PSU in PSUS:
+            self.ca.set_pv_value(PSU + ":ZERO", 0.2)
+            self.ca.set_pv_value(PSU + ":ZEROFIELD", 0.3)
+            self.setTarget(PSU, 1)
+
+        self.ca.set_pv_value("OPMODE:SP", 0)
+        self.ca.set_pv_value("OPMODE:SP", 2)
+
+        self.ca.assert_that_pv_is_number("X:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("Z:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("M:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
+        self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
+
+        self.ca.assert_that_pv_is("X:DIS", "X DISABLED")
+        self.ca.assert_that_pv_is("Y:DIS", "Y DISABLED")
+        self.ca.assert_that_pv_is("Z:SWITCH:DIS", "Z DISABLED")
+        self.ca.assert_that_pv_is("Z:DIS", "Z ENABLED")
+        self.ca.assert_that_pv_is("M:DIS", "M DISABLED")
+        self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
+
+        self.setTarget("X", 1.4)
+        self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
+
+        self.setTarget("Y", 1.4)
+        self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 1.4)
+
+        self.setTarget("Z", 1.4)
+        self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
+
+        self.toggleRampLeads()
+
+        self.togglePersist()
+
+        self.checkMagnetsOff()
 
