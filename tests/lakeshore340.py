@@ -20,7 +20,8 @@ IOCS = [
         "emulator": _EMULATOR_NAME,
         "ioc_launcher_class": ProcServLauncher,
         "macros": {
-            "EXCITATION_THRESHOLD_FILE": THRESHOLDS_FILE
+            "EXCITATION_THRESHOLD_FILE": THRESHOLDS_FILE,
+            "USE_EXCITATION_THRESHOLD_FILE": "YES"
         }
     },
 ]
@@ -138,25 +139,31 @@ class Lakeshore340Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("excitationa", EXCITATIONS.index(excitation))
         self.ca.assert_that_pv_is("EXCITATIONA", excitation)
 
-    def test_WHEN_initialise_with_no_macro_THEN_threshold_file_is_none(self):
+    def test_WHEN_use_valid_file_THEN_threshold_file_is_none(self):
         self.ca.assert_that_pv_is_path(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + THRESHOLDS_FILE)
         self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "No Error")
+        self.ca.assert_that_pv_is_path("THRESHOLDS:USE", "YES")
 
-    def test_WHEN_initialise_with_macro_THEN_threshold_file_is_correct(self):
-        filename = "None.txt"
-        with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
-            self.ca.assert_that_pv_is_path(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
+    def test_WHEN_do_not_use_file_THEN_threshold_file_is_not_set(self):
+        with self._ioc.start_with_macros({"USE_EXCITATION_THRESHOLD_FILE": "NO"}, pv_to_wait_for=THRESHOLD_FILE_PV):
+            self.ca.assert_that_pv_is_path("THRESHOLDS:USE", "NO")
             self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "No Error")
 
     def test_WHEN_initialise_with_incorrect_macro_THEN_pv_is_in_alarm(self):
         filename = "DoesNotExist.txt"
-        with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
+        with self._ioc.start_with_macros({
+            "EXCITATION_THRESHOLD_FILE": filename, "USE_EXCITATION_THRESHOLD_FILE": "YES"
+        }, pv_to_wait_for=THRESHOLD_FILE_PV):
             self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "File Not Found")
+            self.ca.assert_that_pv_is_path("THRESHOLDS:USE", "YES")
 
     def test_WHEN_initialise_with_invalid_file_THEN_pv_is_in_alarm(self):
         filename = "InvalidLines.txt"
-        with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
+        with self._ioc.start_with_macros({
+            "EXCITATION_THRESHOLD_FILE": filename, "USE_EXCITATION_THRESHOLD_FILE": "YES"
+        }, pv_to_wait_for=THRESHOLD_FILE_PV):
             self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "Invalid Lines In File")
+            self.ca.assert_that_pv_is_path("THRESHOLDS:USE", "YES")
 
     def reset_thresholds_values(self, thresholds_excitations, thresholds_temp, excitationa, error, delay_change, temp):
         self.ca.assert_setting_setpoint_sets_readback(excitationa, EXCITATIONA_PV)
@@ -166,7 +173,8 @@ class Lakeshore340Tests(unittest.TestCase):
         self.ca.set_pv_value(THRESHOLDS_ERROR_PV, error)
         self._lewis.backdoor_set_on_device("temp_a", temp)
 
-    def assert_threshold_values(self, thresholds_excitations, thresholds_temp, excitationa, error, error_severity, delay_change):
+    def assert_threshold_values(
+            self, thresholds_excitations, thresholds_temp, excitationa, error, error_severity, delay_change):
         self.ca.assert_that_pv_is(THRESHOLD_EXCITATIONS_PV, thresholds_excitations)
         self.ca.assert_that_pv_is(THRESHOLD_TEMP_PV, thresholds_temp)
         self.ca.assert_that_pv_is(THRESHOLDS_DELAY_CHANGE_PV, delay_change)
@@ -183,23 +191,40 @@ class Lakeshore340Tests(unittest.TestCase):
         # Reset pv values to test
         self.reset_thresholds_values("Off", 0, "Off", "No Error", "NO", new_temp_sp - 10)
         # Set setpoint
-        self.ca.assert_setting_setpoint_sets_readback(new_temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP")
+        self.ca.assert_setting_setpoint_sets_readback(
+            new_temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP"
+        )
         # Confirm change is delayed but threshold temp is set
-        self.assert_threshold_values(expected_thresholds_excitation, expected_thresholds_temp, "Off", "No Error", "NO_ALARM", "YES")
+        self.assert_threshold_values(
+            expected_thresholds_excitation, expected_thresholds_temp, "Off", "No Error", "NO_ALARM", "YES"
+        )
         # Make temperature equal setpoint
         self._lewis.backdoor_set_on_device("temp_a", new_temp_sp)
         # Confirm Excitations is set correctly
-        self.assert_threshold_values(expected_thresholds_excitation, expected_thresholds_temp, expected_thresholds_excitation, "No Error", "NO_ALARM", "NO")
+        self.assert_threshold_values(
+            expected_thresholds_excitation, expected_thresholds_temp, expected_thresholds_excitation,
+            "No Error", "NO_ALARM", "NO"
+        )
 
-    @parameterized.expand(parameterized_list([("None.txt", "NO_ALARM", "No Error"), ("DoesNotExist.txt", "MINOR", "File Not Found"), ("InvalidLines.txt", "MINOR", "Invalid Lines In File")]))
+    @parameterized.expand(parameterized_list([
+        ("None.txt", "NO_ALARM", "No Error"), ("DoesNotExist.txt", "MINOR", "File Not Found"),
+        ("InvalidLines.txt", "MINOR", "Invalid Lines In File")]
+    ))
     @skip_if_recsim
-    def test_GIVEN_none_txt_WHEN_set_temp_sp_THEN_thresholds_not_recalculated(self, _, filename, expected_error_severity, expected_error):
+    def test_GIVEN_not_using_excitations_OR_invalid_file_WHEN_set_temp_sp_THEN_thresholds_not_recalculated(
+            self, _, filename, expected_error_severity, expected_error):
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
-            for temp_sp, temp, excitation in [(5.2, 3.1, "30 nA"), (16.4, 18.2, "100 nA"), (20.9, 0, "Off"), (400.2, 20.3, "1 mV")]:
+            for temp_sp, temp, excitation in [
+                (5.2, 3.1, "30 nA"), (16.4, 18.2, "100 nA"), (20.9, 0, "Off"), (400.2, 20.3, "1 mV")
+            ]:
                 # Reset pv values to test
                 self.reset_thresholds_values(excitation, temp, excitation, "No Error", "NO", temp_sp - 10)
                 # Set temp
-                self.ca.assert_setting_setpoint_sets_readback(temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP")
+                self.ca.assert_setting_setpoint_sets_readback(
+                    temp_sp, readback_pv="A:TEMP:SP:RBV", set_point_pv="A:TEMP:SP"
+                )
                 self._lewis.backdoor_set_on_device("temp_a", temp_sp)
                 # Assert nothing has changed
-                self.assert_threshold_values(excitation, temp, excitation, expected_error, expected_error_severity, "NO")
+                self.assert_threshold_values(
+                    excitation, temp, excitation, expected_error, expected_error_severity, "NO"
+                )
