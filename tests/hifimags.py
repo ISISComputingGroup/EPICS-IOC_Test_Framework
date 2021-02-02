@@ -338,8 +338,6 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("Z:OUTPUT:FIELD:GAUSS", 1, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("M:OUTPUT:FIELD:GAUSS", 1, tolerance=1e-3)
-        self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
-        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
 
         self.ca.assert_that_pv_is("X:DIS", "X DISABLED")
         self.ca.assert_that_pv_is("Y:DIS", "Y DISABLED")
@@ -351,11 +349,11 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("Z:RAMP:RATE:SP", 0.563)
         self.ca.assert_that_pv_is("Z:RAMP:RATE", 0.563)
 
-        self.ca.set_pv_value("Z:MAX:FIELD:SP", 2.4)
-        self.ca.assert_that_pv_is("Z:MAX:FIELD", 2.4)
+        self.ca.set_pv_value("Z:FIELD:MAX:SP", 2.4)
+        self.ca.assert_that_pv_is("Z:FIELD:MAX", 2.4)
 
-        self.ca.set_pv_value("Z:MID:FIELD:SP", 1.45)
-        self.ca.assert_that_pv_is("Z:MID:FIELD", 1.45)
+        self.ca.set_pv_value("Z:FIELD:MID:SP", 1.45)
+        self.ca.assert_that_pv_is("Z:FIELD:MID", 1.45)
 
         self.setTarget("M", -1.4)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", -1.4)
