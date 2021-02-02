@@ -282,7 +282,7 @@ class HifimagsTests(unittest.TestCase):
 
         self.checkMagnetsOff()
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_WHEN_in_low_field_mode_THEN_x_y_z_and_m_extras_can_be_controlled(self):
         self.overrideDisables()
 
@@ -323,3 +323,45 @@ class HifimagsTests(unittest.TestCase):
 
         self.checkMagnetsOff()
 
+    #@skip_if_recsim
+    def test_WHEN_in_z_switching_mode_THEN_m_and_z_switch_can_be_controlled(self):
+        self.overrideDisables()
+
+        for PSU in PSUS:
+            self.ca.set_pv_value(PSU + ":ZERO", 0.2)
+            self.setTarget(PSU, 1)
+
+        self.ca.set_pv_value("OPMODE:SP", 0)
+        self.ca.set_pv_value("OPMODE:SP", 3)
+
+        self.ca.assert_that_pv_is_number("X:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("Z:OUTPUT:FIELD:GAUSS", 1, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("M:OUTPUT:FIELD:GAUSS", 1, tolerance=1e-3)
+        self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
+
+        self.ca.assert_that_pv_is("X:DIS", "X DISABLED")
+        self.ca.assert_that_pv_is("Y:DIS", "Y DISABLED")
+        self.ca.assert_that_pv_is("Z:SWITCH:DIS", "Z ENABLED")
+        self.ca.assert_that_pv_is("Z:DIS", "Z DISABLED")
+        self.ca.assert_that_pv_is("M:DIS", "M ENABLED")
+        self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
+
+        self.ca.set_pv_value("Z:RAMP:RATE:SP", 0.563)
+        self.ca.assert_that_pv_is("Z:RAMP:RATE", 0.563)
+
+        self.ca.set_pv_value("Z:MAX:FIELD:SP", 2.4)
+        self.ca.assert_that_pv_is("Z:MAX:FIELD", 2.4)
+
+        self.ca.set_pv_value("Z:MID:FIELD:SP", 1.45)
+        self.ca.assert_that_pv_is("Z:MID:FIELD", 1.45)
+
+        self.setTarget("M", -1.4)
+        self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", -1.4)
+
+        self.toggleRampLeads()
+
+        self.togglePersist()
+
+        self.checkMagnetsOff()
