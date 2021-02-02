@@ -265,14 +265,24 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: val == expected_value, timeout=timeout, message=msg, pv_value_source=pv_value_source)
 
-    def assert_that_pv_lower_case_is(self, pv, expected_value, timeout=None, msg=None, pv_value_source=None):
+    def _normalise_path(self, path: str) -> str:
         """
-        Assert that a string pv when made lower case has the expected value or
-        that it becomes the expected value within the timeout.
+        Normalise a path and it's case (useful for comparisons)
+
+        Args:
+            path (str): The path to normalise
+        Returns:
+            str: The normalised path
+        """
+        return os.path.normpath(os.path.normcase(path))
+
+    def assert_that_pv_is_path(self, pv, expected_path, timeout=None, msg=None, pv_value_source=None):
+        """
+        Assert that a pv is a path that when normalised matches the expected path.
 
         Args:
             pv: pv name
-            expected_value: expected value
+            expected_path: expected path
             timeout: if it hasn't changed within this time raise assertion error
             msg: Extra message to print
             pv_value_source: place to get pv value from on get; None pv is read using caget;
@@ -281,13 +291,13 @@ class ChannelAccess(object):
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
         """
-        expected_lower = expected_value.lower()
+        normalised_expected_path = self._normalise_path(expected_path)
         if msg is None:
-            msg = "Expected PV, '{}' to have value {}.".format(self.create_pv_with_prefix(pv),
-                                                               format_value(expected_lower))
+            msg = "Expected PV, '{}' to have path {}.".format(self.create_pv_with_prefix(pv),
+                                                              format_value(normalised_expected_path))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: val.lower() == expected_lower,
+            pv, lambda val: self._normalise_path(val) == normalised_expected_path,
             timeout=timeout, message=msg, pv_value_source=pv_value_source
         )
 
