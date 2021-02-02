@@ -93,9 +93,19 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("M:EXTRAS:DIS", 0)
         self.ca.set_pv_value("Z:SWITCH:DIS", 0)
 
+    def checkMagnetsOff(self):
+        self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
+        for PSU in PSUS:
+            self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
+            self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
+
+    def setTarget(self, PSU, target):
+        self.ca.set_pv_value(PSU + ":TARGET:SP", target)
+        self.ca.set_pv_value(PSU + ":SET:SP", 1)
+
     # RECSIM Tests
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_sim_status_WHEN_sim_status_is_updated_THEN_all_statuses_match(self):
         sim_status = "Unit Test"
         for PSU in PSUS:
@@ -108,7 +118,7 @@ class HifimagsTests(unittest.TestCase):
             self.ca.assert_that_pv_is(PSU + ":STAT:RBV", sim_status)
             self.ca.assert_that_pv_is(PSU + ":STAT", sim_status)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_readback_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in READ_PVS:
             if not PV["init_value"] == "":
@@ -120,7 +130,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         self.overrideDisables()
         for PV in WRITE_PVS:
@@ -133,7 +143,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(self):
         # Errors for Main PSU different, so use M rather than X
         sim_value = "There is a simulated error"
@@ -145,13 +155,13 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:ERRORS:RBV", "")
         self.ca.assert_that_pv_is("MAIN:ERRORS:RBV", "")
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_abort_requested_THEN_abort_is_propagated(self):
         sim_value = "Aborting X"
         self.ca.set_pv_value("X:ABORT:SP", 1)
         self.ca.assert_that_pv_is("SIM:X:ABORT", sim_value)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_readback_values_WHEN_sim_main_values_set_THEN_all_values_update(self):
         for PV in MAIN_PVS:
             if not PV["init_value"] == "":
@@ -163,7 +173,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_readback_values_WHEN_system_values_set_THEN_all_values_update(self):
         for PV in SYS_READ_PVS:
             if not PV["init_value"] == "":
@@ -175,7 +185,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_settable_values_WHEN_system_values_set_THEN_all_values_update(self):
         for PV in SYS_WRITE_PVS:
             if not PV["init_value"] == "":
@@ -187,7 +197,7 @@ class HifimagsTests(unittest.TestCase):
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_active_temperature_sesnors_WHEN_sensor_is_updated_THEN_value_is_updated(self):
         for SENSOR in TEMPERATURE_SENSORS:
             self.ca.set_pv_value("SIM:TEMP:" + SENSOR, 2.5)
@@ -196,12 +206,11 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.set_pv_value("SIM:TEMP:" + SENSOR, sim_value)
                 self.ca.assert_that_pv_is("TEMP:" + SENSOR, sim_value)
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_GIVEN_all_magnets_on_WHEN_magnets_off_is_requested_THEN_all_magnets_are_ready_at_zero(self):
         self.overrideDisables()
         for PSU in PSUS:
-            self.ca.set_pv_value(PSU + ":TARGET:SP", 1)
-            self.ca.set_pv_value(PSU + ":SET:SP", 1)
+            self.setTarget(PSU, 1)
             self.ca.assert_that_pv_is("SIM:" + PSU + ":SET:SP", "Ramping " + PSU)
             self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 1)
         self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
@@ -209,7 +218,7 @@ class HifimagsTests(unittest.TestCase):
             self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
             self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
 
-    #@skip_if_recsim
+    @skip_if_recsim
     def test_WHEN_in_idle_mode_THEN_only_magnets_off_can_be_controlled(self):
         self.ca.set_pv_value("OPMODE:SP", 1)
         self.ca.set_pv_value("OPMODE:SP", 0)
@@ -225,10 +234,7 @@ class HifimagsTests(unittest.TestCase):
         for PV in WRITE_PVS:
             self.ca.assert_that_pv_is(PV["MAG"] + ":" + PV["PV"] + ":SP.DISP", "1")
 
-        self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
-        for PSU in PSUS:
-            self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
-            self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
+        self.checkMagnetsOff()
 
     #@skip_if_recsim
     def test_WHEN_in_high_field_mode_THEN_only_main_and_z_can_be_controlled(self):
@@ -236,8 +242,7 @@ class HifimagsTests(unittest.TestCase):
 
         for PSU in PSUS:
             self.ca.set_pv_value(PSU + ":ZERO", 0.2)
-            self.ca.set_pv_value(PSU + ":TARGET:SP", 1)
-            self.ca.set_pv_value(PSU + ":SET:SP", 1)
+            self.setTarget(PSU, 1)
 
         self.ca.set_pv_value("OPMODE:SP", 0)
         self.ca.set_pv_value("OPMODE:SP", 1)
@@ -253,12 +258,10 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:DIS", "M ENABLED")
         self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
 
-        self.ca.set_pv_value("Z:TARGET:SP", 1.4)
-        self.ca.set_pv_value("Z:SET:SP", 1)
+        self.setTarget("Z", 1.4)
         self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
 
-        self.ca.set_pv_value("M:TARGET:SP", 3.4)
-        self.ca.set_pv_value("M:SET:SP", 1)
+        self.setTarget("M", 3.4)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 3.4)
 
         self.ca.set_pv_value("M:RAMP:LEADS:SP", 1)
@@ -271,7 +274,6 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("M:PERSIST:SP", 0)
         self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
 
-        self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
-        for PSU in PSUS:
-            self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
-            self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
+        self.checkMagnetsOff()
+
+
