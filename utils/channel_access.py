@@ -265,6 +265,32 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: val == expected_value, timeout=timeout, message=msg, pv_value_source=pv_value_source)
 
+    def assert_that_pv_lower_case_is(self, pv, expected_value, timeout=None, msg=None, pv_value_source=None):
+        """
+        Assert that a string pv when made lower case has the expected value or
+        that it becomes the expected value within the timeout.
+
+        Args:
+            pv: pv name
+            expected_value: expected value
+            timeout: if it hasn't changed within this time raise assertion error
+            msg: Extra message to print
+            pv_value_source: place to get pv value from on get; None pv is read using caget;
+              otherwise attribute value will be used
+        Raises:
+            AssertionError: if value does not become requested value
+            UnableToConnectToPVException: if pv does not exist within timeout
+        """
+        expected_lower = expected_value.lower()
+        if msg is None:
+            msg = "Expected PV, '{}' to have value {}.".format(self.create_pv_with_prefix(pv),
+                                                               format_value(expected_lower))
+
+        return self.assert_that_pv_value_causes_func_to_return_true(
+            pv, lambda val: val.lower() == expected_lower,
+            timeout=timeout, message=msg, pv_value_source=pv_value_source
+        )
+
     def assert_that_pv_after_processing_is(self, pv, expected_value, timeout=None, msg=None):
         """
         Assert that the pv has the expected value after the pv is processed

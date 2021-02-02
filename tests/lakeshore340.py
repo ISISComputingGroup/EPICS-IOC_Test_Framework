@@ -139,13 +139,13 @@ class Lakeshore340Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("EXCITATIONA", excitation)
 
     def test_WHEN_initialise_with_no_macro_THEN_threshold_file_is_none(self):
-        self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + THRESHOLDS_FILE)
+        self.ca.assert_that_pv_lower_case_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + THRESHOLDS_FILE)
         self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "No Error")
 
     def test_WHEN_initialise_with_macro_THEN_threshold_file_is_correct(self):
         filename = "None.txt"
         with self._ioc.start_with_macros({"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV):
-            self.ca.assert_that_pv_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
+            self.ca.assert_that_pv_lower_case_is(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
             self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "No Error")
 
     def test_WHEN_initialise_with_incorrect_macro_THEN_pv_is_in_alarm(self):
