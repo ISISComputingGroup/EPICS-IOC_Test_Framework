@@ -145,6 +145,7 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.assert_that_pv_is("X:" + PV["PV"], sim_value)
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is("X:" + PV["EXTRA_READ_PV"], sim_value)
+        self.ca.set_pv_value("SIM:X:QUENCH", 0)
 
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         self.overrideDisables()
@@ -248,6 +249,7 @@ class HifimagsTests(unittest.TestCase):
 
         self.ca.set_pv_value("OPMODE:SP", 0)
         self.ca.set_pv_value("OPMODE:SP", 1)
+        self.ca.assert_that_pv_is("OPMODE", "High Field")
 
         self.ca.assert_that_pv_is_number("X:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
@@ -280,6 +282,7 @@ class HifimagsTests(unittest.TestCase):
 
         self.ca.set_pv_value("OPMODE:SP", 0)
         self.ca.set_pv_value("OPMODE:SP", 2)
+        self.ca.assert_that_pv_is("OPMODE", "Low Field")
 
         self.ca.assert_that_pv_is_number("X:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
@@ -318,6 +321,7 @@ class HifimagsTests(unittest.TestCase):
 
         self.ca.set_pv_value("OPMODE:SP", 0)
         self.ca.set_pv_value("OPMODE:SP", 3)
+        self.ca.assert_that_pv_is("OPMODE", "Z Switching")
 
         self.ca.assert_that_pv_is_number("X:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
@@ -351,6 +355,7 @@ class HifimagsTests(unittest.TestCase):
 
     def test_WHEN_a_magnet_sees_a_quench_THEN_system_goes_into_idle_mode(self):
         self.ca.set_pv_value("OPMODE:SP", 2)
+        self.ca.assert_that_pv_is("OPMODE", "Low Field")
         self.ca.set_pv_value("SIM:M:QUENCH", 1)
         self.ca.assert_that_pv_is("M:QUENCH", "Quenched")
         self.ca.assert_that_pv_is("OPMODE", "Idle")
