@@ -34,7 +34,7 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
 
     @parameterized.expand(parameterized_list([
         "OUTPUTMODE:SP",
-        "CURRENT:SP",
+        #"CURRENT:SP", broken due to https://github.com/ISISComputingGroup/IBEX/issues/6152
         "VOLTAGE:SP",
         "OUTPUTSTATUS:SP",
     ]))
