@@ -105,7 +105,7 @@ class KepcoTests(object):
         self.ca.assert_that_pv_is("VOLTAGE:SP:RBV", current_voltage + 5)
 
     @parameterized.expand(parameterized_list([-5.1, 7.8]))
-    def test_GIVEN_setpoint_current_set_WHEN_read_THEN_setpoint_current_is_as_expected(self, expected_current):
+    def test_GIVEN_setpoint_current_set_WHEN_read_THEN_setpoint_current_is_as_expected(self, _, expected_current):
         self.ca.set_pv_value("CURRENT:SP", expected_current)
         # Check SP RBV matches new current
         self.ca.assert_that_pv_is("CURRENT:SP:RBV", expected_current)
