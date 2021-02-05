@@ -34,15 +34,14 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
 
     @parameterized.expand(parameterized_list([
         "OUTPUTMODE:SP",
-        #"CURRENT:SP", broken due to https://github.com/ISISComputingGroup/IBEX/issues/6152
+        "CURRENT:SP",
         "VOLTAGE:SP",
         "OUTPUTSTATUS:SP",
     ]))
     @skip_if_recsim("Complex behaviour not simulated in recsim")
     def test_GIVEN_psu_in_local_mode_WHEN_setpoint_is_sent_THEN_power_supply_put_into_remote_first(self, _,
                                                                                                    setpoint_pv):
-        self._lewis.backdoor_set_on_device("remote_comms_enabled", False)
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False)
+        self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
         self.ca.process_pv(setpoint_pv)
 
