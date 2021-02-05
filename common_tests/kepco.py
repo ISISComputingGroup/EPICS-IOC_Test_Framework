@@ -192,4 +192,11 @@ class KepcoTests(object):
             self.ca.assert_that_pv_is("CURRENT", current)
             self.ca.assert_that_pv_is("FIELD", expected_field)
 
+    @skip_if_recsim("Lewis not available in recsim")
+    def test_WHEN_sending_setpoint_THEN_only_one_setpoint_sent(self):
+        self._lewis.backdoor_set_and_assert_set("current_set_count", 0)
+        self.ca.set_pv_value("CURRENT:SP", 100)
+        self._lewis.assert_that_emulator_value_is("current_set_count", 1)
+
+
 
