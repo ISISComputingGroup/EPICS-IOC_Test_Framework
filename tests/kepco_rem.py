@@ -1,6 +1,6 @@
 import unittest
 
-from common_tests.kepco import KepcoTests, DEVICE_PREFIX, emulator_name, IDN_NO_REM, IDN_REM
+from common_tests.kepco import KepcoTests, DEVICE_PREFIX, emulator_name, IDN_NO_REM, IDN_REM, MAX_CURRENT
 
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
@@ -14,7 +14,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KEPCO"),
-        "macros": {},
+        "macros": {"CURRENT_MAX": MAX_CURRENT},
         "emulator": emulator_name,
         "ioc_launcher_class": ProcServLauncher,
     },
@@ -34,7 +34,7 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
 
     @parameterized.expand(parameterized_list([
         "OUTPUTMODE:SP",
-        "CURRENT:SP",
+        #"CURRENT:SP", broken due to https://github.com/ISISComputingGroup/IBEX/issues/6152
         "VOLTAGE:SP",
         "OUTPUTSTATUS:SP",
     ]))
