@@ -53,11 +53,13 @@ READ_PVS = [
 ]
 WRITE_PVS = [
     {"MAG": "X", "PV": "TARGET", "EXTRA_READ_PV": "", "values": GAUSS, "init_value": -4},
-    {"MAG": "Z", "PV": "RAMP:RATE", "EXTRA_READ_PV": "", "values": SWITCHINGRAMPRATE, "init_value": ""},
-    {"MAG": "Z", "PV": "FIELD:MAX", "EXTRA_READ_PV": "", "values": SWITCHINGMAX, "init_value": ""},
-    {"MAG": "Z", "PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
     {"MAG": "M", "PV": "RAMP:LEADS", "EXTRA_READ_PV": "", "values": LEADS, "init_value": ""},
     {"MAG": "M", "PV": "PERSIST", "EXTRA_READ_PV": "", "values": PERSISTS, "init_value": ""},
+]
+WRITE_SWITCH_PVS = [
+    {"PV": "RAMP:RATE", "EXTRA_READ_PV": "", "values": SWITCHINGRAMPRATE, "init_value": ""},
+    {"PV": "FIELD:MAX", "EXTRA_READ_PV": "", "values": SWITCHINGMAX, "init_value": ""},
+    {"PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
 ]
 MAIN_PVS = [
     {"PV": "STAT", "EXTRA_READ_PV":"MAIN:STAT:RBV", "values":STATUSES, "init_value": ""},
@@ -158,6 +160,14 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.assert_that_pv_is("SIM:" + PV["MAG"] + ":" + PV["PV"], sim_value)
                 if not PV["EXTRA_READ_PV"] == "":
                     self.ca.assert_that_pv_is(PV["EXTRA_READ_PV"], sim_value)
+        for PV in WRITE_SWITCH_PVS:
+            if not PV["init_value"] == "":
+                self.ca.set_pv_value("Z:" + PV["PV"] + ":SP", PV["init_value"])
+            for value in PV["values"]:
+                sim_value = value
+                self.ca.set_pv_value("Z:" + PV["PV"] + ":SP", sim_value)
+                self.ca.set_pv_value("Z:SWITCH:SET:SP", 1)
+                self.ca.assert_that_pv_is("SIM:" + "Z:" + PV["PV"], sim_value)
 
     def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(self):
         # Errors for Main PSU different, so use M rather than X
@@ -313,7 +323,7 @@ class HifimagsTests(unittest.TestCase):
 
         self.checkMagnetsOff()
 
-    def test_WHEN_in_z_switching_mode_THEN_m_and_z_switch_can_be_controlled(self):
+    def test_WHEN_in_z_switching_mode_THEN_m_and_z_switch_can_be_controlled_with_sets_delayed(self):
         self.setZeroes()
         self.overrideDisables()
         for PSU in PSUS:
@@ -336,13 +346,14 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
 
         self.ca.set_pv_value("Z:RAMP:RATE:SP", 0.563)
-        self.ca.assert_that_pv_is("Z:RAMP:RATE", 0.563)
-
         self.ca.set_pv_value("Z:FIELD:MAX:SP", 2.4)
-        self.ca.assert_that_pv_is("Z:FIELD:MAX", 2.4)
-
         self.ca.set_pv_value("Z:FIELD:MID:SP", 1.45)
-        self.ca.assert_that_pv_is("Z:FIELD:MID", 1.45)
+
+        self.ca.set_pv_value("Z:SWITCH:SET:SP", 1)
+
+        self.ca.assert_that_pv_is_number("Z:RAMP:RATE", 0.563, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("Z:FIELD:MAX", 2.4, tolerance=1e-3)
+        self.ca.assert_that_pv_is_number("Z:FIELD:MID", 1.45, tolerance=1e-3)
 
         self.setTarget("M", -1.4)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", -1.4)
