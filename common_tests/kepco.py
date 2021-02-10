@@ -1,3 +1,5 @@
+import time
+
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
@@ -191,5 +193,17 @@ class KepcoTests(object):
             self._write_current(current)
             self.ca.assert_that_pv_is("CURRENT", current)
             self.ca.assert_that_pv_is("FIELD", expected_field)
+
+    @skip_if_recsim("Lewis not available in recsim")
+    def test_WHEN_sending_setpoint_THEN_only_one_setpoint_sent(self):
+        self._lewis.backdoor_set_and_assert_set("current_set_count", 0)
+        self.ca.set_pv_value("CURRENT:SP", 100)
+        self._lewis.assert_that_emulator_value_is("current_set_count", 1)
+
+        # Wait a short time and make sure count is not being incremented again later.
+        time.sleep(5)
+        self._lewis.assert_that_emulator_value_is("current_set_count", 1)
+
+
 
 
