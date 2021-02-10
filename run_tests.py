@@ -16,7 +16,7 @@ from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
-# from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher
+from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
