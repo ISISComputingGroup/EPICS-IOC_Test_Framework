@@ -86,7 +86,9 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("COMP:B:SP", expected_concentrations[1])
         self.ca.set_pv_value("COMP:C:SP", expected_concentrations[2])
         self.ca.set_pv_value("COMP:D:SP", expected_concentrations[3])
-        self.ca.set_pv_value("START:SP", 1, sleep_after_set=1.0)
+        self.ca.set_pv_value("START:SP", 1)
+
+        sleep(1.0) # allow emulator to process above data
 
         concentrations = [self.ca.get_pv_value("COMP:A"),
                           self.ca.get_pv_value("COMP:B"),
@@ -116,7 +118,10 @@ class Knr1050Tests(unittest.TestCase):
     def test_GIVEN_an_ioc_WHEN_pump_switched_on_then_back_to_off_THEN_device_state_off(self):
         expected_dev_state = "OFF"
         self.ca.set_pv_value("START:SP", 1)
-        self.ca.set_pv_value("STOP:SP", 1, sleep_after_set=1.0)
+        self.ca.set_pv_value("STOP:SP", 1)
+
+        sleep(1.0) # allow emulator to process above data
+
         state = self._lewis.backdoor_get_from_device("state")
 
         self.assertEqual(expected_dev_state, state)
