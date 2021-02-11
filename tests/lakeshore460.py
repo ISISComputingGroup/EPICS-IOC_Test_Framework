@@ -59,7 +59,7 @@ class Lakeshore460Tests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("lakeshore460", DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix="LKSH460_01", default_timeout=30)
+        self.ca = ChannelAccess(device_prefix="LKSH460_01", default_timeout=30, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("IDN")
 
     @parameterized.expand([("tesla", UnitFlags.TESLA, UnitStrings.TESLA),
