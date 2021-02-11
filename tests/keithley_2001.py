@@ -130,9 +130,8 @@ class InitTests(unittest.TestCase):
         self.ca.set_pv_value("RESET:FLAG", 1)
 
         # Then:
-        number_of_times_status_register_has_been_reset_and_cleared = int(
-            self._lewis.backdoor_run_function_on_device(
-                "get_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor")[0])
+        number_of_times_status_register_has_been_reset_and_cleared = self._lewis.backdoor_run_function_on_device(
+                "get_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor")
 
         assert_that(number_of_times_status_register_has_been_reset_and_cleared, is_(equal_to(1)))
 
@@ -214,8 +213,8 @@ class ScanningSetupTests(unittest.TestCase):
 
         # Then:
         number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
-            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0]
-        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than(b"1")))
+            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")
+        assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than(1)))
 
     @parameterized.expand(parameterized_list([
         [1, 2], [1, 2, 3, 4], [6, 7, 8, 9], [1, 5, 10]
@@ -252,7 +251,7 @@ class ScanningTests(unittest.TestCase):
             self, _, channels):
         # Given:
         expected_values = [9.2] * len(channels)
-        map(_set_active_channel, [self.ca] * len(channels), channels)
+        [_set_active_channel(self.ca, channel) for channel in channels]
         self._simulate_readings(expected_values, channels, "VDC")
 
         # Then:
@@ -266,7 +265,7 @@ class ScanningTests(unittest.TestCase):
             self, _, channels):
         # Given:
         expected_values = [9.2] * len(channels)
-        map(_set_active_channel, [self.ca] * len(channels), channels)
+        [_set_active_channel(self.ca, channel) for channel in channels]
         self._simulate_readings(expected_values, channels, "VDC")
 
         # Then:
@@ -281,7 +280,7 @@ class ScanningTests(unittest.TestCase):
             self, _, channels):
         # Given:
         expected_values = [9.2] * len(channels)
-        map(_set_active_channel, [self.ca] * len(channels), channels)
+        [_set_active_channel(self.ca, channel) for channel in channels]
         self._simulate_readings(expected_values, channels, "mVDC")
 
         # Then:
@@ -422,13 +421,12 @@ class IOCResetTests(unittest.TestCase):
     def test_that_GIVEN_a_device_WHEN_reset_THEN_the_IOC_has_been_reinitalized(
             self):
         # Given:
-        previous_number_of_times_the_device_has_been_reset = int(self._lewis.backdoor_run_function_on_device(
-            "get_how_many_times_ioc_has_been_reset_via_the_backdoor")[0])
+        previous_number_of_times_the_device_has_been_reset = self._lewis.backdoor_run_function_on_device(
+            "get_how_many_times_ioc_has_been_reset_via_the_backdoor")
 
         # When:
         self.ca.set_pv_value("RESET:FLAG", 1)
 
         # Then:
-        result = int(self._lewis.backdoor_run_function_on_device(
-            "get_how_many_times_ioc_has_been_reset_via_the_backdoor")[0])
+        result = self._lewis.backdoor_run_function_on_device("get_how_many_times_ioc_has_been_reset_via_the_backdoor")
         assert_that(result, is_(equal_to(previous_number_of_times_the_device_has_been_reset + 1)))
