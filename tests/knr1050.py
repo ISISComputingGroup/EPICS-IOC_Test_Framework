@@ -29,7 +29,7 @@ class Knr1050Tests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(device_name, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self._lewis.backdoor_run_function_on_device("reset")
         # Set the device in remote mode ready to receive instructions
         self.ca.set_pv_value("MODE:SP", "REMOTE")
@@ -77,7 +77,7 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("START:SP", 1)
         pump_status = self._lewis.backdoor_get_from_device("pump_on")
 
-        self.assertEqual(pump_status, "True")
+        self.assertEqual(pump_status, True)
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_set_concentration_via_ioc_WHEN_ramp_command_sent_via_ioc_THEN_correct_concentration_set(self):
@@ -86,7 +86,7 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("COMP:B:SP", expected_concentrations[1])
         self.ca.set_pv_value("COMP:C:SP", expected_concentrations[2])
         self.ca.set_pv_value("COMP:D:SP", expected_concentrations[3])
-        self.ca.set_pv_value("START:SP", 1)
+        self.ca.set_pv_value("START:SP", 1, sleep_after_set=1.0)
 
         concentrations = [self.ca.get_pv_value("COMP:A"),
                           self.ca.get_pv_value("COMP:B"),
@@ -96,7 +96,7 @@ class Knr1050Tests(unittest.TestCase):
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_an_ioc_WHEN_stop_pump_sent_THEN_lewis_pump_stops(self):
-        expected_pump_status = "False"
+        expected_pump_status = False
         self.ca.set_pv_value("STOP:SP", 1)
         pump_status = self._lewis.backdoor_get_from_device("pump_on")
 
@@ -104,19 +104,19 @@ class Knr1050Tests(unittest.TestCase):
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_an_ioc_WHEN_stop2_command_sent_THEN_expected_stop_type(self):
-        self._lewis.backdoor_set_on_device("keep_last_values", "False")
+        self._lewis.backdoor_set_on_device("keep_last_values", False)
         stopped_status = self._lewis.backdoor_get_from_device("keep_last_values")
-        self.assertEqual(stopped_status, "False")
+        self.assertEqual(stopped_status, False)
         self.ca.set_pv_value("_STOP:KLV:SP", 1)
 
         stopped_status = self._lewis.backdoor_get_from_device("keep_last_values")
-        self.assertEqual(stopped_status, "True")
+        self.assertEqual(stopped_status, True)
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_an_ioc_WHEN_pump_switched_on_then_back_to_off_THEN_device_state_off(self):
         expected_dev_state = "OFF"
         self.ca.set_pv_value("START:SP", 1)
-        self.ca.set_pv_value("STOP:SP", 1)
+        self.ca.set_pv_value("STOP:SP", 1, sleep_after_set=1.0)
         state = self._lewis.backdoor_get_from_device("state")
 
         self.assertEqual(expected_dev_state, state)
@@ -151,7 +151,7 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("PRESSURE:LIMITS.PROC", 1)
         self.ca.assert_that_pv_is("PRESSURE:MAX", expected_pressure)
 
-        self.assertEqual(int(self._lewis.backdoor_get_from_device("pressure_limit_high")), expected_pressure)
+        self.assertEqual(self._lewis.backdoor_get_from_device("pressure_limit_high"), expected_pressure)
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_set_low_pressure_limit_via_ioc_WHEN_get_low_pressure_limit_via_IOC_THEN_get_expected_value(self):

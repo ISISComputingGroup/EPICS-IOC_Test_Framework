@@ -73,18 +73,19 @@ class ChannelAccess(object):
         INVALID = "INVALID"  # Alarm value if the record has a calc alarm
         DISABLE = "DISABLE"  # Alarm stat value if the record has been disabled
 
-    def __init__(self, default_timeout=5, device_prefix=None):
+    def __init__(self, default_timeout=5, device_prefix=None, default_wait_time=1.0):
         """
         Initializes this ChannelAccess object.
 
         Args:
             device_prefix: The device prefix which will be added to the start of all pvs.
             default_timeout: The default time out to wait for an assertion on a PV to become true.
-
+            default_wait_time: The default time to wait after a set_pv_value
         Returns:
             None.
         """
         self.ca = CaChannelWrapper()
+        self.default_wait_time = default_wait_time
 
         # Silence CA errors
         CaChannelWrapper.errorLogFunc = lambda *a, **kw: None
@@ -101,7 +102,7 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += "{}:".format(device_prefix)
 
-    def set_pv_value(self, pv, value, wait=False, sleep_after_set=1.0):
+    def set_pv_value(self, pv, value, wait=False, sleep_after_set=None):
         """
         Sets the specified PV to the supplied value.
 
@@ -111,6 +112,8 @@ class ChannelAccess(object):
             wait: wait for completion callback (default: False)
             sleep_after_set: before a sleep after setting pv value
         """
+        if sleep_after_set is None:
+            sleep_after_set = self.default_wait_time
         # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try to jump the gun
         # and attempt to write to a PV that doesn't exist yet
         self.assert_that_pv_exists(pv)
