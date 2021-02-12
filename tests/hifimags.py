@@ -139,7 +139,7 @@ class HifimagsTests(unittest.TestCase):
 
     def test_GIVEN_readback_values_WHEN_sim_values_set_THEN_all_values_update(self):
         for PV in READ_PVS:
-            if not PV["init_value"] == "":
+            if PV["init_value"] != "":
                 self.ca.set_pv_value("SIM:X:" + PV["PV"], PV["init_value"])
             for value in PV["values"]:
                 sim_value = value
