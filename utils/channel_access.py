@@ -122,8 +122,10 @@ class ChannelAccess(object):
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
         self.ca.set_pv_value(self.create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
-        # Give lewis time to process
-        time.sleep(sleep_after_set)
+
+        # Give lewis time to process - avoid sleep(0) in case it might do am implicit thread yield
+        if sleep_after_set > 0.0:
+            time.sleep(sleep_after_set)
 
     def get_pv_value(self, pv):
         """
