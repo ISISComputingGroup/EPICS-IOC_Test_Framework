@@ -152,7 +152,7 @@ class HifimagsTests(unittest.TestCase):
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
         self.overrideDisables()
         for PV in WRITE_PVS:
-            if not PV["init_value"] == "":
+            if PV["init_value"] != "":
                 self.ca.set_pv_value(PV["MAG"] + ":" + PV["PV"] + ":SP", PV["init_value"])
             for value in PV["values"]:
                 sim_value = value
@@ -371,4 +371,3 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:QUENCH", "Quenched")
         self.ca.assert_that_pv_is("OPMODE", "Idle")
         self.ca.set_pv_value("SIM:M:QUENCH", 0)
-
