@@ -14,7 +14,6 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("HIFIMAGS"),
         "macros": {},
-        # "pv_for_existence": "",
     },
 ]
 
@@ -49,7 +48,6 @@ READ_PVS = [
     {"PV": "OUTPUT:VOLT", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value": -0.4},
     {"PV": "TARGET:TIME", "EXTRA_READ_PV": "", "values":TIMES, "init_value":""},
     {"PV": "QUENCH", "EXTRA_READ_PV": "", "values":QUENCHES, "init_value":""},
-    #{"PV": "", "EXTRA_READ_PV": "", "values": "", "init_value":""},
 ]
 WRITE_PVS = [
     {"MAG": "X", "PV": "TARGET", "EXTRA_READ_PV": "", "values": GAUSS, "init_value": -4},
@@ -89,35 +87,35 @@ class HifimagsTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def setZeroes(self):
+    def set_zero_values(self):
         for PSU in PSUS:
             self.ca.set_pv_value(PSU + ":ZERO", 0.2)
             self.ca.set_pv_value(PSU + ":ZEROFIELD", 0.3)
 
 
-    def overrideDisables(self):
+    def override_disables(self):
         for PSU in PSUS:
             self.ca.set_pv_value(PSU + ":DIS", 0)
         self.ca.set_pv_value("M:EXTRAS:DIS", 0)
         self.ca.set_pv_value("Z:SWITCH:DIS", 0)
 
-    def checkMagnetsOff(self):
+    def check_magnets_off_function(self):
         self.ca.set_pv_value("MAGNETS:OFF:SP", "Off")
         for PSU in PSUS:
             self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 0)
             self.ca.assert_that_pv_is(PSU + ":READY", "Ready")
 
-    def setTarget(self, PSU, target):
+    def set_target(self, PSU, target):
         self.ca.set_pv_value(PSU + ":TARGET:SP", target)
         self.ca.set_pv_value(PSU + ":SET:SP", 1)
 
-    def toggleRampLeads(self):
+    def toggle_ramp_leads(self):
         self.ca.set_pv_value("M:RAMP:LEADS:SP", 1)
         self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
         self.ca.set_pv_value("M:RAMP:LEADS:SP", 0)
         self.ca.assert_that_pv_is("M:RAMP:LEADS", "Not Ramping")
 
-    def togglePersist(self):
+    def toggle_persist(self):
         self.ca.set_pv_value("M:PERSIST:SP", 1)
         self.ca.assert_that_pv_is("M:PERSIST", "Persisting")
         self.ca.set_pv_value("M:PERSIST:SP", 0)
@@ -150,7 +148,7 @@ class HifimagsTests(unittest.TestCase):
         self.ca.set_pv_value("SIM:X:QUENCH", 0)
 
     def test_GIVEN_settable_values_WHEN_sim_values_set_THEN_all_values_update(self):
-        self.overrideDisables()
+        self.override_disables()
         for PV in WRITE_PVS:
             if PV["init_value"] != "":
                 self.ca.set_pv_value(PV["MAG"] + ":" + PV["PV"] + ":SP", PV["init_value"])
@@ -227,12 +225,12 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.assert_that_pv_is("TEMP:" + SENSOR, sim_value)
 
     def test_GIVEN_all_magnets_on_WHEN_magnets_off_is_requested_THEN_all_magnets_are_ready_at_zero(self):
-        self.overrideDisables()
+        self.override_disables()
         for PSU in PSUS:
-            self.setTarget(PSU, 1)
+            self.set_target(PSU, 1)
             self.ca.assert_that_pv_is("SIM:" + PSU + ":SET:SP", "Ramping " + PSU)
             self.ca.assert_that_pv_is(PSU + ":OUTPUT:FIELD:GAUSS", 1)
-        self.checkMagnetsOff()
+        self.check_magnets_off_function()
 
     def test_WHEN_in_idle_mode_THEN_only_magnets_off_can_be_controlled(self):
         self.ca.set_pv_value("OPMODE:SP", 1)
@@ -249,13 +247,13 @@ class HifimagsTests(unittest.TestCase):
         for PV in WRITE_PVS:
             self.ca.assert_that_pv_is(PV["MAG"] + ":" + PV["PV"] + ":SP.DISP", "1")
 
-        self.checkMagnetsOff()
+        self.check_magnets_off_function()
 
     def test_WHEN_in_high_field_mode_THEN_only_main_and_z_can_be_controlled(self):
-        self.setZeroes()
-        self.overrideDisables()
+        self.set_zero_values()
+        self.override_disables()
         for PSU in PSUS:
-            self.setTarget(PSU, 1)
+            self.set_target(PSU, 1)
 
         self.ca.set_pv_value("OPMODE:SP", 0)
         self.ca.set_pv_value("OPMODE:SP", 1)
@@ -272,23 +270,23 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:DIS", "M ENABLED")
         self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
 
-        self.setTarget("Z", 1.4)
+        self.set_target("Z", 1.4)
         self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
 
-        self.setTarget("M", 3.4)
+        self.set_target("M", 3.4)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", 3.4)
 
-        self.toggleRampLeads()
+        self.toggle_ramp_leads()
 
-        self.togglePersist()
+        self.toggle_persist()
 
-        self.checkMagnetsOff()
+        self.check_magnets_off_function()
 
     def test_WHEN_in_low_field_mode_THEN_x_y_z_and_m_extras_can_be_controlled(self):
-        self.setZeroes()
-        self.overrideDisables()
+        self.set_zero_values()
+        self.override_disables()
         for PSU in PSUS:
-            self.setTarget(PSU, 1)
+            self.set_target(PSU, 1)
 
         self.ca.set_pv_value("OPMODE:SP", 0)
         self.ca.set_pv_value("OPMODE:SP", 2)
@@ -308,26 +306,26 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("M:DIS", "M DISABLED")
         self.ca.assert_that_pv_is("M:EXTRAS:DIS", "M ENABLED")
 
-        self.setTarget("X", 1.4)
+        self.set_target("X", 1.4)
         self.ca.assert_that_pv_is("X:OUTPUT:FIELD:GAUSS", 1.4)
 
-        self.setTarget("Y", 1.4)
+        self.set_target("Y", 1.4)
         self.ca.assert_that_pv_is("Y:OUTPUT:FIELD:GAUSS", 1.4)
 
-        self.setTarget("Z", 1.4)
+        self.set_target("Z", 1.4)
         self.ca.assert_that_pv_is("Z:OUTPUT:FIELD:GAUSS", 1.4)
 
-        self.toggleRampLeads()
+        self.toggle_ramp_leads()
 
-        self.togglePersist()
+        self.toggle_persist()
 
-        self.checkMagnetsOff()
+        self.check_magnets_off_function()
 
     def test_WHEN_in_z_switching_mode_THEN_m_and_z_switch_can_be_controlled_with_sets_delayed(self):
-        self.setZeroes()
-        self.overrideDisables()
+        self.set_zero_values()
+        self.override_disables()
         for PSU in PSUS:
-            self.setTarget(PSU, 1)
+            self.set_target(PSU, 1)
 
         self.ca.set_pv_value("OPMODE:SP", 0)
         self.ca.set_pv_value("OPMODE:SP", 3)
@@ -355,14 +353,14 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("Z:FIELD:MAX", 2.4, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("Z:FIELD:MID", 1.45, tolerance=1e-3)
 
-        self.setTarget("M", -1.4)
+        self.set_target("M", -1.4)
         self.ca.assert_that_pv_is("M:OUTPUT:FIELD:GAUSS", -1.4)
 
-        self.toggleRampLeads()
+        self.toggle_ramp_leads()
 
-        self.togglePersist()
+        self.toggle_persist()
 
-        self.checkMagnetsOff()
+        self.check_magnets_off_function()
 
     def test_WHEN_a_magnet_sees_a_quench_THEN_system_goes_into_idle_mode(self):
         self.ca.set_pv_value("OPMODE:SP", 2)
