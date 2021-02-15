@@ -85,7 +85,7 @@ class HifimagsTests(unittest.TestCase):
     Tests for the Hifimags IOC.
     """
     def setUp(self):
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
 
     def set_zero_values(self):
         for PSU in PSUS:
@@ -250,8 +250,8 @@ class HifimagsTests(unittest.TestCase):
         self.check_magnets_off_function()
 
     def test_WHEN_in_high_field_mode_THEN_only_main_and_z_can_be_controlled(self):
-        self.set_zero_values()
         self.override_disables()
+        self.set_zero_values()
         for PSU in PSUS:
             self.set_target(PSU, 1)
 
@@ -283,8 +283,8 @@ class HifimagsTests(unittest.TestCase):
         self.check_magnets_off_function()
 
     def test_WHEN_in_low_field_mode_THEN_x_y_z_and_m_extras_can_be_controlled(self):
-        self.set_zero_values()
         self.override_disables()
+        self.set_zero_values()
         for PSU in PSUS:
             self.set_target(PSU, 1)
 
@@ -322,8 +322,8 @@ class HifimagsTests(unittest.TestCase):
         self.check_magnets_off_function()
 
     def test_WHEN_in_z_switching_mode_THEN_m_and_z_switch_can_be_controlled_with_sets_delayed(self):
-        self.set_zero_values()
         self.override_disables()
+        self.set_zero_values()
         for PSU in PSUS:
             self.set_target(PSU, 1)
 
