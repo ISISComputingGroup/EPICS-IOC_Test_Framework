@@ -35,3 +35,5 @@ class HLX503Tests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
+    def test_WHEN_ioc_started_THEN_ioc_connected(self):
+        self.ca.get_pv_value("DISABLE")
