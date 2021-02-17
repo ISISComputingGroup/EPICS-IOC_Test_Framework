@@ -12,25 +12,24 @@ DEVICE_PREFIX = "HLX503_01"
 # Emulator name
 emulator_name = "hlx503"
 
-# ITC503 ISOBUS addresses
-isobus_addresses = {
-    "SORB_ISOBUS": 1,
-    "1KPOT_ISOBUS": 2,
-    "HE3POT_LOWT_ISOBUS": 3,
-    "HE3POT_HIGHT_ISOBUS": 4
-}
+# ITC503 ISOBUS addresses and channels
+itc_names = ["SORB", "1KPOT", "HE3POT_LOWT", "HE3POT_HIGHT"]
+isobus_addresses = {f"{name}_ISOBUS": i for i, name in enumerate(itc_names)}
+channels = {f"{name}_CHANNEL": i for i, name in enumerate(itc_names)}
+isobus_addresses_and_channels_zip = zip(isobus_addresses.values(), channels.values())
+itc_zip = zip(itc_names, isobus_addresses.values(), channels.values())
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("HLX503"),
         "emulator": emulator_name,
-        "macros": isobus_addresses
+        "macros": {**isobus_addresses, **channels}
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class HLX503Tests(unittest.TestCase):
@@ -49,5 +48,11 @@ class HLX503Tests(unittest.TestCase):
         self.ca.get_pv_value("DISABLE")
 
     @parameterized.expand(parameterized_list(isobus_addresses.items()))
-    def test_WHEN_ioc_set_up_with_ISOBUS_numbers_THEN_ISOBUS_numbers_are_correct(self, _, macro_pv_name, isobus_addresses):
-        self.ca.assert_that_pv_is(macro_pv_name, isobus_addresses)
+    def test_WHEN_ioc_set_up_with_ISOBUS_numbers_THEN_ISOBUS_numbers_are_correct(self, _, macro_pv_name, isobus_address):
+        self.ca.assert_that_pv_is(macro_pv_name, isobus_address)
+
+    @parameterized.expand(parameterized_list(itc_zip))
+    def test_WHEN_set_temp_via_backdoor_THEN_get_temp_value_correct(self, _, itc_name, isobus_address, channel):
+        temp = 20.0
+        self._lewis.backdoor_run_function_on_device("set_temp", arguments=(isobus_address, channel, temp))
+        self.ca.assert_that_pv_is(f"{itc_name}:TEMP", temp)
