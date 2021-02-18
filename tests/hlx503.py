@@ -1,6 +1,7 @@
 import unittest
 from parameterized import parameterized
 from itertools import product
+import time
 
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
@@ -15,28 +16,33 @@ emulator_name = "hlx503"
 
 # ITC503 ISOBUS addresses and channels
 # Must match those in emulator device
-itc_names = ["SORB", "1KPOT", "HE3POT_LOWT", "HE3POT_HIGHT"]
+itc_names_non_601 = ["1KPOT", "HE3POT_LOWT", "HE3POT_HIGHT"]
+itc_names = [*itc_names_non_601, "SORB"]
+itc_name_and_isobus_non_601 = list(enumerate(itc_names_non_601))
+itc_name_and_isobus_601 = [(3, "SORB")]
 itc_name_and_isobus = list(enumerate(itc_names))
+isobus_addresses_non_601 = {f"{name}_ISOBUS": isobus_address for isobus_address, name in enumerate(itc_names_non_601)}
 isobus_addresses = {f"{name}_ISOBUS": isobus_address for isobus_address, name in enumerate(itc_names)}
 channels = {f"{name}_CHANNEL": channel for channel, name in enumerate(itc_names)}
+versions = {"1KPOT_VERSION": 502, "HE3POT_LOWT_VERSION": 503, "HE3POT_HIGHT_VERSION": 503, "SORB_VERSION": 601}
 isobus_addresses_and_channels_zip = zip(isobus_addresses.values(), channels.values())
 itc_zip = list(zip(itc_names, isobus_addresses.values(), channels.values()))
 
 # Properties obtained from the get_status protocol and values to set them with
-status_properties = [
+status_properties_non_601 = [
     "status", "autoheat", "autoneedlevalve", "initneedlevalve", "remote",
     "locked", "sweeping", "ctrlchannel", "autopid", "tuning"
 ]
-status_set_values = [
+status_set_values_non_601 = [
     8, True, True, True, True,
     True, 1, 5, True, True
 ]
-status_expected_values = [
+status_expected_values_non_601 = [
     8, "Auto", "Auto", "YES", "YES",
     "YES", "YES", 5, "ON", "YES"
 ]
-status_properties_and_values = zip(status_properties, status_set_values, status_expected_values)
-isobus_status_properties_and_values = product(itc_name_and_isobus, status_properties_and_values)
+status_properties_and_values_non_601 = zip(status_properties_non_601, status_set_values_non_601, status_expected_values_non_601)
+isobus_status_properties_and_values_non_601 = product(itc_name_and_isobus_non_601, status_properties_and_values_non_601)
 combo_one = [("autoheat", "autoneedlevalve", "initneedlevalve")]
 combo_one_set_values = [
     (True, True, True),
@@ -118,14 +124,14 @@ combo_three_expected_values = [
 status_combos = list(product(combo_one, zip(combo_one_set_values, combo_one_expected_values))) + \
                 list(product(combo_two, zip(combo_two_set_values, combo_two_expected_values))) + \
                 list(product(combo_three, zip(combo_three_set_values, combo_three_expected_values)))
-itc_status_combos = list(product(itc_name_and_isobus, status_combos))
+itc_status_combos_non_601 = list(product(itc_name_and_isobus_non_601, status_combos))
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("HLX503"),
         "emulator": emulator_name,
-        "macros": {**isobus_addresses, **channels}
+        "macros": {**isobus_addresses, **channels, **versions}
     },
 ]
 
@@ -160,14 +166,14 @@ class HLX503Tests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_temp", arguments=(isobus_address, channel, temp))
         self.ca.assert_that_pv_is(f"{itc_name}:TEMP", temp)
 
-    @parameterized.expand(parameterized_list(isobus_status_properties_and_values))
+    @parameterized.expand(parameterized_list(isobus_status_properties_and_values_non_601))
     def test_WHEN_status_properties_set_via_backdoor_THEN_status_values_correct(self, _, isobus_and_itc, status_property_and_vals):
         status_property, status_set_val, status_expected_val = status_property_and_vals
         isobus_address, itc_name = isobus_and_itc
         self._lewis.backdoor_run_function_on_device(f"set_{status_property}", arguments=[isobus_address, status_set_val])
         self.ca.assert_that_pv_is(f"{itc_name}:{status_property.upper()}", status_expected_val)
 
-    @parameterized.expand(parameterized_list(itc_status_combos))
+    @parameterized.expand(parameterized_list(itc_status_combos_non_601))
     def test_WHEN_status_properties_set_in_combination_via_backdoor_THEN_status_values_correct(self, _, isobus_and_itc, status_property_and_vals):
         # Unpack status property and values
         properties = status_property_and_vals[0]
@@ -180,3 +186,19 @@ class HLX503Tests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device(f"set_{properties[i]}", arguments=[isobus_address, set_vals[i]])
         for i in range(num_of_properties):
             self.ca.assert_that_pv_is(f"{itc_name}:{properties[i].upper()}", expected_vals[i])
+
+    @parameterized.expand(parameterized_list(product(itc_name_and_isobus, ["Auto", "Manual"])))
+    def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, itc_name_and_isobus, value):
+        isobus, itc_name = itc_name_and_isobus
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc_name}:AUTOHEAT", timeout=20)
+
+    @parameterized.expand(parameterized_list(product(itc_name_and_isobus_non_601, ["Auto", "Manual"])))
+    def test_WHEN_set_autoneedlevalue_AND_NOT_601_THEN_autoneedlevalve_set(self, _, itc_name_and_isobus_non_601, value):
+        isobus, itc_name = itc_name_and_isobus_non_601
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc_name}:AUTONEEDLEVALVE")
+
+    @parameterized.expand(parameterized_list(product(itc_name_and_isobus_601, ["Auto", "Manual"])))
+    def test_WHEN_set_autoneedlevalue_AND_NOT_601_THEN_autoneedlevalve_set(self, _, itc_name_and_isobus, value):
+        isobus, itc_name, = itc_name_and_isobus
+        self.ca.set_pv_value(f"{itc_name}:AUTONEEDLEVALVE", value)
+        self.ca.assert_that_pv_is(f"{itc_name}:AUTONEEDLEVALVE", "Manual")
