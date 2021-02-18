@@ -49,19 +49,19 @@ def _reset_ioc(ca):
 
 def _reset_channels(ca):
     for channel in CHANNEL_LIST:
-        ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), "INACTIVE")
-        ca.assert_that_pv_is("CHAN:{:02d}:ACTIVE".format(channel), "INACTIVE")
+        pv = "CHAN:{:02d}:ACTIVE".format(channel)
+        ca.assert_setting_setpoint_sets_readback("INACTIVE", pv, set_point_pv=pv)
 
 
 def _reset_units(ca):
     for channel in CHANNEL_LIST:
-        ca.set_pv_value("CHAN:{:02d}:UNIT:RAW.AA".format(channel), "")
-        ca.assert_that_pv_is("CHAN:{:02d}:UNIT:RAW.AA".format(channel), "")
+        pv = "CHAN:{:02d}:UNIT:RAW.AA".format(channel)
+        ca.assert_setting_setpoint_sets_readback("", pv, set_point_pv=pv)
 
 
 def _reset_readings(ca):
-    ca.set_pv_value("READINGS", ["0"] * 20)
-    ca.assert_that_pv_after_processing_is("READINGS", "".join(["0"] * 20))
+    pv = "READINGS"
+    ca.assert_setting_setpoint_sets_readback(["0"] * 20, pv, set_point_pv=pv, expected_value="".join(["0"] * 20))
 
 
 def _clear_errors(ca, lewis):
@@ -72,15 +72,14 @@ def _clear_errors(ca, lewis):
 
 
 def _setup_channel_to_test(ca, lewis, channel, value=None):
-    ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
-    ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+    _set_active_channel(ca, channel)
     if value is not None:
         lewis.backdoor_run_function_on_device("set_channel_value_via_the_backdoor", [channel, value, "VDC"])
 
 
 def _set_active_channel(ca, channel):
-    ca.set_pv_value("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
-    ca.assert_that_pv_is("CHAN:{0:02d}:ACTIVE".format(channel), "ACTIVE")
+    pv = "CHAN:{0:02d}:ACTIVE".format(channel)
+    ca.assert_setting_setpoint_sets_readback("ACTIVE", pv, set_point_pv=pv)
 
 
 def _connect_device(lewis):
