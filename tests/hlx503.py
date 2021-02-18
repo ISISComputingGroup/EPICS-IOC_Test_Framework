@@ -41,6 +41,7 @@ itcs_non_601 = [itc for itc in itcs if itc.version != Version.ITC601]
 itcs_non_502 = [itc for itc in itcs if itc.version != Version.ITC502]
 itcs_601 = [itc for itc in itcs if itc.version == Version.ITC601]
 itcs_502 = [itc for itc in itcs if itc.version == Version.ITC502]
+itcs_503 = [itc for itc in itcs if itc.version == Version.ITC503]
 isobus_addresses = {f"{itc.name}_ISOBUS": itc.isobus_address for itc in itcs}
 versions = {f"{itc.name}_VERSION": itc.version.value for itc in itcs}
 channels = {f"{itc.name}_CHANNEL": itc.channel for itc in itcs}
@@ -59,7 +60,7 @@ status_expected_values_non_601 = [
     "YES", "YES", 5, "ON", "YES"
 ]
 status_properties_and_values_non_601 = zip(status_properties_non_601, status_set_values_non_601, status_expected_values_non_601)
-isobus_status_properties_and_values_non_601 = product(itcs_non_601, status_properties_and_values_non_601)
+isobus_status_properties_and_values_503 = product(itcs_503, status_properties_and_values_non_601)
 combo_one = [("autoheat", "autoneedlevalve", "initneedlevalve")]
 combo_one_set_values = [
     (True, True, True),
@@ -138,10 +139,14 @@ combo_three_expected_values = [
     (5, "ON", "NO"),
 ]
 
-status_combos = list(product(combo_one, zip(combo_one_set_values, combo_one_expected_values))) + \
-                list(product(combo_two, zip(combo_two_set_values, combo_two_expected_values))) + \
-                list(product(combo_three, zip(combo_three_set_values, combo_three_expected_values)))
-itc_status_combos_non_601 = list(product(itcs_non_601, status_combos))
+status_combos_non_601 = list(product(combo_one, zip(combo_one_set_values, combo_one_expected_values)))
+itc_status_combos_non_601 = list(product(itcs_non_601, status_combos_non_601))
+status_combos_non_502 = list(product(combo_three, zip(combo_three_set_values, combo_three_expected_values)))
+itc_status_combos_non_502 = list(product(itcs_non_502, status_combos_non_502))
+status_combos_all = list(product(combo_two, zip(combo_two_set_values, combo_two_expected_values)))
+itc_status_combos_all = list(product(itcs, status_combos_all))
+itc_status_combos = itc_status_combos_non_601 + itc_status_combos_non_502 + itc_status_combos_all
+
 
 IOCS = [
     {
@@ -183,13 +188,13 @@ class HLX503Tests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_temp", arguments=(itc.isobus_address, itc.channel, temp))
         self.ca.assert_that_pv_is(f"{itc.name}:TEMP", temp)
 
-    @parameterized.expand(parameterized_list(isobus_status_properties_and_values_non_601))
+    @parameterized.expand(parameterized_list(isobus_status_properties_and_values_503))
     def test_WHEN_status_properties_set_via_backdoor_THEN_status_values_correct(self, _, itc, status_property_and_vals):
         status_property, status_set_val, status_expected_val = status_property_and_vals
         self._lewis.backdoor_run_function_on_device(f"set_{status_property}", arguments=[itc.isobus_address, status_set_val])
         self.ca.assert_that_pv_is(f"{itc.name}:{status_property.upper()}", status_expected_val)
 
-    @parameterized.expand(parameterized_list(itc_status_combos_non_601))
+    @parameterized.expand(parameterized_list(itc_status_combos))
     def test_WHEN_status_properties_set_in_combination_via_backdoor_THEN_status_values_correct(self, _, itc, status_property_and_vals):
         # Unpack status property and values
         properties = status_property_and_vals[0]
@@ -216,14 +221,6 @@ class HLX503Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(product(itcs_non_502, ["ON", "OFF"])))
     def test_WHEN_set_autopid_AND_NOT_502_THEN_autopid_set(self, _, itc_non_502, value):
-        if value == "ON":
-            rval = 1
-        else:
-            rval = 0
-        self.ca.set_pv_value(f"{itc_non_502.name}:AUTOPID:SP", value)
-        self.ca.assert_that_pv_is(f"{itc_non_502.name}:AUTOPID:SP:_CALC1", rval + 1)
-        self.ca.assert_that_pv_is(f"{itc_non_502.name}:AUTOPID:SP:_CALC2", rval)
-        self.ca.assert_that_pv_is(f"{itc_non_502.name}:AUTOPID:SP:_OUT", value)
         self.ca.assert_setting_setpoint_sets_readback(value, f"{itc_non_502.name}:AUTOPID")
 
     @parameterized.expand(parameterized_list(product(itcs_502, ["ON", "OFF"])))
