@@ -191,7 +191,7 @@ class MydeviceTests(unittest.TestCase):
         # Grab a reference to the ioc and lewis
         self._lewis, self._ioc = get_running_lewis_and_ioc(“mydevice", "IOCNAME_01")
         # Setup channel access with a default timeout of 20 seconds and a IOC prefix of "IOCNAME_01"
-        self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01")
+        self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01", default_wait_time=0.0)
         # Wait for a PV to be available – the IOC may take some time to start
         self.ca.wait_for(“DISABLE", timeout=30)
         
@@ -199,7 +199,7 @@ class MydeviceTests(unittest.TestCase):
         # Assert that a PV has a particular value (prefix prepended automatically)          
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 ```
-Try to use GIVEN_WHEN_THEN test naming wherever appropriate
+Try to use GIVEN_WHEN_THEN test naming wherever appropriate. By default `ChannelAccess` will wait 1 second after every set, but this can dramatically slow down tests. Newer tests should override this default using `default_wait_time=0.0` and only sleep where definitely required.
 
 ### Setting values
 
