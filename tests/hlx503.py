@@ -1,7 +1,9 @@
 import unittest
+from dataclasses import dataclass
+
 from parameterized import parameterized
 from itertools import product
-import time
+from enum import Enum
 
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
@@ -14,19 +16,34 @@ DEVICE_PREFIX = "HLX503_01"
 # Emulator name
 emulator_name = "hlx503"
 
+
+class Version(Enum):
+    ITC503 = 503
+    ITC502 = 502
+    ITC601 = 601
+
+
+@dataclass
+class ITC:
+    name: str
+    version: Version
+    channel : int
+    isobus_address: int
+
+
 # ITC503 ISOBUS addresses and channels
 # Must match those in emulator device
-itc_names_non_601 = ["1KPOT", "HE3POT_LOWT", "HE3POT_HIGHT"]
-itc_names = [*itc_names_non_601, "SORB"]
-itc_name_and_isobus_non_601 = list(enumerate(itc_names_non_601))
-itc_name_and_isobus_601 = [(3, "SORB")]
-itc_name_and_isobus = list(enumerate(itc_names))
-isobus_addresses_non_601 = {f"{name}_ISOBUS": isobus_address for isobus_address, name in enumerate(itc_names_non_601)}
-isobus_addresses = {f"{name}_ISOBUS": isobus_address for isobus_address, name in enumerate(itc_names)}
-channels = {f"{name}_CHANNEL": channel for channel, name in enumerate(itc_names)}
-versions = {"1KPOT_VERSION": 502, "HE3POT_LOWT_VERSION": 503, "HE3POT_HIGHT_VERSION": 503, "SORB_VERSION": 601}
-isobus_addresses_and_channels_zip = zip(isobus_addresses.values(), channels.values())
-itc_zip = list(zip(itc_names, isobus_addresses.values(), channels.values()))
+itcs = [
+    ITC("1KPOT", Version.ITC502, 0, 0), ITC("HE3POT_LOWT", Version.ITC503, 1, 1),
+    ITC("HE3POT_HIGHT", Version.ITC503, 2, 2), ITC("SORB", Version.ITC601, 3, 3)
+]
+itcs_non_601 = [itc for itc in itcs if itc.version != Version.ITC601]
+itcs_non_502 = [itc for itc in itcs if itc.version != Version.ITC502]
+itcs_601 = [itc for itc in itcs if itc.version == Version.ITC601]
+itcs_502 = [itc for itc in itcs if itc.version == Version.ITC502]
+isobus_addresses = {f"{itc.name}_ISOBUS": itc.isobus_address for itc in itcs}
+versions = {f"{itc.name}_VERSION": itc.version.value for itc in itcs}
+channels = {f"{itc.name}_CHANNEL": itc.channel for itc in itcs}
 
 # Properties obtained from the get_status protocol and values to set them with
 status_properties_non_601 = [
@@ -42,7 +59,7 @@ status_expected_values_non_601 = [
     "YES", "YES", 5, "ON", "YES"
 ]
 status_properties_and_values_non_601 = zip(status_properties_non_601, status_set_values_non_601, status_expected_values_non_601)
-isobus_status_properties_and_values_non_601 = product(itc_name_and_isobus_non_601, status_properties_and_values_non_601)
+isobus_status_properties_and_values_non_601 = product(itcs_non_601, status_properties_and_values_non_601)
 combo_one = [("autoheat", "autoneedlevalve", "initneedlevalve")]
 combo_one_set_values = [
     (True, True, True),
@@ -124,7 +141,7 @@ combo_three_expected_values = [
 status_combos = list(product(combo_one, zip(combo_one_set_values, combo_one_expected_values))) + \
                 list(product(combo_two, zip(combo_two_set_values, combo_two_expected_values))) + \
                 list(product(combo_three, zip(combo_three_set_values, combo_three_expected_values)))
-itc_status_combos_non_601 = list(product(itc_name_and_isobus_non_601, status_combos))
+itc_status_combos_non_601 = list(product(itcs_non_601, status_combos))
 
 IOCS = [
     {
@@ -150,55 +167,66 @@ class HLX503Tests(unittest.TestCase):
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        for isobus_address in isobus_addresses.values():
-            self._lewis.backdoor_run_function_on_device("reset_status", arguments=[isobus_address])
+        for itc in itcs:
+            self._lewis.backdoor_run_function_on_device("reset_status", arguments=[itc.isobus_address])
 
     def test_WHEN_ioc_started_THEN_ioc_connected(self):
         self.ca.get_pv_value("DISABLE")
 
-    @parameterized.expand(parameterized_list(isobus_addresses.items()))
-    def test_WHEN_ioc_set_up_with_ISOBUS_numbers_THEN_ISOBUS_numbers_are_correct(self, _, macro_pv_name, isobus_address):
-        self.ca.assert_that_pv_is(macro_pv_name, isobus_address)
+    @parameterized.expand(parameterized_list(itcs))
+    def test_WHEN_ioc_set_up_with_ISOBUS_numbers_THEN_ISOBUS_numbers_are_correct(self, _, itc):
+        self.ca.assert_that_pv_is(f"{itc.name}_ISOBUS", itc.isobus_address)
 
-    @parameterized.expand(parameterized_list(itc_zip))
-    def test_WHEN_set_temp_via_backdoor_THEN_get_temp_value_correct(self, _, itc_name, isobus_address, channel):
+    @parameterized.expand(parameterized_list(itcs))
+    def test_WHEN_set_temp_via_backdoor_THEN_get_temp_value_correct(self, _, itc):
         temp = 20.0
-        self._lewis.backdoor_run_function_on_device("set_temp", arguments=(isobus_address, channel, temp))
-        self.ca.assert_that_pv_is(f"{itc_name}:TEMP", temp)
+        self._lewis.backdoor_run_function_on_device("set_temp", arguments=(itc.isobus_address, itc.channel, temp))
+        self.ca.assert_that_pv_is(f"{itc.name}:TEMP", temp)
 
     @parameterized.expand(parameterized_list(isobus_status_properties_and_values_non_601))
-    def test_WHEN_status_properties_set_via_backdoor_THEN_status_values_correct(self, _, isobus_and_itc, status_property_and_vals):
+    def test_WHEN_status_properties_set_via_backdoor_THEN_status_values_correct(self, _, itc, status_property_and_vals):
         status_property, status_set_val, status_expected_val = status_property_and_vals
-        isobus_address, itc_name = isobus_and_itc
-        self._lewis.backdoor_run_function_on_device(f"set_{status_property}", arguments=[isobus_address, status_set_val])
-        self.ca.assert_that_pv_is(f"{itc_name}:{status_property.upper()}", status_expected_val)
+        self._lewis.backdoor_run_function_on_device(f"set_{status_property}", arguments=[itc.isobus_address, status_set_val])
+        self.ca.assert_that_pv_is(f"{itc.name}:{status_property.upper()}", status_expected_val)
 
     @parameterized.expand(parameterized_list(itc_status_combos_non_601))
-    def test_WHEN_status_properties_set_in_combination_via_backdoor_THEN_status_values_correct(self, _, isobus_and_itc, status_property_and_vals):
+    def test_WHEN_status_properties_set_in_combination_via_backdoor_THEN_status_values_correct(self, _, itc, status_property_and_vals):
         # Unpack status property and values
         properties = status_property_and_vals[0]
         set_vals = status_property_and_vals[1][0]
         expected_vals = status_property_and_vals[1][1]
         num_of_properties = len(properties)
-        # Unpack isobus and itc address
-        isobus_address, itc_name = isobus_and_itc
         for i in range(num_of_properties):
-            self._lewis.backdoor_run_function_on_device(f"set_{properties[i]}", arguments=[isobus_address, set_vals[i]])
+            self._lewis.backdoor_run_function_on_device(f"set_{properties[i]}", arguments=[itc.isobus_address, set_vals[i]])
         for i in range(num_of_properties):
-            self.ca.assert_that_pv_is(f"{itc_name}:{properties[i].upper()}", expected_vals[i])
+            self.ca.assert_that_pv_is(f"{itc.name}:{properties[i].upper()}", expected_vals[i])
 
-    @parameterized.expand(parameterized_list(product(itc_name_and_isobus, ["Auto", "Manual"])))
-    def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, itc_name_and_isobus, value):
-        isobus, itc_name = itc_name_and_isobus
-        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc_name}:AUTOHEAT", timeout=20)
+    @parameterized.expand(parameterized_list(product(itcs, ["Auto", "Manual"])))
+    def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, itc, value):
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc.name}:AUTOHEAT", timeout=20)
 
-    @parameterized.expand(parameterized_list(product(itc_name_and_isobus_non_601, ["Auto", "Manual"])))
-    def test_WHEN_set_autoneedlevalue_AND_NOT_601_THEN_autoneedlevalve_set(self, _, itc_name_and_isobus_non_601, value):
-        isobus, itc_name = itc_name_and_isobus_non_601
-        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc_name}:AUTONEEDLEVALVE")
+    @parameterized.expand(parameterized_list(product(itcs_non_601, ["Auto", "Manual"])))
+    def test_WHEN_set_autoneedlevalue_AND_NOT_601_THEN_autoneedlevalve_set(self, _, itc_non_601, value):
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc_non_601.name}:AUTONEEDLEVALVE")
 
-    @parameterized.expand(parameterized_list(product(itc_name_and_isobus_601, ["Auto", "Manual"])))
-    def test_WHEN_set_autoneedlevalue_AND_NOT_601_THEN_autoneedlevalve_set(self, _, itc_name_and_isobus, value):
-        isobus, itc_name, = itc_name_and_isobus
-        self.ca.set_pv_value(f"{itc_name}:AUTONEEDLEVALVE", value)
-        self.ca.assert_that_pv_is(f"{itc_name}:AUTONEEDLEVALVE", "Manual")
+    @parameterized.expand(parameterized_list(product(itcs_601, ["Auto", "Manual"])))
+    def test_WHEN_set_autoneedlevalue_AND_NOT_601_THEN_autoneedlevalve_set(self, _, itc_601, value):
+        self.ca.set_pv_value(f"{itc_601.name}:AUTONEEDLEVALVE:SP", value)
+        self.ca.assert_that_pv_is(f"{itc_601.name}:AUTONEEDLEVALVE", "Manual")
+
+    @parameterized.expand(parameterized_list(product(itcs_non_502, ["ON", "OFF"])))
+    def test_WHEN_set_autopid_AND_NOT_502_THEN_autopid_set(self, _, itc_non_502, value):
+        if value == "ON":
+            rval = 1
+        else:
+            rval = 0
+        self.ca.set_pv_value(f"{itc_non_502.name}:AUTOPID:SP", value)
+        self.ca.assert_that_pv_is(f"{itc_non_502.name}:AUTOPID:SP:_CALC1", rval + 1)
+        self.ca.assert_that_pv_is(f"{itc_non_502.name}:AUTOPID:SP:_CALC2", rval)
+        self.ca.assert_that_pv_is(f"{itc_non_502.name}:AUTOPID:SP:_OUT", value)
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc_non_502.name}:AUTOPID")
+
+    @parameterized.expand(parameterized_list(product(itcs_502, ["ON", "OFF"])))
+    def test_WHEN_set_autopid_AND_502_THEN_autopid_not_set(self, _, itc, value):
+        self.ca.set_pv_value(f"{itc.name}:AUTOPID:SP", value)
+        self.ca.assert_that_pv_is(f"{itc.name}:AUTOPID", "OFF")
