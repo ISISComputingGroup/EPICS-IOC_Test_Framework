@@ -6,7 +6,6 @@ from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import get_running_lewis_and_ioc, parameterized_list
-import pdb
 
 # Device prefix
 DEVICE_PREFIX = "HLX503_01"
@@ -77,15 +76,11 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_set_temp_via_backdoor_THEN_get_temp_value_correct(self, _, itc_name, isobus_address, channel):
         temp = 20.0
         self._lewis.backdoor_run_function_on_device("set_temp", arguments=(isobus_address, channel, temp))
-        self.ca.process_pv(f"{itc_name}:TEMP")
         self.ca.assert_that_pv_is(f"{itc_name}:TEMP", temp)
 
     @parameterized.expand(parameterized_list(isobus_status_properties_and_values))
     def test_WHEN_status_properties_set_via_backdoor_THEN_status_values_correct(self, _, isobus_and_itc, status_property_and_vals):
         status_property, status_set_val, status_expected_val = status_property_and_vals
         isobus_address, itc_name = isobus_and_itc
-        print(f"property: {status_property}. val: {status_set_val}")
-        print(f"itc name: {itc_name}. isobus: {isobus_address}")
         self._lewis.backdoor_run_function_on_device(f"set_{status_property}", arguments=[isobus_address, status_set_val])
-        self.ca.process_pv(f"{itc_name}:STATUS")
         self.ca.assert_that_pv_is(f"{itc_name}:{status_property.upper()}", status_expected_val)
