@@ -241,16 +241,36 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is(f"{itc.name}:LOCKED", locked_value)
         self.ca.assert_that_pv_is(f"{itc.name}:REMOTE", remote_value)
 
-    @parameterized.expand(parameterized_list(product(itcs, [2.4, 5.9, 18.3])))
+    @parameterized.expand(parameterized_list(product(itcs, [2.4, 18.3])))
     def test_WHEN_temp_set_THEN_temp_sp_rbv_correct(self, _, itc, value):
         self.ca.assert_setting_setpoint_sets_readback(
             value, f"{itc.name}:TEMP:SP:RBV", set_point_pv=f"{itc.name}:TEMP:SP"
         )
 
-    @parameterized.expand(parameterized_list(product(itcs, [2.4, 5.9, 18.3])))
+    @parameterized.expand(parameterized_list(product(itcs, [2.4, 18.3])))
     def test_WHEN_temp_set_THEN_temp_set(self, _, itc, value):
         self.ca.assert_setting_setpoint_sets_readback(value, f"{itc.name}:TEMP")
 
-    @parameterized.expand(parameterized_list(product(itcs, [1, 2, 3])))
+    @parameterized.expand(parameterized_list(product(itcs, [1, 3])))
     def test_WHEN_ctrlchannel_set_THEN_ctrlchannel_set(self, _, itc, new_control_channel):
         self.ca.assert_setting_setpoint_sets_readback(new_control_channel, f"{itc.name}:CTRLCHANNEL")
+
+    @parameterized.expand(parameterized_list(product(itcs, [0.2, 3.8])))
+    def test_WHEN_proportional_set_THEN_proportional_set(self, _, itc, proportional):
+        self.ca.set_pv_value(f"{itc.name}:P:SP", proportional)
+        set_proportional = self._lewis.backdoor_run_function_on_device(
+            "get_proportional", arguments=[itc.isobus_address]
+        )
+        self.assertEqual(proportional, set_proportional)
+
+    @parameterized.expand(parameterized_list(product(itcs, [0.2, 3.8])))
+    def test_WHEN_integral_set_THEN_integral_set(self, _, itc, integral):
+        self.ca.set_pv_value(f"{itc.name}:I:SP", integral)
+        set_integral = self._lewis.backdoor_run_function_on_device("get_integral", arguments=[itc.isobus_address])
+        self.assertEqual(integral, set_integral)
+
+    @parameterized.expand(parameterized_list(product(itcs, [0.2, 3.8])))
+    def test_WHEN_derivative_set_THEN_derivative_set(self, _, itc, derivative):
+        self.ca.set_pv_value(f"{itc.name}:D:SP", derivative)
+        set_derivative = self._lewis.backdoor_run_function_on_device("get_derivative", arguments=[itc.isobus_address])
+        self.assertEqual(derivative, set_derivative)
