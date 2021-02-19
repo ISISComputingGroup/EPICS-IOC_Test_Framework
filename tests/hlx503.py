@@ -61,36 +61,60 @@ status_expected_values_non_601 = [
 ]
 status_properties_and_values_non_601 = zip(status_properties_non_601, status_set_values_non_601, status_expected_values_non_601)
 isobus_status_properties_and_values_503 = product(itcs_503, status_properties_and_values_non_601)
-combo_one = [("autoheat", "autoneedlevalve", "initneedlevalve")]
-combo_one_set_values = [
+
+# Further properties obtained from the get_status protocol and values to set them with but in combination
+# Autoneedlevalve cannot be set for ITC601 so don't test this combo on it
+combo_autoheat_autoneedlevalve_initneedle_valve = [("autoheat", "autoneedlevalve", "initneedlevalve")]
+combo_autoheat_autoneedlevalve_initneedle_valve_set_values = [
     (True, True, True),
     (True, False, True),
     (False, False, False),
     (True, True, False),
     (False, True, True),
 ]
-combo_one_expected_values = [
+combo_autoheat_autoneedlevalve_initneedle_valve_expected_values = [
     ("Auto", "Auto", "YES"),
     ("Auto", "Manual", "YES"),
     ("Manual", "Manual", "NO"),
     ("Auto", "Auto", "NO"),
     ("Manual", "Auto", "YES"),
 ]
-combo_two = [("remote", "locked")]
-combo_two_set_values = [
+
+status_combos_non_601 = list(product(
+    combo_autoheat_autoneedlevalve_initneedle_valve,
+    zip(
+        combo_autoheat_autoneedlevalve_initneedle_valve_set_values,
+        combo_autoheat_autoneedlevalve_initneedle_valve_expected_values
+    )
+))
+itc_status_combos_non_601 = list(product(itcs_non_601, status_combos_non_601))
+
+# Remote and locked apply to all ITC versions
+combo_remote_locked = [("remote", "locked")]
+combo_remote_locked_set_values = [
     (True, True),
     (False, False),
     (True, False),
     (False, True)
 ]
-combo_two_expected_values = [
+combo_remote_locked_expected_values = [
     ("YES", "YES"),
     ("NO", "NO"),
     ("YES", "NO"),
     ("NO", "YES")
 ]
-combo_three = [("ctrlchannel", "autopid", "tuning")]
-combo_three_set_values = [
+
+status_combos_all = list(product(
+    combo_remote_locked,
+    zip(
+        combo_remote_locked_set_values,
+        combo_remote_locked_expected_values
+    )
+))
+itc_status_combos_all = list(product(itcs, status_combos_all))
+
+combo_ctrlchannel_autopid_tuning = [("ctrlchannel", "autopid", "tuning")]
+combo_ctrlchannel_autopid_tuning_set_values = [
     #
     (None, True, True),
     (None, False, True),
@@ -114,7 +138,7 @@ combo_three_set_values = [
     (5, False, None),
     (5, True, None),
 ]
-combo_three_expected_values = [
+combo_ctrlchannel_autopid_tuning_expected_values = [
     #
     (0, "ON", "YES"),
     (0, "OFF", "YES"),
@@ -139,12 +163,16 @@ combo_three_expected_values = [
     (5, "ON", "NO"),
 ]
 
-status_combos_non_601 = list(product(combo_one, zip(combo_one_set_values, combo_one_expected_values)))
-itc_status_combos_non_601 = list(product(itcs_non_601, status_combos_non_601))
-status_combos_non_502 = list(product(combo_three, zip(combo_three_set_values, combo_three_expected_values)))
+status_combos_non_502 = list(product(
+    combo_ctrlchannel_autopid_tuning,
+    zip(
+        combo_ctrlchannel_autopid_tuning_set_values,
+        combo_ctrlchannel_autopid_tuning_expected_values
+    )
+))
 itc_status_combos_non_502 = list(product(itcs_non_502, status_combos_non_502))
-status_combos_all = list(product(combo_two, zip(combo_two_set_values, combo_two_expected_values)))
-itc_status_combos_all = list(product(itcs, status_combos_all))
+
+# Combine all the status combination test cases
 itc_status_combos = itc_status_combos_non_601 + itc_status_combos_non_502 + itc_status_combos_all
 
 
@@ -227,3 +255,7 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_set_autopid_AND_502_THEN_autopid_not_set(self, _, itc, value):
         self.ca.set_pv_value(f"{itc.name}:AUTOPID:SP", value)
         self.ca.assert_that_pv_is(f"{itc.name}:AUTOPID", "OFF")
+
+    @parameterized.expand(parameterized_list(product(itcs, ["YES", "NO"])))
+    def test_WHEN_set_remote_THEN_remote_set(self, _, itc, value):
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc.name}:REMOTE")
