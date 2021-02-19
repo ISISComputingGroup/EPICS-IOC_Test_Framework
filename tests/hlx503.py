@@ -274,3 +274,7 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value(f"{itc.name}:D:SP", derivative)
         set_derivative = self._lewis.backdoor_run_function_on_device("get_derivative", arguments=[itc.isobus_address])
         self.assertEqual(derivative, set_derivative)
+
+    @parameterized.expand(parameterized_list(product(itcs, [23.2, 87.1])))
+    def test_WHEN_heater_output_set_THEN_heater_output_set(self, _, itc, heater_output):
+        self.ca.assert_setting_setpoint_sets_readback(heater_output, f"{itc.name}:HEATER_OUTPUT")
