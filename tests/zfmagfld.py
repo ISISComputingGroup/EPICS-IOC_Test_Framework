@@ -5,7 +5,7 @@ from parameterized import parameterized
 from utils.testing import parameterized_list
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher, IOCRegister
 import numpy as np
 
 DEVICE_PREFIX = "ZFMAGFLD_01"
@@ -17,7 +17,8 @@ OFFSET = 1.3
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("ZFMAGFLD")
+        "directory": get_default_ioc_dir("ZFMAGFLD"),
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
@@ -47,8 +48,10 @@ PVS_WHICH_USE_DAQ_DATA = [
     "CORRECTEDFIELD:Z"
 ]
 
+
 class ZeroFieldMagFieldTests(unittest.TestCase):
     def setUp(self):
+        self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.write_offset(0)
@@ -103,7 +106,6 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         offset_applied_field = {}
         for axis in AXES.keys():
             offset_applied_field[axis] = simulated_field[axis] - offset
-
 
         return offset_applied_field
 
@@ -412,3 +414,35 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), alarm)
+
+    @parameterized.expand(parameterized_list(AXES.keys()))
+    def test_GIVEN_smoothing_samples_WHEN_setting_field_THEN_average_field_is_given(self, _, axis):
+        number_samples = 10
+        field_number = 100
+        pv = "DAQ:{}".format(axis)
+        with self._ioc.start_with_macros({"NUM_SAMPLES": number_samples}, pv_to_wait_for=pv):
+            field = {"X": 0,
+                     "Y": 0,
+                     "Z": 0}
+            self.write_simulated_field_values(field)
+
+            for i in range(1, number_samples+1):
+                self.ca.process_pv("TAKEDATA")
+            self.ca.process_pv("TAKEDATA")
+            # make sure the field is 0
+            self.ca.assert_that_pv_is_number(pv, 0)
+
+            # Change the field number
+            field[axis] = field_number
+            self.write_simulated_field_values(field)
+
+            # every sample check the average has been processed correctly
+            for i in range(1, number_samples+1):
+                self.ca.process_pv("TAKEDATA")
+                # assert that after every TAKEDATA the average has gone up by the field_number divided by the sample
+                # number
+                self.ca.assert_that_pv_is_number(pv, (field_number // number_samples) * i)
+            
+            # Check the final value stays the same
+            self.ca.process_pv("TAKEDATA")
+            self.ca.assert_that_pv_is_number(pv, field_number)
