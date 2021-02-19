@@ -259,3 +259,15 @@ class HLX503Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(product(itcs, ["YES", "NO"])))
     def test_WHEN_set_remote_THEN_remote_set(self, _, itc, value):
         self.ca.assert_setting_setpoint_sets_readback(value, f"{itc.name}:REMOTE")
+
+    @parameterized.expand(parameterized_list(product(itcs, ["YES", "NO"])))
+    def test_WHEN_set_locked_THEN_locked_set(self, _, itc, value):
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc.name}:LOCKED")
+
+    @parameterized.expand(parameterized_list(product(itcs, list(product(["YES", "NO"], ["YES", "NO"])))))
+    def test_WHEN_set_remote_and_locked_THEN_remote_and_locked_set(self, _, itc, values):
+        locked_value, remote_value = values
+        self.ca.set_pv_value(f"{itc.name}:LOCKED:SP", locked_value)
+        self.ca.set_pv_value(f"{itc.name}:REMOTE:SP", remote_value)
+        self.ca.assert_that_pv_is(f"{itc.name}:LOCKED", locked_value)
+        self.ca.assert_that_pv_is(f"{itc.name}:REMOTE", remote_value)
