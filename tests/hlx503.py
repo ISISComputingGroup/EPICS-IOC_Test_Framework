@@ -273,7 +273,7 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is(f"{itc.name}:REMOTE", remote_value)
 
     @parameterized.expand(parameterized_list(product(itcs, [2.4, 5.9, 18.3])))
-    def test_WHEN_temp_set_THEN_temp_set(self, _, itc, value):
+    def test_WHEN_temp_set_THEN_temp_sp_rbv_correct(self, _, itc, value):
         self.ca.assert_setting_setpoint_sets_readback(
             value, f"{itc.name}:TEMP:SP:RBV", set_point_pv=f"{itc.name}:TEMP:SP"
         )
@@ -281,3 +281,7 @@ class HLX503Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(product(itcs, [2.4, 5.9, 18.3])))
     def test_WHEN_temp_set_THEN_temp_set(self, _, itc, value):
         self.ca.assert_setting_setpoint_sets_readback(value, f"{itc.name}:TEMP")
+
+    @parameterized.expand(parameterized_list(product(itcs, [1, 2, 3])))
+    def test_WHEN_ctrlchannel_set_THEN_ctrlchannel_set(self, _, itc, new_control_channel):
+        self.ca.assert_setting_setpoint_sets_readback(new_control_channel, f"{itc.name}:CTRLCHANNEL")
