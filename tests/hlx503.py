@@ -34,8 +34,8 @@ class ITC:
 # ITC503 ISOBUS addresses and channels
 # Must match those in emulator device
 itcs = [
-    ITC("1KPOT", Version.ITC502, 0, 0), ITC("HE3POT_LOWT", Version.ITC503, 1, 1),
-    ITC("HE3POT_HIGHT", Version.ITC503, 2, 2), ITC("SORB", Version.ITC601, 3, 3)
+    ITC("1KPOT", Version.ITC502, 1, 1), ITC("HE3POT_LOWT", Version.ITC503, 2, 2),
+    ITC("HE3POT_HIGHT", Version.ITC503, 3, 3), ITC("SORB", Version.ITC601, 4, 4)
 ]
 itcs_non_601 = [itc for itc in itcs if itc.version != Version.ITC601]
 itcs_non_502 = [itc for itc in itcs if itc.version != Version.ITC502]
@@ -213,7 +213,7 @@ class HLX503Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(itcs))
     def test_WHEN_set_temp_via_backdoor_THEN_get_temp_value_correct(self, _, itc):
         temp = 20.0
-        self._lewis.backdoor_run_function_on_device("set_temp", arguments=(itc.isobus_address, itc.channel, temp))
+        self._lewis.backdoor_run_function_on_device("set_temp", arguments=(itc.isobus_address, temp))
         self.ca.assert_that_pv_is(f"{itc.name}:TEMP", temp)
 
     @parameterized.expand(parameterized_list(isobus_status_properties_and_values_503))
@@ -271,3 +271,13 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value(f"{itc.name}:REMOTE:SP", remote_value)
         self.ca.assert_that_pv_is(f"{itc.name}:LOCKED", locked_value)
         self.ca.assert_that_pv_is(f"{itc.name}:REMOTE", remote_value)
+
+    @parameterized.expand(parameterized_list(product(itcs, [2.4, 5.9, 18.3])))
+    def test_WHEN_temp_set_THEN_temp_set(self, _, itc, value):
+        self.ca.assert_setting_setpoint_sets_readback(
+            value, f"{itc.name}:TEMP:SP:RBV", set_point_pv=f"{itc.name}:TEMP:SP"
+        )
+
+    @parameterized.expand(parameterized_list(product(itcs, [2.4, 5.9, 18.3])))
+    def test_WHEN_temp_set_THEN_temp_set(self, _, itc, value):
+        self.ca.assert_setting_setpoint_sets_readback(value, f"{itc.name}:TEMP")
