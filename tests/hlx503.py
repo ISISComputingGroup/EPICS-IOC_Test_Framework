@@ -270,3 +270,7 @@ class HLX503Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(product(itcs, [23.2, 87.1])))
     def test_WHEN_heater_output_set_THEN_heater_output_set(self, _, itc, heater_output):
         self.ca.assert_setting_setpoint_sets_readback(heater_output, f"{itc.name}:HEATER_OUTPUT")
+
+    @parameterized.expand(parameterized_list(product(itcs, [31.9, 66.6])))
+    def test_WHEN_needle_valve_percent_set_THEN_needle_valve_percent_set(self, _, itc, percent):
+        self.ca.assert_setting_setpoint_sets_readback(percent, f"{itc.name}:NEEDLE_VALVE_OUTPUT")
