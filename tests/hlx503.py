@@ -257,23 +257,15 @@ class HLX503Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(product(itcs, [0.2, 3.8])))
     def test_WHEN_proportional_set_THEN_proportional_set(self, _, itc, proportional):
-        self.ca.set_pv_value(f"{itc.name}:P:SP", proportional)
-        set_proportional = self._lewis.backdoor_run_function_on_device(
-            "get_proportional", arguments=[itc.isobus_address]
-        )
-        self.assertEqual(proportional, set_proportional)
+        self.ca.assert_setting_setpoint_sets_readback(proportional, f"{itc.name}:P")
 
     @parameterized.expand(parameterized_list(product(itcs, [0.2, 3.8])))
     def test_WHEN_integral_set_THEN_integral_set(self, _, itc, integral):
-        self.ca.set_pv_value(f"{itc.name}:I:SP", integral)
-        set_integral = self._lewis.backdoor_run_function_on_device("get_integral", arguments=[itc.isobus_address])
-        self.assertEqual(integral, set_integral)
+        self.ca.assert_setting_setpoint_sets_readback(integral, f"{itc.name}:I")
 
     @parameterized.expand(parameterized_list(product(itcs, [0.2, 3.8])))
     def test_WHEN_derivative_set_THEN_derivative_set(self, _, itc, derivative):
-        self.ca.set_pv_value(f"{itc.name}:D:SP", derivative)
-        set_derivative = self._lewis.backdoor_run_function_on_device("get_derivative", arguments=[itc.isobus_address])
-        self.assertEqual(derivative, set_derivative)
+        self.ca.assert_setting_setpoint_sets_readback(derivative, f"{itc.name}:D")
 
     @parameterized.expand(parameterized_list(product(itcs, [23.2, 87.1])))
     def test_WHEN_heater_output_set_THEN_heater_output_set(self, _, itc, heater_output):
