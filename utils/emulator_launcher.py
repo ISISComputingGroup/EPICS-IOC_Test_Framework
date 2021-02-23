@@ -6,10 +6,11 @@ import os
 import subprocess
 
 import sys
-import datetime
 from time import sleep, time
 from functools import partial
 import six
+from dataclasses import dataclass
+from typing import List, Any, Dict
 
 from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP
@@ -327,6 +328,22 @@ class NullEmulatorLauncher(EmulatorLauncher):
     def backdoor_run_function_on_device(self, *args, **kwargs): pass
 
 
+@dataclass
+class Emulator(object):
+    launcher_address: int
+    device: str
+    var_dir: str
+    port: Any
+    options: Dict
+
+
+@dataclass
+class TestEmulatorData(object):
+    emulator: str
+    emulator_port: Any
+    launcher_address: int
+
+
 class LewisLauncher(EmulatorLauncher):
     """
     Launches Lewis.
@@ -358,6 +375,17 @@ class LewisLauncher(EmulatorLauncher):
         self._process = None
         self._logFile = None
         self._connected = None
+
+    @classmethod
+    def from_emulator(cls, test_name, emulator: Emulator):
+        """
+        Constructor that also launches Lewis.
+
+        Args:
+            test_name: name of test we are creating device emulator for
+            emulator: Information to launch the emulator with
+        """
+        return cls(test_name, emulator.device, emulator.var_dir, emulator.port, emulator.options)
 
     def _close(self):
         """
@@ -497,6 +525,50 @@ class LewisLauncher(EmulatorLauncher):
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
         return self.backdoor_command(["device", str(variable_name)])
+
+
+class MultiLewisLauncher(object):
+    """
+    Launch multiple lewis emulators.
+    """
+
+    def __init__(self, test_name: str, emulators: List[Emulator]):
+        self.test_name: str = test_name
+        self.emulator_launchers: Dict[int, LewisLauncher] = {
+            emulator.launcher_address: LewisLauncher.from_emulator(test_name, emulator) for emulator in emulators
+        }
+
+    def __enter__(self):
+        self._open()
+        EmulatorRegister.add_emulator(self.test_name, self)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._close()
+        EmulatorRegister.remove_emulator(self.test_name)
+
+    def _close(self):
+        for launcher in self.emulator_launchers.values():
+            launcher._close()
+
+    def _open(self):
+        for launcher in self.emulator_launchers.values():
+            launcher._open()
+
+    def backdoor_get_from_device(self, launcher_address, variable, *_, **__):
+        return self.emulator_launchers[launcher_address].backdoor_get_from_device(variable)
+
+    def backdoor_set_on_device(self, launcher_address, variable, value,  *_, **__):
+        self.emulator_launchers[launcher_address].backdoor_set_on_device(variable, value)
+
+    def backdoor_emulator_disconnect_device(self, launcher_address):
+        self.emulator_launchers[launcher_address].backdoor_emulator_disconnect_device()
+
+    def backdoor_emulator_connect_device(self, launcher_address):
+        self.emulator_launchers[launcher_address].backdoor_emulator_connect_device()
+
+    def backdoor_run_function_on_device(self, launcher_address, function_name, arguments=None):
+        return self.emulator_launchers[launcher_address].backdoor_run_function_on_device(function_name, arguments)
 
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):

@@ -7,6 +7,7 @@ import os
 import sys
 import traceback
 import unittest
+from typing import List, Any
 
 import six
 import xmlrunner
@@ -16,7 +17,7 @@ from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
-from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher
+from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLewisLauncher, Emulator, TestEmulatorData
 from utils.ioc_launcher import IocLauncher, EPICS_TOP
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
@@ -100,6 +101,19 @@ def make_device_launchers_from_module(test_module, mode):
                                                         emmulator_port, ioc)
         elif "emulator" in ioc:
             emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], var_dir, None, ioc)
+        elif "emulators" in ioc and mode != TestModes.RECSIM:
+            emulator_launcher_class = ioc.get("emulators_launcher_class", MultiLewisLauncher)
+            test_emulator_data: List[TestEmulatorData] = ioc.get("emulators", {})
+            emulator_list: List[Emulator] = []
+            for test_emulator in test_emulator_data:
+                emulator_list.append(
+                    Emulator(
+                        test_emulator.launcher_address, test_emulator.emulator,
+                        os.path.join(var_dir, f"{test_emulator.emulator}_{test_emulator.launcher_address}"),
+                        test_emulator.emulator_port, ioc
+                    )
+                )
+            emulator_launcher = emulator_launcher_class(test_module.__name__, emulator_list)
         else:
             emulator_launcher = None
 
