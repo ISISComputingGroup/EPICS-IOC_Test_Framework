@@ -329,6 +329,9 @@ class NullEmulatorLauncher(EmulatorLauncher):
 
 @dataclass
 class Emulator(object):
+    """
+    A utility class to capture data required to create a MultiLewisLauncher
+    """
     launcher_address: int
     device: str
     var_dir: str
@@ -338,6 +341,9 @@ class Emulator(object):
 
 @dataclass
 class TestEmulatorData(object):
+    """
+    A utility class to capture the required data from a test to create a MultiLewisLauncher.
+    """
     emulator: str
     emulator_port: Any
     launcher_address: int
