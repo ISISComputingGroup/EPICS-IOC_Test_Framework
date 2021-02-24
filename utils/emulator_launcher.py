@@ -22,7 +22,10 @@ from lewis.scripts.control import call_method
 from lewis.core.control_client import ControlClient
 
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
+DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
 
+# Python 2 required to emulate the v1 mezei flipper
+DEFAULT_PY_2_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
 
 
 class EmulatorRegister(object):
@@ -332,8 +335,7 @@ class LewisLauncher(EmulatorLauncher):
     Launches Lewis.
     """
 
-    _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
-    _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH, "scripts")
+    _DEFAULT_LEWIS_PATH = os.path.join(DEFAULT_PY_PATH, "scripts")
 
     def __init__(self, test_name, device, var_dir, port, options):
         """
@@ -348,7 +350,7 @@ class LewisLauncher(EmulatorLauncher):
         super(LewisLauncher, self).__init__(test_name, device, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
-        self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
+        self._python_path = options.get("python_path", os.path.join(DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
         self._lewis_additional_path = options.get("lewis_additional_path", DEVICE_EMULATOR_PATH)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
