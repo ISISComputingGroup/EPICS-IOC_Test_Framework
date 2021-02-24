@@ -40,7 +40,7 @@ class Moxa1210Tests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("moxa12xx", DEVICE_PREFIX)
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
 
         # Sends a backdoor command to the device to set a discrete input (DI) value
 
@@ -83,7 +83,9 @@ class Moxa1210Tests(unittest.TestCase):
         for i in range(expected_count):
             # Toggle channel and ensure it's registered the trigger
             self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
+            self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
             self._lewis.backdoor_run_function_on_device("set_di", (channel, (False,)))
+            self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "Low")
             self.ca.assert_that_pv_is(channel_pv, i+1, timeout=5)
 
         self.ca.assert_that_pv_is(channel_pv, expected_count)
