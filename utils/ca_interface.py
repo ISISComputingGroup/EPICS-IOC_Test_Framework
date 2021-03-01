@@ -1,5 +1,14 @@
+import sys
 from caproto.threading.client import Context
-import array
+from caproto._utils import CaprotoTimeoutError
+
+def exception_translator(func):
+    def inner_function(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except CaprotoTimeoutError:
+            raise UnableToConnectToPVException(sys.exc_info()[1])
+    return inner_function
 
 
 class CaChannelWrapper:
@@ -31,11 +40,13 @@ class CaChannelWrapper:
     def errorLogFunc(self, *args, **kwargs):
         return None
 
+    @exception_translator
     def set_pv_value(self, pv_name, value, wait=False, timeout=None):
         timeout = timeout or self._timeout
         pv = self._context.get_pvs(pv_name)[0]
         pv.write(value, wait=wait, timeout=timeout)
 
+    @exception_translator
     def get_pv_value(self, pv_name):
         pv = self._context.get_pvs(pv_name)[0]
         result = pv.read()
@@ -55,6 +66,6 @@ if __name__ == "__main__":
     ca.add_monitor("wfm", cback)
     ca.add_monitor("value", cback)
 
-    ca.set_pv_value("value", 4, timeout=1)
-    ca.set_pv_value("wfm", [1, 7, 3, 4, 3, 43, 4, 5, 6])
+    ca.set_pv_value("value", 9, timeout=1)
+    ca.set_pv_value("wfm", [1, 2, 3, 4, 3, 43, 4, 5, 6])
     print(f"val: {ca.get_pv_value('value')}, wfm: {ca.get_pv_value('wfm')}")
