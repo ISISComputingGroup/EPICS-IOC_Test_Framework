@@ -31,7 +31,7 @@ QUENCHES = ["Quenched", ""]
 SWITCHINGRAMPRATE = [1.546]
 SWITCHINGMAX = [20005]
 SWTICHINGMID = [523.8]
-LEADS = ["Not Ramping", "Ramping"]
+LEADS = ["Leads at B", "Leads to 0"]
 PERSISTS = ["Non Persisting", "Persisting"]
 OPMODES = ["Idle", "High Field", "Low Field", "Z Switching"]
 HALLS = [0,12.456,-0.45,20113.89]
@@ -111,9 +111,9 @@ class HifimagsTests(unittest.TestCase):
 
     def toggle_ramp_leads(self):
         self.ca.set_pv_value("M:RAMP:LEADS:SP", 1)
-        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Leads to 0")
         self.ca.set_pv_value("M:RAMP:LEADS:SP", 0)
-        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Not Ramping")
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Leads at B")
 
     def toggle_persist(self):
         self.ca.set_pv_value("M:PERSIST:SP", 1)
@@ -297,7 +297,7 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("Z:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("M:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
         self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
-        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Ramping")
+        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Leads to 0")
 
         self.ca.assert_that_pv_is("X:DIS", "X ENABLED")
         self.ca.assert_that_pv_is("Y:DIS", "Y ENABLED")
