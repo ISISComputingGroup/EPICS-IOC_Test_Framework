@@ -132,7 +132,7 @@ Essential attributes:
 - `directory`: The directory containing `runIoc.bat` for this IOC.
 
 Essential attributes in devsim mode:
-- `emulator`: The name of the lewis emulator for this device.
+- `emulator`: The name of the lewis emulator for this device. (or pass `emulators` instead)
 
 Optional attributes:
 - `macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
@@ -143,6 +143,7 @@ Optional attributes:
 - `emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
 - `emulator_launcher_class`: Used if you want to launch an emulator that is not Lewis see [other emulators.](#other-emulators)
 - `pre_ioc_launch_hook`: Pass a callable to execute before this ioc is launched. Defaults to do nothing
+- `emulators`: Pass a list of `TestEmulatorData` objects to launch multiple lewis emulators.
 
 Example:
 
@@ -410,4 +411,40 @@ To run this you will need the `INSTETC` IOC running and so the following must be
         "name": "INSTETC",
         "directory": get_default_ioc_dir("INSTETC")
     }
+```
+
+### Launching multiple emulators 
+
+Use the `emulators` `IOCS` attribute instead of `emulator` and pass through a list of `TestEmulatorData` objects. 
+
+See hlx503 tests and example:
+
+```python
+from utils.free_ports import get_free_ports
+from utils.emulator_launcher import TestEmulatorData
+from utils.ioc_launcher import get_default_ioc_dir
+
+num_of_lksh218_emulators = 2
+lksh218_ports = get_free_ports(num_of_lksh218_emulators)
+num_of_tpg300_emulators = 2
+tpg300_ports = get_free_ports(num_of_tpg300_emulators)
+
+IOCS = [
+  {
+    "name": "LKSH218_01",
+    "directory": get_default_ioc_dir("LKSH218"),
+    "macros": {
+      "MY_MACRO": "My_value",
+    },
+    "emulators": [TestEmulatorData("lksh218", lksh218_ports[i], i) for i in range(num_of_lksh218_emulators)],
+  },
+  {
+    "name": "TPG300_01",
+    "directory": get_default_ioc_dir("TPG300"),
+    "macros": {
+      "MY_MACRO": "My_value",
+    },
+    "emulators": [TestEmulatorData("tpg300", tpg300_ports[i], i) for i in range(num_of_tpg300_emulators)],
+  },
+]
 ```

@@ -6,10 +6,11 @@ import os
 import subprocess
 
 import sys
-import datetime
 from time import sleep, time
 from functools import partial
 import six
+from dataclasses import dataclass
+from typing import List, Any, Dict
 
 from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP
@@ -26,7 +27,6 @@ DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
 
 # Python 2 required to emulate the v1 mezei flipper
 DEFAULT_PY_2_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
-
 
 class EmulatorRegister(object):
     """
@@ -330,6 +330,28 @@ class NullEmulatorLauncher(EmulatorLauncher):
     def backdoor_run_function_on_device(self, *args, **kwargs): pass
 
 
+@dataclass
+class Emulator(object):
+    """
+    A utility class to capture data required to create a MultiLewisLauncher
+    """
+    launcher_address: int
+    device: str
+    var_dir: str
+    port: Any
+    options: Dict
+
+
+@dataclass
+class TestEmulatorData(object):
+    """
+    A utility class to capture the required data from a test to create a MultiLewisLauncher.
+    """
+    emulator: str
+    emulator_port: Any
+    launcher_address: int
+
+
 class LewisLauncher(EmulatorLauncher):
     """
     Launches Lewis.
@@ -360,6 +382,17 @@ class LewisLauncher(EmulatorLauncher):
         self._process = None
         self._logFile = None
         self._connected = None
+
+    @classmethod
+    def from_emulator(cls, test_name, emulator: Emulator):
+        """
+        Constructor that also launches Lewis.
+
+        Args:
+            test_name: name of test we are creating device emulator for
+            emulator: Information to launch the emulator with
+        """
+        return cls(test_name, emulator.device, emulator.var_dir, emulator.port, emulator.options)
 
     def _close(self):
         """
@@ -494,6 +527,87 @@ class LewisLauncher(EmulatorLauncher):
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
         return self.backdoor_command(["device", str(variable_name)])
+
+
+class MultiLewisLauncher(object):
+    """
+    Launch multiple lewis emulators.
+    """
+
+    def __init__(self, test_name: str, emulators: List[Emulator]):
+        self.test_name: str = test_name
+        self.emulator_launchers: Dict[int, LewisLauncher] = {
+            emulator.launcher_address: LewisLauncher.from_emulator(test_name, emulator) for emulator in emulators
+        }
+
+    def __enter__(self):
+        self._open()
+        EmulatorRegister.add_emulator(self.test_name, self)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._close()
+        EmulatorRegister.remove_emulator(self.test_name)
+
+    def _close(self):
+        """
+        Stop the lewis emulators.
+        """
+        for launcher in self.emulator_launchers.values():
+            launcher._close()
+
+    def _open(self):
+        """
+        Start the lewis emulators.
+        """
+        for launcher in self.emulator_launchers.values():
+            launcher._open()
+
+    def backdoor_get_from_device(self, launcher_address, variable, *_, **__):
+        """
+        Get the variable value from the emulator addressed with the given launcher address.
+
+        :param launcher_address: The address of the emulator to identify the device we want to get the value from.
+        :param variable: The variable to obtain the value of from the device.
+        :return: The variable's value.
+        """
+        return self.emulator_launchers[launcher_address].backdoor_get_from_device(variable)
+
+    def backdoor_set_on_device(self, launcher_address, variable, value,  *_, **__):
+        """
+        Set the variable to the given value on the emulator address with the given launcher address.
+
+        :param launcher_address: The identifier of the device we want to set the value on.
+        :param variable: The variable on the device to set.
+        :param value: The value to set the variable to.
+        """
+        self.emulator_launchers[launcher_address].backdoor_set_on_device(variable, value)
+
+    def backdoor_emulator_disconnect_device(self, launcher_address):
+        """
+        Disconnect the emulator addressed by the given launcher address.
+
+        :param launcher_address: The identifier of the device we want to disconnect.
+        """
+        self.emulator_launchers[launcher_address].backdoor_emulator_disconnect_device()
+
+    def backdoor_emulator_connect_device(self, launcher_address):
+        """
+        Connect the emulator addressed by the given launcher address.
+
+        :param launcher_address: The identifier of the device we want to connect.
+        """
+        self.emulator_launchers[launcher_address].backdoor_emulator_connect_device()
+
+    def backdoor_run_function_on_device(self, launcher_address, function_name, arguments=None):
+        """
+        Run a function with the given arguments on the emulator addressed by the launcher address.
+
+        :param launcher_address: The identifier of the device we want to run the function on.
+        :param function_name: The name of the function to run on the device.
+        :param arguments: The arguments to pass to the function.
+        """
+        return self.emulator_launchers[launcher_address].backdoor_run_function_on_device(function_name, arguments)
 
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
