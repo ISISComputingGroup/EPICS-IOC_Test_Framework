@@ -135,7 +135,7 @@ class Danfysik8500Tests(DanfysikCommon, unittest.TestCase):
         for pv in [SLEW_PVs, [x + ":SP" for x in SLEW_PVs]]:
             self.ca.assert_that_pv_does_not_exist(pv)
 
-    @parameterized.expand(parameterized_list(itertools.product(SLEW_PVs, [10, 100, 700])))
+    @parameterized.expand(parameterized_list(itertools.product(SLEW_PVs, [390, 500, 798])))
     def test_GIVEN_device_slew_enabled_WHEN_setting_slew_rate_THEN_slew_rate_changes(self, _, slew_pv, slew_rate_value):
         # slew_rate_value = 10 #todo add more values
         with self._ioc.start_with_macros({USE_SLEW_MACRO: 1}, pv_to_wait_for="CURR"):
