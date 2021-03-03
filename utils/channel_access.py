@@ -6,7 +6,7 @@ import time
 import operator
 import ctypes
 from contextlib import contextmanager
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
+from .ca_interface import CaChannelWrapper, UnableToConnectToPVException
 
 from functools import partial
 
