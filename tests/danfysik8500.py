@@ -4,7 +4,7 @@ from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.testing import skip_if_recsim, parameterized_list
 from parameterized import parameterized
-
+import itertools
 from time import sleep
 
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, POWER_STATES
@@ -39,7 +39,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 USE_SLEW_MACRO = "USE_SLEW"
-SLEW_PVs = {"SLEW1": 1, "SLEW2": 2, "SLEWABS": 3}
+SLEW_PVs = ["SLEW1", "SLEW2", "SLEWABS"]
 
 class Danfysik8500Tests(DanfysikCommon, unittest.TestCase):
     """
@@ -135,9 +135,8 @@ class Danfysik8500Tests(DanfysikCommon, unittest.TestCase):
         for pv in [SLEW_PVs, [x + ":SP" for x in SLEW_PVs]]:
             self.ca.assert_that_pv_does_not_exist(pv)
 
-
-    @parameterized.expand(list(SLEW_PVs.keys()))
-    def test_GIVEN_device_slew_enabled_WHEN_setting_slew_rate_THEN_slew_rate_changes(self, slew_pv):
-        slew_rate_value = 10 #todo add more values
+    @parameterized.expand(parameterized_list(itertools.product(SLEW_PVs, [10, 100, 700])))
+    def test_GIVEN_device_slew_enabled_WHEN_setting_slew_rate_THEN_slew_rate_changes(self, _, slew_pv, slew_rate_value):
+        # slew_rate_value = 10 #todo add more values
         with self._ioc.start_with_macros({USE_SLEW_MACRO: 1}, pv_to_wait_for="CURR"):
             self.ca.assert_setting_setpoint_sets_readback(slew_rate_value, slew_pv)
