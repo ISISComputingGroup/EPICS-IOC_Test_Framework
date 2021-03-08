@@ -13,7 +13,7 @@ IOCS = [
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "AXIS1",
         "macros": {
-            "MTRCTRL1": "01",
+            "MTRCTRL": "01",
             "GALILADDR1": "127.0.0.1",
         },
     },
