@@ -39,7 +39,7 @@ def _insert_reading(class_object, reading):
 def _reset_drift_channels(class_object):
     channel_drifts = ["CHNL:" + str(num) + ":DRIFT" for num in CHANNEL_NUMBERS]
     for pv in channel_drifts:
-        class_object.ca.set_pv_value(pv, 0)
+        class_object.ca.set_pv_value(pv, 0, sleep_after_set=0)
 
 
 def _generate_readings(num_readings_gen, time_between):
@@ -71,7 +71,7 @@ class SetUpTests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("IDN")
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_set_on_device("simulate_readings", False)
@@ -198,16 +198,15 @@ class SetUpTests(unittest.TestCase):
 class BufferTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("IDN")
-        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_set_on_device("simulate_readings", False)
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
 
     def _set_buffer_size(self, buff_size):
-        self.ca.set_pv_value("BUFF:SIZE:SP", buff_size)
-        self.ca.assert_that_pv_is("BUFF:SIZE", buff_size)
+        self.ca.assert_setting_setpoint_sets_readback(buff_size, "BUFF:SIZE")
 
     @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_readings_added_to_fill_THEN_buffer_clears_and_index_PVs_correct(self):
@@ -300,12 +299,11 @@ class ChannelTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("keithley_2700", DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("IDN")
-        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
         self.ca.assert_that_pv_is("BUFF:AUTOCLEAR", "ON")
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_set_on_device("simulate_readings", False)
+        self.ca.set_pv_value("BUFF:CLEAR:SP", "")
 
-    @unstable_test()
     @skip_if_recsim("Cannot use lewis backdoor in recsim")
     def test_GIVEN_empty_buffer_WHEN_reading_inserted_THEN_channel_PVs_get_correct_values(self):
         _reset_drift_channels(self)
