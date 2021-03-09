@@ -49,7 +49,7 @@ class OerconeTests(unittest.TestCase):
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_pressure_is_set_via_backdoor_THEN_readback_updates(self, _, pressure):
         self._lewis.backdoor_set_on_device("pressure", pressure)
-        self.ca.assert_that_pv_is_number("PRESSURE", pressure)
+        self.ca.assert_that_pv_is_number("PRESSURE", pressure, timeout=7)  # pressure is on 5s scan
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_measurement_units_is_set_via_backdoor_THEN_readback_updates(self):
