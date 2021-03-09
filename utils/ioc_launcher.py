@@ -3,6 +3,7 @@ Code that launches an IOC/application under test
 """
 import subprocess
 import os
+import sys
 import time
 from contextlib import contextmanager
 
@@ -22,8 +23,8 @@ from signal import SIGTERM
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
-PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "Python", "python.exe"))
-PYTHON3 = os.environ.get("PYTHON3", os.path.join(APPS_BASE, "Python3", "python.exe"))
+PYTHON = os.environ.get("PYTHON", sys.executable)
+PYTHON3 = os.environ.get("PYTHON3", sys.executable)
 
 DEFAULT_IOC_START_TEXT = "epics>"
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
@@ -176,7 +177,7 @@ class BaseLauncher(object):
             # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
             # This does mean that the IOC will need to be closed manually after the tests.
             # Make sure to revert before checking code in
-            self._process = subprocess.Popen(" ".join(self.command_line), creationflags=subprocess.CREATE_NEW_CONSOLE,
+            self._process = subprocess.Popen(" ".join(self.command_line),shell=True ,
                                              cwd=self._directory, stdin=subprocess.PIPE,
                                              stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT,
                                              env=settings)
@@ -547,15 +548,15 @@ class IocLauncher(BaseLauncher):
         super(IocLauncher, self).__init__(test_name, ioc, test_mode, var_dir)
 
     def _command_line(self):
-        run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
+        #run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
         st_cmd_path = os.path.join(self._directory, 'st.cmd')
 
-        if not os.path.isfile(run_ioc_path):
-            print("Run IOC path not found: '{0}'".format(run_ioc_path))
+        #if not os.path.isfile(run_ioc_path):
+        #    print("Run IOC path not found: '{0}'".format(run_ioc_path))
         if not os.path.isfile(st_cmd_path):
             print("St.cmd path not found: '{0}'".format(st_cmd_path))
 
-        return [run_ioc_path, st_cmd_path]
+        return [st_cmd_path]
 
     def close(self):
         """
