@@ -111,7 +111,7 @@ class RotscTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("ERR_STRING", self.ca.Alarms.MAJOR)
 
         # Confirm we move back to original position
-        self._lewis.assert_that_emulator_value_is("sample_retrieved", str(False))
+        self._lewis.assert_that_emulator_value_is("sample_retrieved", False)
         # Temporarily removed in https://github.com/ISISComputingGroup/IBEX/issues/5342
         # self.ca.assert_that_pv_is("POSN", initial_position)
         self.ca.assert_that_pv_is("CALC_NOT_MOVING", 1)
