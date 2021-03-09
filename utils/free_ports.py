@@ -12,7 +12,7 @@ def get_free_ports(n):
     ports = list()
     for i in range(0, n):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        #s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         s.bind(("", 0))
         ports.append(s.getsockname()[1])
         socks.append(s)
@@ -34,7 +34,7 @@ def get_free_ports_from_list(n, port_low, port_high):
     ports = list()
     for i in range(0, n):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        #s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1) # Don't use this when runnign under linux
         for j in range(port_low, port_high):
             try:
                 s.bind(("", j))
