@@ -4,6 +4,7 @@ Lewis emulator interface classes.
 import abc
 import os
 import subprocess
+import psutil
 
 import sys
 import datetime
@@ -332,8 +333,8 @@ class LewisLauncher(EmulatorLauncher):
     Launches Lewis.
     """
 
-    _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
-    _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH, "scripts")
+    _DEFAULT_PY_PATH, _ = os.path.split(sys.executable) #os.path.join("C:\\", "Instrument", "Apps", "Python3")
+    _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH)
 
     def __init__(self, test_name, device, var_dir, port, options):
         """
@@ -348,7 +349,6 @@ class LewisLauncher(EmulatorLauncher):
         super(LewisLauncher, self).__init__(test_name, device, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
-        self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
         self._lewis_additional_path = options.get("lewis_additional_path", DEVICE_EMULATOR_PATH)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
@@ -364,8 +364,15 @@ class LewisLauncher(EmulatorLauncher):
         Closes the Lewis session by killing the process.
         """
         print("Terminating Lewis")
+        # If launching with shell=True then simply doing process.terminate() 
+        # kills the shell but not Lewis. Solution is
+        # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
         if self._process is not None:
-            self._process.terminate()
+            #self._process.terminate()
+            process = psutil.Process(self._process.pid)
+            for p in process.children(recursive=True):
+                p.kill()
+            process.kill()
         if self._logFile is not None:
             self._logFile.close()
             print("Lewis log written to {0}".format(self._log_filename()))
@@ -379,9 +386,9 @@ class LewisLauncher(EmulatorLauncher):
         """
 
         self._control_port = str(get_free_ports(1)[0])
-        lewis_command_line = [self._python_path, "-m", "lewis",
+        lewis_command_line = ["lewis",
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-        lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
+        lewis_command_line.extend(["-p", '"{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"'
                                   .format(protocol=self._lewis_protocol, port=self._port)])
         if self._lewis_additional_path is not None:
             lewis_command_line.extend(["-a", self._lewis_additional_path])
@@ -395,8 +402,10 @@ class LewisLauncher(EmulatorLauncher):
         self._logFile = open(self._log_filename(), "w")
         self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
 
-        self._process = subprocess.Popen(lewis_command_line,
-                                         creationflags=subprocess.CREATE_NEW_CONSOLE,
+        # Convert *args into str because Lewis throws error 
+        # when passing quote marks (which are need for the -p argument)
+        self._process = subprocess.Popen(" ".join(lewis_command_line),
+                                         shell=True,
                                          stdout=self._logFile,
                                          stderr=subprocess.STDOUT)
         self._connected = True
