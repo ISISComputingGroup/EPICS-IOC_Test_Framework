@@ -1,6 +1,7 @@
 import sys
 from caproto.threading.client import Context
 from caproto._utils import CaprotoTimeoutError
+from caproto import ChannelType
 
 def exception_translator(func):
     def inner_function(*args, **kwargs):
@@ -39,6 +40,15 @@ class CaChannelWrapper:
 
     def errorLogFunc(self, *args, **kwargs):
         return None
+    
+    def pv_exists(self, pv_name, timeout=None):
+        timeout = timeout or self._timeout
+        pv = self._context.get_pvs(pv_name)[0]
+        try:
+            pv.read()
+            return True
+        except CaprotoTimeoutError:
+            return False
 
     @exception_translator
     def set_pv_value(self, pv_name, value, wait=False, timeout=None):
@@ -50,22 +60,20 @@ class CaChannelWrapper:
     def get_pv_value(self, pv_name):
         pv = self._context.get_pvs(pv_name)[0]
         result = pv.read()
-        return result.data if result.data_count > 1 else result.data[0]
+        received_data = result.data
+        #Deal with string/bytes in P3
+        if result.data_type == ChannelType.STRING:
+            received_data = self.decode_bytes_if_necessary(received_data)
+        return received_data if len(received_data) > 1 else received_data[0]
+
+    @staticmethod
+    def decode_bytes_if_necessary(data_list):
+        if not type(data_list[0]) == bytes:
+            return data_list
+        return [element.decode() for element in data_list]
+
 
 
 class UnableToConnectToPVException(Exception):
     pass
 
-
-if __name__ == "__main__":
-    ca = CaChannelWrapper()
-
-    def cback(monitor, response):
-        print(f"Got update from  {monitor.pv.name}: \n\n {response}")
-
-    ca.add_monitor("wfm", cback)
-    ca.add_monitor("value", cback)
-
-    ca.set_pv_value("value", 9, timeout=1)
-    ca.set_pv_value("wfm", [1, 2, 3, 4, 3, 43, 4, 5, 6])
-    print(f"val: {ca.get_pv_value('value')}, wfm: {ca.get_pv_value('wfm')}")
