@@ -15,8 +15,17 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("HLX503"),
-        "emulator": "itc503",
-        "macros": {}
+        "emulator": "hlx503",
+        "macros": {
+            "SORB_CHANNEL": 1,
+            "1KPOTHE3POTLO_CHANNEL": 2,
+            "HE3POTHI_CHANNEL": 3,
+            "SORB_SENSOR": 1,
+            "1KPOTHE3POTLO_SENSOR": 2,
+            "HE3POTHI_SENSOR": 3,
+            "MAX_TEMP_FOR_HE3_COOLING": 2.0,
+            "MAX_OPERATING_TEMP_FOR_HELIOX": 20.0
+        }
     },
 ]
 
@@ -30,19 +39,18 @@ class HLX503Tests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("itc503", DEVICE_PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc("hlx503", DEVICE_PREFIX)
         self.assertIsNotNone(self._lewis)
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self._lewis.backdoor_run_function_on_device("backdoor_plug_in_he3potlow")
+        for sensor in range(1, 3+1):
+            self._lewis.backdoor_run_function_on_device("backdoor_set_port_temp", arguments=[sensor, 0.0])
 
     @parameterized.expand(parameterized_list(["Auto", "Manual"]))
     def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, value):
         self.ca.assert_setting_setpoint_sets_readback(value, "MODE:HTR")
-
-    @parameterized.expand(parameterized_list(["Auto", "Manual"]))
-    def test_WHEN_set_autoneedlevalue_AND_THEN_autoneedlevalve_set(self, _, value):
-        self.ca.assert_setting_setpoint_sets_readback(value, "MODE:GAS")
 
     @parameterized.expand(parameterized_list(["ON", "OFF"]))
     def test_WHEN_set_autopid_AND_THEN_autopid_set(self, _, value):
@@ -57,11 +65,8 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_temp_set_THEN_temp_sp_rbv_correct(self, _, val):
         self.ca.set_pv_value("TEMP:SP", val)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", val, tolerance=0.1)
-        self.ca.assert_that_pv_is_number("TEMP:1", val, tolerance=0.1)
-        self.ca.assert_that_pv_is_number("TEMP:2", val, tolerance=0.1)
-        self.ca.assert_that_pv_is_number("TEMP:3", val, tolerance=0.1)
 
-    @parameterized.expand(parameterized_list(["Channel 1", "Channel 2", "Channel 3"]))
+    @parameterized.expand(parameterized_list(["SORB", "HE3POTHI", "1KPOTHE3POTLO"]))
     def test_WHEN_ctrlchannel_set_THEN_ctrlchannel_set(self, _, new_control_channel):
         self.ca.assert_setting_setpoint_sets_readback(new_control_channel, "CTRLCHANNEL")
 
@@ -81,6 +86,16 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_heater_output_set_THEN_heater_output_set(self, _, heater_output):
         self.ca.assert_setting_setpoint_sets_readback(heater_output, "HEATERP")
 
-    @parameterized.expand(parameterized_list([31.9, 66.6]))
-    def test_WHEN_gasflow_set_THEN_gasflow_set(self, _, percent):
-        self.ca.assert_setting_setpoint_sets_readback(percent, "GASFLOW")
+    def test_WHEN_set_he3pot_temp_above_he3_cooling_threshold_THEN_he3pot_high_temp_set(self):
+        self.ca.set_pv_value("TEMP:HE3POT:SP", 3.0)
+        self.ca.assert_that_pv_is("CTRLCHANNEL", "HE3POTHI")
+        self.ca.assert_that_pv_is("TEMP:HE3POTHI", 3.0)
+        self.ca.assert_that_pv_is("TEMP:1KPOTHE3POTLO", 0.0)
+        self.ca.assert_that_pv_is("TEMP:HE3POT", 3.0)
+
+    def test_WHEN_set_he3pot_temp_below_he3_cooling_threshold_THEN_he3pot_low_temp_set(self):
+        self.ca.set_pv_value("TEMP:HE3POT:SP", 1.0)
+        self.ca.assert_that_pv_is("CTRLCHANNEL", "1KPOTHE3POTLO")
+        self.ca.assert_that_pv_is("TEMP:1KPOTHE3POTLO", 1.0)
+        self.ca.assert_that_pv_is("TEMP:HE3POTHI", 0.0)
+        self.ca.assert_that_pv_is("TEMP:HE3POT", 1.0)
