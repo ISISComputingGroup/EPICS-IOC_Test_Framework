@@ -45,8 +45,6 @@ class HLX503Tests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_run_function_on_device("backdoor_plug_in_he3potlow")
-        for sensor in range(1, 3+1):
-            self._lewis.backdoor_run_function_on_device("backdoor_set_port_temp", arguments=[sensor, 0.0])
 
     @parameterized.expand(parameterized_list(["Auto", "Manual"]))
     def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, value):
@@ -87,15 +85,41 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(heater_output, "HEATERP")
 
     def test_WHEN_set_he3pot_temp_above_he3_cooling_threshold_THEN_he3pot_high_temp_set(self):
+        self._lewis.backdoor_set_on_device("he3pot_temp", 1.5)
         self.ca.set_pv_value("TEMP:HE3POT:SP", 3.0)
         self.ca.assert_that_pv_is("CTRLCHANNEL", "HE3POTHI")
         self.ca.assert_that_pv_is("TEMP:HE3POTHI", 3.0)
-        self.ca.assert_that_pv_is("TEMP:1KPOTHE3POTLO", 0.0)
         self.ca.assert_that_pv_is("TEMP:HE3POT", 3.0)
 
     def test_WHEN_set_he3pot_temp_below_he3_cooling_threshold_THEN_he3pot_low_temp_set(self):
+        self._lewis.backdoor_set_on_device("he3pot_temp", 3.0)
         self.ca.set_pv_value("TEMP:HE3POT:SP", 1.0)
         self.ca.assert_that_pv_is("CTRLCHANNEL", "1KPOTHE3POTLO")
         self.ca.assert_that_pv_is("TEMP:1KPOTHE3POTLO", 1.0)
-        self.ca.assert_that_pv_is("TEMP:HE3POTHI", 0.0)
         self.ca.assert_that_pv_is("TEMP:HE3POT", 1.0)
+
+    def test_WHEN_set_he3pot_temp_above_max_temp_threshold_THEN_he3pot_temp_not_set(self):
+        he3pot_temp = self.ca.get_pv_value("TEMP:HE3POT")
+        ctrl_channel = self.ca.get_pv_value("CTRLCHANNEL")
+        self.ca.set_pv_value("TEMP:HE3POT:SP", 22.0)
+        self.ca.assert_that_pv_alarm_is("TEMP:HE3POT:SP", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_is("CTRLCHANNEL", ctrl_channel)
+        self.ca.assert_that_pv_is("TEMP:HE3POTHI", he3pot_temp)
+        self.ca.assert_that_pv_is("TEMP:1KPOTHE3POTLO", he3pot_temp)
+        self.ca.assert_that_pv_is("TEMP:HE3POT", he3pot_temp)
+
+    # def test_GIVEN_he3pot_temp_above_he3_cooling_threshold_WHEN_turn_heater_off_THEN_heater_output_zero_AND_autoheat_off(self):
+    #     # Arrange
+    #     self.ca.set_pv_value("TEMP:HE3POT:SP", 3.0)
+    #     self.ca.assert_that_pv_is("MODE:HTR", "Auto")
+    #     # Act
+    #     self.ca.process_pv("HEATER:HE3POT:OFF")
+    #     # Assert
+    #     self.ca.assert_that_pv_is("CTRLCHANNEL", "HE3POTHI")
+    #     self.ca.assert_that_pv_is("MODE:HTR", "Manual")
+    #     self.ca.assert_that_pv_is("HEATERP", 0.0)
+
+
+    # def test_GIVEN_he3pot_temp_above_he3_cooling_threshold_WHEN_turn_heater_off_THEN_heater_output_zero_AND_autoheat_off(self):
+    #     self.ca.set_pv_value("TEMP:HE3POT:SP", 3.0)
+    #     self._lewis.backdoor_run_function_on_device("backdoor_set_port_heater", arguments=[2, 0, 0.0])
