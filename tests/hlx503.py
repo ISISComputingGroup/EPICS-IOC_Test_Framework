@@ -108,18 +108,12 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("TEMP:1KPOTHE3POTLO", he3pot_temp)
         self.ca.assert_that_pv_is("TEMP:HE3POT", he3pot_temp)
 
-    # def test_GIVEN_he3pot_temp_above_he3_cooling_threshold_WHEN_turn_heater_off_THEN_heater_output_zero_AND_autoheat_off(self):
-    #     # Arrange
-    #     self.ca.set_pv_value("TEMP:HE3POT:SP", 3.0)
-    #     self.ca.assert_that_pv_is("MODE:HTR", "Auto")
-    #     # Act
-    #     self.ca.process_pv("HEATER:HE3POT:OFF")
-    #     # Assert
-    #     self.ca.assert_that_pv_is("CTRLCHANNEL", "HE3POTHI")
-    #     self.ca.assert_that_pv_is("MODE:HTR", "Manual")
-    #     self.ca.assert_that_pv_is("HEATERP", 0.0)
-
-
-    # def test_GIVEN_he3pot_temp_above_he3_cooling_threshold_WHEN_turn_heater_off_THEN_heater_output_zero_AND_autoheat_off(self):
-    #     self.ca.set_pv_value("TEMP:HE3POT:SP", 3.0)
-    #     self._lewis.backdoor_run_function_on_device("backdoor_set_port_heater", arguments=[2, 0, 0.0])
+    def test_WHEN_turn_heater_off_THEN_heater_output_zero_AND_autoheat_off(self):
+        # Arrange
+        self.ca.assert_setting_setpoint_sets_readback("Auto", "MODE:HTR")
+        self.ca.assert_setting_setpoint_sets_readback(10.0, "HEATERP")
+        # Act
+        self.ca.process_pv("HEATER:OFF")
+        # Assert
+        self.ca.assert_that_pv_is("HEATERP", 0.0)
+        self.ca.assert_that_pv_is("MODE:HTR", "Manual")
