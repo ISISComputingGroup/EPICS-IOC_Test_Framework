@@ -31,6 +31,11 @@ IOCS = [
     },
 ]
 
+channels = {
+    "SORB": "SORB",
+    "HE3POT": "HE3POTHI"
+}
+
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
@@ -122,33 +127,35 @@ class HLX503Tests(unittest.TestCase):
 
     def test_WHEN_get_pid_files_THEN_pid_files_present(self):
         pid_files = dehex_and_decompress(self.ca.get_pv_value("PID_FILES"))
-        self.assertTrue("test_file.txt" in pid_files)
+        self.assertTrue("SORB_file.txt" in pid_files)
+        self.assertTrue("HE3POT_file.txt" in pid_files)
         self.assertTrue("Default.txt" in pid_files)
 
     def test_WHEN_set_pid_file_THEN_pid_set(self):
-        self.ca.set_pv_value("HE3POT:PID_FILE", "test_file.txt")
-        self.ca.set_pv_value("SORB:PID_FILE", "Default.txt")
-        self.ca.assert_that_pv_is("HE3POT:PID_FILE", "test_file.txt")
-        self.ca.assert_that_pv_is("SORB:PID_FILE", "Default.txt")
+        self.ca.set_pv_value("HE3POT:PID_FILE:SP", "HE3POT_file.txt")
+        self.ca.set_pv_value("SORB:PID_FILE:SP", "SORB_file.txt")
+        self.ca.assert_that_pv_is("HE3POT:PID_FILE", "HE3POT_file.txt")
+        self.ca.assert_that_pv_is("SORB:PID_FILE", "SORB_file.txt")
         self.ca.assert_that_pv_alarm_is("HE3POT:PID_FILE", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_alarm_is("SORB:PID_FILE", self.ca.Alarms.NONE)
 
-    def test_WHEN_temp_set_THEN_he3pot_pids_set_correctly(self):
-        temp = 0.7
-        p, i, d = 10, 11, 12
+    @parameterized.expand(parameterized_list([
+        (0.6, 10.0, 11.0, 12.0, "SORB"), (4.0, 20.0, 21.0, 22.0, "SORB"), (5.8, 30.0, 31.0, 32.0, "SORB"),
+        (0.6, 13.0, 14.0, 15.0, "HE3POT"), (1.5, 23.0, 24.0, 25.0, "HE3POT"), (5.8, 33.0, 34.0, 35.0, "HE3POT")
+    ]))
+    def test_WHEN_temp_set_THEN_pids_set_correctly(self, _, temp, p, i, d, sorb_or_he3pot):
         self.ca.assert_setting_setpoint_sets_readback("YES", "LUTON")
-        self.ca.assert_setting_setpoint_sets_readback("test_file.txt", "SORB:PID_FILE")
-        self.ca.set_pv_value("CTRLCHANNEL:SP", IOCS[0]["macros"]["SORB_CHANNEL"])
-        self.ca.assert_that_pv_is("_PID_FILE", "test_file.txt")
-        self.ca.set_pv_value("TEMP:SP", temp)
-        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temp, tolerance=0.1)
+        self.ca.assert_setting_setpoint_sets_readback(f"{sorb_or_he3pot}_file.txt", f"{sorb_or_he3pot}:PID_FILE")
+        self.ca.set_pv_value(f"TEMP:{sorb_or_he3pot}:SP", temp)
         self.ca.assert_that_pv_is("OUT_P", p)
         self.ca.assert_that_pv_is("OUT_I", i)
         self.ca.assert_that_pv_is("OUT_D", d)
 
-    def test_WHEN_using_sorb_control_channel_THEN_correct_pid_file_used(self):
-        self.ca.set_pv_value("LUTON:SP", 1)
-        self.ca.set_pv_value("SORB:PID_FILE:SP", "test_file.txt")
-        self.ca.set_pv_value("HE3POT:PID_FILE:SP", "Default.txt")
-        self.ca.set_pv_value("CTRLCHANNEL:SP", IOCS[0]["macros"]["SORB_CHANNEL"])
-        self.ca.assert_that_pv_is("_PID_FILE", "test_file.txt")
+    @parameterized.expand(parameterized_list([("SORB", "HE3POT"), ("HE3POT", "SORB")]))
+    def test_WHEN_using_sorb_control_channel_THEN_correct_pid_file_used(self,
+            _, pid_pv_prefix, not_in_use_pid_pv_prefix):
+        self.ca.assert_setting_setpoint_sets_readback("YES", "LUTON")
+        self.ca.set_pv_value(f"{pid_pv_prefix}:PID_FILE:SP", f"{pid_pv_prefix}_file.txt")
+        self.ca.set_pv_value(f"{not_in_use_pid_pv_prefix}:PID_FILE:SP", f"{not_in_use_pid_pv_prefix}_file.txt")
+        self.ca.set_pv_value("CTRLCHANNEL:SP", channels[pid_pv_prefix])
+        self.ca.assert_that_pv_is("_PID_FILE", f"{pid_pv_prefix}_file.txt")
