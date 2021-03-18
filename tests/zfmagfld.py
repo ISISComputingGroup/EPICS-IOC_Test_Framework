@@ -417,7 +417,12 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(AXES.keys()))
     def test_GIVEN_smoothing_samples_WHEN_setting_field_THEN_average_field_is_given(self, _, axis):
-        number_samples = 10
+        # In sim mode 1 sample every 0.1s. 15s should be slow enough to avoid any races between the tests and the ioc,
+        # but fast enough not to slow down the whole test suite unnecessarily.
+        number_samples = 150
+
+        full_averaging_time = number_samples * 0.1  # 0.1s is the update rate in sim mode.
+
         field_number = 100
         pv = "DAQ:{}".format(axis)
         with self._ioc.start_with_macros({"NUM_SAMPLES": number_samples}, pv_to_wait_for=pv):
@@ -426,23 +431,17 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
                      "Z": 0}
             self.write_simulated_field_values(field)
 
-            for i in range(1, number_samples+1):
-                self.ca.process_pv("TAKEDATA")
-            self.ca.process_pv("TAKEDATA")
             # make sure the field is 0
+            self.ca.assert_that_pv_is_number("DAQ:{}:_RAW".format(axis), 0, full_averaging_time + 5)
+            self.ca.process_pv("TAKEDATA")
             self.ca.assert_that_pv_is_number(pv, 0)
 
             # Change the field number
             field[axis] = field_number
             self.write_simulated_field_values(field)
 
-            # every sample check the average has been processed correctly
-            for i in range(1, number_samples+1):
-                self.ca.process_pv("TAKEDATA")
-                # assert that after every TAKEDATA the average has gone up by the field_number divided by the sample
-                # number
-                self.ca.assert_that_pv_is_number(pv, (field_number // number_samples) * i)
+            self.ca.assert_that_pv_value_is_increasing("DAQ:{}:_AVERAGE".format(axis), wait=full_averaging_time + 5)
             
-            # Check the final value stays the same
+            # Check the final value is correct
             self.ca.process_pv("TAKEDATA")
             self.ca.assert_that_pv_is_number(pv, field_number)
