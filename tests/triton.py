@@ -29,6 +29,8 @@ IOCS = [
         "macros": {
             "USE_RAMP_FILE": 0,
             "RAMP_FILE_NAME": "Default.txt",
+            "POLL_RATE": "1 second",
+            "CHANNEL_POLL_RATE": "2 second"
         }
     },
 ]
