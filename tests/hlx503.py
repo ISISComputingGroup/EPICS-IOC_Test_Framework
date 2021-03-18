@@ -147,9 +147,9 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("YES", "LUTON")
         self.ca.assert_setting_setpoint_sets_readback(f"{sorb_or_he3pot}_file.txt", f"{sorb_or_he3pot}:PID_FILE")
         self.ca.set_pv_value(f"TEMP:{sorb_or_he3pot}:SP", temp)
-        self.ca.assert_that_pv_is("OUT_P", p)
-        self.ca.assert_that_pv_is("OUT_I", i)
-        self.ca.assert_that_pv_is("OUT_D", d)
+        self.ca.assert_that_pv_is("P", p)
+        self.ca.assert_that_pv_is("I", i)
+        self.ca.assert_that_pv_is("D", d)
 
     @parameterized.expand(parameterized_list([("SORB", "HE3POT"), ("HE3POT", "SORB")]))
     def test_WHEN_using_sorb_control_channel_THEN_correct_pid_file_used(self,
