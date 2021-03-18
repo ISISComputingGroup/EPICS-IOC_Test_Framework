@@ -6,6 +6,8 @@ from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import get_running_lewis_and_ioc, parameterized_list
+from genie_python.utilities import dehex_and_decompress
+import time
 
 # Device prefix
 DEVICE_PREFIX = "HLX503_01"
@@ -117,3 +119,36 @@ class HLX503Tests(unittest.TestCase):
         # Assert
         self.ca.assert_that_pv_is("HEATERP", 0.0)
         self.ca.assert_that_pv_is("MODE:HTR", "Manual")
+
+    def test_WHEN_get_pid_files_THEN_pid_files_present(self):
+        pid_files = dehex_and_decompress(self.ca.get_pv_value("PID_FILES"))
+        self.assertTrue("test_file.txt" in pid_files)
+        self.assertTrue("Default.txt" in pid_files)
+
+    def test_WHEN_set_pid_file_THEN_pid_set(self):
+        self.ca.set_pv_value("HE3POT:PID_FILE", "test_file.txt")
+        self.ca.set_pv_value("SORB:PID_FILE", "Default.txt")
+        self.ca.assert_that_pv_is("HE3POT:PID_FILE", "test_file.txt")
+        self.ca.assert_that_pv_is("SORB:PID_FILE", "Default.txt")
+        self.ca.assert_that_pv_alarm_is("HE3POT:PID_FILE", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is("SORB:PID_FILE", self.ca.Alarms.NONE)
+
+    def test_WHEN_temp_set_THEN_he3pot_pids_set_correctly(self):
+        temp = 0.7
+        p, i, d = 10, 11, 12
+        self.ca.assert_setting_setpoint_sets_readback("YES", "LUTON")
+        self.ca.assert_setting_setpoint_sets_readback("test_file.txt", "SORB:PID_FILE")
+        self.ca.set_pv_value("CTRLCHANNEL:SP", IOCS[0]["macros"]["SORB_CHANNEL"])
+        self.ca.assert_that_pv_is("_PID_FILE", "test_file.txt")
+        self.ca.set_pv_value("TEMP:SP", temp)
+        self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temp, tolerance=0.1)
+        self.ca.assert_that_pv_is("OUT_P", p)
+        self.ca.assert_that_pv_is("OUT_I", i)
+        self.ca.assert_that_pv_is("OUT_D", d)
+
+    def test_WHEN_using_sorb_control_channel_THEN_correct_pid_file_used(self):
+        self.ca.set_pv_value("LUTON:SP", 1)
+        self.ca.set_pv_value("SORB:PID_FILE:SP", "test_file.txt")
+        self.ca.set_pv_value("HE3POT:PID_FILE:SP", "Default.txt")
+        self.ca.set_pv_value("CTRLCHANNEL:SP", IOCS[0]["macros"]["SORB_CHANNEL"])
+        self.ca.assert_that_pv_is("_PID_FILE", "test_file.txt")
