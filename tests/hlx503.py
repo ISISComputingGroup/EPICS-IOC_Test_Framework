@@ -141,7 +141,7 @@ class HLX503Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list([
         (0.6, 10.0, 11.0, 12.0, "SORB"), (4.0, 20.0, 21.0, 22.0, "SORB"), (5.8, 30.0, 31.0, 32.0, "SORB"),
-        (0.6, 13.0, 14.0, 15.0, "HE3POT"), (1.5, 23.0, 24.0, 25.0, "HE3POT"), (5.8, 33.0, 34.0, 35.0, "HE3POT")
+        (0.6, 13.0, 14.0, 15.0, "HE3POT"), (4.0, 23.0, 24.0, 25.0, "HE3POT"), (5.8, 33.0, 34.0, 35.0, "HE3POT")
     ]))
     def test_WHEN_temp_set_THEN_pids_set_correctly(self, _, temp, p, i, d, sorb_or_he3pot):
         self.ca.assert_setting_setpoint_sets_readback("YES", "LUTON")
