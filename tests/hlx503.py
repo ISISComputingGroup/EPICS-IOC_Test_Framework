@@ -224,3 +224,12 @@ class HLX503Tests(unittest.TestCase):
             temp, "RECONDENSE:TEMP:SP:RBV", set_point_pv="RECONDENSE:TEMP:SP", expected_value=0.3
         )
         self.ca.assert_that_pv_alarm_is("RECONDENSE:TEMP:SP", self.ca.Alarms.MAJOR)
+
+    @parameterized.expand(parameterized_list([0.5, 1.2]))
+    @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
+    def test_WHEN_forward_post_condense_temp_setpoint_THEN_temp_set(self, _, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, "RECONDENSE:TEMP:SP:RBV", set_point_pv="RECONDENSE:TEMP:SP")
+        self.ca.process_pv("RECONDENSE:TEMP:_FORWARD")
+        self.ca.assert_that_pv_is("CTRLCHANNEL", "1KPOTHE3POTLO")
+        self.ca.assert_that_pv_is("TEMP:HE3POT:SP", temp)
+        self.ca.assert_that_pv_is("TEMP:HE3POT", temp)
