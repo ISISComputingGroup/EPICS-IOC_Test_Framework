@@ -187,3 +187,6 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("P", 0)
         self.ca.assert_that_pv_is("I", 0)
         self.ca.assert_that_pv_is("D", 0)
+
+    def test_WHEN_condense_set_THEN_condensing_is_true(self):
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
