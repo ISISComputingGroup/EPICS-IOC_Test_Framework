@@ -197,5 +197,30 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(part, "RECONDENSE:PART")
 
     @parameterized.expand(parameterized_list(["YES", "NO"]))
-    def test_WHEN_set_timed_THEN_timed_out_set(self, _, timed_out):
+    def test_WHEN_set_timed_out_THEN_timed_out_set(self, _, timed_out):
         self.ca.assert_setting_setpoint_sets_readback(timed_out, "RECONDENSE:TIMED_OUT")
+
+    @parameterized.expand(parameterized_list(["YES", "NO"]))
+    def test_WHEN_set_skipped_THEN_skipped_set(self, _, skipped):
+        self.ca.assert_setting_setpoint_sets_readback(skipped, "RECONDENSE:SKIPPED")
+
+    @parameterized.expand(parameterized_list([0.5, 1.2]))
+    def test_WHEN_set_post_recondense_temp_AND_setpoint_is_less_than_max_he3_cooling_temp_THEN_post_recondense_set(
+            self, _, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, "RECONDENSE:TEMP:SP:RBV", set_point_pv="RECONDENSE:TEMP:SP")
+
+    @parameterized.expand(parameterized_list([2.8, 12.2]))
+    def test_WHEN_set_post_recondense_temp_AND_setpoint_is_greater_than_max_he3_cooling_temp_THEN_post_recondense_not_set(
+            self, _, temp):
+        self.ca.assert_setting_setpoint_sets_readback(
+            temp, "RECONDENSE:TEMP:SP:RBV", set_point_pv="RECONDENSE:TEMP:SP", expected_value=0.3
+        )
+        self.ca.assert_that_pv_alarm_is("RECONDENSE:TEMP:SP", self.ca.Alarms.MINOR)
+
+    @parameterized.expand(parameterized_list([20.8, 100.2]))
+    def test_WHEN_set_post_recondense_temp_AND_setpoint_is_greater_than_max_heliox_op_temp_THEN_post_recondense_not_set(
+            self, _, temp):
+        self.ca.assert_setting_setpoint_sets_readback(
+            temp, "RECONDENSE:TEMP:SP:RBV", set_point_pv="RECONDENSE:TEMP:SP", expected_value=0.3
+        )
+        self.ca.assert_that_pv_alarm_is("RECONDENSE:TEMP:SP", self.ca.Alarms.MAJOR)
