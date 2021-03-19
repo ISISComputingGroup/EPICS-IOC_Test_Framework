@@ -188,5 +188,14 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("I", 0)
         self.ca.assert_that_pv_is("D", 0)
 
-    def test_WHEN_condense_set_THEN_condensing_is_true(self):
-        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+    @parameterized.expand(parameterized_list(["YES", "NO"]))
+    def test_WHEN_condense_set_THEN_condensing_is_true(self, _, status):
+        self.ca.assert_setting_setpoint_sets_readback(status, "RECONDENSING")
+
+    @parameterized.expand(parameterized_list(["SETUP", "PART 1", "PART 2", "PART 3", "FINISHING", "NOT RECONDENSING"]))
+    def test_WHEN_set_part_THEN_part_set(self, _, part):
+        self.ca.assert_setting_setpoint_sets_readback(part, "RECONDENSE:PART")
+
+    @parameterized.expand(parameterized_list(["YES", "NO"]))
+    def test_WHEN_set_timed_THEN_timed_out_set(self, _, timed_out):
+        self.ca.assert_setting_setpoint_sets_readback(timed_out, "RECONDENSE:TIMED_OUT")
