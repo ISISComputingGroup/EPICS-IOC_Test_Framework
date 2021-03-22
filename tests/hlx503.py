@@ -188,9 +188,17 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("I", 0)
         self.ca.assert_that_pv_is("D", 0)
 
-    def test_WHEN_condense_started_THEN_condensing_is_started(self):
+    def test_WHEN_condense_started_THEN_condensing_is_started_WHEN_steps_skipped_THEN_skipped(self):
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         self.ca.assert_that_pv_is("RECONDENSE:PART", "SETUP")
+        self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "YES")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "PART 1")
+        self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "YES")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "PART 2")
+        self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "YES")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "PART 3")
+        self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "YES")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "FINISHING")
 
     @parameterized.expand(parameterized_list(["SETUP", "PART 1", "PART 2", "PART 3", "FINISHING", "NOT RECONDENSING"]))
     def test_WHEN_set_part_THEN_part_set(self, _, part):
