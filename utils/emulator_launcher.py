@@ -6,10 +6,11 @@ import os
 import subprocess
 
 import sys
-import datetime
 from time import sleep, time
 from functools import partial
 import six
+from dataclasses import dataclass
+from typing import List, Any, Dict
 
 from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP
@@ -18,9 +19,14 @@ from utils.formatters import format_value
 
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
 
+from lewis.scripts.control import call_method
+from lewis.core.control_client import ControlClient
+
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
+DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
 
-
+# Python 2 required to emulate the v1 mezei flipper
+DEFAULT_PY_2_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
 
 class EmulatorRegister(object):
     """
@@ -190,7 +196,7 @@ class EmulatorLauncher(object):
             UnableToConnectToPVException: if emulator property does not exist within timeout
         """
         self.backdoor_set_on_device(variable, value)
-        self.assert_that_emulator_value_is(variable, str(value))
+        self.assert_that_emulator_value_is(variable, value)
 
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None,
                                       cast=lambda val: val):
@@ -324,13 +330,34 @@ class NullEmulatorLauncher(EmulatorLauncher):
     def backdoor_run_function_on_device(self, *args, **kwargs): pass
 
 
+@dataclass
+class Emulator(object):
+    """
+    A utility class to capture data required to create a MultiLewisLauncher
+    """
+    launcher_address: int
+    device: str
+    var_dir: str
+    port: Any
+    options: Dict
+
+
+@dataclass
+class TestEmulatorData(object):
+    """
+    A utility class to capture the required data from a test to create a MultiLewisLauncher.
+    """
+    emulator: str
+    emulator_port: Any
+    launcher_address: int
+
+
 class LewisLauncher(EmulatorLauncher):
     """
     Launches Lewis.
     """
 
-    _DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
-    _DEFAULT_LEWIS_PATH = os.path.join(_DEFAULT_PY_PATH, "scripts")
+    _DEFAULT_LEWIS_PATH = os.path.join(DEFAULT_PY_PATH, "scripts")
 
     def __init__(self, test_name, device, var_dir, port, options):
         """
@@ -345,7 +372,7 @@ class LewisLauncher(EmulatorLauncher):
         super(LewisLauncher, self).__init__(test_name, device, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
-        self._python_path = options.get("python_path", os.path.join(LewisLauncher._DEFAULT_PY_PATH, "python.exe"))
+        self._python_path = options.get("python_path", os.path.join(DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
         self._lewis_additional_path = options.get("lewis_additional_path", DEVICE_EMULATOR_PATH)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
@@ -355,6 +382,17 @@ class LewisLauncher(EmulatorLauncher):
         self._process = None
         self._logFile = None
         self._connected = None
+
+    @classmethod
+    def from_emulator(cls, test_name, emulator: Emulator):
+        """
+        Constructor that also launches Lewis.
+
+        Args:
+            test_name: name of test we are creating device emulator for
+            emulator: Information to launch the emulator with
+        """
+        return cls(test_name, emulator.device, emulator.var_dir, emulator.port, emulator.options)
 
     def _close(self):
         """
@@ -374,29 +412,37 @@ class LewisLauncher(EmulatorLauncher):
         :param port: the port on which to run lewis
         :return:
         """
+        print("opening log file")
+        with open(self._log_filename(), "w") as self._logFile:
+            self._logFile.write("getting free control port\n")
+            print("getting free control port\n")
+            self._control_port = str(get_free_ports(1)[0])
+            self._logFile.write("control port is {}\n".format(str(self._control_port)))
+            print("control port is {}\n".format(str(self._control_port)))
+            lewis_command_line = [self._python_path, "-m", "lewis",
+                                  "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+            lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
+                                      .format(protocol=self._lewis_protocol, port=self._port)])
+            if self._lewis_additional_path is not None:
+                lewis_command_line.extend(["-a", self._lewis_additional_path])
+            if self._lewis_package is not None:
+                lewis_command_line.extend(["-k", self._lewis_package])
 
-        self._control_port = str(get_free_ports(1)[0])
-        lewis_command_line = [self._python_path, "-m", "lewis",
-                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-        lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
-                                  .format(protocol=self._lewis_protocol, port=self._port)])
-        if self._lewis_additional_path is not None:
-            lewis_command_line.extend(["-a", self._lewis_additional_path])
-        if self._lewis_package is not None:
-            lewis_command_line.extend(["-k", self._lewis_package])
-
-        # Set lewis speed
-        lewis_command_line.extend(["-e", str(self._speed), self._device])
-
-        print("Starting Lewis")
-        self._logFile = open(self._log_filename(), "w")
-        self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
-
-        self._process = subprocess.Popen(lewis_command_line,
-                                         creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                         stdout=self._logFile,
-                                         stderr=subprocess.STDOUT)
-        self._connected = True
+            # Set lewis speed
+            lewis_command_line.extend(["-e", str(self._speed), self._device])
+            print("Starting Lewis")
+            self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+            print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+            self._process = subprocess.Popen(lewis_command_line,
+                                             creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                             stdout=self._logFile,
+                                             stderr=subprocess.STDOUT)
+            self._connected = True
+            self._logFile.write("starting controlclient\n")
+            print("starting controlclient\n")
+            self.remote = ControlClient("127.0.0.1", self._control_port)
+            self._logFile.write("finished starting controlclient\n")
+            print("finished starting controlclient\n")
 
     def _log_filename(self):
         return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
@@ -459,26 +505,10 @@ class LewisLauncher(EmulatorLauncher):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
-        lewis_command_line = [self._python_path, os.path.join(self._lewis_path, "lewis-control.exe"),
-                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-        lewis_command_line.extend(lewis_command)
-        time_stamp = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
-        self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
         try:
-            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-            for i in range(1, 30):
-                code = p.poll()
-                if code == 0:
-                    break
-                sleep(0.1)
-            else:
-                p.terminate()
-                print("Lewis backdoor did not finish!")
-            return [line.strip() for line in p.stdout]
-        except subprocess.CalledProcessError as ex:
-            sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
-            sys.stderr.write("Error code {0}\n".format(ex.returncode))
-            raise ex
+            return call_method(self.remote.get_object_collection(), lewis_command[0], lewis_command[1], lewis_command[2:])
+        except Exception as e:
+            sys.stderr.write(f"Error using backdoor: {e}\n")
 
     def backdoor_emulator_disconnect_device(self):
         """
@@ -504,9 +534,91 @@ class LewisLauncher(EmulatorLauncher):
         """
         Return the string of a value on a device from lewis.
         :param variable_name: name of the variable
-        :return: the variables value, as a string
+        :return: the variables value
         """
-        return "".join(self.backdoor_command(["device", str(variable_name)]))
+        # backdoor_command returns a list of bytes and join takes str so convert them here
+        return self.backdoor_command(["device", str(variable_name)])
+
+
+class MultiLewisLauncher(object):
+    """
+    Launch multiple lewis emulators.
+    """
+
+    def __init__(self, test_name: str, emulators: List[Emulator]):
+        self.test_name: str = test_name
+        self.emulator_launchers: Dict[int, LewisLauncher] = {
+            emulator.launcher_address: LewisLauncher.from_emulator(test_name, emulator) for emulator in emulators
+        }
+
+    def __enter__(self):
+        self._open()
+        EmulatorRegister.add_emulator(self.test_name, self)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._close()
+        EmulatorRegister.remove_emulator(self.test_name)
+
+    def _close(self):
+        """
+        Stop the lewis emulators.
+        """
+        for launcher in self.emulator_launchers.values():
+            launcher._close()
+
+    def _open(self):
+        """
+        Start the lewis emulators.
+        """
+        for launcher in self.emulator_launchers.values():
+            launcher._open()
+
+    def backdoor_get_from_device(self, launcher_address, variable, *_, **__):
+        """
+        Get the variable value from the emulator addressed with the given launcher address.
+
+        :param launcher_address: The address of the emulator to identify the device we want to get the value from.
+        :param variable: The variable to obtain the value of from the device.
+        :return: The variable's value.
+        """
+        return self.emulator_launchers[launcher_address].backdoor_get_from_device(variable)
+
+    def backdoor_set_on_device(self, launcher_address, variable, value,  *_, **__):
+        """
+        Set the variable to the given value on the emulator address with the given launcher address.
+
+        :param launcher_address: The identifier of the device we want to set the value on.
+        :param variable: The variable on the device to set.
+        :param value: The value to set the variable to.
+        """
+        self.emulator_launchers[launcher_address].backdoor_set_on_device(variable, value)
+
+    def backdoor_emulator_disconnect_device(self, launcher_address):
+        """
+        Disconnect the emulator addressed by the given launcher address.
+
+        :param launcher_address: The identifier of the device we want to disconnect.
+        """
+        self.emulator_launchers[launcher_address].backdoor_emulator_disconnect_device()
+
+    def backdoor_emulator_connect_device(self, launcher_address):
+        """
+        Connect the emulator addressed by the given launcher address.
+
+        :param launcher_address: The identifier of the device we want to connect.
+        """
+        self.emulator_launchers[launcher_address].backdoor_emulator_connect_device()
+
+    def backdoor_run_function_on_device(self, launcher_address, function_name, arguments=None):
+        """
+        Run a function with the given arguments on the emulator addressed by the launcher address.
+
+        :param launcher_address: The identifier of the device we want to run the function on.
+        :param function_name: The name of the function to run on the device.
+        :param arguments: The arguments to pass to the function.
+        """
+        return self.emulator_launchers[launcher_address].backdoor_run_function_on_device(function_name, arguments)
 
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):

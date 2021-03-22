@@ -2,11 +2,15 @@ import unittest
 
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.testing import skip_if_recsim
-
+from utils.testing import skip_if_recsim, parameterized_list
+from parameterized import parameterized
+import itertools
 from time import sleep
 
 from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, POWER_STATES
+
+MAX_RAW_SETPOINT = 1000000
+MIN_RAW_SETPOINT = MAX_RAW_SETPOINT * (-1)
 
 DEVICE_ADDRESS = 75
 
@@ -22,6 +26,8 @@ IOCS = [
             "FACTOR_WRITE_I": "1",
             "ADDRESS": DEVICE_ADDRESS,
             "DISABLE_AUTOONOFF": "0",
+            "MAX_RAW_SETPOINT": MAX_RAW_SETPOINT,
+            "POLARITY": "BIPOLAR",
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8500",
@@ -32,6 +38,8 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
+USE_SLEW_MACRO = "USE_SLEW"
+SLEW_PVs = ["SLEW1", "SLEW2", "SLEWABS"]
 
 class Danfysik8500Tests(DanfysikCommon, unittest.TestCase):
     """
@@ -115,3 +123,20 @@ class Danfysik8500Tests(DanfysikCommon, unittest.TestCase):
         self.ca.assert_that_pv_is("ADDRESS", self.get_emulator_address())
 
         self.set_to_correct_address()
+
+    def test_GIVEN_polarity_is_bipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
+        self.ca.set_pv_value("CURR:SP", MIN_RAW_SETPOINT * 2)
+
+        self.ca.assert_that_pv_is("CURR:SP:RBV", MIN_RAW_SETPOINT)
+        self.ca.assert_that_pv_is("CURR", MIN_RAW_SETPOINT)
+
+    def test_GIVEN_device_slew_disabled_WHEN_setting_slew_rate_THEN_slew_pvs_do_not_exist(self):
+        # shouldn't have loaded the db file for slew so SLEW1 won't exist
+        for pv in [SLEW_PVs, [x + ":SP" for x in SLEW_PVs]]:
+            self.ca.assert_that_pv_does_not_exist(pv)
+
+    @parameterized.expand(parameterized_list(itertools.product(SLEW_PVs, [390, 500, 798])))
+    def test_GIVEN_device_slew_enabled_WHEN_setting_slew_rate_THEN_slew_rate_changes(self, _, slew_pv, slew_rate_value):
+        # slew_rate_value = 10 #todo add more values
+        with self._ioc.start_with_macros({USE_SLEW_MACRO: 1}, pv_to_wait_for="CURR"):
+            self.ca.assert_setting_setpoint_sets_readback(slew_rate_value, slew_pv)

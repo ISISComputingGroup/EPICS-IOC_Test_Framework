@@ -77,7 +77,7 @@ class CryoSMSTests(unittest.TestCase):
         else:
             self.ca.set_pv_value("MAGNET:MODE", 0)
             self.ca.set_pv_value("RAMP:LEADS", 0)
-            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=30)
+            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=60)
             self._lewis.backdoor_set_on_device("mid_target", 0)
             self._lewis.backdoor_set_on_device("output", 0)
             self._lewis.backdoor_set_on_device("is_heater_on", True)

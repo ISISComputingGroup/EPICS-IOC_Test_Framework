@@ -255,5 +255,5 @@ class DanfysikCommon(DanfysikBase):
         self.ca.assert_that_pv_is("CURR", current)
         self.ca.assert_that_pv_is("POWER", "On" if power_state else "Off")
 
-        self.assertEqual(str(current), self._lewis.backdoor_get_from_device("current"))
-        self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))
+        self.assertEqual(current, self._lewis.backdoor_get_from_device("absolute_current"))
+        self.assertEqual(power_state, self._lewis.backdoor_get_from_device("power"))

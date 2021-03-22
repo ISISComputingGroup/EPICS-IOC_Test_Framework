@@ -132,7 +132,7 @@ Essential attributes:
 - `directory`: The directory containing `runIoc.bat` for this IOC.
 
 Essential attributes in devsim mode:
-- `emulator`: The name of the lewis emulator for this device.
+- `emulator`: The name of the lewis emulator for this device. (or pass `emulators` instead)
 
 Optional attributes:
 - `macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
@@ -142,6 +142,8 @@ Optional attributes:
 - `emulator_path`: Where to find the lewis emulator for this device. Defaults to `EPICS/support/DeviceEmulator/master`
 - `emulator_package`: The package containing this emulator. Equivalent to Lewis' `-k` switch. Defaults to `lewis_emulators`
 - `emulator_launcher_class`: Used if you want to launch an emulator that is not Lewis see [other emulators.](#other-emulators)
+- `pre_ioc_launch_hook`: Pass a callable to execute before this ioc is launched. Defaults to do nothing
+- `emulators`: Pass a list of `TestEmulatorData` objects to launch multiple lewis emulators.
 
 Example:
 
@@ -190,7 +192,7 @@ class MydeviceTests(unittest.TestCase):
         # Grab a reference to the ioc and lewis
         self._lewis, self._ioc = get_running_lewis_and_ioc(“mydevice", "IOCNAME_01")
         # Setup channel access with a default timeout of 20 seconds and a IOC prefix of "IOCNAME_01"
-        self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01")
+        self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01", default_wait_time=0.0)
         # Wait for a PV to be available – the IOC may take some time to start
         self.ca.wait_for(“DISABLE", timeout=30)
         
@@ -198,7 +200,7 @@ class MydeviceTests(unittest.TestCase):
         # Assert that a PV has a particular value (prefix prepended automatically)          
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 ```
-Try to use GIVEN_WHEN_THEN test naming wherever appropriate
+Try to use GIVEN_WHEN_THEN test naming wherever appropriate. By default `ChannelAccess` will wait 1 second after every set, but this can dramatically slow down tests. Newer tests should override this default using `default_wait_time=0.0` and only sleep where definitely required.
 
 ### Setting values
 
@@ -409,4 +411,40 @@ To run this you will need the `INSTETC` IOC running and so the following must be
         "name": "INSTETC",
         "directory": get_default_ioc_dir("INSTETC")
     }
+```
+
+### Launching multiple emulators 
+
+Use the `emulators` `IOCS` attribute instead of `emulator` and pass through a list of `TestEmulatorData` objects. 
+
+See hlx503 tests and example:
+
+```python
+from utils.free_ports import get_free_ports
+from utils.emulator_launcher import TestEmulatorData
+from utils.ioc_launcher import get_default_ioc_dir
+
+num_of_lksh218_emulators = 2
+lksh218_ports = get_free_ports(num_of_lksh218_emulators)
+num_of_tpg300_emulators = 2
+tpg300_ports = get_free_ports(num_of_tpg300_emulators)
+
+IOCS = [
+  {
+    "name": "LKSH218_01",
+    "directory": get_default_ioc_dir("LKSH218"),
+    "macros": {
+      "MY_MACRO": "My_value",
+    },
+    "emulators": [TestEmulatorData("lksh218", lksh218_ports[i], i) for i in range(num_of_lksh218_emulators)],
+  },
+  {
+    "name": "TPG300_01",
+    "directory": get_default_ioc_dir("TPG300"),
+    "macros": {
+      "MY_MACRO": "My_value",
+    },
+    "emulators": [TestEmulatorData("tpg300", tpg300_ports[i], i) for i in range(num_of_tpg300_emulators)],
+  },
+]
 ```

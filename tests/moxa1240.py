@@ -1,4 +1,3 @@
-from __future__ import division
 import unittest
 from itertools import product
 
@@ -35,7 +34,8 @@ IOCS = [
         "directory": get_default_ioc_dir("MOXA12XX"),
         "emulator": "moxa12xx",
         "lewis_protocol": "MOXA_1240",
-        "macros": macros
+        "macros": macros,
+        "pv_for_existence": "CH1:AI:RBV",
     },
 ]
 

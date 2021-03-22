@@ -51,7 +51,7 @@ IOCS = [
         "started_text": "Reflectometry IOC started",
         "pv_for_existence": "STAT",
         "environment_vars": {
-            "REFL_MACROS": REFL_MACROS,
+            "MACROS": REFL_MACROS,
             "IOC_TEST": "1",
             "ICPCONFIGROOT": test_config_path,
             "ICPVARDIR": test_var_path,
@@ -134,3 +134,15 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_optional_macro_is_set_to_false_THEN_false_value_passed_into_reflectometry_config(self):
         # See macro values in IOC dict above
         self.ca.assert_that_pv_does_not_exist("CONST:OPTIONAL_2")
+
+    def test_GIVEN_parameter_is_angle_THEN_unit_is_deg(self):
+        expected_unit = "deg"
+        self.ca.assert_that_pv_is("PARAM:THETA_AUTO.EGU", expected_unit)
+
+    def test_GIVEN_parameter_is_position_THEN_unit_is_mm(self):
+        expected_unit = "mm"
+        self.ca.assert_that_pv_is("PARAM:IN_POS.EGU", expected_unit)
+
+    def test_GIVEN_parameter_is_inbeam_THEN_unit_is_blank(self):
+        expected_unit = ""
+        self.ca.assert_that_pv_is("PARAM:IS_IN.EGU", expected_unit)

@@ -120,14 +120,15 @@ class ReflTests(unittest.TestCase):
         self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
         self.ca.set_pv_value("BL:MODE:SP", "NR")
         self.ca.set_pv_value("PARAM:S1:SP", 0)
-        self.ca.set_pv_value("PARAM:S3:SP", 0)
-        self.ca.set_pv_value("PARAM:SMANGLE:SP", 0)
-        self.ca.set_pv_value("PARAM:SMOFFSET:SP", 0)
+        self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 0)
+        self.ca.set_pv_value("PARAM:SMOFFSET:SP_NO_ACTION", 0)
         self.ca.set_pv_value("PARAM:SMINBEAM:SP", "OUT")
         self.ca.set_pv_value("PARAM:THETA:SP", 0)
         self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
         self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
+        self.ca.set_pv_value("PARAM:DET_LONG:SP", 0)
         self.ca.set_pv_value("PARAM:S3INBEAM:SP", "IN")
+        self.ca.set_pv_value("PARAM:S3:SP", 0)
         self.ca.set_pv_value("PARAM:CHOICE:SP", "MTR0205")
         self.ca_galil.set_pv_value("MTR0207", 0)
         self.ca.set_pv_value("PARAM:NOTINMODE:SP", 0)
@@ -779,3 +780,21 @@ class ReflTests(unittest.TestCase):
             self.ca.assert_that_pv_is("PARAM:NOTINMODE", expected_offset, timeout=20)
             self.ca_galil.assert_that_pv_is_number("MTR0205.RBV", mot0205, timeout=20)
             self.ca_galil.assert_that_pv_is_number("MTR0207.RBV", mot0207, timeout=20)
+
+    def test_GIVEN_theta_WHEN_detector_long_axis_changes_THEN_detector_tracks(self):
+        theta_angle = 2
+        long_axis_addition = 1
+        self.ca.set_pv_value("PARAM:THETA:SP", theta_angle)
+        self.ca.set_pv_value("BL:MOVE", 1)
+
+        # theta set
+        self._check_param_pvs("THETA", theta_angle)
+
+        self.ca.set_pv_value("PARAM:DET_LONG:SP", long_axis_addition)
+        self.ca.set_pv_value("BL:MOVE", 1)
+
+        expected_det_value = (2 * SPACING + long_axis_addition) * tan(radians(theta_angle * 2.0))
+
+        self._check_param_pvs("DET_LONG", long_axis_addition)
+        self._check_param_pvs("DET_POS", 0.0)
+        self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_value, 0.01)

@@ -4,6 +4,7 @@ Code that launches an IOC/application under test
 import subprocess
 import os
 import time
+from contextlib import contextmanager
 
 import psutil
 from time import sleep
@@ -125,6 +126,7 @@ class BaseLauncher(object):
             var_dir: The directory into which the launcher will save log files.
         """
         self._device = ioc_config['name']
+        self._device_icp_config_name = ioc_config.get('icpconfigname', ioc_config['name'])
         self._directory = ioc_config['directory']
         self._prefix = ioc_config.get('custom_prefix', self._device)
         self._ioc_started_text = ioc_config.get("started_text", DEFAULT_IOC_START_TEXT)
@@ -180,7 +182,8 @@ class BaseLauncher(object):
                                              env=settings)
 
             # Write a return so that an epics terminal will appear after boot
-            self._process.stdin.write("\n")
+            self._process.stdin.write("\n".encode("utf-8"))
+            self._process.stdin.flush()
             self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
 
             for key, value in self._init_values.items():
@@ -224,11 +227,11 @@ class BaseLauncher(object):
         full_dir = os.path.join(self._var_dir, "tmp")
         if not os.path.exists(full_dir):
             os.makedirs(full_dir)
-        with open(os.path.join(full_dir, "test_config.txt"), mode="w") as f:
-            for macro, value in self.macros.items():
-                f.write('epicsEnvSet("{macro}", "{value}")\n'
-                        .format(macro=macro.replace('"', '\\"'), value=str(value).replace('"', '\\"')))
 
+        with open(os.path.join(full_dir, "test_macros.txt"), mode="w") as f:
+            for macro, value in self.macros.items():
+                f.write("{ioc_name}__{macro}=\"{value}\"\n".format(ioc_name=self._device_icp_config_name, macro=macro, value=value))
+          
     def get_environment_vars(self):
         """
         Get the current environment variables and add in the extra ones needed for starting the IOC in DEVSIM/RECSIM.
@@ -249,6 +252,7 @@ class BaseLauncher(object):
 
         for env_name, setting in self._extra_environment_vars.items():
             settings[env_name] = setting
+
         return settings
 
     def set_simulated_value(self, pv_name, value):
@@ -289,8 +293,9 @@ class ProcServLauncher(BaseLauncher):
 
         self.procserv_port = get_free_ports(1)[0]
 
-        self.telnet = None
+        self._telnet = None
         self.autorestart = True
+        self.original_macros = ioc.get("macros", {})
 
     def get_environment_vars(self):
         settings = super(ProcServLauncher, self).get_environment_vars()
@@ -348,21 +353,69 @@ class ProcServLauncher(BaseLauncher):
 
         timeout = 20
 
-        self.telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
+        self._telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
 
         # Wait for procServ to become responsive by checking for the IOC started text ("epics>")
-        init_output = self.telnet.read_until(self._ioc_started_text.encode(), timeout)
+        init_output = self._telnet.read_until(self._ioc_started_text.encode('ascii'), timeout).decode("ascii")
 
         if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
 
-    def start_ioc(self):
+    def send_telnet_command_and_retry_if_not_detected_condition_for_success(
+            self, command, condition_for_success, retry_limit):
         """
-        Sends the start/restart IOC command to procserv. (^X)
+        Send a command over telnet and detect if the condition for success has been met.
+        Retry until the limit is reached and if the condition is not met raise an AssertionError.
 
+        Args:
+            command (str): The command to send over telnet
+            condition_for_success (func): A function that returns True if condition met, and False if not
+            retry_limit (int): The number of times you
+
+        Raises:
+            AssertionError: If the text has not been detected in the log after the given number of retries
+        """
+        for i in range(retry_limit):
+            self.send_telnet_command(command)
+            if condition_for_success():
+                break
+            else:
+                self._telnet.close()
+                self._telnet.open("localhost", self.procserv_port, timeout=20)
+        else:  # If condition for success not detected, raise an assertion error
+            raise AssertionError("Sending telnet command {} failed {} times".format(command, retry_limit))
+
+    def send_telnet_command(self, command: str):
+        """
+        Send a command to the ioc via telnet. Command is sent and newline is appended
+        Args:
+            command: command to set
+        """
+        self._telnet.write("{cmd}\n".format(cmd=command).encode('ascii'))
+
+    def start_ioc(self, wait=False):
+        """
+        Start/restart IOC over telnet. (^X)
+
+        Args:
+            wait (bool): If this is true send the command and wait for the ioc started text to appear in the log,
+                if the text doesn't appear retry (retries at most 3 times). If false just send the command and
+                don't wait or retry.
         """
         start_command = "\x18"
-        self.telnet.write("{cmd}\n".format(cmd=start_command))
+        if wait:
+            def condition_for_success():
+                try:
+                    self.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+                except AssertionError:
+                    return False
+                else:
+                    return True
+            self.send_telnet_command_and_retry_if_not_detected_condition_for_success(
+                start_command, condition_for_success, 3
+            )
+        else:
+            self.send_telnet_command(start_command)
 
     def quit_ioc(self):
         """
@@ -370,18 +423,18 @@ class ProcServLauncher(BaseLauncher):
 
         """
         quit_command = "\x11"
-        self.telnet.write("{cmd}\n".format(cmd=quit_command))
+        self.send_telnet_command(quit_command)
 
     def toggle_autorestart(self):
         """
         Toggles whether the IOC is auto-restarts or not.
 
         """
-        self.telnet.read_very_eager()
+        self._telnet.read_very_eager()
 
         autorestart_command = "-"
-        self.telnet.write("{cmd}\n".format(cmd=autorestart_command))
-        response = self.telnet.read_very_eager()
+        self.send_telnet_command(autorestart_command)
+        response = self._telnet.read_very_eager().decode("ascii")
 
         if "OFF" in response:
             self.autorestart = False
@@ -395,8 +448,8 @@ class ProcServLauncher(BaseLauncher):
         Shuts telnet connection and kills IOC. Identifies the spawned procServ processes and kills them
         """
 
-        if self.telnet is not None:
-            self.telnet.close()
+        if self._telnet is not None:
+            self._telnet.close()
 
         at_least_one_killed = False
         for process in psutil.process_iter(attrs=['pid', 'name']):
@@ -431,6 +484,45 @@ class ProcServLauncher(BaseLauncher):
         arguments_match = all([args in process_arguments for args in ioc_start_arguments])
 
         return arguments_match
+
+    @contextmanager
+    def start_with_macros(self, macros, pv_to_wait_for):
+        """
+        A context manager to start the ioc with the given macros and then at the end start
+        the ioc again with the original macros.
+
+        Args:
+             macros (dict): A dictionary of macros to restart the ioc with.
+             pv_to_wait_for (str): A pv to wait for 60 seconds to appear after starting the ioc.
+        """
+        try:
+            self._start_with_macros(macros)
+            self.ca.assert_that_pv_exists(pv_to_wait_for, timeout=60)
+            yield
+        finally:
+            self._start_with_original_macros()
+            self.ca.assert_that_pv_exists(pv_to_wait_for, timeout=60)
+
+    def _start_with_macros(self, macros, wait=True):
+        """
+        Restart the ioc with the given macros
+
+        Args
+            macros (dict): A dictionary of macros to restart the ioc with.
+        """
+        self.macros = macros
+        self.create_macros_file()
+        time.sleep(1)
+        self.start_ioc(wait)
+
+    def _start_with_original_macros(self, wait=True):
+        """
+        Restart the ioc with the macros originally set.
+        """
+        self.macros = self.original_macros
+        self.create_macros_file()
+        time.sleep(1)
+        self.start_ioc(wait)
 
 
 class IocLauncher(BaseLauncher):
@@ -473,7 +565,8 @@ class IocLauncher(BaseLauncher):
 
         if self._process is not None:
             #  use write not communicate so that we don't wait for exit before continuing
-            self._process.stdin.write("exit\n")
+            self._process.stdin.write("exit\n".encode("utf-8"))
+            self._process.stdin.flush()
 
             max_wait_for_ioc_to_die = 60
             wait_per_loop = 0.1

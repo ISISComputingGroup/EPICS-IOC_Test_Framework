@@ -1,5 +1,3 @@
-from __future__ import division
-
 import unittest
 from time import sleep
 from parameterized import parameterized
@@ -20,6 +18,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("DMA4500M"),
         "emulator": _EMULATOR_NAME,
+        "pv_for_existence": "TEMPERATURE",
     },
 ]
 

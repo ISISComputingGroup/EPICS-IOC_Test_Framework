@@ -20,11 +20,11 @@ expected_reset_codes = [
     "PXG0", "PYG0",
     "PXH+57000", "PYH+64000",
     "PXI-50", "PYI-20",
-    "PXJ2500", "PYJ25000",
+    "PXJ25000", "PYJ25000",
     "PXK-2500", "PYK-7500",
     "PXL100", "PYL100",
     "PXM5", "PYM5",
-    "PXN100", "PYN5000",
+    "PXN1000", "PYN5000",
     "PXO0", "PYO0",
     "PXP0", "PYP0",
     "BF15000"
@@ -57,7 +57,8 @@ IOCS = [
             "DHLM2": 640,
             "DLLM2": -0.2
           },
-        "emulator": "sm300"
+        "emulator": "sm300",
+        "pv_for_existence": "AXIS1"
     },
 ]
 
@@ -178,7 +179,7 @@ class Sm300Tests(unittest.TestCase):
         reset_codes = self._lewis.backdoor_get_from_device("reset_codes")
 
         for reset_code in expected_reset_codes:
-            assert_that(reset_codes, contains_string(reset_code))
+            assert_that(reset_codes, has_item(reset_code))
         self.ioc_ca.assert_that_pv_is("RESET", "Done")
 
     @skip_if_recsim("Sim doesn't return until move is finished")
@@ -254,7 +255,7 @@ class Sm300Tests(unittest.TestCase):
 
         reset_codes = self._lewis.backdoor_get_from_device("reset_codes")
         for reset_code in expected_reset_codes:
-            assert_that(reset_codes, contains_string(reset_code))
+            assert_that(reset_codes, has_item(reset_code))
             self.ioc_ca.assert_that_pv_is("RESET", "Done")
         self.ca.assert_that_pv_is("MTR0101.RBV", expected_home)
         self.ca.assert_that_pv_is("MTR0102.RBV", expected_home)

@@ -1,6 +1,7 @@
 import os
 import unittest
 import time
+import numpy as np
 
 from parameterized import parameterized
 
@@ -8,6 +9,8 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list, ManagerMode, unstable_test
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 ioc_number = 1
 DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
@@ -20,6 +23,9 @@ IOCS = [
         "directory": get_default_ioc_dir("LSICORR", iocnum=ioc_number),
         "started_text": "IOC started",
         "macros": {
+            "FILEPATH": os.path.join(dir_path, "..", "test-reports"),
+            "ADDR": "127.0.0.1",
+            "FIRMWARE_REVISION": "0"
         }
     }
 
@@ -65,11 +71,11 @@ SETTING_PVS = [("CORRELATIONTYPE", "CROSS"),
                ("START", "YES"),
                ("STOP", "YES"),
                ("REPETITIONS", 5),
-               ("SCATTERING_ANGLE", 4.4),
+               ("SCATTERING_ANGLE", 110),
                ("SAMPLE_TEMP", 298),
-               ("SOLVENT_VISCOSITY", 2200),
-               ("SOLVENT_REFRACTIVE_INDEX", 2.2),
-               ("LASER_WAVELENGTH", 580)]
+               ("SOLVENT_VISCOSITY", 1),
+               ("SOLVENT_REFRACTIVE_INDEX", 1.33),
+               ("LASER_WAVELENGTH", 642)]
 
 
 class LSITests(unittest.TestCase):
@@ -159,3 +165,26 @@ class LSITests(unittest.TestCase):
     @parameterized.expand(parameterized_list(PV_NAMES))
     def test_GIVEN_pv_WHEN_pv_read_THEN_pv_has_no_alarms(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+
+    @parameterized.expand(parameterized_list([
+        "CORRELATION_FUNCTION",
+        "LAGS"
+    ]))
+    def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_correlation_and_lags_populated(self, _, pv):
+        self.ca.assert_that_pv_is("RUNNING", "NO", timeout=10)
+
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+
+        array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
+
+        test_data = np.linspace(0, array_size, array_size)
+
+        self.ca.assert_that_pv_value_causes_func_to_return_true(pv, lambda pv_value: np.allclose(pv_value, test_data))
+
+    def test_GIVEN_start_pressed_WHEN_measurement_already_on_THEN_error_raised(self):
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+
+        error_message = "LSI --- Cannot configure: Measurement active"
+
+        self.ca.assert_that_pv_is("ERRORMSG", error_message)
