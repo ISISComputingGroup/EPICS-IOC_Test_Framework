@@ -8,6 +8,8 @@ from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 from genie_python.utilities import dehex_and_decompress
 
+from itertools import product
+
 # Device prefix
 DEVICE_PREFIX = "HLX503_01"
 
@@ -25,7 +27,15 @@ IOCS = [
             "1KPOTHE3POTLO_SENSOR": 2,
             "HE3POTHI_SENSOR": 3,
             "MAX_TEMP_FOR_HE3_COOLING": 2.0,
-            "MAX_OPERATING_TEMP_FOR_HELIOX": 20.0
+            "MAX_OPERATING_TEMP_FOR_HELIOX": 20.0,
+            "RECONDENSE_SORB_TEMP_FINAL": 20.0,
+            "RECONDENSE_SORB_TEMP_SET": 33.0,
+            "RECONDENSE_SORB_P": 1.2,
+            "RECONDENSE_SORB_I": 1.2,
+            "RECONDENSE_SORB_D": 1.2,
+            "RECONDENSE_HE3POT_TARGET_TEMP_PART1": 1.5,
+            "RECONDENSE_HE3POT_TARGET_TEMP_PART2": 1.6,
+            "RECONDENSE_POST_PART2_WAIT_TIME": 10
         }
     },
 ]
@@ -262,18 +272,6 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("D", 1.2, tolerance=0.001)
         self.ca.assert_that_pv_is("CTRLCHANNEL", "SORB")
 
-    @parameterized.expand(parameterized_list(["SETUP", "PART 1", "PART 2", "PART 3", "FINISHING", "NOT RECONDENSING"]))
-    def test_WHEN_set_part_THEN_part_set(self, _, part):
-        self.ca.assert_setting_setpoint_sets_readback(part, "RECONDENSE:PART")
-
-    @parameterized.expand(parameterized_list(["YES", "NO"]))
-    def test_WHEN_set_timed_out_THEN_timed_out_set(self, _, timed_out):
-        self.ca.assert_setting_setpoint_sets_readback(timed_out, "RECONDENSE:TIMED_OUT")
-
-    @parameterized.expand(parameterized_list(["YES", "NO"]))
-    def test_WHEN_set_skipped_THEN_skipped_set(self, _, skipped):
-        self.ca.assert_setting_setpoint_sets_readback(skipped, "RECONDENSE:SKIPPED")
-
     @parameterized.expand(parameterized_list([0.5, 1.2]))
     def test_WHEN_set_post_recondense_temp_AND_setpoint_is_less_than_max_he3_cooling_temp_THEN_post_recondense_set(
             self, _, temp):
@@ -299,7 +297,29 @@ class HLX503Tests(unittest.TestCase):
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_forward_post_condense_temp_setpoint_THEN_temp_set(self, _, temp):
         self.ca.assert_setting_setpoint_sets_readback(temp, "RECONDENSE:TEMP:SP:RBV", set_point_pv="RECONDENSE:TEMP:SP")
-        self.ca.process_pv("RECONDENSE:TEMP:_FORWARD")
-        self.ca.assert_that_pv_is("CTRLCHANNEL", "1KPOTHE3POTLO")
-        self.ca.assert_that_pv_is("TEMP:HE3POT:SP", temp)
-        self.ca.assert_that_pv_is("TEMP:HE3POT", temp)
+
+    @parameterized.expand(parameterized_list([12.0, 15.0]))
+    def test_WHEN_set_final_recondense_sorb_temp_THEN_final_recondense_sorb_temp_set(self, _, temp):
+        self.ca.assert_setting_setpoint_sets_readback(
+            temp, "RECONDENSE:SORB:TEMP:FINAL:SP:RBV", set_point_pv="RECONDENSE:SORB:TEMP:FINAL:SP"
+        )
+
+    @parameterized.expand(parameterized_list([12.0, 15.0]))
+    def test_WHEN_set_recondense_sorb_temp_set_THEN_recondense_sorb_temp_set_set(self, _, temp):
+        self.ca.assert_setting_setpoint_sets_readback(
+            temp, "RECONDENSE:SORB:TEMP:SP:RBV", set_point_pv="RECONDENSE:SORB:TEMP:SP"
+        )
+
+    @parameterized.expand(parameterized_list(product(["P", "I", "D"], [0.8, 3.4])))
+    def test_WHEN_set_recondense_sorb_pids_THEN_recondense_sorb_pids_set(self, _, p_or_i_or_d, val):
+        self.ca.assert_setting_setpoint_sets_readback(
+            val, f"RECONDENSE:SORB:{p_or_i_or_d}:SP:RBV", set_point_pv=f"RECONDENSE:SORB:{p_or_i_or_d}:SP"
+        )
+
+    @parameterized.expand(parameterized_list([3, 10]))
+    def test_WHEN_set_post_part_2_recondense_wait_time_THEN_post_part_2_recondense_wait_time_set(self, _, time):
+        self.ca.assert_setting_setpoint_sets_readback(time, "RECONDENSE:PART2:WAIT_TIME")
+
+    @parameterized.expand(parameterized_list(product([1, 2], [1.8, 2.2])))
+    def test_WHEN_set_he3pot_targets_THEN_he3pot_targets_set(self, _, part, temp):
+        self.ca.assert_setting_setpoint_sets_readback(temp, f"RECONDENSE:HE3POT:TEMP:PART{part}")
