@@ -45,6 +45,17 @@ channels = {
     "HE3POT": "HE3POTHI"
 }
 
+pv_to_macros_map = {
+    "RECONDENSE:SORB:TEMP:FINAL:SP": "RECONDENSE_SORB_TEMP_FINAL",
+    "RECONDENSE:SORB:TEMP:SP": "RECONDENSE_SORB_TEMP_SET",
+    "RECONDENSE:SORB:P:SP": "RECONDENSE_SORB_P",
+    "RECONDENSE:SORB:I:SP": "RECONDENSE_SORB_I",
+    "RECONDENSE:SORB:D:SP": "RECONDENSE_SORB_D",
+    "RECONDENSE:HE3POT:TEMP:PART1:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
+    "RECONDENSE:HE3POT:TEMP:PART2:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
+    "RECONDENSE:PART2:WAIT_TIME:SP": "RECONDENSE_POST_PART2_WAIT_TIME"
+}
+
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
@@ -68,8 +79,22 @@ class HLX503Tests(unittest.TestCase):
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("backdoor_plug_in_he3potlow")
 
+        self.reset_any_changes_from_recondense()
+        self.reset_any_changes_from_macros()
+
+    def reset_any_changes_from_recondense(self):
         self.ca.set_pv_value("RECONDENSE:CANCELLED:SP", "YES")
+        self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "NO")
+        self.ca.set_pv_value("RECONDENSE:CANCELLED:SP", "NO")
+        self.ca.set_pv_value("RECONDENSING:SP", "NO")
+        self.ca.set_pv_value("RECONDENSE:TIMED_OUT", "NO")
         self.ca.assert_that_pv_is("RECONDENSING", "NO")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "NOT RECONDENSING")
+        self._lewis.backdoor_run_function_on_device("reset_to_temp_control_state")
+
+    def reset_any_changes_from_macros(self):
+        for pv, macro in pv_to_macros_map.items():
+            self.ca.set_pv_value(pv, IOCS[0]["macros"][macro])
 
     @parameterized.expand(parameterized_list(["Auto", "Manual"]))
     def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, value):
