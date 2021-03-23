@@ -58,6 +58,9 @@ class HLX503Tests(unittest.TestCase):
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("backdoor_plug_in_he3potlow")
 
+        self.ca.set_pv_value("RECONDENSE:CANCELLED:SP", "YES")
+        self.ca.assert_that_pv_is("RECONDENSING", "NO")
+
     @parameterized.expand(parameterized_list(["Auto", "Manual"]))
     def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, value):
         self.ca.assert_setting_setpoint_sets_readback(value, "MODE:HTR")
@@ -206,7 +209,7 @@ class HLX503Tests(unittest.TestCase):
         # Assert that temperature setpoint is set
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
 
-    @parameterized.expand(parameterized_list([1, 2]))
+    @parameterized.expand(parameterized_list([0, 1, 2]))
     def test_WHEN_cancelled_in_any_step_THEN_temp_not_set_AND_cancelled(self, _, parts_skipped):
         # Set temp values
         original_temp_sp = 0.1
@@ -224,6 +227,17 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("RECONDENSE:PART", "NOT RECONDENSING")
         # Assert that temperature setpoint is set
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", original_temp_sp, tolerance=0.001)
+
+    def test_WHEN_in_part_1_THEN_values_set_correctly(self):
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "PART 1")
+        self.ca.assert_that_pv_is("RECONDENSE:SKIPPED", "NO")
+        self.ca.assert_that_pv_is("RECONDENSE:CANCELLED", "NO")
+        self.ca.assert_that_pv_is("RECONDENSE:TIMED_OUT", "NO")
+        self.ca.assert_that_pv_is("ADJUST_PIDS", "NO")
+        self.ca.assert_that_pv_is("MODE:HTR", "Manual")
+        self.ca.assert_that_pv_is_number("HEATERP", 0, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("TEMP:SP", 0, tolerance=0.001)
 
     @parameterized.expand(parameterized_list(["SETUP", "PART 1", "PART 2", "PART 3", "FINISHING", "NOT RECONDENSING"]))
     def test_WHEN_set_part_THEN_part_set(self, _, part):
