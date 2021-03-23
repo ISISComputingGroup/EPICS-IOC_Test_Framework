@@ -237,12 +237,12 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("ADJUST_PIDS", "NO")
         self.ca.assert_that_pv_is("MODE:HTR", "Manual")
         self.ca.assert_that_pv_is_number("HEATERP", 0.0, tolerance=0.001)
-        self.ca.assert_that_pv_is("CTRLCHANNEL", "SORB")
         self.ca.assert_that_pv_is_number("TEMP:SORB:SP", 33.0, tolerance=0.001)
         self.ca.assert_that_pv_is_number("TEMP:SP", 33.0, tolerance=0.001)
         self.ca.assert_that_pv_is_number("P", 1.2, tolerance=0.001)
         self.ca.assert_that_pv_is_number("I", 1.2, tolerance=0.001)
         self.ca.assert_that_pv_is_number("D", 1.2, tolerance=0.001)
+        self.ca.assert_that_pv_is("CTRLCHANNEL", "1KPOTHE3POTLO")
 
     @parameterized.expand(parameterized_list(["SETUP", "PART 1", "PART 2", "PART 3", "FINISHING", "NOT RECONDENSING"]))
     def test_WHEN_set_part_THEN_part_set(self, _, part):
