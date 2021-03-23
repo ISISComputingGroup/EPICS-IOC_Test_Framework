@@ -412,8 +412,13 @@ class LewisLauncher(EmulatorLauncher):
         :param port: the port on which to run lewis
         :return:
         """
+        print("opening log file")
         with open(self._log_filename(), "w") as self._logFile:
+            self._logFile.write("getting free control port\n")
+            print("getting free control port\n")
             self._control_port = str(get_free_ports(1)[0])
+            self._logFile.write("control port is {}\n".format(str(self._control_port)))
+            print("control port is {}\n".format(str(self._control_port)))
             lewis_command_line = [self._python_path, "-m", "lewis",
                                   "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
             lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
@@ -426,12 +431,18 @@ class LewisLauncher(EmulatorLauncher):
             # Set lewis speed
             lewis_command_line.extend(["-e", str(self._speed), self._device])
             print("Starting Lewis")
+            self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+            print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
             self._process = subprocess.Popen(lewis_command_line,
                                              creationflags=subprocess.CREATE_NEW_CONSOLE,
                                              stdout=self._logFile,
                                              stderr=subprocess.STDOUT)
             self._connected = True
+            self._logFile.write("starting controlclient\n")
+            print("starting controlclient\n")
             self.remote = ControlClient("127.0.0.1", self._control_port)
+            self._logFile.write("finished starting controlclient\n")
+            print("finished starting controlclient\n")
 
     def _log_filename(self):
         return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)

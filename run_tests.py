@@ -103,7 +103,7 @@ def make_device_launchers_from_module(test_module, mode):
             emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], var_dir, None, ioc)
         elif "emulators" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulators_launcher_class", MultiLewisLauncher)
-            test_emulator_data: List[TestEmulatorData] = ioc.get("emulators", {})
+            test_emulator_data: List[TestEmulatorData] = ioc.get("emulators", [])
             emulator_list: List[Emulator] = []
             for test_emulator in test_emulator_data:
                 emulator_list.append(
