@@ -206,6 +206,25 @@ class HLX503Tests(unittest.TestCase):
         # Assert that temperature setpoint is set
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
 
+    @parameterized.expand(parameterized_list([1, 2]))
+    def test_WHEN_cancelled_in_any_step_THEN_temp_not_set_AND_cancelled(self, _, parts_skipped):
+        # Set temp values
+        original_temp_sp = 0.1
+        self.ca.set_pv_value("TEMP:HE3POT:SP", original_temp_sp)
+        post_recondense_temp_sp = 0.3
+        self.ca.assert_setting_setpoint_sets_readback(
+            post_recondense_temp_sp, "RECONDENSE:TEMP:SP:RBV", set_point_pv="RECONDENSE:TEMP:SP"
+        )
+        # Start recondensing and skip steps
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+        for i in range(parts_skipped):
+            self.ca.assert_that_pv_is("RECONDENSE:PART", f"PART {i+1}")
+            self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "YES")
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSE:CANCELLED")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "NOT RECONDENSING")
+        # Assert that temperature setpoint is set
+        self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", original_temp_sp, tolerance=0.001)
+
     @parameterized.expand(parameterized_list(["SETUP", "PART 1", "PART 2", "PART 3", "FINISHING", "NOT RECONDENSING"]))
     def test_WHEN_set_part_THEN_part_set(self, _, part):
         self.ca.assert_setting_setpoint_sets_readback(part, "RECONDENSE:PART")
