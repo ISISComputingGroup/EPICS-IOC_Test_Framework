@@ -244,6 +244,24 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("D", 1.2, tolerance=0.001)
         self.ca.assert_that_pv_is("CTRLCHANNEL", "1KPOTHE3POTLO")
 
+    def test_WHEN_in_part_3_THEN_values_set_correctly(self):
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+        self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "YES")
+        self.ca.set_pv_value("RECONDENSE:SKIPPED:SP", "YES")
+        self.ca.assert_that_pv_is("RECONDENSE:PART", "PART 3")
+        self.ca.assert_that_pv_is("RECONDENSE:SKIPPED", "NO")
+        self.ca.assert_that_pv_is("RECONDENSE:CANCELLED", "NO")
+        self.ca.assert_that_pv_is("RECONDENSE:TIMED_OUT", "NO")
+        self.ca.assert_that_pv_is("ADJUST_PIDS", "NO")
+        self.ca.assert_that_pv_is("MODE:HTR", "Manual")
+        self.ca.assert_that_pv_is_number("HEATERP", 0.0, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("TEMP:SORB:SP", 0.0, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("TEMP:SP", 0.0, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("P", 1.2, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("I", 1.2, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("D", 1.2, tolerance=0.001)
+        self.ca.assert_that_pv_is("CTRLCHANNEL", "SORB")
+
     @parameterized.expand(parameterized_list(["SETUP", "PART 1", "PART 2", "PART 3", "FINISHING", "NOT RECONDENSING"]))
     def test_WHEN_set_part_THEN_part_set(self, _, part):
         self.ca.assert_setting_setpoint_sets_readback(part, "RECONDENSE:PART")
