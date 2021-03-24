@@ -53,7 +53,8 @@ pv_to_macros_map = {
     "RE:SORB:D:SP": "RECONDENSE_SORB_D",
     "RE:HE3POT:TEMP:PART1:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
     "RE:HE3POT:TEMP:PART2:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
-    "RE:PART2:WAIT_TIME:SP": "RECONDENSE_POST_PART2_WAIT_TIME"
+    "RE:PART2:WAIT_TIME:SP": "RECONDENSE_POST_PART2_WAIT_TIME",
+    "MAX_TEMP_FOR_HE3_COOLING": "MAX_TEMP_FOR_HE3_COOLING"
 }
 
 
@@ -334,3 +335,33 @@ class HLX503Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(product([1, 2], [1.8, 2.2])))
     def test_WHEN_set_he3pot_targets_THEN_he3pot_targets_set(self, _, part, temp):
         self.ca.assert_setting_setpoint_sets_readback(temp, f"RE:HE3POT:TEMP:PART{part}")
+
+    @parameterized.expand(parameterized_list([1.4, 3.2]))
+    def test_WHEN_set_max_temp_he3_cooling_THEN_max_temp_he3_cooling_set(self, _, max_temp_for_he3_cooling):
+        self.ca.assert_setting_setpoint_sets_readback(max_temp_for_he3_cooling, "MAX_TEMP_FOR_HE3_COOLING")
+
+    @parameterized.expand(parameterized_list([
+        (1.4, 0.8, "1KPOTHE3POTLO", "1KPOTHE3POTLO"), (1.4, 1.9, "1KPOTHE3POTLO", "HE3POTHI"),
+        (3.2, 2.1, "HE3POTHI", "1KPOTHE3POTLO"), (3.2, 3.8, "HE3POTHI", "HE3POTHI")]))
+    def test_WHEN_set_max_temp_he3_cooling_THEN_correct_control_channel_used(
+            self, _, max_temp_for_he3_cooling, temp, previous_expected_ctrl_channel, new_expected_ctrl_channel):
+        self.ca.set_pv_value("TEMP:HE3POT:SP", temp)
+        self.ca.assert_that_pv_is("CTRLCHANNEL", previous_expected_ctrl_channel)
+        self.ca.assert_setting_setpoint_sets_readback(max_temp_for_he3_cooling, "MAX_TEMP_FOR_HE3_COOLING")
+        self.ca.set_pv_value("TEMP:HE3POT:SP", temp)
+        self.ca.assert_that_pv_is("CTRLCHANNEL", new_expected_ctrl_channel)
+
+    @parameterized.expand(parameterized_list([(1.4, False), (3.2, True)]))
+    def test_WHEN_set_max_temp_he3_cooling_THEN_high_value_set_on_recondense_temp_sp_AND_alarms_correct(
+            self, _, max_temp_for_he3_cooling, alarm_expected):
+        self.ca.set_pv_value("RE:TEMP:SP", max_temp_for_he3_cooling + 0.1)
+        if alarm_expected:
+            self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
+            self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.MINOR)
+        else:
+            self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.NONE)
+        self.ca.assert_setting_setpoint_sets_readback(max_temp_for_he3_cooling, "MAX_TEMP_FOR_HE3_COOLING")
+        self.ca.assert_that_pv_is("RE:TEMP:SP.HIGH", max_temp_for_he3_cooling)
+        self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
+        self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.MINOR)
