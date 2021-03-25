@@ -35,7 +35,9 @@ IOCS = [
             "RECONDENSE_SORB_D": 1.2,
             "RECONDENSE_HE3POT_TARGET_TEMP_PART1": 1.5,
             "RECONDENSE_HE3POT_TARGET_TEMP_PART2": 1.6,
-            "RECONDENSE_POST_PART2_WAIT_TIME": 10
+            "RECONDENSE_POST_PART2_WAIT_TIME": 10,
+            "RECONDENSE_PART_TIMEOUT": 1800,
+            "RECONDENSE_PART_TIMEOUT_ON": "YES"
         }
     },
 ]
@@ -54,7 +56,9 @@ pv_to_macros_map = {
     "RE:HE3POT:TEMP:PART1:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
     "RE:HE3POT:TEMP:PART2:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
     "RE:PART2:WAIT_TIME:SP": "RECONDENSE_POST_PART2_WAIT_TIME",
-    "MAX_TEMP_FOR_HE3_COOLING": "MAX_TEMP_FOR_HE3_COOLING"
+    "MAX_TEMP_FOR_HE3_COOLING": "MAX_TEMP_FOR_HE3_COOLING",
+    "RE:TIMEOUT:SP": "RECONDENSE_PART_TIMEOUT",
+    "RE:TIMEOUT:ON:SP": "RECONDENSE_PART_TIMEOUT_ON"
 }
 
 
@@ -310,7 +314,7 @@ class HLX503Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list([20.8, 100.2]))
     def test_WHEN_set_post_recondense_temp_AND_setpoint_is_greater_than_max_heliox_op_temp_THEN_post_recondense_not_set(
             self, _, temp):
-        self.ca.assert_setting_setpoint_sets_readback(temp, "RE:TEMP", expected_value=0.3)
+        self.ca.assert_setting_setpoint_sets_readback(temp, "RE:TEMP", expected_value=0.3, expected_alarm=self.ca.Alarms.MAJOR)
         self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MAJOR)
 
     @parameterized.expand(parameterized_list([0.5, 1.2]))
@@ -382,3 +386,30 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("RE:TEMP:SP.HIGH", max_temp_for_he3_cooling)
         self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.NONE)
+
+    @parameterized.expand(parameterized_list(["YES", "NO"]))
+    def test_WHEN_set_timeout_on_or_off_THEN_timeout_on_or_off_set(self, _, on_or_off):
+        self.ca.assert_setting_setpoint_sets_readback(on_or_off, "RE:TIMEOUT:ON")
+
+    @parameterized.expand(parameterized_list([2, 30]))
+    def test_WHEN_set_timeout_THEN_timeout_set(self, _, timeout):
+        self.ca.assert_setting_setpoint_sets_readback(timeout, "RE:TIMEOUT")
+
+    @parameterized.expand(parameterized_list([0, 1, 2]))
+    def test_WHEN_timed_out_in_any_step_THEN_temp_set_AND_timed_out(self, _, parts_skipped):
+        # Set temp values
+        original_temp_sp = 0.1
+        self.ca.set_pv_value("TEMP:HE3POT:SP", original_temp_sp)
+        post_recondense_temp_sp = 0.3
+        self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
+        # Start recondensing and skip steps
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+        for i in range(parts_skipped):
+            self.ca.assert_that_pv_is("RE:PART", f"PART {i+1}")
+            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        self.ca.assert_setting_setpoint_sets_readback(1, "RE:TIMEOUT")
+        self.ca.assert_that_pv_is("YES", "RE:TIMED_OUT", timeout=3)
+        self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
+        # Assert that temperature setpoint is set
+        self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
+
