@@ -408,8 +408,28 @@ class HLX503Tests(unittest.TestCase):
             self.ca.assert_that_pv_is("RE:PART", f"PART {i+1}")
             self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
         self.ca.assert_setting_setpoint_sets_readback(1, "RE:TIMEOUT")
-        self.ca.assert_that_pv_is("YES", "RE:TIMED_OUT", timeout=3)
+        self.ca.assert_that_pv_is("RE:TIMED_OUT", "YES", timeout=3)
         self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
         # Assert that temperature setpoint is set
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
+
+    @parameterized.expand(parameterized_list([0, 1, 2]))
+    def test_WHEN_time_out_off_in_any_step_AND_wait_AND_cancel_THEN_temp_not_set_AND_timed_out(self, _, parts_skipped):
+        # Set temp values
+        original_temp_sp = 0.1
+        self.ca.set_pv_value("TEMP:HE3POT:SP", original_temp_sp)
+        post_recondense_temp_sp = 0.3
+        self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
+        # Start recondensing and skip steps
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+        for i in range(parts_skipped):
+            self.ca.assert_that_pv_is("RE:PART", f"PART {i+1}")
+            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        self.ca.assert_setting_setpoint_sets_readback("NO", "RE:TIMEOUT:ON")
+        self.ca.set_pv_value("RE:TIMEOUT:SP", 1, sleep_after_set=2)
+        self.ca.assert_that_pv_is("RE:TIMED_OUT", "NO", timeout=3)
+        self.ca.set_pv_value("RE:CANCELLED:SP", "YES")
+        self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
+        # Assert that temperature setpoint is set
+        self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", original_temp_sp, tolerance=0.001)
 
