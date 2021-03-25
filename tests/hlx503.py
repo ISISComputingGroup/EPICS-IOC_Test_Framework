@@ -302,7 +302,9 @@ class HLX503Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list([2.8, 12.2]))
     def test_WHEN_set_post_recondense_temp_AND_setpoint_is_greater_than_max_he3_cooling_temp_THEN_post_recondense_not_set(
             self, _, temp):
-        self.ca.assert_setting_setpoint_sets_readback(temp, "RE:TEMP", expected_value=0.3)
+        self.ca.assert_setting_setpoint_sets_readback(
+            temp, "RE:TEMP", expected_value=0.3, expected_alarm=self.ca.Alarms.MINOR
+        )
         self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
 
     @parameterized.expand(parameterized_list([20.8, 100.2]))
@@ -365,3 +367,18 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("RE:TEMP:SP.HIGH", max_temp_for_he3_cooling)
         self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
         self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.MINOR)
+
+    @parameterized.expand(parameterized_list([(1.4, False), (3.2, True)]))
+    def test_WHEN_set_max_temp_he3_cooling_THEN_low_value_set_on_recondense_temp_sp_AND_alarms_correct(
+            self, _, max_temp_for_he3_cooling, alarm_expected):
+        self.ca.set_pv_value("RE:TEMP:SP", max_temp_for_he3_cooling - 0.1)
+        if alarm_expected:
+            self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
+            self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.MINOR)
+        else:
+            self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.NONE)
+        self.ca.assert_setting_setpoint_sets_readback(max_temp_for_he3_cooling, "MAX_TEMP_FOR_HE3_COOLING")
+        self.ca.assert_that_pv_is("RE:TEMP:SP.HIGH", max_temp_for_he3_cooling)
+        self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.NONE)
