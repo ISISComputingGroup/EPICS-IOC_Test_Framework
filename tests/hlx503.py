@@ -433,3 +433,35 @@ class HLX503Tests(unittest.TestCase):
         # Assert that temperature setpoint is set
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", original_temp_sp, tolerance=0.001)
 
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_recondense_THEN_recondense(self):
+        # Set requirement for recondense
+        self._lewis.backdoor_set_on_device("helium_3_pot_empty", True)
+        # Set temp values
+        original_temp_sp = 0.1
+        self.ca.set_pv_value("TEMP:HE3POT:SP", original_temp_sp)
+        post_recondense_temp_sp = 0.3
+        self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
+        # Set state for recondense
+        self.ca.set_pv_value("RE:PART2:WAIT_TIME", 1)
+        # Initiate recondense
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+        # Wait for recondense to finish
+        self.ca.assert_that_pv_is("RE:PART", "PART 1", timeout=3)
+        self.ca.assert_that_pv_is("RE:PART", "PART 2", timeout=3)
+        self.ca.assert_that_pv_is("RE:PART", "PART 3", timeout=3)
+        self.ca.assert_that_pv_is("RECONDENSING", "NO", timeout=3)
+        self._lewis.backdoor_set_on_device("helium_3_pot_empty", False)
+        # Assert post condense status
+        self.ca.assert_that_pv_is("RE:SUCCESS", "YES")
+        self.ca.assert_that_pv_is("RE:CANCELLED", "NO")
+        self.ca.assert_that_pv_is("RE:TIMED_OUT", "NO")
+        self.ca.assert_that_pv_is("RE:SKIPPED", "NO")
+        self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
+        # Assert post condense setpoint set
+        self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("TEMP:HE3POT", post_recondense_temp_sp, tolerance=0.001)
+
+
+
+
