@@ -486,3 +486,45 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("RE:SKIPPED", "NO")
         self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
 
+    def test_WHEN_recondense_THEN_after_recondense_pid_settings_are_restored(self):
+        self.set_unattainable_recondense_conditions()
+        # Set up old values
+        old_autopid_value = "ON"
+        self.ca.set_pv_value("AUTOPID", old_autopid_value)
+        old_adjust_pid_value = "YES"
+        self.ca.set_pv_value("ADJUST_PIDS:SP", old_adjust_pid_value)
+        old_pid_values = 1.0
+        for pid in ["P", "I", "D"]:
+            self.ca.set_pv_value(f"{pid}:SP", old_pid_values)
+        # Set up expected in-recondense values
+        new_pid_values = 1.8
+        for pid in ["P", "I", "D"]:
+            self.ca.set_pv_value(f"RE:SORB:{pid}:SP", new_pid_values)
+        new_autopid_value = "OFF"
+        new_adjust_pid_value = "NO"
+        # Commence recondense
+        self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
+        # Assert Old PIDS stored
+        for pid in ["P", "I", "D"]:
+            self.ca.assert_that_pv_is(f"RE:_OLD_{pid}", old_pid_values)
+        self.ca.assert_that_pv_is("RE:_OLD_ADJUST_PIDS", old_adjust_pid_value)
+        self.ca.assert_that_pv_is("RE:_OLD_AUTOPID", old_autopid_value)
+        # Assert PIDs set
+        for pid in ["P", "I", "D"]:
+            self.ca.assert_that_pv_is(f"{pid}", new_pid_values)
+        self.ca.assert_that_pv_is("ADJUST_PIDS", new_adjust_pid_value)
+        self.ca.assert_that_pv_is("AUTOPID", new_autopid_value)
+        # Skip parts
+        for i in range(3):
+            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        # Assert recondense finished
+        self.ca.assert_setting_setpoint_sets_readback("NO", "RECONDENSING", timeout=10)
+        # Assert PID settings reapplied
+        for pid in ["P", "I", "D"]:
+            self.ca.assert_that_pv_is(f"{pid}", old_pid_values)
+        self.ca.assert_that_pv_is("ADJUST_PIDS", old_adjust_pid_value)
+        self.ca.assert_that_pv_is("AUTOPID", old_autopid_value)
+
+
+
+
