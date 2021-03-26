@@ -74,6 +74,10 @@ UNATTAINABLE_RECONDENSE_VALUES = {
     "RE:HE3POT:TEMP:PART1:SP": -1, "RE:HE3POT:TEMP:PART2:SP": -1
 }
 
+PID_TEST_VALUES = [0.2, 3.8]
+
+CONTROL_CHANNELS = ["SORB", "HE3POTHI", "1KPOTHE3POTLO"]
+
 
 class HLX503Tests(unittest.TestCase):
     """
@@ -130,20 +134,20 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:SP", val)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", val, tolerance=0.1)
 
-    @parameterized.expand(parameterized_list(["SORB", "HE3POTHI", "1KPOTHE3POTLO"]))
+    @parameterized.expand(parameterized_list(CONTROL_CHANNELS))
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_ctrlchannel_set_THEN_ctrlchannel_set(self, _, new_control_channel):
         self.ca.assert_setting_setpoint_sets_readback(new_control_channel, "CTRLCHANNEL")
 
-    @parameterized.expand(parameterized_list([0.2, 3.8]))
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     def test_WHEN_proportional_set_THEN_proportional_set(self, _, proportional):
         self.ca.assert_setting_setpoint_sets_readback(proportional, "P")
 
-    @parameterized.expand(parameterized_list([0.2, 3.8]))
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     def test_WHEN_integral_set_THEN_integral_set(self, _, integral):
         self.ca.assert_setting_setpoint_sets_readback(integral, "I")
 
-    @parameterized.expand(parameterized_list([0.2, 3.8]))
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     def test_WHEN_derivative_set_THEN_derivative_set(self, _, derivative):
         self.ca.assert_setting_setpoint_sets_readback(derivative, "D")
 
@@ -267,9 +271,7 @@ class HLX503Tests(unittest.TestCase):
         self.set_unattainable_recondense_conditions()
         # Start recondensing and skip steps
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
-        for i in range(parts_skipped):
-            self.ca.assert_that_pv_is("RE:PART", f"PART {i+1}")
-            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        self.skip_parts(parts_skipped)
         self.ca.assert_setting_setpoint_sets_readback("YES", "RE:CANCELLED")
         self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
         # Assert that temperature setpoint is set
@@ -290,15 +292,14 @@ class HLX503Tests(unittest.TestCase):
             "TEMP:SORB:SP", UNATTAINABLE_RECONDENSE_VALUES["RE:SORB:TEMP:SP"], tolerance=0.001
         )
         self.ca.assert_that_pv_is_number("TEMP:SP", UNATTAINABLE_RECONDENSE_VALUES["RE:SORB:TEMP:SP"], tolerance=0.001)
-        self.ca.assert_that_pv_is_number("P", 1.2, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("I", 1.2, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("D", 1.2, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("P", IOCS[0]["macros"]["RECONDENSE_SORB_P"], tolerance=0.001)
+        self.ca.assert_that_pv_is_number("I", IOCS[0]["macros"]["RECONDENSE_SORB_I"], tolerance=0.001)
+        self.ca.assert_that_pv_is_number("D", IOCS[0]["macros"]["RECONDENSE_SORB_D"], tolerance=0.001)
 
     def test_WHEN_in_part_3_THEN_values_set_correctly(self):
         self.set_unattainable_recondense_conditions()
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
-        self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
-        self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        self.skip_parts(2)
         self.ca.assert_that_pv_is("RE:PART", "PART 3")
         self.ca.assert_that_pv_is("RE:SKIPPED", "NO")
         self.ca.assert_that_pv_is("RE:CANCELLED", "NO")
@@ -308,9 +309,9 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("HEATERP", 0.0, tolerance=0.001)
         self.ca.assert_that_pv_is_number("TEMP:SORB:SP", 0.0, tolerance=0.001)
         self.ca.assert_that_pv_is_number("TEMP:SP", 0.0, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("P", 1.2, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("I", 1.2, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("D", 1.2, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("P", IOCS[0]["macros"]["RECONDENSE_SORB_P"], tolerance=0.001)
+        self.ca.assert_that_pv_is_number("I", IOCS[0]["macros"]["RECONDENSE_SORB_I"], tolerance=0.001)
+        self.ca.assert_that_pv_is_number("D", IOCS[0]["macros"]["RECONDENSE_SORB_D"], tolerance=0.001)
         self.ca.assert_that_pv_is("CTRLCHANNEL", "SORB")
 
     @parameterized.expand(parameterized_list([0.5, 1.2]))
@@ -332,11 +333,6 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(temp, "RE:TEMP", expected_value=0.3, expected_alarm=self.ca.Alarms.MAJOR)
         self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MAJOR)
 
-    @parameterized.expand(parameterized_list([0.5, 1.2]))
-    @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
-    def test_WHEN_forward_post_condense_temp_setpoint_THEN_temp_set(self, _, temp):
-        self.ca.assert_setting_setpoint_sets_readback(temp, "RE:TEMP")
-
     @parameterized.expand(parameterized_list([12.0, 15.0]))
     def test_WHEN_set_final_recondense_sorb_temp_THEN_final_recondense_sorb_temp_set(self, _, temp):
         self.ca.assert_setting_setpoint_sets_readback(temp, "RE:SORB:TEMP:FIN")
@@ -345,7 +341,7 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_set_recondense_sorb_temp_set_THEN_recondense_sorb_temp_set_set(self, _, temp):
         self.ca.assert_setting_setpoint_sets_readback(temp, "RE:SORB:TEMP")
 
-    @parameterized.expand(parameterized_list(product(["P", "I", "D"], [0.8, 3.4])))
+    @parameterized.expand(parameterized_list(product(["P", "I", "D"], PID_TEST_VALUES)))
     def test_WHEN_set_recondense_sorb_pids_THEN_recondense_sorb_pids_set(self, _, p_or_i_or_d, val):
         self.ca.assert_setting_setpoint_sets_readback(val, f"RE:SORB:{p_or_i_or_d}")
 
@@ -372,16 +368,19 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:HE3POT:SP", temp)
         self.ca.assert_that_pv_is("CTRLCHANNEL", new_expected_ctrl_channel)
 
-    @parameterized.expand(parameterized_list([(1.4, False), (3.2, True)]))
-    def test_WHEN_set_max_temp_he3_cooling_THEN_high_value_set_on_recondense_temp_sp_AND_alarms_correct(
-            self, _, max_temp_for_he3_cooling, alarm_expected):
-        self.ca.set_pv_value("RE:TEMP:SP", max_temp_for_he3_cooling + 0.1)
-        if alarm_expected:
+    def assert_recondense_temp_alarm_is(self, minor: bool):
+        if minor:
             self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
             self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.MINOR)
         else:
             self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.NONE)
+
+    @parameterized.expand(parameterized_list([(1.4, False), (3.2, True)]))
+    def test_WHEN_set_max_temp_he3_cooling_THEN_high_value_set_on_recondense_temp_sp_AND_alarms_correct(
+            self, _, max_temp_for_he3_cooling, alarm_expected):
+        self.ca.set_pv_value("RE:TEMP:SP", max_temp_for_he3_cooling + 0.1)
+        self.assert_recondense_temp_alarm_is(alarm_expected)
         self.ca.assert_setting_setpoint_sets_readback(max_temp_for_he3_cooling, "MAX_TEMP_FOR_HE3_COOLING")
         self.ca.assert_that_pv_is("RE:TEMP:SP.HIGH", max_temp_for_he3_cooling)
         self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
@@ -391,12 +390,7 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_set_max_temp_he3_cooling_THEN_low_value_set_on_recondense_temp_sp_AND_alarms_correct(
             self, _, max_temp_for_he3_cooling, alarm_expected):
         self.ca.set_pv_value("RE:TEMP:SP", max_temp_for_he3_cooling - 0.1)
-        if alarm_expected:
-            self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.MINOR)
-            self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.MINOR)
-        else:
-            self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.NONE)
-            self.ca.assert_that_pv_alarm_is("RE:TEMP", self.ca.Alarms.NONE)
+        self.assert_recondense_temp_alarm_is(alarm_expected)
         self.ca.assert_setting_setpoint_sets_readback(max_temp_for_he3_cooling, "MAX_TEMP_FOR_HE3_COOLING")
         self.ca.assert_that_pv_is("RE:TEMP:SP.HIGH", max_temp_for_he3_cooling)
         self.ca.assert_that_pv_alarm_is("RE:TEMP:SP", self.ca.Alarms.NONE)
@@ -410,6 +404,12 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_set_timeout_THEN_timeout_set(self, _, timeout):
         self.ca.assert_setting_setpoint_sets_readback(timeout, "RE:TIMEOUT")
 
+    def skip_parts(self, number_of_parts_to_skip: int, part_offset: int = 0, assert_parts=True):
+        for i in range(number_of_parts_to_skip):
+            if assert_parts:
+                self.ca.assert_that_pv_is("RE:PART", f"PART {i+1+part_offset}")
+            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+
     @parameterized.expand(parameterized_list([0, 1, 2]))
     def test_WHEN_timed_out_in_any_step_THEN_temp_set_AND_timed_out(self, _, parts_skipped):
         # Set temp values
@@ -420,9 +420,7 @@ class HLX503Tests(unittest.TestCase):
         self.set_unattainable_recondense_conditions()
         # Start recondensing and skip steps
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
-        for i in range(parts_skipped):
-            self.ca.assert_that_pv_is("RE:PART", f"PART {i+1}")
-            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        self.skip_parts(parts_skipped)
         self.ca.assert_setting_setpoint_sets_readback(1, "RE:TIMEOUT")
         self.ca.assert_that_pv_is("RE:TIMED_OUT", "YES", timeout=3)
         self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
@@ -439,9 +437,7 @@ class HLX503Tests(unittest.TestCase):
         self.set_unattainable_recondense_conditions()
         # Start recondensing and skip steps
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
-        for i in range(parts_skipped):
-            self.ca.assert_that_pv_is("RE:PART", f"PART {i+1}")
-            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        self.skip_parts(parts_skipped)
         self.ca.assert_setting_setpoint_sets_readback("NO", "RE:TIMEOUT:ON")
         self.ca.set_pv_value("RE:TIMEOUT:SP", 1, sleep_after_set=2)
         self.ca.assert_that_pv_is("RE:TIMED_OUT", "NO", timeout=3)
@@ -486,45 +482,49 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("RE:SKIPPED", "NO")
         self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
 
+    def assert_pid_values(self, pid_value: float, pv_prefix: str = "", pv_suffix: str = "", timeouts: int = None):
+        for pid in ["P", "I", "D"]:
+            self.ca.assert_that_pv_is_number(
+                f"{pv_prefix}{pid}{pv_suffix}", pid_value, timeout=timeouts, tolerance=0.0001
+            )
+
+    def assert_pid_settings(self, adjust_pids: str, autopid: str, pid_value: float,
+                            pv_prefix: str = "", pv_suffix: str = "", timeouts: int = None):
+        self.ca.assert_that_pv_is(f"{pv_prefix}ADJUST_PIDS{pv_suffix}", adjust_pids, timeout=timeouts)
+        self.ca.assert_that_pv_is(f"{pv_prefix}AUTOPID{pv_suffix}", autopid, timeout=timeouts)
+        self.assert_pid_values(pid_value, pv_prefix, pv_suffix, timeouts)
+
+    def set_pid_values(self, pid_value: float, pv_prefix: str = ""):
+        for pid in ["P", "I", "D"]:
+            self.ca.set_pv_value(f"{pv_prefix}{pid}:SP", pid_value)
+
+    def set_pid_settings(self, adjust_pids: str, autopid: str, pid_value: float):
+        self.ca.set_pv_value("AUTOPID:SP", autopid)
+        self.ca.set_pv_value("ADJUST_PIDS:SP", adjust_pids)
+        self.set_pid_values(pid_value)
+
+
     def test_WHEN_recondense_THEN_after_recondense_pid_settings_are_restored(self):
         self.set_unattainable_recondense_conditions()
         # Set up old values
         old_autopid_value = "ON"
-        self.ca.set_pv_value("AUTOPID", old_autopid_value)
         old_adjust_pid_value = "YES"
-        self.ca.set_pv_value("ADJUST_PIDS:SP", old_adjust_pid_value)
-        old_pid_values = 1.0
-        for pid in ["P", "I", "D"]:
-            self.ca.set_pv_value(f"{pid}:SP", old_pid_values)
+        old_pid_values = 0.0
+        self.set_pid_settings(old_adjust_pid_value, old_autopid_value, old_pid_values)
         # Set up expected in-recondense values
         new_pid_values = 1.8
-        for pid in ["P", "I", "D"]:
-            self.ca.set_pv_value(f"RE:SORB:{pid}:SP", new_pid_values)
+        self.set_pid_values(new_pid_values, pv_prefix="RE:SORB:")
         new_autopid_value = "OFF"
         new_adjust_pid_value = "NO"
         # Commence recondense
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
-        # Assert Old PIDS stored
-        for pid in ["P", "I", "D"]:
-            self.ca.assert_that_pv_is(f"RE:_OLD_{pid}", old_pid_values)
-        self.ca.assert_that_pv_is("RE:_OLD_ADJUST_PIDS", old_adjust_pid_value)
-        self.ca.assert_that_pv_is("RE:_OLD_AUTOPID", old_autopid_value)
-        # Assert PIDs set
-        for pid in ["P", "I", "D"]:
-            self.ca.assert_that_pv_is(f"{pid}", new_pid_values)
-        self.ca.assert_that_pv_is("ADJUST_PIDS", new_adjust_pid_value)
-        self.ca.assert_that_pv_is("AUTOPID", new_autopid_value)
-        # Skip parts
-        for i in range(3):
-            self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
+        # Assert Old PID settings stored and new PID settings set
+        self.assert_pid_settings(
+            old_adjust_pid_value, old_autopid_value, old_pid_values, pv_prefix="RE:_OLD_", timeouts=2
+        )
+        self.assert_pid_settings(new_adjust_pid_value, new_autopid_value, new_pid_values)
+        self.skip_parts(3, assert_parts=False)
         # Assert recondense finished
         self.ca.assert_setting_setpoint_sets_readback("NO", "RECONDENSING", timeout=10)
-        # Assert PID settings reapplied
-        for pid in ["P", "I", "D"]:
-            self.ca.assert_that_pv_is(f"{pid}", old_pid_values)
-        self.ca.assert_that_pv_is("ADJUST_PIDS", old_adjust_pid_value)
-        self.ca.assert_that_pv_is("AUTOPID", old_autopid_value)
-
-
-
-
+        # Assert old PID settings reapplied
+        self.assert_pid_settings(old_adjust_pid_value, old_autopid_value, old_pid_values)
