@@ -6,9 +6,6 @@ from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
-from genie_python.utilities import dehex_and_decompress
-
-from itertools import product
 
 # Device prefix
 DEVICE_PREFIX = "HLX503_01"
@@ -451,7 +448,9 @@ class HLX503Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list([
         # Set targets that aren't reasonable to test different paths
-        {}, {"RE:SORB:TEMP:SP": 10000}, {"RE:HE3POT:TEMP:PART1:SP": -1}, {"RE:HE3POT:TEMP:PART2:SP": -1}
+        {}, {"RE:SORB:TEMP:SP": UNATTAINABLE_RECONDENSE_VALUES["RE:SORB:TEMP:SP"]},
+        {"RE:HE3POT:TEMP:PART1:SP": UNATTAINABLE_RECONDENSE_VALUES["RE:HE3POT:TEMP:PART1:SP"]},
+        {"RE:HE3POT:TEMP:PART2:SP": UNATTAINABLE_RECONDENSE_VALUES["RE:HE3POT:TEMP:PART2:SP"]}
     ]))
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_recondense_THEN_recondense(self, _, pv_sets):
@@ -472,12 +471,11 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("RE:PART", "PART 1", timeout=10)
         self.ca.assert_that_pv_is("RE:PART", "PART 2", timeout=10)
         self.ca.assert_that_pv_is("RE:PART", "PART 3", timeout=10)
-        self.ca.assert_that_pv_is("RE:PART", "FINISHING", timeout=10)
+        self.ca.assert_that_pv_is("RECONDENSING", "NO", timeout=10)
+        self.ca.assert_that_pv_is("RE:SUCCESS", "YES")
         self._lewis.backdoor_set_on_device("helium_3_pot_empty", False)
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
         self.ca.assert_that_pv_is_number("TEMP:HE3POT", post_recondense_temp_sp, tolerance=0.001)
-        self.ca.assert_that_pv_is("RE:SUCCESS", "YES")
-        self.ca.assert_that_pv_is("RECONDENSING", "NO", timeout=10)
         # Assert post condense status
         self.ca.assert_that_pv_is("RE:CANCELLED", "NO")
         self.ca.assert_that_pv_is("RE:TIMED_OUT", "NO")
