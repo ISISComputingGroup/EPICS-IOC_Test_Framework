@@ -1,6 +1,9 @@
 import unittest
 
 from parameterized import parameterized
+from itertools import product
+
+from genie_python.utilities import dehex_and_decompress
 
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
