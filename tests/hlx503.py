@@ -56,7 +56,7 @@ pv_to_macros_map = {
     "RE:HE3POT:TEMP:PART1:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
     "RE:HE3POT:TEMP:PART2:SP": "RECONDENSE_HE3POT_TARGET_TEMP_PART1",
     "RE:PART2:WAIT_TIME:SP": "RECONDENSE_POST_PART2_WAIT_TIME",
-    "MAX_TEMP_FOR_HE3_COOLING": "MAX_TEMP_FOR_HE3_COOLING",
+    "MAX_TEMP_FOR_HE3_COOLING:SP": "MAX_TEMP_FOR_HE3_COOLING",
     "RE:TIMEOUT:SP": "RECONDENSE_PART_TIMEOUT",
     "RE:TIMEOUT:ON:SP": "RECONDENSE_PART_TIMEOUT_ON"
 }
@@ -245,6 +245,7 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:HE3POT:SP", 0.1)
         post_recondense_temp_sp = 0.3
         self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
+        self.set_unattainable_recondense_conditions()
         # Start recondensing and skip steps
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         self.ca.assert_that_pv_is("RE:PART", "PART 1")
@@ -484,10 +485,4 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("RE:TIMED_OUT", "NO")
         self.ca.assert_that_pv_is("RE:SKIPPED", "NO")
         self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
-
-
-
-
-
-
 
