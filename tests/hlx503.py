@@ -492,7 +492,8 @@ class HLX503Tests(unittest.TestCase):
                             pv_prefix: str = "", pv_suffix: str = "", timeouts: int = None):
         self.ca.assert_that_pv_is(f"{pv_prefix}ADJUST_PIDS{pv_suffix}", adjust_pids, timeout=timeouts)
         self.ca.assert_that_pv_is(f"{pv_prefix}AUTOPID{pv_suffix}", autopid, timeout=timeouts)
-        self.assert_pid_values(pid_value, pv_prefix, pv_suffix, timeouts)
+        if pid_value is not None:
+            self.assert_pid_values(pid_value, pv_prefix, pv_suffix, timeouts)
 
     def set_pid_values(self, pid_value: float, pv_prefix: str = ""):
         for pid in ["P", "I", "D"]:
@@ -501,15 +502,13 @@ class HLX503Tests(unittest.TestCase):
     def set_pid_settings(self, adjust_pids: str, autopid: str, pid_value: float):
         self.ca.set_pv_value("AUTOPID:SP", autopid)
         self.ca.set_pv_value("ADJUST_PIDS:SP", adjust_pids)
-        self.set_pid_values(pid_value)
+        if pid_value is not None:
+            self.set_pid_values(pid_value)
 
-
-    def test_WHEN_recondense_THEN_after_recondense_pid_settings_are_restored(self):
+    @parameterized.expand(parameterized_list([("OFF", "NO", 0.0), ("ON", "NO", 0.0), ("OFF", "YES", None), ("OFF", "YES", None)]))
+    def test_WHEN_recondense_THEN_after_recondense_pid_settings_are_restored(self, _, old_autopid_value, old_adjust_pid_value, old_pid_values):
         self.set_unattainable_recondense_conditions()
         # Set up old values
-        old_autopid_value = "ON"
-        old_adjust_pid_value = "YES"
-        old_pid_values = 0.0
         self.set_pid_settings(old_adjust_pid_value, old_autopid_value, old_pid_values)
         # Set up expected in-recondense values
         new_pid_values = 1.8
