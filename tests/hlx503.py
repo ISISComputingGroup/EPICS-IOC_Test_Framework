@@ -69,6 +69,11 @@ PID_TABLE_LOOKUP_VALUES = [
     (0.6, 13.0, 14.0, 15.0, "HE3POT"), (4.0, 23.0, 24.0, 25.0, "HE3POT"), (5.8, 33.0, 34.0, 35.0, "HE3POT")
 ]
 
+UNATTAINABLE_RECONDENSE_VALUES = {
+    "RE:SORB:TEMP:SP": 10000, "RE:SORB:TEMP:FIN:SP": -1000,
+    "RE:HE3POT:TEMP:PART1:SP": -1, "RE:HE3POT:TEMP:PART2:SP": -1
+}
+
 
 class HLX503Tests(unittest.TestCase):
     """
@@ -100,6 +105,10 @@ class HLX503Tests(unittest.TestCase):
     def reset_any_changes_from_macros(self):
         for pv, macro in pv_to_macros_map.items():
             self.ca.set_pv_value(pv, IOCS[0]["macros"][macro])
+
+    def set_unattainable_recondense_conditions(self):
+        for pv, value in UNATTAINABLE_RECONDENSE_VALUES.items():
+            self.ca.set_pv_value(pv, value)
 
     @parameterized.expand(parameterized_list(["Auto", "Manual"]))
     def test_WHEN_set_autoheat_THEN_autoheat_set(self, _, value):
@@ -254,6 +263,7 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:HE3POT:SP", original_temp_sp)
         post_recondense_temp_sp = 0.3
         self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
+        self.set_unattainable_recondense_conditions()
         # Start recondensing and skip steps
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         for i in range(parts_skipped):
@@ -265,6 +275,7 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", original_temp_sp, tolerance=0.001)
 
     def test_WHEN_in_part_1_THEN_values_set_correctly(self):
+        self.set_unattainable_recondense_conditions()
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         self.ca.assert_that_pv_is("RE:PART", "PART 1")
         self.ca.assert_that_pv_is("RE:SKIPPED", "NO")
@@ -274,13 +285,16 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("MODE:HTR", "Manual")
         self.ca.assert_that_pv_is("CTRLCHANNEL", "SORB")
         self.ca.assert_that_pv_is_number("HEATERP", 0.0, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("TEMP:SORB:SP", 33.0, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("TEMP:SP", 33.0, tolerance=0.001)
+        self.ca.assert_that_pv_is_number(
+            "TEMP:SORB:SP", UNATTAINABLE_RECONDENSE_VALUES["RE:SORB:TEMP:SP"], tolerance=0.001
+        )
+        self.ca.assert_that_pv_is_number("TEMP:SP", UNATTAINABLE_RECONDENSE_VALUES["RE:SORB:TEMP:SP"], tolerance=0.001)
         self.ca.assert_that_pv_is_number("P", 1.2, tolerance=0.001)
         self.ca.assert_that_pv_is_number("I", 1.2, tolerance=0.001)
         self.ca.assert_that_pv_is_number("D", 1.2, tolerance=0.001)
 
     def test_WHEN_in_part_3_THEN_values_set_correctly(self):
+        self.set_unattainable_recondense_conditions()
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
         self.ca.set_pv_value("RE:SKIPPED:SP", "YES")
@@ -402,6 +416,7 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:HE3POT:SP", original_temp_sp)
         post_recondense_temp_sp = 0.3
         self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
+        self.set_unattainable_recondense_conditions()
         # Start recondensing and skip steps
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         for i in range(parts_skipped):
@@ -420,6 +435,7 @@ class HLX503Tests(unittest.TestCase):
         self.ca.set_pv_value("TEMP:HE3POT:SP", original_temp_sp)
         post_recondense_temp_sp = 0.3
         self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
+        self.set_unattainable_recondense_conditions()
         # Start recondensing and skip steps
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         for i in range(parts_skipped):
@@ -433,8 +449,12 @@ class HLX503Tests(unittest.TestCase):
         # Assert that temperature setpoint is set
         self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", original_temp_sp, tolerance=0.001)
 
+    @parameterized.expand(parameterized_list([
+        # Set targets that aren't reasonable to test different paths
+        {}, {"RE:SORB:TEMP:SP": 10000}, {"RE:HE3POT:TEMP:PART1:SP": -1}, {"RE:HE3POT:TEMP:PART2:SP": -1}
+    ]))
     @skip_if_recsim("Backdoor not available in recsim")
-    def test_WHEN_recondense_THEN_recondense(self):
+    def test_WHEN_recondense_THEN_recondense(self, _, pv_sets):
         # Set requirement for recondense
         self._lewis.backdoor_set_on_device("helium_3_pot_empty", True)
         # Set temp values
@@ -444,23 +464,28 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(post_recondense_temp_sp, "RE:TEMP")
         # Set state for recondense
         self.ca.set_pv_value("RE:PART2:WAIT_TIME", 1)
+        for pv, set_point in pv_sets.items():
+            self.ca.set_pv_value(pv, set_point)
         # Initiate recondense
         self.ca.assert_setting_setpoint_sets_readback("YES", "RECONDENSING")
         # Wait for recondense to finish
-        self.ca.assert_that_pv_is("RE:PART", "PART 1", timeout=3)
-        self.ca.assert_that_pv_is("RE:PART", "PART 2", timeout=3)
-        self.ca.assert_that_pv_is("RE:PART", "PART 3", timeout=3)
-        self.ca.assert_that_pv_is("RECONDENSING", "NO", timeout=3)
+        self.ca.assert_that_pv_is("RE:PART", "PART 1", timeout=10)
+        self.ca.assert_that_pv_is("RE:PART", "PART 2", timeout=10)
+        self.ca.assert_that_pv_is("RE:PART", "PART 3", timeout=10)
+        self.ca.assert_that_pv_is("RE:PART", "FINISHING", timeout=10)
         self._lewis.backdoor_set_on_device("helium_3_pot_empty", False)
-        # Assert post condense status
+        self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
+        self.ca.assert_that_pv_is_number("TEMP:HE3POT", post_recondense_temp_sp, tolerance=0.001)
         self.ca.assert_that_pv_is("RE:SUCCESS", "YES")
+        self.ca.assert_that_pv_is("RECONDENSING", "NO", timeout=10)
+        # Assert post condense status
         self.ca.assert_that_pv_is("RE:CANCELLED", "NO")
         self.ca.assert_that_pv_is("RE:TIMED_OUT", "NO")
         self.ca.assert_that_pv_is("RE:SKIPPED", "NO")
         self.ca.assert_that_pv_is("RE:PART", "NOT RECONDENSING")
-        # Assert post condense setpoint set
-        self.ca.assert_that_pv_is_number("TEMP:HE3POT:SP", post_recondense_temp_sp, tolerance=0.001)
-        self.ca.assert_that_pv_is_number("TEMP:HE3POT", post_recondense_temp_sp, tolerance=0.001)
+
+
+
 
 
 
