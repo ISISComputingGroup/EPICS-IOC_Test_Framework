@@ -156,6 +156,22 @@ def prompt_user_to_run_tests(test_names):
             return
 
 
+def report_test_coverage_for_devices(tests):
+    # get set of test module names
+    modules_to_be_loaded = sorted({test.split(".")[0].strip() for test in tests})
+    modules_to_be_tested = set([ModuleTests(module) for module in modules_to_be_loaded])
+
+    # get set of iocs from ioc folder
+    iocs = set(os.listdir(os.path.join(EPICS_TOP, "ioc", "master")))
+    # compare
+    missing_tests = iocs.difference(modules_to_be_tested)
+    # report
+    print("He currect IOC folders have no associated test:")
+    for test in missing_tests:
+        print(test)
+    return
+
+
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """
     Class to allow reporting of an error to run any tests.
@@ -259,6 +275,8 @@ if __name__ == '__main__':
                         emulator/IOC or attach debugger for tests""")
     parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM','RECSIM'],
                         help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
+    parser.add_argument('-tc', '--test-coverage', help='Report devices that have no associated tests.',
+                        action="store_true")
 
     arguments = parser.parse_args()
 
@@ -290,6 +308,11 @@ if __name__ == '__main__':
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
     failfast = arguments.failfast
     ask_before_running_tests = arguments.ask_before_running
+
+    if arguments.test_coverage:
+        print("Checking test coverage:")
+        report_test_coverage_for_devices(tests)
+        sys.exit(0)
 
     tests_mode = None
     if arguments.tests_mode == "RECSIM":
