@@ -157,16 +157,21 @@ def prompt_user_to_run_tests(test_names):
 
 
 def report_test_coverage_for_devices(tests):
-    # get set of test module names
-    modules_to_be_loaded = sorted({test.split(".")[0].strip() for test in tests})
-    modules_to_be_tested = set([ModuleTests(module) for module in modules_to_be_loaded])
-
     # get set of iocs from ioc folder
-    iocs = set(os.listdir(os.path.join(EPICS_TOP, "ioc", "master")))
+    iocs = os.listdir(os.path.join(EPICS_TOP, "ioc", "master"))
+    iocs = [ioc.lower() for ioc in iocs]
+    iocs = set(iocs)
+
+    print("Current tests:")
+    for test in tests:
+        print(test)
+    print("\n")
+
     # compare
-    missing_tests = iocs.difference(modules_to_be_tested)
+    missing_tests = iocs.difference(tests)
+
     # report
-    print("He currect IOC folders have no associated test:")
+    print("The current IOC folders have no associated test:")
     for test in missing_tests:
         print(test)
     return
@@ -250,6 +255,8 @@ if __name__ == '__main__':
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',
                         help="List available devices for testing.", action="store_true")
+    parser.add_argument('-tc', '--test-coverage',
+                        help='Report devices that have no associated tests.', action="store_true")
     parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
     parser.add_argument('-e', '--emulator-path', default=emulator_path,
@@ -275,8 +282,6 @@ if __name__ == '__main__':
                         emulator/IOC or attach debugger for tests""")
     parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM','RECSIM'],
                         help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
-    parser.add_argument('-tc', '--test-coverage', help='Report devices that have no associated tests.',
-                        action="store_true")
 
     arguments = parser.parse_args()
 
@@ -294,6 +299,11 @@ if __name__ == '__main__':
         print('\n'.join(sorted(package_contents(arguments.tests_path))))
         sys.exit(0)
 
+    if arguments.test_coverage:
+        print("Checking test coverage:")
+        report_test_coverage_for_devices(set(package_contents(arguments.tests_path)))
+        sys.exit(0)
+
     var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
     var_dir = var_dir.replace('/', '\\')
 
@@ -308,11 +318,6 @@ if __name__ == '__main__':
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
     failfast = arguments.failfast
     ask_before_running_tests = arguments.ask_before_running
-
-    if arguments.test_coverage:
-        print("Checking test coverage:")
-        report_test_coverage_for_devices(tests)
-        sys.exit(0)
 
     tests_mode = None
     if arguments.tests_mode == "RECSIM":
