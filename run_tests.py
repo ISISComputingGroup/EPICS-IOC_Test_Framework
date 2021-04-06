@@ -160,12 +160,8 @@ def report_test_coverage_for_devices(tests):
     # get set of iocs from ioc folder
     iocs = os.listdir(os.path.join(EPICS_TOP, "ioc", "master"))
     iocs = [ioc.lower() for ioc in iocs]
+    iocs = [ioc for ioc in iocs if '.' not in ioc]
     iocs = set(iocs)
-
-    print("Current tests:")
-    for test in tests:
-        print(test)
-    print("\n")
 
     # compare
     missing_tests = iocs.difference(tests)
