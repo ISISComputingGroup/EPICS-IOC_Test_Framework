@@ -14,12 +14,19 @@ import time
 
 IOCS = [
     {
-        "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("KEPCO"),
+        "name": "KEPCO_04",
+        "directory": get_default_ioc_dir("KEPCO", 4),
         "macros": {"CURRENT_MAX": MAX_CURRENT},
         "emulator": emulator_name,
         "ioc_launcher_class": ProcServLauncher,
     },
+    {
+        "name": "KEPCO_05",
+        "directory": get_default_ioc_dir("KEPCO", 5),
+        "macros": {"CURRENT_MAX": MAX_CURRENT},
+        "emulator": emulator_name,
+        "ioc_launcher_class": ProcServLauncher,
+    }
 ]
 
 
@@ -104,3 +111,10 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
 
             # Assert autosave has correctly set pvs
             self.ca.assert_dict_of_pvs_have_given_values(pv_values)
+
+    def test_GIVEN_kepco_restarted_WHEN_autosave_macro_is_set_THEN_current_value_persists(self):
+        current = 1
+        with self._ioc.start_with_macros({"AUTOSAVE_CURRENT", "YES"}, "VOLTAGE"):
+            self.ca.set_pv_value("CURRENT:SP", current)
+        with self._ioc.start_with_macros({"AUTOSAVE_CURRENT", "YES"}, "VOLTAGE"):
+            self.ca.assert_that_pv_is("CURRENT:SP", current)
