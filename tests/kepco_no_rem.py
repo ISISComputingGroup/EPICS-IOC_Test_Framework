@@ -14,19 +14,12 @@ import time
 
 IOCS = [
     {
-        "name": "KEPCO_04",
-        "directory": get_default_ioc_dir("KEPCO", 4),
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("KEPCO"),
         "macros": {"CURRENT_MAX": MAX_CURRENT},
         "emulator": emulator_name,
         "ioc_launcher_class": ProcServLauncher,
     },
-    {
-        "name": "KEPCO_05",
-        "directory": get_default_ioc_dir("KEPCO", 5),
-        "macros": {"CURRENT_MAX": MAX_CURRENT},
-        "emulator": emulator_name,
-        "ioc_launcher_class": ProcServLauncher,
-    }
 ]
 
 
