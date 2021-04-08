@@ -88,7 +88,7 @@ class IpsTests(unittest.TestCase):
         # Wait for statemachine to reach "at field" state after every test.
         self.ca.assert_that_pv_is("STATEMACHINE", "At field")
 
-        self.assertEqual(self._lewis.backdoor_get_from_device("quenched"), "False")
+        self.assertEqual(self._lewis.backdoor_get_from_device("quenched"), False)
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")

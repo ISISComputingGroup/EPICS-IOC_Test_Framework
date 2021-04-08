@@ -107,7 +107,7 @@ class SampleChangerTests(unittest.TestCase):
             shutil.copy2(file_path, file_path + ".backup")
 
         try:
-            for path, tree in xml_trees.iteritems():
+            for path, tree in xml_trees.items():
                 slot = tree.find("//slot")
 
                 # Overwrite an existing slot rather than duplicating, otherwise we end up with duplicate positions

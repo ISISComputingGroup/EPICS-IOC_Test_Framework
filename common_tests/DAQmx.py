@@ -6,6 +6,7 @@ from utils.testing import get_running_lewis_and_ioc, assert_log_messages
 
 # Device prefix
 DEVICE_PREFIX = "DAQMXTEST"
+ICPCONFIGNAME = "DAQMX"
 
 
 class DAQmxTests(object):

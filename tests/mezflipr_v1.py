@@ -5,7 +5,7 @@ import sys
 
 from parameterized import parameterized
 
-from utils.emulator_launcher import CommandLineEmulatorLauncher
+from utils.emulator_launcher import CommandLineEmulatorLauncher, DEFAULT_PY_2_PATH
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
@@ -22,7 +22,7 @@ IOCS = [
         "emulator": EMULATOR_NAME,
         "emulator_launcher_class": CommandLineEmulatorLauncher,
         "emulator_command_line": "{} {} --port {{port}}".format(
-            sys.executable,
+            os.path.join(DEFAULT_PY_2_PATH, "python.exe"),
             os.path.join(EPICS_TOP, "support", "deviceemulator", "master", "other_emulators", "mezei_flipper", "flipper_emulator.py")
         ),
         "macros": {

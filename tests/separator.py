@@ -1,7 +1,6 @@
-from __future__ import division
 from parameterized import parameterized
 import unittest
-from time import clock, sleep
+from time import sleep, perf_counter
 import threading
 from numpy import dot
 
@@ -576,7 +575,7 @@ class StabilityTests(unittest.TestCase):
         # This number needs to be large enough to write over several seconds. Writing over multiple seconds is asserted.
         number_of_writes = 50
 
-        time1 = clock()
+        time1 = perf_counter()
 
         expected_out_of_range_samples = self.get_out_of_range_samples(CURRENT_DATA,
                                                                       VOLTAGE_DATA) * number_of_writes * SAMPLETIME
@@ -586,7 +585,7 @@ class StabilityTests(unittest.TestCase):
             self.write_simulated_current(CURRENT_DATA)
             self.write_simulated_voltage(VOLTAGE_DATA)
 
-        processtime = clock() - time1
+        processtime = perf_counter() - time1
         self.assertGreater(processtime, 1.)
 
         # THEN

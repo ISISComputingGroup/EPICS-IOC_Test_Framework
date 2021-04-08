@@ -1,4 +1,3 @@
-from __future__ import division
 import six
 
 from abc import ABCMeta, abstractmethod
