@@ -44,6 +44,7 @@ def make_device_launchers_from_module(test_module, mode):
 
     Returns:
         list of device launchers (context managers which launch ioc + emulator pairs)
+        set of device directories
 
     """
     try:
@@ -63,8 +64,10 @@ def make_device_launchers_from_module(test_module, mode):
     print("Testing module {} in {} mode.".format(test_module.__name__, TestModes.name(mode)))
 
     device_launchers = []
+    device_directories = set()
     for ioc in iocs:
 
+        device_directories.add(ioc["directory"])
         free_port = get_free_ports(2)
         try:
             macros = ioc["macros"]
@@ -89,16 +92,17 @@ def make_device_launchers_from_module(test_module, mode):
 
         device_launchers.append(device_launcher(ioc_launcher, emulator_launcher))
 
-    return device_launchers
+    return device_launchers, device_directories
 
 
-def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mode=None):
+def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running_tests, tests_mode=None):
     """
     Loads and runs the dotted unit tests to be run.
 
     Args:
         test_names: List of dotted unit tests to run.
         failfast: Determines if tests abort after first failure.
+        report_coverage: Report test coverage of test modules versus ioc directories.
         ask_before_running_tests: ask whether to run the tests before running them
         tests_mode: test mode to run (default: both RECSIM and DEVSIM)
 
@@ -110,6 +114,7 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
     modules_to_be_tested = [ModuleTests(module) for module in modules_to_be_loaded]
 
     modes = set()
+    tested_ioc_directories = set()
 
     for module in modules_to_be_tested:
         # Add tests that are either the module or a subset of the module i.e. module.TestClass
@@ -126,10 +131,15 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
 
         for module in modules_to_be_tested_in_current_mode:
             clean_environment()
-            device_launchers = make_device_launchers_from_module(module.file, mode)
+            device_launchers, device_directories = make_device_launchers_from_module(module.file, mode)
+            if report_coverage:
+                tested_ioc_directories.update(device_directories)
             test_results.append(
                 run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
                           failfast, ask_before_running_tests))
+
+    if report_coverage:
+        report_test_coverage_for_devices(tested_ioc_directories)
 
     return all(test_result is True for test_result in test_results)
 
@@ -156,18 +166,27 @@ def prompt_user_to_run_tests(test_names):
             return
 
 
-def report_test_coverage_for_devices(tests):
-    # get set of iocs from ioc folder
-    iocs = os.listdir(os.path.join(EPICS_TOP, "ioc", "master"))
+def report_test_coverage_for_devices(tested_directories):
+    # get names of iocs from ioc folder
+    iocs_dir = os.path.join(EPICS_TOP, "ioc", "master")
+    iocs = []
+    for dir in os.listdir(iocs_dir):
+        if os.path.isdir(os.path.join(iocs_dir, dir)):
+            iocs.append(dir)
     iocs = [ioc.lower() for ioc in iocs]
-    iocs = [ioc for ioc in iocs if '.' not in ioc]
-    iocs = set(iocs)
 
-    # compare
-    missing_tests = iocs.difference(tests)
+    tested_iocs = []
+    for dir in tested_directories:
+        # Get the 3rd folder up from the ioc boot directory (should be device name) in lowercase
+        tested_iocs.append(os.path.normpath(dir).split(os.path.sep)[-3].lower())
+
+    # compare the two sets to find what dirs have not been tested
+    iocs = set(iocs)
+    tested_iocs = set(tested_iocs)
+    missing_tests = sorted(iocs.difference(tested_iocs))
 
     # report
-    print("The current IOC folders have no associated test:")
+    print("\nThe following IOCs have not been tested:\n")
     for test in missing_tests:
         print(test)
     return
@@ -251,7 +270,7 @@ if __name__ == '__main__':
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',
                         help="List available devices for testing.", action="store_true")
-    parser.add_argument('-tc', '--test-coverage',
+    parser.add_argument('-rc', '--report-coverage',
                         help='Report devices that have no associated tests.', action="store_true")
     parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
@@ -295,11 +314,6 @@ if __name__ == '__main__':
         print('\n'.join(sorted(package_contents(arguments.tests_path))))
         sys.exit(0)
 
-    if arguments.test_coverage:
-        print("Checking test coverage:")
-        report_test_coverage_for_devices(set(package_contents(arguments.tests_path)))
-        sys.exit(0)
-
     var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
     var_dir = var_dir.replace('/', '\\')
 
@@ -313,6 +327,7 @@ if __name__ == '__main__':
 
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
     failfast = arguments.failfast
+    report_coverage = arguments.report_coverage
     ask_before_running_tests = arguments.ask_before_running
 
     tests_mode = None
@@ -322,7 +337,7 @@ if __name__ == '__main__':
         tests_mode = TestModes.DEVSIM
 
     try:
-        success = load_and_run_tests(tests, failfast, ask_before_running_tests, tests_mode)
+        success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
     except Exception as e:
         print("---\n---\n---\nAn Error occurred loading the tests: ")
         traceback.print_exc()
