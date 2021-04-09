@@ -150,6 +150,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca1D.assert_that_pv_is("IPOSN", index)
             self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index), 1)
             self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index+1), 0)
+            self.ca1D.assert_that_pv_is("COORD0:IN_POSITION", 1)
 
     def test_GIVEN_1D_WHEN_set_position_by_index_THEN_position_is_set_and_motor_moves_to_position(self):
         for index, (expected_position, expected_motor_position) in enumerate(POSITIONS_1D):
@@ -161,6 +162,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.motor_ca.assert_that_pv_is("MTR0101.RBV", expected_motor_position)
             self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index), 1)
             self.ca1D.assert_that_pv_is("INPOS{index}".format(index=index + 1), 0)
+            self.ca1D.assert_that_pv_is("COORD0:IN_POSITION", 1)
 
     @parameterized.expand(
         parameterized_list([1, 2, 10])
@@ -183,6 +185,8 @@ class MotionSetpointsTests(unittest.TestCase):
             self.motor_ca.assert_that_pv_is("MTR0102.RBV", expected_motor_position_cord2)
             self.ca2D.assert_that_pv_is("INPOS{index}".format(index=index), 1)
             self.ca2D.assert_that_pv_is("INPOS{index}".format(index=index + 1), 0)
+            self.ca2D.assert_that_pv_is("COORD0:IN_POSITION", 1)
+            self.ca2D.assert_that_pv_is("COORD1:IN_POSITION", 1)
 
 
     @parameterized.expand(
