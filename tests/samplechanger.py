@@ -33,7 +33,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
-SLOTS = ["B", "CB", "CT", "GT", "T", "WB", "WT"]
+SLOTS = ["B", "CB", "CT", "GT", "T", "WB", "Durham_Top"]
 
 
 class SampleChangerTests(unittest.TestCase):
@@ -196,3 +196,10 @@ class SampleChangerTests(unittest.TestCase):
         # Positions from the now-deleted changer shouldn't exist
         self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
                                                                 func=self.new_slot_positions_do_not_exist(new_slot_name))
+
+    def test_WHEN_slot_with_different_suffix_selected_THEN_samples_have_new_suffix(self):
+        self.ca.assert_setting_setpoint_sets_readback(readback_pv="SAMPCHNG:SLOT", value="Durham_Top")
+
+        for pos in ["{}GT".format(n) for n in range(1, 12+1)]:
+            self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+                                                                    func=lambda val: pos in val)
