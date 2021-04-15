@@ -10,8 +10,14 @@ from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameteriz
 DEVICE_PREFIX = "TTIEX355P_01"
 DEVICE_NAME = "tti355"  # similar enough device that we can use the same emulator
 
-AMPSTOGAUSS = 5
-MAX_FIELD = 10
+AMPSTOGAUSS = 7.278
+MAX_FIELD = 25
+
+# Taken from manual Specification of OUTPUT page 3^M
+MIN_VOLTAGE = 0.0
+MIN_CURRENT = 0.01
+MAX_VOLTAGE = 35.0
+MAX_CURRENT = 5.0
 
 IOCS = [
     {
@@ -38,6 +44,8 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
         self._lewis.backdoor_run_function_on_device("reset")
+        self._lewis.backdoor_set_on_device("min_voltage", MIN_VOLTAGE)
+        self._lewis.backdoor_set_on_device("min_current", MIN_CURRENT)
 
         self.ca.set_pv_value("AUTOONOFF", "Disabled")
 
@@ -115,6 +123,14 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
 
         self.ca.set_pv_value("SWEEP_OFF", 1)
 
-        self.ca.assert_that_pv_is_number("FIELD", 0)
-        self.ca.assert_that_pv_is_number("CURRENT", 0)
+        self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=0.02)
+        self.ca.assert_that_pv_is_number("CURRENT", 0, tolerance=0.02)
         self.ca.assert_that_pv_is("OUTPUTSTATUS", self.get_off_state_name(), timeout=60)
+
+    @parameterized.expand(parameterized_list([
+        ("VOLTAGE", MIN_VOLTAGE - 1.0, MIN_VOLTAGE), ("VOLTAGE", MAX_VOLTAGE + 1.0, MAX_VOLTAGE),
+        ("CURRENT", MIN_CURRENT - 1.0, MIN_CURRENT), ("CURRENT", MAX_CURRENT + 1.0, MAX_CURRENT)
+    ]))
+    def test_WHEN_set_past_limites_THEN_limits_set(self, _, pv, setpoint, expected_val):
+        self.ca.set_pv_value(f"{pv}:SP", setpoint)
+        self.ca.assert_that_pv_is_number("VOLTAGE", expected_val, tolerance=0.02)
