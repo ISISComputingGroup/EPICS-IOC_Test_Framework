@@ -73,13 +73,13 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
         self._turn_on_in_const_current_mode()
 
         self.ca.set_pv_value("FIELD:SP", field)
-        self.ca.assert_that_pv_is_number("CURRENT:SP", field / AMPSTOGAUSS, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("CURRENT:SP", field / AMPSTOGAUSS, tolerance=0.08)
 
-        self.ca.assert_that_pv_is_number("CURRENT", field / AMPSTOGAUSS, tolerance=0.01, timeout=30)
-        self.ca.assert_that_pv_is_number("CURRENT:SP:RBV", field / AMPSTOGAUSS, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("CURRENT", field / AMPSTOGAUSS, tolerance=0.08, timeout=30)
+        self.ca.assert_that_pv_is_number("CURRENT:SP:RBV", field / AMPSTOGAUSS, tolerance=0.08)
 
-        self.ca.assert_that_pv_is_number("FIELD", field, tolerance=0.01)
-        self.ca.assert_that_pv_is_number("FIELD:SP:RBV", field, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("FIELD", field, tolerance=0.08)
+        self.ca.assert_that_pv_is_number("FIELD:SP:RBV", field, tolerance=0.08)
 
         self.ca.assert_that_pv_is("FIELD_READY", "Yes")
 
@@ -87,11 +87,11 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
         self._turn_on_in_const_current_mode()
 
         self.ca.set_pv_value("FIELD:SP", MAX_FIELD / 2)
-        self.ca.assert_that_pv_is_number("FIELD:PERCENT", 50, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("FIELD:PERCENT", 50, tolerance=0.08)
 
     def test_WHEN_field_greater_than_max_is_set_THEN_field_is_capped_to_max(self):
         self.ca.set_pv_value("FIELD:SP", MAX_FIELD + 1)
-        self.ca.assert_that_pv_is_number("FIELD:SP:RBV", MAX_FIELD, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("FIELD:SP:RBV", MAX_FIELD, tolerance=0.08)
 
     def test_WHEN_autoonoff_enabled_then_psu_automatically_switches_on_if_non_zero_setpoint(self):
         self.ca.set_pv_value("OUTPUTSTATUS:SP", self.get_off_state_name())
@@ -112,6 +112,7 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
         self.ca.assert_that_pv_is("OUTPUTSTATUS", self.get_on_state_name(), timeout=60)
 
         self.ca.set_pv_value("FIELD:SP", 0)
+        self.ca.assert_that_pv_is_number("CURRENT:SP:RBV", 0, tolerance=0.08)
         self.ca.assert_that_pv_is("OUTPUTSTATUS", self.get_off_state_name(), timeout=60)
 
     def test_WHEN_sweep_off_called_THEN_setpoints_set_to_zero_and_power_supply_switched_off(self):
@@ -119,18 +120,18 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
 
         self.ca.set_pv_value("FIELD:SP", MAX_FIELD)
 
-        self.ca.assert_that_pv_is_number("FIELD", MAX_FIELD)
+        self.ca.assert_that_pv_is_number("FIELD", MAX_FIELD, tolerance=0.08)
 
         self.ca.set_pv_value("SWEEP_OFF", 1)
 
-        self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=0.02)
-        self.ca.assert_that_pv_is_number("CURRENT", 0, tolerance=0.02)
+        self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=0.08)
+        self.ca.assert_that_pv_is_number("CURRENT", 0, tolerance=0.08)
         self.ca.assert_that_pv_is("OUTPUTSTATUS", self.get_off_state_name(), timeout=60)
 
     @parameterized.expand(parameterized_list([
         ("VOLTAGE", MIN_VOLTAGE - 1.0, MIN_VOLTAGE), ("VOLTAGE", MAX_VOLTAGE + 1.0, MAX_VOLTAGE),
         ("CURRENT", MIN_CURRENT - 1.0, MIN_CURRENT), ("CURRENT", MAX_CURRENT + 1.0, MAX_CURRENT)
     ]))
-    def test_WHEN_set_past_limites_THEN_limits_set(self, _, pv, setpoint, expected_val):
+    def test_WHEN_set_past_limits_THEN_limits_set(self, _, pv, setpoint, expected_val):
         self.ca.set_pv_value(f"{pv}:SP", setpoint)
-        self.ca.assert_that_pv_is_number("VOLTAGE", expected_val, tolerance=0.02)
+        self.ca.assert_that_pv_is_number(f"{pv}:SP:RBV", expected_val, tolerance=0.08)
