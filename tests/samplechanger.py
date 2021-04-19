@@ -186,3 +186,14 @@ class SampleChangerTests(unittest.TestCase):
         for pos in ["{}GT".format(n) for n in range(1, 12+1)]:
             self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
                                                                     func=lambda val: pos in val)
+
+    def test_GIVEN_a_different_slot_WHEN_a_position_is_selected_THEN_the_associated_slot_is_selected(self):
+        self.ca.set_pv_value("SAMPCHNG:SLOT:SP", "WB")
+        self.ca.set_pv_value("LKUP:SAMPLE:POSN:SP", "11CT")
+
+        self.ca.assert_that_pv_is("SAMPCHNG:SLOT:SP", "CT")
+        self.ca.assert_that_pv_is("SAMPCHNG:SLOT", "CT")
+
+        for pos in ["{}CT".format(n) for n in range(1, 14+1)]:
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_IN_SLOT",
+                                                                    func=lambda val: pos in val)
