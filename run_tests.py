@@ -18,7 +18,7 @@ from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
 from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLewisLauncher, Emulator, TestEmulatorData
-from utils.ioc_launcher import IocLauncher, EPICS_TOP
+from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 
@@ -205,26 +205,23 @@ def report_test_coverage_for_devices(tested_directories):
         None
     """
     # get names of iocs from ioc folder
-    iocs_dir = os.path.join(EPICS_TOP, "ioc", "master")
     iocs = []
-    for dir in os.listdir(iocs_dir):
-        if os.path.isdir(os.path.join(iocs_dir, dir)):
+    for dir in os.listdir(IOCS_DIR):
+        if os.path.isdir(os.path.join(IOCS_DIR, dir)):
             iocs.append(dir)
-    iocs = [ioc.lower() for ioc in iocs]
+    iocs = set(ioc.lower() for ioc in iocs)
 
     tested_iocs = []
     for dir in tested_directories:
         # Get the 3rd folder up from the ioc boot directory (should be device name) in lowercase
         tested_iocs.append(os.path.normpath(dir).split(os.path.sep)[-3].lower())
 
-    iocs = set(iocs)
     tested_iocs = set(tested_iocs)
     missing_tests = sorted(iocs.difference(tested_iocs))
 
     print("\nThe following IOCs have not been tested:\n")
     for test in missing_tests:
         print(test)
-    return
 
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
@@ -310,7 +307,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--list-devices',
                         help="List available devices for testing.", action="store_true")
     parser.add_argument('-rc', '--report-coverage',
-                        help='Report devices that have no associated tests.', action="store_true")
+                        help='Report devices that have not been tested.', action="store_true")
     parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
     parser.add_argument('-e', '--emulator-path', default=emulator_path,

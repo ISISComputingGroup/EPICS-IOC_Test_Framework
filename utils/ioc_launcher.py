@@ -22,6 +22,7 @@ from signal import SIGTERM
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
+IOCS_DIR = os.path.join(EPICS_TOP, "ioc", "master")
 PYTHON = os.environ.get("PYTHON", os.path.join(APPS_BASE, "Python", "python.exe"))
 PYTHON3 = os.environ.get("PYTHON3", os.path.join(APPS_BASE, "Python3", "python.exe"))
 
