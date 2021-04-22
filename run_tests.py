@@ -160,8 +160,7 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         for module in modules_to_be_tested_in_current_mode:
             clean_environment()
             device_launchers, device_directories = make_device_launchers_from_module(module.file, mode)
-            if report_coverage:
-                tested_ioc_directories.update(device_directories)
+            tested_ioc_directories.update(device_directories)
             test_results.append(
                 run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
                           failfast, ask_before_running_tests))
