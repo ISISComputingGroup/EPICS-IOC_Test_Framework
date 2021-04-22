@@ -33,7 +33,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
-SLOTS = ["B", "CB", "CT", "T", "WB", "Durham_Top"]
+SLOTS = ["B", "CB", "CT", "WT", "T", "WB", "Durham_Top"]
 
 
 class SampleChangerTests(unittest.TestCase):
