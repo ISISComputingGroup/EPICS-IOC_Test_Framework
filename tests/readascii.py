@@ -180,7 +180,7 @@ class ReadasciiTests(unittest.TestCase):
 
         # secs - The test will take at least this long to run but if it's too small may get random timing problems
         # causing the test to fail
-        ramp_time = 25
+        ramp_time = 20
 
         ramp_rate = setpoint_change * SECONDS_PER_MINUTE / ramp_time  # K per min
 
@@ -192,11 +192,11 @@ class ReadasciiTests(unittest.TestCase):
         # Set up ramp and set a setpoint so that the ramp starts.
         self.ca.assert_setting_setpoint_sets_readback(ramp_rate, "RATE")
         self._set_ramp_status(True)
-        self.ca.set_pv_value("VAL:SP", setpoint_change)
+        self.ca.set_pv_value("VAL:SP", setpoint_change, wait=True)
 
         # Verify that setpoint does not reach final value within first half of ramp time
         self.ca.assert_that_pv_is_not("OUT_SP", setpoint_change, timeout=ramp_time/2)
 
         # ... But after a further ramp_time, it should have.
-        time.sleep(3)
-        self.ca.assert_that_pv_is("OUT_SP", setpoint_change, timeout=ramp_time)
+        # We give it another 3 seconds here in case it hasn't finished ramping.
+        self.ca.assert_that_pv_is("OUT_SP", setpoint_change, timeout=ramp_time+3)
