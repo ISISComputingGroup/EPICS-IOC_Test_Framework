@@ -485,6 +485,7 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), SPC_MAX_PRESSURE)  # final value
 
+    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_auto_flow_set_off_THEN_pressure_is_not_updated(self):
         diff = 1000
         set_point = 10
