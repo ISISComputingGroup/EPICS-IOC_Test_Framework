@@ -444,3 +444,9 @@ class MotionSetpointsTests(unittest.TestCase):
 
         modify_file_and_assert_test(self.ca2D, lookup_file, MOTOR_POSITION_SAMPLE2_COORD1, new_coord,
                                     test_moves_to_new_position)
+
+    def test_GIVEN_2D_WHEN_coords_set_through_motion_set_points_THEN_underlying_axis_moves(self):
+        for coord in range(2):
+            new_position = 5 + coord
+            self.ca2D.assert_setting_setpoint_sets_readback(new_position, f"COORD{coord}:RBV", f"COORD{coord}:SP")
+            self.motor_ca.assert_that_pv_is(f"MTR010{coord+1}.RBV", new_position)
