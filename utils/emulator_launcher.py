@@ -6,6 +6,7 @@ import os
 import subprocess
 
 import sys
+from datetime import datetime
 from time import sleep, time
 from functools import partial
 import six
@@ -413,36 +414,31 @@ class LewisLauncher(EmulatorLauncher):
         :return:
         """
         print("opening log file")
-        with open(self._log_filename(), "w") as self._logFile:
-            self._logFile.write("getting free control port\n")
-            print("getting free control port\n")
-            self._control_port = str(get_free_ports(1)[0])
-            self._logFile.write("control port is {}\n".format(str(self._control_port)))
-            print("control port is {}\n".format(str(self._control_port)))
-            lewis_command_line = [self._python_path, "-m", "lewis",
-                                  "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-            lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
-                                      .format(protocol=self._lewis_protocol, port=self._port)])
-            if self._lewis_additional_path is not None:
-                lewis_command_line.extend(["-a", self._lewis_additional_path])
-            if self._lewis_package is not None:
-                lewis_command_line.extend(["-k", self._lewis_package])
+        self._logFile = open(self._log_filename(), "w")
+        self._logFile.write("getting free control port\n")
+        print("getting free control port\n")
+        self._control_port = str(get_free_ports(1)[0])
+        self._logFile.write("control port is {}\n".format(str(self._control_port)))
+        print("control port is {}\n".format(str(self._control_port)))
+        lewis_command_line = [self._python_path, "-m", "lewis",
+                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+        lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
+                                  .format(protocol=self._lewis_protocol, port=self._port)])
+        if self._lewis_additional_path is not None:
+            lewis_command_line.extend(["-a", self._lewis_additional_path])
+        if self._lewis_package is not None:
+            lewis_command_line.extend(["-k", self._lewis_package])
 
-            # Set lewis speed
-            lewis_command_line.extend(["-e", str(self._speed), self._device])
-            print("Starting Lewis")
-            self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
-            print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
-            self._process = subprocess.Popen(lewis_command_line,
-                                             creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                             stdout=self._logFile,
-                                             stderr=subprocess.STDOUT)
-            self._connected = True
-            self._logFile.write("starting controlclient\n")
-            print("starting controlclient\n")
-            self.remote = ControlClient("127.0.0.1", self._control_port)
-            self._logFile.write("finished starting controlclient\n")
-            print("finished starting controlclient\n")
+        # Set lewis speed
+        lewis_command_line.extend(["-e", str(self._speed), self._device])
+        print("Starting Lewis")
+        self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+        print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+        self._process = subprocess.Popen(lewis_command_line,
+                                         creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                         stdout=self._logFile,
+                                         stderr=subprocess.STDOUT)
+        self._connected = True
 
     def _log_filename(self):
         return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
@@ -505,10 +501,26 @@ class LewisLauncher(EmulatorLauncher):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
+        lewis_command_line = [os.path.join(self._lewis_path, "lewis-control.exe"),
+                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+        lewis_command_line.extend(lewis_command)
+        time_stamp = datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
+        self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
         try:
-            return call_method(self.remote.get_object_collection(), lewis_command[0], lewis_command[1], lewis_command[2:])
-        except Exception as e:
-            sys.stderr.write(f"Error using backdoor: {e}\n")
+            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+            for i in range(1, 40):
+                code = p.poll()
+                if code == 0:
+                    break
+                sleep(0.1)
+            else:
+                p.terminate()
+                print("Lewis backdoor did not finish!")
+            return [line.strip() for line in p.stdout]
+        except subprocess.CalledProcessError as ex:
+            sys.stderr.write("Error using backdoor: {0}\n".format(ex.output))
+            sys.stderr.write("Error code {0}\n".format(ex.returncode))
+            raise ex
 
     def backdoor_emulator_disconnect_device(self):
         """
@@ -537,7 +549,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: the variables value
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
-        return self.backdoor_command(["device", str(variable_name)])
+        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))
 
 
 class MultiLewisLauncher(object):
