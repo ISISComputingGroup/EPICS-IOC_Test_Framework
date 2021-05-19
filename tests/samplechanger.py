@@ -33,7 +33,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
-SLOTS = ["B", "CB", "CT", "GT", "T", "WB", "WT"]
+SLOTS = ["B", "CB", "CT", "WT", "T", "WB", "Durham_Top"]
 
 
 class SampleChangerTests(unittest.TestCase):
@@ -67,16 +67,22 @@ class SampleChangerTests(unittest.TestCase):
             "positions_not_exist": ["{}CT".format(n) for n in range(1, 14+1)],
         },
     ]))
-    def test_WHEN_slot_set_to_empty_string_THEN_all_positions_listed(self, _, settings):
+    def test_WHEN_slot_set_THEN_only_slot_positions_listed_in_sample_changer_but_all_positions_listed_in_set_points(self, _, settings):
 
         self.ca.assert_setting_setpoint_sets_readback(readback_pv="SAMPCHNG:SLOT", value=settings["slot_name"])
 
-        for pos in settings["positions_exist"]:
+        def pos_in_motion_set_point(position):
             self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
                                                                     func=lambda val: pos in val)
 
+        for pos in settings["positions_exist"]:
+            pos_in_motion_set_point(pos)
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_IN_SLOT",
+                                                                    func=lambda val: pos in val)
+
         for pos in settings["positions_not_exist"]:
-            self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+            pos_in_motion_set_point(pos)
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_IN_SLOT",
                                                                     func=lambda val: pos not in val)
 
     def test_WHEN_invalid_slot_is_entered_THEN_old_slot_kept(self):
@@ -89,7 +95,7 @@ class SampleChangerTests(unittest.TestCase):
         self.ca.assert_that_pv_value_is_unchanged("SAMPCHNG:SLOT", wait=3)
 
         for pos in ["{}CT".format(n) for n in range(1, 14+1)]:
-            self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_IN_SLOT",
                                                                     func=lambda val: pos in val)
 
     def test_available_slots_can_be_loaded(self):
@@ -144,19 +150,21 @@ class SampleChangerTests(unittest.TestCase):
         self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
                                                                 func=lambda val: new_slot_name not in val)
 
-    def test_GIVEN_sample_changer_file_modified_and_selected_THEN_new_positions_available_without_needing_recalc(self):
+    def test_GIVEN_sample_changer_file_modified_and_selected_THEN_new_positions_available_after_slot_selected(self):
         new_slot_name = "NEWSLOT"
         with self._temporarily_add_slot(new_slot_name):
             # assert new slot has been picked up
             self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
                                                                     func=lambda val: new_slot_name in val)
 
-            # Select newly added sample changer
+            # Go to new slot
             self.ca.set_pv_value("SAMPCHNG:SLOT:SP", new_slot_name)
 
-            # Assert positions from newly added sample changer exist
+            # Assert positions from newly added sample changer exist in both full and filtered list
             # Position names are slot_name + either 1 or A depending on naming convention of slot
             self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+                                                                    func=self.new_slot_positions_exist(new_slot_name))
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_IN_SLOT",
                                                                     func=self.new_slot_positions_exist(new_slot_name))
 
         # Now out of context manager, NEWSLOT no longer exists
@@ -169,30 +177,23 @@ class SampleChangerTests(unittest.TestCase):
         # Positions from the now-deleted changer shouldn't exist
         self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
                                                                 func=self.new_slot_positions_do_not_exist(new_slot_name))
-
-    def test_GIVEN_sample_changer_file_modified_THEN_new_positions_available(self):
-        # Select all positions from all changers
-        self.ca.set_pv_value("SAMPCHNG:SLOT:SP", "_ALL")
-
-        new_slot_name = "NEWSLOT"
-        with self._temporarily_add_slot(new_slot_name):
-            # assert new slot has been picked up
-            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
-                                                                    func=lambda val: new_slot_name in val)
-
-            self.ca.set_pv_value("SAMPCHNG:RECALC.PROC", 1)
-
-            # Assert positions from newly added sample changer exist
-            self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
-                                                                    func=self.new_slot_positions_exist(new_slot_name))
-
-        # Now out of context manager, NEWSLOT no longer exists
-        self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_SLOTS",
-                                                                func=lambda val: new_slot_name not in val)
-
-        # Explicit recalc as we are still looking at all positions so haven't changed sample changer.
-        self.ca.set_pv_value("SAMPCHNG:RECALC.PROC", 1)
-
-        # Positions from the now-deleted changer shouldn't exist
-        self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+        self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_IN_SLOT",
                                                                 func=self.new_slot_positions_do_not_exist(new_slot_name))
+
+    def test_WHEN_slot_with_different_suffix_selected_THEN_samples_have_new_suffix(self):
+        self.ca.assert_setting_setpoint_sets_readback(readback_pv="SAMPCHNG:SLOT", value="Durham_Top")
+
+        for pos in ["{}GT".format(n) for n in range(1, 12+1)]:
+            self.ca.assert_that_pv_value_causes_func_to_return_true("LKUP:SAMPLE:POSITIONS",
+                                                                    func=lambda val: pos in val)
+
+    def test_GIVEN_a_different_slot_WHEN_a_position_is_selected_THEN_the_associated_slot_is_selected(self):
+        self.ca.set_pv_value("SAMPCHNG:SLOT:SP", "WB")
+        self.ca.set_pv_value("LKUP:SAMPLE:POSN:SP", "11CT")
+
+        self.ca.assert_that_pv_is("SAMPCHNG:SLOT:SP", "CT")
+        self.ca.assert_that_pv_is("SAMPCHNG:SLOT", "CT")
+
+        for pos in ["{}CT".format(n) for n in range(1, 14+1)]:
+            self.ca.assert_that_pv_value_causes_func_to_return_true("SAMPCHNG:AVAILABLE_IN_SLOT",
+                                                                    func=lambda val: pos in val)

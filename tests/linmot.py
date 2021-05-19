@@ -2,11 +2,12 @@ import unittest
 from time import sleep
 
 from parameterized import parameterized
-
+import os
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.ioc_launcher import ProcServLauncher
 
 DEVICE_PREFIX = "LINMOT_01"
 DEVICE_NAME = "linmot"
@@ -35,6 +36,10 @@ STATE_ERROR = "Error"
 STATE_MOVING = "Moving"
 STATE_STOPPED = "Stopped"
 
+# To test https://github.com/ISISComputingGroup/IBEX/issues/6423
+test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
+                                          "support", "motionSetPoints", "master", "settings"))
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
@@ -42,9 +47,11 @@ IOCS = [
         "macros": {
             "MTRCTRL": "1",
             "AXIS1": "yes",
+            "LINMOTCONFIGDIR": test_path.replace("\\", "/"),
         },
         "emulator": DEVICE_NAME,
         "pv_for_existence": "AXIS1",
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
@@ -136,3 +143,16 @@ class LinmotTests(unittest.TestCase):
         self.ca_linmot.set_pv_value(MTR_STOP, 1)
 
         self.ca_linmot.assert_that_pv_is(MTR_DMOV, 1)
+
+    def test_GIVEN_using_motion_set_points_and_at_non_zero_position_WHEN_ioc_restarted_THEN_emulator_does_not_move(self):
+        target_position = 10
+        self.ca_linmot.set_pv_value(MTR_SETPOINT, target_position)
+        self.ca_linmot.assert_that_pv_is(MTR_DMOV, 1)
+        self.ca_linmot.assert_that_pv_is(MTR_READBACK, target_position)
+
+        self._ioc.start_ioc()
+
+        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT)
+        self.ca.assert_that_pv_exists("AXIS1", 60)
+
+        self.ca_linmot.assert_that_pv_is(MTR_READBACK, target_position)
