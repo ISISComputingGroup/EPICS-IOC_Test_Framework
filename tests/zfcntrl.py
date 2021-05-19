@@ -3,12 +3,14 @@ import itertools
 import multiprocessing
 import operator
 import unittest
+from time import sleep
+
 import six
 
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, parameterized_list
 
@@ -32,6 +34,7 @@ IOCS = [
         "name": ZF_DEVICE_PREFIX,
         "directory": get_default_ioc_dir("ZFCNTRL"),
         "started_text": "seq zero_field",
+        "ioc_launcher_class": ProcServLauncher,
         "macros": {
             "OUTPUT_X_MIN": DEFAULT_LOW_OUTPUT_LIMIT,
             "OUTPUT_X_MAX": DEFAULT_HIGH_OUTPUT_LIMIT,
@@ -89,6 +92,8 @@ ZERO_FIELD = {"X": 0, "Y": 0, "Z": 0}
 
 STABILITY_TOLERANCE = 1.0
 LOOP_DELAY_MS = 100
+
+AUTOFEEDBACK_VALUES = {True: "Auto-feedback", False: "Manual"}
 
 
 def _update_fields_continuously(psu_amps_at_measured_zero):
@@ -230,7 +235,7 @@ class ZeroFieldTests(unittest.TestCase):
         self.zfcntrl_ca.assert_that_pv_alarm_is("STATUS", expected_alarm)
 
     def _set_autofeedback(self, autofeedback):
-        self.zfcntrl_ca.set_pv_value("AUTOFEEDBACK", "Auto-feedback" if autofeedback else "Manual")
+        self.zfcntrl_ca.set_pv_value("AUTOFEEDBACK", AUTOFEEDBACK_VALUES[autofeedback])
 
     def _set_scaling_factors(self, px, py, pz, fiddle):
         """
@@ -704,3 +709,19 @@ class ZeroFieldTests(unittest.TestCase):
         self.zfcntrl_ca.assert_that_pv_is("OUTPUT:X:VOLT:SP:RBV", X_KEPCO_VOLTAGE_LIMIT)
         self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Y:VOLT:SP:RBV", Y_KEPCO_VOLTAGE_LIMIT)
         self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Z:VOLT:SP:RBV", Z_KEPCO_VOLTAGE_LIMIT)
+
+    @parameterized.expand(parameterized_list(list(AUTOFEEDBACK_VALUES.keys())))
+    def test_GIVEN_ioc_is_restarted_WHEN_feedback_autosave_is_set_to_true_THEN_feedback_mode_persists(self, _, autofeedback):
+        with self._ioc.start_with_macros({"SAVEFEEDBACKMODE": "YES"}, pv_to_wait_for="OUTPUT:X:VOLT:SP:RBV"):
+            self._set_autofeedback(autofeedback)
+            feedback_mode_before_restart = AUTOFEEDBACK_VALUES[autofeedback]
+            self._ioc.force_manual_save()
+        with self._ioc.start_with_macros({"SAVEFEEDBACKMODE": "YES"}, pv_to_wait_for="OUTPUT:X:VOLT:SP:RBV"):
+            self.zfcntrl_ca.assert_that_pv_is("AUTOFEEDBACK", feedback_mode_before_restart)
+
+    @parameterized.expand(parameterized_list(list(AUTOFEEDBACK_VALUES.keys())))
+    def test_GIVEN_ioc_is_restarted_WHEN_feedback_autosave_is_set_to_false_THEN_feedback_mode_reverts(self, _, autofeedback):
+        self._set_autofeedback(autofeedback)
+        with self._ioc.start_with_macros({"SAVEFEEDBACKMODE": "NO"}, pv_to_wait_for="OUTPUT:X:VOLT:SP:RBV"):
+            # check the feedback mode has gone back to the default setting (manual)
+            self.zfcntrl_ca.assert_that_pv_is("AUTOFEEDBACK", AUTOFEEDBACK_VALUES[False])

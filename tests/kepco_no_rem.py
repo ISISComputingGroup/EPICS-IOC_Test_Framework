@@ -80,8 +80,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
             self.ca.assert_that_pv_is(pv, value)
 
         # Make sure autosave writes the value
-        self._ioc.send_telnet_command('manual_save("KEPCO_01_info_settings.req")')
-        self._ioc.send_telnet_command('manual_save("KEPCO_01_info_positions.req")')
+        self._ioc.force_manual_save()
 
         # Set counts to zero and remote mode to false
         # We want lewis_vars and lewis_vals separate as they are checked later
