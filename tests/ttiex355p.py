@@ -8,7 +8,7 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
 DEVICE_PREFIX = "TTIEX355P_01"
-DEVICE_NAME = "tti355"  # similar enough device that we can use the same emulator
+DEVICE_NAME = "ttiex355p"
 
 AMPSTOGAUSS = 7.278
 MAX_FIELD = 25
@@ -44,8 +44,6 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
         self._lewis.backdoor_run_function_on_device("reset")
-        self._lewis.backdoor_set_on_device("min_voltage", MIN_VOLTAGE)
-        self._lewis.backdoor_set_on_device("min_current", MIN_CURRENT)
 
         self.ca.set_pv_value("AUTOONOFF", "Disabled")
 
