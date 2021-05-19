@@ -394,6 +394,13 @@ class ProcServLauncher(BaseLauncher):
         """
         self._telnet.write("{cmd}\n".format(cmd=command).encode('ascii'))
 
+    def force_manual_save(self):
+        """
+        Force a manual save by sending requests to save the settings and positions files
+        """
+        self.send_telnet_command("manual_save({}_info_settings.req)".format(self._device))
+        self.send_telnet_command("manual_save({}_info_positions.req)".format(self._device))
+
     def start_ioc(self, wait=False):
         """
         Start/restart IOC over telnet. (^X)

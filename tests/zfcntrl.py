@@ -417,306 +417,305 @@ class ZeroFieldTests(unittest.TestCase):
         self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.NO_ERROR)
 
-    # def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
-    #     self.zfcntrl_ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
-    #
-    # @parameterized.expand(parameterized_list(FIELD_AXES))
-    # def test_WHEN_manual_mode_and_any_readback_value_is_not_equal_to_setpoint_THEN_at_setpoint_field_is_na(self, _, axis_to_vary):
-    #     fields = {"X": 10, "Y": 20, "Z": 30}
-    #     self._set_simulated_measured_fields(fields, overload=False)
-    #     self._set_user_setpoints(fields)
-    #
-    #     # Set one of the parameters to a completely different value
-    #     self.zfcntrl_ca.set_pv_value("FIELD:{}:SP".format(axis_to_vary), 100, sleep_after_set=0)
-    #
-    #     self._assert_at_setpoint(AtSetpointStatuses.NA)
-    #     self._assert_status(Statuses.NO_ERROR)
-    #
-    # def test_GIVEN_manual_mode_and_magnetometer_not_overloaded_WHEN_readback_values_are_equal_to_setpoints_THEN_at_setpoint_field_is_na(self):
-    #     fields = {"X": 55, "Y": 66, "Z": 77}
-    #     self._set_simulated_measured_fields(fields, overload=False)
-    #     self._set_user_setpoints(fields)
-    #
-    #     self._assert_at_setpoint(AtSetpointStatuses.NA)
-    #     self._assert_status(Statuses.NO_ERROR)
-    #
-    # def test_GIVEN_manual_mode_and_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
-    #     fields = {"X": 55, "Y": 66, "Z": 77}
-    #     self._set_simulated_measured_fields(fields, overload=True)
-    #     self._set_user_setpoints(fields)
-    #
-    #     self._assert_at_setpoint(AtSetpointStatuses.NA)
-    #     self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
-    #
-    # def test_GIVEN_manual_mode_and_just_outside_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
-    #     fields = {"X": 55, "Y": 66, "Z": 77}
-    #     self._set_simulated_measured_fields(fields, overload=True)
-    #     self._set_user_setpoints({k: v + 1.01 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
-    #
-    #     self._assert_at_setpoint(AtSetpointStatuses.NA)
-    #     self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
-    #
-    # def test_GIVEN_manual_mode_and_just_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
-    #     fields = {"X": 55, "Y": 66, "Z": 77}
-    #     self._set_simulated_measured_fields(fields, overload=True)
-    #     self._set_user_setpoints({k: v + 0.99 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
-    #
-    #     self._assert_at_setpoint(AtSetpointStatuses.NA)
-    #     self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
-    #
-    # def test_WHEN_magnetometer_ioc_does_not_respond_THEN_status_is_magnetometer_read_error(self):
-    #     fields = {"X": 1, "Y": 2, "Z": 3}
-    #     self._set_simulated_measured_fields(fields, overload=False)
-    #     self._set_user_setpoints(fields)
-    #
-    #     with self._simulate_disconnected_magnetometer():
-    #         self._assert_status(Statuses.MAGNETOMETER_READ_ERROR)
-    #         for axis in FIELD_AXES:
-    #             self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
-    #             self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
-    #
-    #     # Now simulate recovery and assert error gets cleared correctly
-    #     self._assert_status(Statuses.NO_ERROR)
-    #     for axis in FIELD_AXES:
-    #         self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
-    #         self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE)
-    #
-    # def test_WHEN_magnetometer_ioc_readings_are_invalid_THEN_status_is_magnetometer_invalid(self):
-    #     fields = {"X": 1, "Y": 2, "Z": 3}
-    #     self._set_simulated_measured_fields(fields, overload=False)
-    #     self._set_user_setpoints(fields)
-    #
-    #     with self._simulate_invalid_magnetometer_readings():
-    #         self._assert_status(Statuses.MAGNETOMETER_DATA_INVALID)
-    #         for axis in FIELD_AXES:
-    #             self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
-    #             self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
-    #
-    #     # Now simulate recovery and assert error gets cleared correctly
-    #     self._assert_status(Statuses.NO_ERROR)
-    #     for axis in FIELD_AXES:
-    #         self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
-    #         self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE)
-    #
-    # def test_WHEN_power_supplies_are_invalid_THEN_status_is_power_supplies_invalid(self):
-    #     fields = {"X": 1, "Y": 2, "Z": 3}
-    #     self._set_simulated_measured_fields(fields, overload=False)
-    #     self._set_user_setpoints(fields)
-    #     self._set_autofeedback(True)
-    #
-    #     with self._simulate_invalid_power_supply():
-    #         self._assert_at_setpoint(AtSetpointStatuses.TRUE)  # Invalid power supplies do not mark the field as "not at setpoint"
-    #         self._assert_status(Statuses.PSU_INVALID)
-    #
-    #     # Now simulate recovery and assert error gets cleared correctly
-    #     self._assert_at_setpoint(AtSetpointStatuses.TRUE)
-    #     self._assert_status(Statuses.NO_ERROR)
-    #
-    # def test_WHEN_power_supplies_writes_fail_THEN_status_is_power_supply_writes_failed(self):
-    #     fields = {"X": 1, "Y": 2, "Z": 3}
-    #     self._set_simulated_measured_fields(fields, overload=False)
-    #
-    #     # For this test we need changing fields so that we can detect that the writes failed
-    #     self._set_user_setpoints({k: v + 10 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
-    #     # ... and we also need large limits so that we see that the writes failed as opposed to a limits error
-    #     self._set_output_limits(
-    #         lower_limits={k: -999999 for k in FIELD_AXES},
-    #         upper_limits={k: 999999 for k in FIELD_AXES}
-    #     )
-    #     self._set_autofeedback(True)
-    #
-    #     with self._simulate_failing_power_supply_writes():
-    #         self._assert_status(Statuses.PSU_WRITE_FAILED)
-    #
-    #     # Now simulate recovery and assert error gets cleared correctly
-    #     self._assert_status(Statuses.NO_ERROR)
-    #
-    # def test_GIVEN_measured_field_and_setpoints_are_identical_THEN_setpoints_remain_unchanged(self):
-    #     fields = {"X": 5, "Y": 10, "Z": -5}
-    #     outputs = {"X": -1, "Y": -2, "Z": -3}
-    #
-    #     self._set_simulated_measured_fields(fields, overload=False)
-    #     self._set_user_setpoints(fields)
-    #     self._set_simulated_power_supply_currents(outputs, wait_for_update=True)
-    #
-    #     self._set_autofeedback(True)
-    #
-    #     for axis in FIELD_AXES:
-    #         self.zfcntrl_ca.assert_that_pv_is_number("OUTPUT:{}:CURR".format(axis), outputs[axis], tolerance=0.0001)
-    #         self.zfcntrl_ca.assert_that_pv_value_is_unchanged("OUTPUT:{}:CURR".format(axis), wait=5)
-    #
-    # @parameterized.expand(parameterized_list([
-    #     # If measured field is smaller than the setpoint, we want to adjust the output upwards to compensate
-    #     (operator.sub, operator.gt, 1),
-    #     # If measured field is larger than the setpoint, we want to adjust the output downwards to compensate
-    #     (operator.add, operator.lt, 1),
-    #     # If measured field is smaller than the setpoint, and A/mg is negative, we want to adjust the output downwards
-    #     # to compensate
-    #     (operator.sub, operator.lt, -1),
-    #     # If measured field is larger than the setpoint, and A/mg is negative, we want to adjust the output upwards
-    #     # to compensate
-    #     (operator.add, operator.gt, -1),
-    #     # If measured field is smaller than the setpoint, and A/mg is zero, then power supply output should remain
-    #     # unchanged
-    #     (operator.sub, operator.eq, 0),
-    #     # If measured field is larger than the setpoint, and A/mg is zero, then power supply output should remain
-    #     # unchanged
-    #     (operator.add, operator.eq, 0),
-    # ]))
-    # def test_GIVEN_autofeedback_WHEN_measured_field_different_from_setpoints_THEN_power_supply_outputs_move_in_correct_direction(
-    #         self, _, measured_field_modifier, output_comparator, scaling_factor):
-    #
-    #     fields = {"X": 5, "Y": 0, "Z": -5}
-    #
-    #     adjustment_amount = 10 * STABILITY_TOLERANCE  # To ensure that it is not considered stable to start with
-    #     measured_fields = {k: measured_field_modifier(v, adjustment_amount) for k, v in six.iteritems(fields)}
-    #
-    #     self._set_scaling_factors(scaling_factor, scaling_factor, scaling_factor, fiddle=1)
-    #     self._set_simulated_measured_fields(measured_fields, overload=False)
-    #     self._set_user_setpoints(fields)
-    #     self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0}, wait_for_update=True)
-    #     self._set_output_limits(
-    #         lower_limits={k: -999999 for k in FIELD_AXES},
-    #         upper_limits={k: 999999 for k in FIELD_AXES}
-    #     )
-    #
-    #     self._assert_status(Statuses.NO_ERROR)
-    #
-    #     self._set_autofeedback(True)
-    #     self._assert_at_setpoint(AtSetpointStatuses.FALSE)
-    #
-    #     for axis in FIELD_AXES:
-    #         self.zfcntrl_ca.assert_that_pv_value_over_time_satisfies_comparator("OUTPUT:{}:CURR".format(axis),
-    #                                                                             wait=5, comparator=output_comparator)
-    #
-    #     # In this happy-path case, we shouldn't be hitting any long timeouts, so loop times should remain fairly quick
-    #     self.zfcntrl_ca.assert_that_pv_is_within_range("STATEMACHINE:LOOP_TIME", min_value=0, max_value=2*LOOP_DELAY_MS)
-    #
-    # def test_GIVEN_output_limits_too_small_for_required_field_THEN_status_error_and_alarm(self):
-    #     self._set_output_limits(
-    #         lower_limits={"X": -0.1, "Y": -0.1, "Z": -0.1},
-    #         upper_limits={"X":  0.1, "Y":  0.1, "Z":  0.1},
-    #     )
-    #
-    #     # The measured field is smaller than the setpoint, i.e. the output needs to go up to the limits
-    #     self._set_simulated_measured_fields({"X": -1, "Y": -1, "Z": -1})
-    #     self._set_user_setpoints(ZERO_FIELD)
-    #     self._set_simulated_power_supply_currents(ZERO_FIELD)
-    #
-    #     self._set_autofeedback(True)
-    #
-    #     self._assert_status(Statuses.PSU_ON_LIMITS)
-    #     for axis in FIELD_AXES:
-    #         # Value should be on one of the limits
-    #         self.zfcntrl_ca.assert_that_pv_is_one_of("OUTPUT:{}:CURR:SP".format(axis), [-0.1, 0.1])
-    #         # ...and in alarm
-    #         self.zfcntrl_ca.assert_that_pv_alarm_is("OUTPUT:{}:CURR:SP".format(axis), self.zfcntrl_ca.Alarms.MAJOR)
-    #
-    # def test_GIVEN_limits_wrong_way_around_THEN_appropriate_error_raised(self):
-    #     # Set upper limits < lower limits
-    #     self._set_output_limits(
-    #         lower_limits={"X": 0.1, "Y": 0.1, "Z": 0.1},
-    #         upper_limits={"X": -0.1, "Y": -0.1, "Z": -0.1},
-    #     )
-    #     self._set_autofeedback(True)
-    #     self._assert_status(Statuses.INVALID_PSU_LIMITS)
-    #
-    # @parameterized.expand(parameterized_list([
-    #     {"X": 45.678, "Y": 0.123, "Z": 12.345},
-    #     {"X": 0, "Y": 0, "Z": 0},
-    #     {"X": -45.678, "Y": -0.123, "Z": -12.345},
-    # ]))
-    # def test_GIVEN_measured_values_updating_realistically_WHEN_in_auto_mode_THEN_converges_to_correct_answer(
-    #         self, _, psu_amps_at_zero_field):
-    #     self._set_output_limits(
-    #         lower_limits={k: -100 for k in FIELD_AXES},
-    #         upper_limits={k: 100 for k in FIELD_AXES}
-    #     )
-    #     self._set_user_setpoints({"X": 0, "Y": 0, "Z": 0})
-    #     self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0})
-    #
-    #     # Set fiddle small to get a relatively slow response, which should theoretically be stable
-    #     self._set_scaling_factors(0.001, 0.001, 0.001, fiddle=0.05)
-    #
-    #     with self._simulate_measured_fields_changing_with_outputs(psu_amps_at_measured_zero=psu_amps_at_zero_field):
-    #         self._set_autofeedback(True)
-    #         for axis in FIELD_AXES:
-    #             self.zfcntrl_ca.assert_that_pv_is_number(
-    #                 "OUTPUT:{}:CURR:SP:RBV".format(axis), psu_amps_at_zero_field[axis],
-    #                 tolerance=STABILITY_TOLERANCE * 0.001, timeout=60)
-    #             self.zfcntrl_ca.assert_that_pv_is_number(
-    #                 "FIELD:{}".format(axis), 0.0, tolerance=STABILITY_TOLERANCE)
-    #
-    #         self._assert_at_setpoint(AtSetpointStatuses.TRUE)
-    #         self.zfcntrl_ca.assert_that_pv_value_is_unchanged("AT_SETPOINT", wait=20)
-    #         self._assert_status(Statuses.NO_ERROR)
-    #
-    # @parameterized.expand(parameterized_list(FIELD_AXES))
-    # def test_GIVEN_output_is_off_WHEN_autofeedback_switched_on_THEN_psu_is_switched_back_on(self, _, axis):
-    #     self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", "OUTPUT:{}:STATUS".format(axis))
-    #     self._set_autofeedback(True)
-    #     self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
-    #
-    # @parameterized.expand(parameterized_list(FIELD_AXES))
-    # def test_GIVEN_output_mode_is_voltage_WHEN_autofeedback_switched_on_THEN_psu_is_switched_to_current_mode(self, _, axis):
-    #     self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
-    #         "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR)
-    #     self._set_autofeedback(True)
-    #     self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
-    #
-    # @parameterized.expand(parameterized_list(FIELD_AXES))
-    # def test_GIVEN_output_is_off_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(self, _, axis):
-    #     self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", "OUTPUT:{}:STATUS".format(axis))
-    #     with self._simulate_failing_power_supply_writes():
-    #         self._set_autofeedback(True)
-    #         self._assert_status(Statuses.PSU_WRITE_FAILED)
-    #
-    #     # Check it can recover when writes work again
-    #     self._assert_status(Statuses.NO_ERROR)
-    #     self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
-    #
-    # @parameterized.expand(parameterized_list(FIELD_AXES))
-    # def test_GIVEN_output_mode_is_voltage_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(self, _, axis):
-    #     self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
-    #         "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR)
-    #
-    #     with self._simulate_failing_power_supply_writes():
-    #         self._set_autofeedback(True)
-    #         self._assert_status(Statuses.PSU_WRITE_FAILED)
-    #
-    #     # Check it can recover when writes work again
-    #     self._assert_status(Statuses.NO_ERROR)
-    #     self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
-    #
-    # @parameterized.expand(parameterized_list([
-    #     (True, True),
-    #     (False, True),
-    #     (True, False),
-    #     (False, False),
-    # ]))
-    # def test_GIVEN_magnetometer_overloaded_THEN_error_suppressed_if_in_manual_mode(self, _, autofeedback, overloaded):
-    #     self._set_autofeedback(autofeedback)
-    #     self._set_simulated_measured_fields(ZERO_FIELD, overload=overloaded, wait_for_update=True)
-    #     self._assert_status(Statuses.MAGNETOMETER_OVERLOAD if overloaded else Statuses.NO_ERROR)
-    #     self.zfcntrl_ca.assert_that_pv_alarm_is(
-    #         "STATUS", self.zfcntrl_ca.Alarms.MAJOR if overloaded and autofeedback else self.zfcntrl_ca.Alarms.NONE)
-    #
-    # def test_GIVEN_power_supply_voltage_limit_is_set_incorrectly_WHEN_going_into_auto_mode_THEN_correct_limits_applied(self):
-    #     self._set_simulated_power_supply_voltages({"X": 0, "Y": 0, "Z": 0})
-    #
-    #     self._set_autofeedback(True)
-    #
-    #     self.zfcntrl_ca.assert_that_pv_is("OUTPUT:X:VOLT:SP:RBV", X_KEPCO_VOLTAGE_LIMIT)
-    #     self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Y:VOLT:SP:RBV", Y_KEPCO_VOLTAGE_LIMIT)
-    #     self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Z:VOLT:SP:RBV", Z_KEPCO_VOLTAGE_LIMIT)
+    def test_WHEN_ioc_is_started_THEN_it_is_not_disabled(self):
+        self.zfcntrl_ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_WHEN_manual_mode_and_any_readback_value_is_not_equal_to_setpoint_THEN_at_setpoint_field_is_na(self, _, axis_to_vary):
+        fields = {"X": 10, "Y": 20, "Z": 30}
+        self._set_simulated_measured_fields(fields, overload=False)
+        self._set_user_setpoints(fields)
+
+        # Set one of the parameters to a completely different value
+        self.zfcntrl_ca.set_pv_value("FIELD:{}:SP".format(axis_to_vary), 100, sleep_after_set=0)
+
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
+        self._assert_status(Statuses.NO_ERROR)
+
+    def test_GIVEN_manual_mode_and_magnetometer_not_overloaded_WHEN_readback_values_are_equal_to_setpoints_THEN_at_setpoint_field_is_na(self):
+        fields = {"X": 55, "Y": 66, "Z": 77}
+        self._set_simulated_measured_fields(fields, overload=False)
+        self._set_user_setpoints(fields)
+
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
+        self._assert_status(Statuses.NO_ERROR)
+
+    def test_GIVEN_manual_mode_and_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
+        fields = {"X": 55, "Y": 66, "Z": 77}
+        self._set_simulated_measured_fields(fields, overload=True)
+        self._set_user_setpoints(fields)
+
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
+        self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
+
+    def test_GIVEN_manual_mode_and_just_outside_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
+        fields = {"X": 55, "Y": 66, "Z": 77}
+        self._set_simulated_measured_fields(fields, overload=True)
+        self._set_user_setpoints({k: v + 1.01 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
+
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
+        self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
+
+    def test_GIVEN_manual_mode_and_just_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
+        fields = {"X": 55, "Y": 66, "Z": 77}
+        self._set_simulated_measured_fields(fields, overload=True)
+        self._set_user_setpoints({k: v + 0.99 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
+
+        self._assert_at_setpoint(AtSetpointStatuses.NA)
+        self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
+
+    def test_WHEN_magnetometer_ioc_does_not_respond_THEN_status_is_magnetometer_read_error(self):
+        fields = {"X": 1, "Y": 2, "Z": 3}
+        self._set_simulated_measured_fields(fields, overload=False)
+        self._set_user_setpoints(fields)
+
+        with self._simulate_disconnected_magnetometer():
+            self._assert_status(Statuses.MAGNETOMETER_READ_ERROR)
+            for axis in FIELD_AXES:
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
+
+        # Now simulate recovery and assert error gets cleared correctly
+        self._assert_status(Statuses.NO_ERROR)
+        for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE)
+
+    def test_WHEN_magnetometer_ioc_readings_are_invalid_THEN_status_is_magnetometer_invalid(self):
+        fields = {"X": 1, "Y": 2, "Z": 3}
+        self._set_simulated_measured_fields(fields, overload=False)
+        self._set_user_setpoints(fields)
+
+        with self._simulate_invalid_magnetometer_readings():
+            self._assert_status(Statuses.MAGNETOMETER_DATA_INVALID)
+            for axis in FIELD_AXES:
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID)
+                self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID)
+
+        # Now simulate recovery and assert error gets cleared correctly
+        self._assert_status(Statuses.NO_ERROR)
+        for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE)
+            self.zfcntrl_ca.assert_that_pv_alarm_is("FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE)
+
+    def test_WHEN_power_supplies_are_invalid_THEN_status_is_power_supplies_invalid(self):
+        fields = {"X": 1, "Y": 2, "Z": 3}
+        self._set_simulated_measured_fields(fields, overload=False)
+        self._set_user_setpoints(fields)
+        self._set_autofeedback(True)
+
+        with self._simulate_invalid_power_supply():
+            self._assert_at_setpoint(AtSetpointStatuses.TRUE)  # Invalid power supplies do not mark the field as "not at setpoint"
+            self._assert_status(Statuses.PSU_INVALID)
+
+        # Now simulate recovery and assert error gets cleared correctly
+        self._assert_at_setpoint(AtSetpointStatuses.TRUE)
+        self._assert_status(Statuses.NO_ERROR)
+
+    def test_WHEN_power_supplies_writes_fail_THEN_status_is_power_supply_writes_failed(self):
+        fields = {"X": 1, "Y": 2, "Z": 3}
+        self._set_simulated_measured_fields(fields, overload=False)
+
+        # For this test we need changing fields so that we can detect that the writes failed
+        self._set_user_setpoints({k: v + 10 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
+        # ... and we also need large limits so that we see that the writes failed as opposed to a limits error
+        self._set_output_limits(
+            lower_limits={k: -999999 for k in FIELD_AXES},
+            upper_limits={k: 999999 for k in FIELD_AXES}
+        )
+        self._set_autofeedback(True)
+
+        with self._simulate_failing_power_supply_writes():
+            self._assert_status(Statuses.PSU_WRITE_FAILED)
+
+        # Now simulate recovery and assert error gets cleared correctly
+        self._assert_status(Statuses.NO_ERROR)
+
+    def test_GIVEN_measured_field_and_setpoints_are_identical_THEN_setpoints_remain_unchanged(self):
+        fields = {"X": 5, "Y": 10, "Z": -5}
+        outputs = {"X": -1, "Y": -2, "Z": -3}
+
+        self._set_simulated_measured_fields(fields, overload=False)
+        self._set_user_setpoints(fields)
+        self._set_simulated_power_supply_currents(outputs, wait_for_update=True)
+
+        self._set_autofeedback(True)
+
+        for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_is_number("OUTPUT:{}:CURR".format(axis), outputs[axis], tolerance=0.0001)
+            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("OUTPUT:{}:CURR".format(axis), wait=5)
+
+    @parameterized.expand(parameterized_list([
+        # If measured field is smaller than the setpoint, we want to adjust the output upwards to compensate
+        (operator.sub, operator.gt, 1),
+        # If measured field is larger than the setpoint, we want to adjust the output downwards to compensate
+        (operator.add, operator.lt, 1),
+        # If measured field is smaller than the setpoint, and A/mg is negative, we want to adjust the output downwards
+        # to compensate
+        (operator.sub, operator.lt, -1),
+        # If measured field is larger than the setpoint, and A/mg is negative, we want to adjust the output upwards
+        # to compensate
+        (operator.add, operator.gt, -1),
+        # If measured field is smaller than the setpoint, and A/mg is zero, then power supply output should remain
+        # unchanged
+        (operator.sub, operator.eq, 0),
+        # If measured field is larger than the setpoint, and A/mg is zero, then power supply output should remain
+        # unchanged
+        (operator.add, operator.eq, 0),
+    ]))
+    def test_GIVEN_autofeedback_WHEN_measured_field_different_from_setpoints_THEN_power_supply_outputs_move_in_correct_direction(
+            self, _, measured_field_modifier, output_comparator, scaling_factor):
+
+        fields = {"X": 5, "Y": 0, "Z": -5}
+
+        adjustment_amount = 10 * STABILITY_TOLERANCE  # To ensure that it is not considered stable to start with
+        measured_fields = {k: measured_field_modifier(v, adjustment_amount) for k, v in six.iteritems(fields)}
+
+        self._set_scaling_factors(scaling_factor, scaling_factor, scaling_factor, fiddle=1)
+        self._set_simulated_measured_fields(measured_fields, overload=False)
+        self._set_user_setpoints(fields)
+        self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0}, wait_for_update=True)
+        self._set_output_limits(
+            lower_limits={k: -999999 for k in FIELD_AXES},
+            upper_limits={k: 999999 for k in FIELD_AXES}
+        )
+
+        self._assert_status(Statuses.NO_ERROR)
+
+        self._set_autofeedback(True)
+        self._assert_at_setpoint(AtSetpointStatuses.FALSE)
+
+        for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_value_over_time_satisfies_comparator("OUTPUT:{}:CURR".format(axis),
+                                                                                wait=5, comparator=output_comparator)
+
+        # In this happy-path case, we shouldn't be hitting any long timeouts, so loop times should remain fairly quick
+        self.zfcntrl_ca.assert_that_pv_is_within_range("STATEMACHINE:LOOP_TIME", min_value=0, max_value=2*LOOP_DELAY_MS)
+
+    def test_GIVEN_output_limits_too_small_for_required_field_THEN_status_error_and_alarm(self):
+        self._set_output_limits(
+            lower_limits={"X": -0.1, "Y": -0.1, "Z": -0.1},
+            upper_limits={"X":  0.1, "Y":  0.1, "Z":  0.1},
+        )
+
+        # The measured field is smaller than the setpoint, i.e. the output needs to go up to the limits
+        self._set_simulated_measured_fields({"X": -1, "Y": -1, "Z": -1})
+        self._set_user_setpoints(ZERO_FIELD)
+        self._set_simulated_power_supply_currents(ZERO_FIELD)
+
+        self._set_autofeedback(True)
+
+        self._assert_status(Statuses.PSU_ON_LIMITS)
+        for axis in FIELD_AXES:
+            # Value should be on one of the limits
+            self.zfcntrl_ca.assert_that_pv_is_one_of("OUTPUT:{}:CURR:SP".format(axis), [-0.1, 0.1])
+            # ...and in alarm
+            self.zfcntrl_ca.assert_that_pv_alarm_is("OUTPUT:{}:CURR:SP".format(axis), self.zfcntrl_ca.Alarms.MAJOR)
+
+    def test_GIVEN_limits_wrong_way_around_THEN_appropriate_error_raised(self):
+        # Set upper limits < lower limits
+        self._set_output_limits(
+            lower_limits={"X": 0.1, "Y": 0.1, "Z": 0.1},
+            upper_limits={"X": -0.1, "Y": -0.1, "Z": -0.1},
+        )
+        self._set_autofeedback(True)
+        self._assert_status(Statuses.INVALID_PSU_LIMITS)
+
+    @parameterized.expand(parameterized_list([
+        {"X": 45.678, "Y": 0.123, "Z": 12.345},
+        {"X": 0, "Y": 0, "Z": 0},
+        {"X": -45.678, "Y": -0.123, "Z": -12.345},
+    ]))
+    def test_GIVEN_measured_values_updating_realistically_WHEN_in_auto_mode_THEN_converges_to_correct_answer(
+            self, _, psu_amps_at_zero_field):
+        self._set_output_limits(
+            lower_limits={k: -100 for k in FIELD_AXES},
+            upper_limits={k: 100 for k in FIELD_AXES}
+        )
+        self._set_user_setpoints({"X": 0, "Y": 0, "Z": 0})
+        self._set_simulated_power_supply_currents({"X": 0, "Y": 0, "Z": 0})
+
+        # Set fiddle small to get a relatively slow response, which should theoretically be stable
+        self._set_scaling_factors(0.001, 0.001, 0.001, fiddle=0.05)
+
+        with self._simulate_measured_fields_changing_with_outputs(psu_amps_at_measured_zero=psu_amps_at_zero_field):
+            self._set_autofeedback(True)
+            for axis in FIELD_AXES:
+                self.zfcntrl_ca.assert_that_pv_is_number(
+                    "OUTPUT:{}:CURR:SP:RBV".format(axis), psu_amps_at_zero_field[axis],
+                    tolerance=STABILITY_TOLERANCE * 0.001, timeout=60)
+                self.zfcntrl_ca.assert_that_pv_is_number(
+                    "FIELD:{}".format(axis), 0.0, tolerance=STABILITY_TOLERANCE)
+
+            self._assert_at_setpoint(AtSetpointStatuses.TRUE)
+            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("AT_SETPOINT", wait=20)
+            self._assert_status(Statuses.NO_ERROR)
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_is_off_WHEN_autofeedback_switched_on_THEN_psu_is_switched_back_on(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", "OUTPUT:{}:STATUS".format(axis))
+        self._set_autofeedback(True)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_mode_is_voltage_WHEN_autofeedback_switched_on_THEN_psu_is_switched_to_current_mode(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
+            "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR)
+        self._set_autofeedback(True)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_is_off_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", "OUTPUT:{}:STATUS".format(axis))
+        with self._simulate_failing_power_supply_writes():
+            self._set_autofeedback(True)
+            self._assert_status(Statuses.PSU_WRITE_FAILED)
+
+        # Check it can recover when writes work again
+        self._assert_status(Statuses.NO_ERROR)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
+
+    @parameterized.expand(parameterized_list(FIELD_AXES))
+    def test_GIVEN_output_mode_is_voltage_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(self, _, axis):
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
+            "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR)
+
+        with self._simulate_failing_power_supply_writes():
+            self._set_autofeedback(True)
+            self._assert_status(Statuses.PSU_WRITE_FAILED)
+
+        # Check it can recover when writes work again
+        self._assert_status(Statuses.NO_ERROR)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
+
+    @parameterized.expand(parameterized_list([
+        (True, True),
+        (False, True),
+        (True, False),
+        (False, False),
+    ]))
+    def test_GIVEN_magnetometer_overloaded_THEN_error_suppressed_if_in_manual_mode(self, _, autofeedback, overloaded):
+        self._set_autofeedback(autofeedback)
+        self._set_simulated_measured_fields(ZERO_FIELD, overload=overloaded, wait_for_update=True)
+        self._assert_status(Statuses.MAGNETOMETER_OVERLOAD if overloaded else Statuses.NO_ERROR)
+        self.zfcntrl_ca.assert_that_pv_alarm_is(
+            "STATUS", self.zfcntrl_ca.Alarms.MAJOR if overloaded and autofeedback else self.zfcntrl_ca.Alarms.NONE)
+
+    def test_GIVEN_power_supply_voltage_limit_is_set_incorrectly_WHEN_going_into_auto_mode_THEN_correct_limits_applied(self):
+        self._set_simulated_power_supply_voltages({"X": 0, "Y": 0, "Z": 0})
+
+        self._set_autofeedback(True)
+
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:X:VOLT:SP:RBV", X_KEPCO_VOLTAGE_LIMIT)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Y:VOLT:SP:RBV", Y_KEPCO_VOLTAGE_LIMIT)
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Z:VOLT:SP:RBV", Z_KEPCO_VOLTAGE_LIMIT)
 
     @parameterized.expand(parameterized_list(list(AUTOFEEDBACK_VALUES.keys())))
     def test_GIVEN_ioc_is_restarted_WHEN_feedback_autosave_is_set_to_true_THEN_feedback_mode_persists(self, _, autofeedback):
         with self._ioc.start_with_macros({"SAVEFEEDBACKMODE": "YES"}, pv_to_wait_for="OUTPUT:X:VOLT:SP:RBV"):
             self._set_autofeedback(autofeedback)
             feedback_mode_before_restart = AUTOFEEDBACK_VALUES[autofeedback]
-            # sleep for 5+ seconds to allow for autosave to finish
-            sleep(6)
+            self._ioc.force_manual_save()
         with self._ioc.start_with_macros({"SAVEFEEDBACKMODE": "YES"}, pv_to_wait_for="OUTPUT:X:VOLT:SP:RBV"):
             self.zfcntrl_ca.assert_that_pv_is("AUTOFEEDBACK", feedback_mode_before_restart)
 
