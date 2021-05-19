@@ -29,6 +29,7 @@ IOCS = [
             "DISABLE_AUTOONOFF": 0
         },
         "emulator": DEVICE_NAME,
+        "lewis_protocol": "ttiex355p"
     },
 ]
 
@@ -43,7 +44,7 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
-        self._lewis.backdoor_run_function_on_device("reset")
+        self._lewis.backdoor_run_function_on_device("reset_ttiex355p")
 
         self.ca.set_pv_value("AUTOONOFF", "Disabled")
 
