@@ -129,8 +129,8 @@ class InitTests(unittest.TestCase):
         self.ca.set_pv_value("RESET:FLAG", 1)
 
         # Then:
-        number_of_times_status_register_has_been_reset_and_cleared = self._lewis.backdoor_run_function_on_device(
-                "get_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor")
+        number_of_times_status_register_has_been_reset_and_cleared = int(self._lewis.backdoor_run_function_on_device(
+                "get_number_of_times_status_register_has_been_reset_and_cleared_via_the_backdoor")[0])
 
         assert_that(number_of_times_status_register_has_been_reset_and_cleared, is_(equal_to(1)))
 
@@ -211,8 +211,8 @@ class ScanningSetupTests(unittest.TestCase):
             self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
 
         # Then:
-        number_of_times_buffer_has_been_cleared = self._lewis.backdoor_run_function_on_device(
-            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")
+        number_of_times_buffer_has_been_cleared = int(self._lewis.backdoor_run_function_on_device(
+            "get_number_of_times_buffer_has_been_cleared_via_the_backdoor")[0])
         assert_that(number_of_times_buffer_has_been_cleared, is_(greater_than(1)))
 
     @parameterized.expand(parameterized_list([
@@ -420,12 +420,12 @@ class IOCResetTests(unittest.TestCase):
     def test_that_GIVEN_a_device_WHEN_reset_THEN_the_IOC_has_been_reinitalized(
             self):
         # Given:
-        previous_number_of_times_the_device_has_been_reset = self._lewis.backdoor_run_function_on_device(
-            "get_how_many_times_ioc_has_been_reset_via_the_backdoor")
+        previous_number_of_times_the_device_has_been_reset = int(self._lewis.backdoor_run_function_on_device(
+            "get_how_many_times_ioc_has_been_reset_via_the_backdoor")[0])
 
         # When:
         self.ca.set_pv_value("RESET:FLAG", 1)
 
         # Then:
-        result = self._lewis.backdoor_run_function_on_device("get_how_many_times_ioc_has_been_reset_via_the_backdoor")
+        result = int(self._lewis.backdoor_run_function_on_device("get_how_many_times_ioc_has_been_reset_via_the_backdoor")[0])
         assert_that(result, is_(equal_to(previous_number_of_times_the_device_has_been_reset + 1)))
