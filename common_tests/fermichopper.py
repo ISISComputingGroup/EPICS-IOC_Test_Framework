@@ -65,7 +65,7 @@ class FermichopperBase(object):
         if IOCRegister.uses_rec_sim:
             return False  # In recsim, assume device is always ok
         else:
-            return self._lewis.backdoor_get_from_device("is_broken")
+            return self._lewis.backdoor_get_from_device("is_broken") != "False"
 
     def tearDown(self):
         self.assertFalse(self.is_device_broken(), "Device was broken.")

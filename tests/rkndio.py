@@ -105,13 +105,13 @@ class RkndioVersionTests(unittest.TestCase):
         # Given
         pv = "PIN:{}".format(pin)
         self.ca.set_pv_value(pv, "FALSE")
-        reset_check = self._lewis.backdoor_run_function_on_device("get_output_state_via_the_backdoor", [pin])
-        self.assertEqual(reset_check, "FALSE")
+        reset_check = self._lewis.backdoor_run_function_on_device("get_output_state_via_the_backdoor", [pin])[0]
+        self.assertEqual(reset_check, b"FALSE")
 
         # When:
         self.ca.set_pv_value(pv, "TRUE")
 
         # Then:
-        result = self._lewis.backdoor_run_function_on_device("get_output_state_via_the_backdoor", [pin])
-        self.assertEqual(result, "TRUE")
+        result = self._lewis.backdoor_run_function_on_device("get_output_state_via_the_backdoor", [pin])[0]
+        self.assertEqual(result, b"TRUE")
 
