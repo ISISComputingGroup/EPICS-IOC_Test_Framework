@@ -1,3 +1,4 @@
+import ast
 import unittest
 from unittest import skipIf
 
@@ -176,7 +177,7 @@ class Sm300Tests(unittest.TestCase):
         self.ioc_ca.assert_that_pv_exists("RESET", 30)
         self.ioc_ca.set_pv_value("RESET", 1)
 
-        reset_codes = eval(self._lewis.backdoor_get_from_device("reset_codes"))
+        reset_codes = ast.literal_eval(self._lewis.backdoor_get_from_device("reset_codes"))
 
         for reset_code in expected_reset_codes:
             assert_that(reset_codes, has_item(reset_code))
@@ -253,7 +254,7 @@ class Sm300Tests(unittest.TestCase):
 
         self.ioc_ca.set_pv_value("RESET_AND_HOME", 1)
 
-        reset_codes = eval(self._lewis.backdoor_get_from_device("reset_codes"))
+        reset_codes = ast.literal_eval(self._lewis.backdoor_get_from_device("reset_codes"))
         for reset_code in expected_reset_codes:
             assert_that(reset_codes, has_item(reset_code))
             self.ioc_ca.assert_that_pv_is("RESET", "Done")
