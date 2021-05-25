@@ -17,11 +17,7 @@ from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP
 from utils.log_file import log_filename
 from utils.formatters import format_value
-
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
-
-from lewis.scripts.control import call_method
-from lewis.core.control_client import ControlClient
 
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
 DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
