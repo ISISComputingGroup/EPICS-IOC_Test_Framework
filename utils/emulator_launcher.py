@@ -413,13 +413,8 @@ class LewisLauncher(EmulatorLauncher):
         :param port: the port on which to run lewis
         :return:
         """
-        print("opening log file")
         self._logFile = open(self._log_filename(), "w")
-        self._logFile.write("getting free control port\n")
-        print("getting free control port\n")
         self._control_port = str(get_free_ports(1)[0])
-        self._logFile.write("control port is {}\n".format(str(self._control_port)))
-        print("control port is {}\n".format(str(self._control_port)))
         lewis_command_line = [self._python_path, "-m", "lewis",
                               "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
         lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
