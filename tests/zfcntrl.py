@@ -714,10 +714,10 @@ class ZeroFieldTests(unittest.TestCase):
     def test_GIVEN_ioc_is_restarted_WHEN_feedback_autosave_is_set_to_true_THEN_feedback_mode_persists(self, _, autofeedback):
         with self._ioc.start_with_macros({"SAVEFEEDBACKMODE": "YES"}, pv_to_wait_for="OUTPUT:X:VOLT:SP:RBV"):
             self._set_autofeedback(autofeedback)
-            feedback_mode_before_restart = AUTOFEEDBACK_VALUES[autofeedback]
             self._ioc.force_manual_save()
+            sleep(2)
         with self._ioc.start_with_macros({"SAVEFEEDBACKMODE": "YES"}, pv_to_wait_for="OUTPUT:X:VOLT:SP:RBV"):
-            self.zfcntrl_ca.assert_that_pv_is("AUTOFEEDBACK", feedback_mode_before_restart)
+            self.zfcntrl_ca.assert_that_pv_is("AUTOFEEDBACK", AUTOFEEDBACK_VALUES[autofeedback])
 
     @parameterized.expand(parameterized_list(list(AUTOFEEDBACK_VALUES.keys())))
     def test_GIVEN_ioc_is_restarted_WHEN_feedback_autosave_is_set_to_false_THEN_feedback_mode_reverts(self, _, autofeedback):
