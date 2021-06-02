@@ -311,7 +311,7 @@ if __name__ == '__main__':
                         help='The instrument prefix; e.g. TE:NDW1373')
     parser.add_argument('-e', '--emulator-path', default=emulator_path,
                         help="The path of the lewis.py file")
-    parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe",
+    parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python3\python.exe",
                         help="The path of python.exe")
     parser.add_argument('--var-dir', default=None,
                         help="Directory in which to create a log dir to write log file to and directory in which to "

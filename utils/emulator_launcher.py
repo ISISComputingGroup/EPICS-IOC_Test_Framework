@@ -22,8 +22,6 @@ from utils.emulator_exceptions import UnableToConnectToEmulatorException
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
 DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
 
-# Python 2 required to emulate the v1 mezei flipper
-DEFAULT_PY_2_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
 
 class EmulatorRegister(object):
     """
