@@ -138,7 +138,6 @@ class ReflTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.start_time = time.time()
         self._ioc = IOCRegister.get_running("refl")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT", default_wait_time=0.0)
