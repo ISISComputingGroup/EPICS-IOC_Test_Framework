@@ -1,10 +1,10 @@
 import unittest
-from parameterized import parameterized
-import itertools
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+
 
 DEVICE_PREFIX = "TEKAFG3XXX_01"
 
@@ -36,8 +36,3 @@ class Tekafg3XXXTests(unittest.TestCase):
         identity_string = "TEKTRONIX,AFG3021,C100101,SCPI:99.0 FV:1.0"
 
         self.ca.assert_that_pv_is("IDN", identity_string[:39])  # limited string size
-
-    @skip_if_recsim("Uses lewis backdoor")
-    def test_GIVEN_nothing_WHEN_triggering_device_THEN_device_is_triggered(self):
-        self._lewis.backdoor_run_function_on_device("trigger", [])
-        self._lewis.assert_that_emulator_value_is("triggered", 'True')
