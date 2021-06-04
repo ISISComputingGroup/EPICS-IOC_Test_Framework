@@ -37,5 +37,5 @@ class Tekafg3XXXTests(unittest.TestCase):
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_GIVEN_nothing_WHEN_triggering_device_THEN_device_is_triggered(self):
-        self._lewis.backdoor_run_function_on_device("trigger", [])
+        self.ca.set_pv_value("TRIGGER", True)
         self._lewis.assert_that_emulator_value_is("triggered", 'True')
