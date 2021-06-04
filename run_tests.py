@@ -294,7 +294,7 @@ if __name__ == '__main__':
         print("IOC system tests should now be run under python 3. Aborting.")
         sys.exit(-1)
 
-    pythondir = os.environ.get("PYTHONDIR", None)
+    pythondir = os.environ.get("PYTHON3DIR", None)
 
     if pythondir is not None:
         emulator_path = os.path.join(pythondir, "scripts")
