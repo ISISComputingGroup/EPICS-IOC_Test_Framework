@@ -11,12 +11,12 @@ def set_calibration_file(channel_access, filename):
     max_retries = 10
 
     for _ in range(max_retries):
-        channel_access.set_pv_value(CAL_SEL_PV, filename)
-        channel_access.assert_that_pv_alarm_is(CAL_SEL_PV, channel_access.Alarms.NONE)
-        time.sleep(3)
         channel_access.assert_that_pv_alarm_is("{}:RBV".format(CAL_SEL_PV), channel_access.Alarms.NONE)
         if channel_access.get_pv_value("CAL:RBV") == filename:
             break
+        channel_access.set_pv_value(CAL_SEL_PV, filename)
+        channel_access.assert_that_pv_alarm_is(CAL_SEL_PV, channel_access.Alarms.NONE)
+        time.sleep(3)
     else:
         raise Exception("Couldn't set calibration file to '{}' after {} tries".format(filename, max_retries))
 

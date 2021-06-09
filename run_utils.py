@@ -3,15 +3,15 @@ import os
 from contextlib import contextmanager
 
 
-def package_contents(package_name):
+def package_contents(package_path):
     """
-    Finds all the modules in a package.
+    Finds all the files in a package.
 
-    :param package_name: the name of the package
+    :param package_path: the name of the package
     :return: a set containing all the module names
     """
-    pathname = importlib.util.find_spec(package_name).name
-    return set([os.path.splitext(module)[0] for module in os.listdir(pathname)
+    print(f"Test path is {package_path}")
+    return set([os.path.splitext(module)[0] for module in os.listdir(package_path)
                 if module.endswith('.py') and not module.startswith("__init__")])
 
 
