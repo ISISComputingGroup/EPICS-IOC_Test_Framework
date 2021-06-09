@@ -297,8 +297,6 @@ if __name__ == '__main__':
         print("IOC system tests should now be run under python 3. Aborting.")
         sys.exit(-1)
 
-    pythondir = os.environ.get("PYTHON3DIR", None)
-
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',

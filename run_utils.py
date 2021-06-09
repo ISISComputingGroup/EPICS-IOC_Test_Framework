@@ -10,7 +10,6 @@ def package_contents(package_path):
     :param package_path: the name of the package
     :return: a set containing all the module names
     """
-    print(f"Test path is {package_path}")
     return set([os.path.splitext(module)[0] for module in os.listdir(package_path)
                 if module.endswith('.py') and not module.startswith("__init__")])
 
