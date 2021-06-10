@@ -243,10 +243,7 @@ class ChannelAccess(object):
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
                 .format(func.__name__, self.create_pv_with_prefix(pv))
             
-        start_time = time.time()
         err = self._wait_for_pv_lambda(partial(_wrapper, message), timeout)
-        end_time = time.time()
-        print(f"Waiting on {pv} took {end_time-start_time}")
         if err is not None:
             raise AssertionError(err)
 
