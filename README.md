@@ -13,7 +13,7 @@ It recommended that you don't have the server side of IBEX running when testing 
 
 ### Running all tests
 
-To run all the tests in the test framework, use:
+To run all the tests that are bundled in the test framework, use:
 
 ```
 C:\Instrument\Apps\EPICS\config_env.bat
@@ -23,7 +23,9 @@ Then `cd` to `C:\Instrument\Apps\EPICS\support\IocTestFramework\master` and use:
 python run_tests.py
 ```
 
-There is a batch file which does this for you, called `run_all_tests.bat`
+There is a batch file which does this for you, called `run_all_tests.bat`. Or, if you are already in an EPICS 
+terminal you can call `make ioctests` (note that if your MAKEFLAGS env variable contains `-Otarget` you will 
+not see the test output until all tests are complete.
 
 ### Running tests in modules
 
@@ -82,6 +84,13 @@ This gives you time to attach a debugger. It also allows you an easy way to set 
 Sometimes you might want to run all the tests only in RECSIM or only in DEVSIM. You can do this by doing:
 
 >  `python run_tests.py -tm RECSIM`
+
+### Run test and emulator from specific directory
+
+For newer IOCs the emulator and tests live in the support folder of the IOC. To specify this to the test framework
+you can use: 
+
+>  `python run_tests.py  --test_and_emulator C:\Instrument\Apps\EPICS\support\CCD100\master\system_tests`
 
 ## Troubleshooting 
 
