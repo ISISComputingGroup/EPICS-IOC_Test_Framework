@@ -68,18 +68,18 @@ class TiZrTests(unittest.TestCase):
             self.ca.assert_that_pv_exists(pv)
 
         self.set_safe_values()
-        self.ca.set_pv_value(MONITORING_ON_PV, "No")
-        self.ca.assert_that_pv_is(MONITORING_ON_PV, "No")
+        self._set_monitoring_to("No")
+
+    def _set_monitoring_to(self, value):
+        self.ca.assert_setting_setpoint_sets_readback(value, MONITORING_ON_PV, set_point_pv=MONITORING_ON_PV)
 
     @contextmanager
     def monitoring_on(self):
         try:
-            self.ca.set_pv_value(MONITORING_ON_PV, "Yes")
-            self.ca.assert_that_pv_is(MONITORING_ON_PV, "Yes")
+            self._set_monitoring_to("Yes")
             yield
         finally:
-            self.ca.set_pv_value(MONITORING_ON_PV, "No")
-            self.ca.assert_that_pv_is(MONITORING_ON_PV, "No")
+            self._set_monitoring_to("No")
 
     def set_safe_values(self):
         self.ca.set_pv_value(SIMPLE_VALUE_ONE, IN_RANGE_PVONE_VAL)
