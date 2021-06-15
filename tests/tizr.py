@@ -62,7 +62,7 @@ class TiZrTests(unittest.TestCase):
 
     def setUp(self):
         self._ioc = IOCRegister.get_running(IOC_PREFIX)
-        self.ca = ChannelAccess(default_timeout=20)
+        self.ca = ChannelAccess(default_timeout=20, default_wait_time=0.0)
 
         for pv in [SIMPLE_VALUE_ONE, SIMPLE_VALUE_TWO]:
             self.ca.assert_that_pv_exists(pv)
