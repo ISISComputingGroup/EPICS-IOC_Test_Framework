@@ -5,7 +5,7 @@ from parameterized import parameterized
 import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
 
@@ -45,7 +45,7 @@ NONE_TXT_CALIBRATION_MAX_TEMPERATURE = 10000.0
 NONE_TXT_CALIBRATION_MIN_TEMPERATURE = 0.0
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class EurothermTests(unittest.TestCase):
@@ -74,7 +74,7 @@ class EurothermTests(unittest.TestCase):
 
         self._lewis.backdoor_set_on_device("ramping_on", False)
         self._lewis.backdoor_set_on_device("ramp_rate", 1.0)
-        self.ca.set_pv_value("RAMPON:SP", 0)
+        self.ca.set_pv_value("RAMPON:SP", 0, sleep_after_set=0)
 
         self._set_setpoint_and_current_temperature(intial_temp)
         self.ca.assert_that_pv_is("TEMP", intial_temp)
@@ -93,18 +93,15 @@ class EurothermTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
             self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, 0.1)
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
         expected_temperature = 10.0
         self._set_setpoint_and_current_temperature(expected_temperature)
         self.ca.assert_that_pv_is(RBV_PV, expected_temperature)
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_sp_WHEN_sp_read_rbv_temperature_THEN_rbv_value_is_same_as_sp(self):
         expected_temperature = 10.0
         self.ca.assert_setting_setpoint_sets_readback(expected_temperature, "SP:RBV", "SP")
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_set_ramp_rate_in_K_per_min_THEN_current_temperature_reaches_set_point_in_expected_time(self):
         start_temperature = 5.0
         ramp_on = 1
@@ -124,13 +121,11 @@ class EurothermTests(unittest.TestCase):
         self.assertAlmostEquals(end-start, 60. * (setpoint_temperature-start_temperature)/ramp_rate,
                                 delta=0.1*(end-start))  # Tolerance of 10%. Tolerance of 1s is too tight given scan rate
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
         self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
 
         self.ca.assert_that_pv_is_number("RAMPON:SP.DISP", 1)
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_sensor_disconnected_WHEN_sensor_reconnected_THEN_ramp_setting_is_enabled(self):
         self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
 
@@ -138,7 +133,6 @@ class EurothermTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_number("RAMPON:SP.DISP", 0)
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_ramp_was_off_WHEN_sensor_disconnected_THEN_ramp_is_off_and_cached_ramp_value_is_off(self):
         self.ca.set_pv_value("RAMPON:SP", 0)
 
@@ -147,7 +141,6 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMPON", "OFF")
         self.ca.assert_that_pv_is("RAMPON:CACHE", "OFF")
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_ramp_was_on_WHEN_sensor_disconnected_THEN_ramp_is_off_and_cached_ramp_value_is_on(self):
         self.ca.set_pv_value("RAMPON:SP", 1)
 
@@ -156,7 +149,6 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMPON", "OFF")
         self.ca.assert_that_pv_is("RAMPON:CACHE", "ON")
 
-    @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_ramp_was_on_WHEN_sensor_disconnected_and_reconnected_THEN_ramp_is_on(self):
         self.ca.set_pv_value("RAMPON:SP", 1)
 
@@ -167,7 +159,6 @@ class EurothermTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMPON", "ON")
 
     def test_GIVEN_temperature_setpoint_followed_by_calibration_change_WHEN_same_setpoint_set_again_THEN_setpoint_readback_updates_to_set_value(self):
-
         # Arrange
         temperature = 50.0
         rbv_change_timeout = 10
@@ -196,25 +187,21 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
             self.ca.assert_that_pv_is("{}.BDIR".format(pv), EPICS_TOP.replace("\\", "/") + "support")
 
-    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "K.txt"):
             self._assert_units("K")
 
-    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_is_in_units_of_C_THEN_egu_of_temperature_pvs_is_C(self):
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "C.txt"):
             self._assert_units("C")
 
-    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_calibration_file_has_no_units_THEN_egu_of_temperature_pvs_is_K(self):
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "None.txt"):
             self._assert_units("K")
 
-    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_WHEN_config_file_and_temperature_unit_changed_THEN_then_ramp_rate_unit_changes(self):
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "None.txt"):
@@ -230,7 +217,6 @@ class EurothermTests(unittest.TestCase):
         ("under_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MIN_TEMPERATURE + 200, 0.0),
         ("under_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MIN_TEMPERATURE, 0.0)
     ])
-    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
             self, _, temperature, expected_value_of_under_range_calc_pv):
         # Arrange
@@ -253,7 +239,6 @@ class EurothermTests(unittest.TestCase):
         ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
         ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE, 0.0)
     ])
-    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
             self, _, temperature, expected_value_of_over_range_calc_pv):
         # Arrange
@@ -270,7 +255,6 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_is("TEMP:RANGE:OVER.A", temperature)
             self.ca.assert_that_pv_is("TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
 
-    @skip_if_recsim("Recsim does not use mocked set of tables")
     def test_GIVEN_None_txt_calibration_file_WHEN_changed_to_C006_txt_calibration_file_THEN_the_calibration_limits_change(
             self):
         C006_CALIBRATION_FILE_MAX = 330.26135292267900000000
@@ -291,7 +275,6 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
 
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
-    @skip_if_recsim("Can not test disconnection in rec sim")
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
         self._lewis.backdoor_set_on_device('connected', False)
         self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID)
