@@ -30,16 +30,13 @@ class Aldn1000Tests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self._lewis.backdoor_run_function_on_device("reset")
 
     @parameterized.expand([('Value 1', 12.12), ('Value 2', 1.123), ('Value 3', 123.0)])
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
     def test_GIVEN_new_diameter_WHEN_set_diameter_THEN_new_diameter_set(self, _, value):
-        expected_diameter = value
-        self.ca.set_pv_value("DIAMETER:SP", expected_diameter)
-
-        self.ca.assert_that_pv_is("DIAMETER", expected_diameter, timeout=2)
+        self.ca.assert_setting_setpoint_sets_readback(value, "DIAMETER", timeout=2)
 
     @parameterized.expand([('Value 1', 12345), ('Value 2', 1234), ('Value 3', 77424)])
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
@@ -87,10 +84,7 @@ class Aldn1000Tests(unittest.TestCase):
 
     @parameterized.expand([('Direction 1', 'Withdraw'), ('Direction 2', 'Infuse')])
     def test_GIVEN_new_direction_WHEN_set_direction_THEN_new_direction_set(self, _, direction):
-        expected_direction = direction
-        self.ca.set_pv_value("DIRECTION:SP", expected_direction)
-
-        self.ca.assert_that_pv_is("DIRECTION", expected_direction)
+        self.ca.assert_setting_setpoint_sets_readback(direction, "DIRECTION")
 
     @parameterized.expand([('Direction 1', 'Withdraw'), ('Direction 2', 'Infuse')])
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
@@ -100,8 +94,7 @@ class Aldn1000Tests(unittest.TestCase):
             expected_direction = 'Withdraw'
         else:
             expected_direction = 'Infuse'
-        self.ca.set_pv_value("DIRECTION:SP", direction)
-        self.ca.assert_that_pv_is("DIRECTION", direction, timeout=2)
+        self.ca.assert_setting_setpoint_sets_readback(direction, "DIRECTION", timeout=2)
         self.ca.set_pv_value("DIRECTION:SP", 'Reverse')
 
         self.ca.assert_that_pv_is("DIRECTION", expected_direction, timeout=2)
@@ -109,10 +102,7 @@ class Aldn1000Tests(unittest.TestCase):
     @parameterized.expand([('Value 1', 0.123), ('Value 2', 1.342), ('Value 3', 12.34)])
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
     def test_GIVEN_new_rate_WHEN_set_rate_THEN_new_rate_set(self, _, value):
-        expected_rate = value
-        self.ca.set_pv_value("RATE:SP", expected_rate)
-
-        self.ca.assert_that_pv_is("RATE", expected_rate)
+        self.ca.assert_setting_setpoint_sets_readback(value, "RATE")
 
     @parameterized.expand([('Value 1', 2123), ('Value 2', 1411.342), ('Value 3', 1222.34)])
     @skip_if_recsim("Requires emulator logic so not supported in RECSIM")
@@ -217,7 +207,7 @@ class Aldn1000Tests(unittest.TestCase):
         self.ca.set_pv_value("VOLUME:INF:CLEAR:SP", "CLEAR")
         self.ca.set_pv_value("RUN:SP", "Run")
 
-        self.ca.assert_that_pv_is_not("VOLUME:INF", 0.0, timeout=0.0)
+        self.ca.assert_that_pv_is_not("VOLUME:INF", 0.0, timeout=1.0)
         self.ca.set_pv_value("STOP:SP", "Stop")
 
     @parameterized.expand([("Low limit", 1.0, "uL"), ("High limit", 15.0, "mL")])
