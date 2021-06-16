@@ -54,7 +54,7 @@ class HLX503Tests(unittest.TestCase):
         self.assertIsNotNone(self._lewis)
         self.assertIsNotNone(self._ioc)
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("backdoor_plug_in_he3potlow")
 
