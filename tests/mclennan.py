@@ -7,14 +7,18 @@ from utils.testing import get_running_lewis_and_ioc
 DEVICE_PREFIX = "MCLEN_01"
 EMULATOR_NAME = "mclennan"
 
-MTR = "MTR0101"
-MTR_DESC = f"{MTR}.DESC"
-MTR_JOG = f"{MTR}.JOGF"
-MTR_HLM = f"{MTR}.HLM"
-MTR_STOP = f"{MTR}.STOP"
-MTR_MOVN = f"{MTR}.MOVN"
-MTR_RBV = f"{MTR}.RBV"
-MTR_MRES = f"{MTR}.MRES"
+MTR1 = "MTR0101"
+MTR_DESC = f"{MTR1}.DESC"
+MTR_JOG = f"{MTR1}.JOGF"
+MTR_HLM = f"{MTR1}.HLM"
+MTR_STOP = f"{MTR1}.STOP"
+MTR_MOVN = f"{MTR1}.MOVN"
+MTR_RBV = f"{MTR1}.RBV"
+MTR_MRES = f"{MTR1}.MRES"
+MTR2 = "MTR0102"
+MTR2_MRES = f"{MTR2}.MRES"
+MTR2_HVEL = f"{MTR2}.HVEL"
+MTR2_HOMR = f"{MTR2}.HOMR"
 MTR_NAME = "Test"
 
 POLL_RATE = 1
@@ -27,8 +31,10 @@ IOCS = [
         "macros": {
             "MTRCTRL": "01",
             "AXIS1": "yes",
+            "AXIS2": "yes",
             "NAME1": MTR_NAME,
-            "POLL_RATE": POLL_RATE
+            "POLL_RATE": POLL_RATE,
+            "HOME2": 2
         },
     },
 ]
@@ -67,3 +73,12 @@ class MclennanTests(unittest.TestCase):
         mres = self.ca_motor.get_pv_value(MTR_MRES)
         self._lewis.backdoor_set_on_device("position", test_position/mres)
         self.ca_motor.assert_that_pv_is_number(MTR_RBV, test_position)
+
+    def test_WHEN_velocity_changes_WHEN_sending_home_THEN_velocity_is_changed_then_set_back_after_home(self):
+        vel = 100
+        self.ca_motor.set_pv_value(MTR2_HVEL, vel)
+        self.ca_motor.set_pv_value(MTR2_HOMR, 1)
+        mres = self.ca_motor.get_pv_value(MTR2_MRES)
+        self._lewis.assert_that_emulator_value_is("creep_speed", str(int(vel/mres)))
+        self.ca_motor.set_pv_value(MTR2, 1)
+        self._lewis.assert_that_emulator_value_is("creep_speed", str(700))
