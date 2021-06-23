@@ -403,7 +403,7 @@ class ReflTests(unittest.TestCase):
         value = value
 
         self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+        stop_motors_with_retry(self.ca_cs, 5)
 
         self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
 
@@ -414,7 +414,7 @@ class ReflTests(unittest.TestCase):
         value = value
 
         self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+        stop_motors_with_retry(self.ca_cs, 5)
 
         self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
 
@@ -425,7 +425,7 @@ class ReflTests(unittest.TestCase):
         value = value
 
         self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+        stop_motors_with_retry(self.ca_cs, 5)
 
         self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
 
