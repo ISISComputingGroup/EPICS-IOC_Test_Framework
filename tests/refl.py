@@ -132,6 +132,22 @@ def all_motors_in_set_mode(channel_access):
             channel_access.set_pv_value(offset_freeze_switch_pv.format(motor), offset_freeze_switch)
 
 
+def stop_motors_with_retry(channel_access, n_retry):
+    """
+    Tries to stop all motors several times as this operation sometimes fails for simulated axes.
+
+    Args:
+     channel_access: The channel access interface to use
+     n_retry: The number of retries
+    """
+    for _ in range(n_retry):
+        channel_access.set_pv_value("MOT:STOP:ALL", 1, wait=True)
+        if channel_access.get_pv_value("MOT:MOVING") != 0.0:
+            break
+        time.sleep(1)
+    self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=5)
+
+
 class ReflTests(unittest.TestCase):
     """
     Tests for reflectometry server
@@ -143,8 +159,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT", default_wait_time=0.0)
         self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS", default_wait_time=0.0)
         self.ca_no_prefix = ChannelAccess()
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
-        self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
+        stop_motors_with_retry(self.ca_cs, 5)
         with all_motors_in_set_mode(self.ca_galil):
             self.ca.set_pv_value("BL:MODE:SP", "NR")
             self.ca.set_pv_value("PARAM:S1:SP", 0)
