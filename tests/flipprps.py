@@ -34,9 +34,9 @@ class FlipprpsTests(unittest.TestCase):
     @skip_if_recsim("Lewis backdoor commands not available in RecSim")
     def test_SET_polarity(self):
         self.ca.set_pv_value("POLARITY", "Down")
-        self._lewis.assert_that_emulator_value_is("polarity", 0)
+        self._lewis.assert_that_emulator_value_is("polarity", '0')
         self.ca.set_pv_value("POLARITY", "Up")
-        self._lewis.assert_that_emulator_value_is("polarity", 1)
+        self._lewis.assert_that_emulator_value_is("polarity", '1')
 
     def test_GET_id(self):
         self.ca.assert_that_pv_is("ID", "Flipper")

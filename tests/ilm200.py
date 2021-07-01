@@ -75,7 +75,7 @@ class Ilm200Tests(unittest.TestCase):
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("ilm200", DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("VERSION", timeout=30)
         self._lewis.backdoor_set_on_device("cycle", False)
 

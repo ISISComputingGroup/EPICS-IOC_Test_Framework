@@ -45,7 +45,7 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
 
         self.ca.process_pv(setpoint_pv)
 
-        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True)
+        self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
 
     @parameterized.expand(parameterized_list([
         (IDN_REM[0], IDN_REM[1], {}),
@@ -60,8 +60,8 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
         with self._ioc.start_with_macros(macros, "VOLTAGE"):
-            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True)
-            self._lewis.assert_that_emulator_value_is("reset_count", 0)
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", 'True')
+            self._lewis.assert_that_emulator_value_is("reset_count", '0')
 
     @parameterized.expand(parameterized_list([
         (IDN_NO_REM[0], IDN_NO_REM[1], {}),
@@ -75,6 +75,6 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
         self._lewis.backdoor_set_and_assert_set("remote_comms_enabled", False)
 
         with self._ioc.start_with_macros(macros, "VOLTAGE"):
-            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", False)
-            self._lewis.assert_that_emulator_value_is("reset_count", 0)
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", 'False')
+            self._lewis.assert_that_emulator_value_is("reset_count", '0')
 
