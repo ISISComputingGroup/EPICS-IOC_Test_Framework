@@ -22,7 +22,6 @@ pipeline {
   // The options directive is for configuration that applies to the whole job.
   options {
     buildDiscarder(logRotator(numToKeepStr:'7', daysToKeepStr: '7'))
-    disableConcurrentBuilds()
     timestamps()
     // as we "checkout scm" as a stage, we do not need to do it here too
     skipDefaultCheckout(true)
@@ -38,6 +37,11 @@ pipeline {
                     notifyUnstable: true,
                     url: "${env.MSTEAMS_URL}"
             ]]
+    )
+    throttleJobProperty(
+          categories: ['system_tests_ioc'],
+          throttleEnabled: true,
+          throttleOption: 'category'
     )
   }
 
