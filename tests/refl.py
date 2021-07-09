@@ -142,7 +142,7 @@ def stop_motors_with_retry(channel_access, n_retry):
     """
     for _ in range(n_retry):
         channel_access.set_pv_value("MOT:STOP:ALL", 1, wait=True)
-        if channel_access.get_pv_value("MOT:MOVING") != 0.0:
+        if channel_access.get_pv_value("MOT:MOVING") == 0.0:
             break
         time.sleep(1)
     self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=5)
