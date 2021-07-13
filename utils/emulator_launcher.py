@@ -64,11 +64,12 @@ class EmulatorRegister(object):
 @six.add_metaclass(abc.ABCMeta)
 class EmulatorLauncher(object):
 
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         """
         Args:
             test_name: The name of the test we are creating a device emulator for
             device: The name of the device to emulate
+            emulator_path: The path where the emulator can be found
             var_dir: The directory in which to store logs
             port: The TCP port to listen on for connections
             options: Dictionary of any additional options required by specific launchers
@@ -79,6 +80,7 @@ class EmulatorLauncher(object):
         self._port = port
         self._options = options
         self._test_name = test_name
+        self._emulator_path = emulator_path
 
     def __enter__(self):
         self._open()
@@ -354,22 +356,23 @@ class LewisLauncher(EmulatorLauncher):
 
     _DEFAULT_LEWIS_PATH = os.path.join(DEFAULT_PY_PATH, "scripts")
 
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         """
         Constructor that also launches Lewis.
 
         Args:
             test_name: name of test we are creating device emulator for
             device: device to start
+            emulator_path: The path where the emulator can be found
             var_dir: location of directory to write log file and macros directories
             port: the port to use
         """
-        super(LewisLauncher, self).__init__(test_name, device, var_dir, port, options)
+        super(LewisLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
         self._python_path = options.get("python_path", os.path.join(DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
-        self._lewis_additional_path = options.get("lewis_additional_path", DEVICE_EMULATOR_PATH)
+        self._lewis_additional_path = options.get("lewis_additional_path", emulator_path)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
         self._default_timeout = options.get("default_timeout", 5)
         self._speed = options.get("speed", 100)
@@ -624,8 +627,8 @@ class MultiLewisLauncher(object):
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
 
-    def __init__(self, test_name, device, var_dir, port, options):
-        super(CommandLineEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
+        super(CommandLineEmulatorLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
         try:
             self.command_line = options["emulator_command_line"]
         except KeyError:
@@ -677,7 +680,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
 
 class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
 
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
             self.solution_path = options["solution_path"]
@@ -695,20 +698,20 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
 
             options["emulator_command_line"] = self.startup_command
             options["emulator_wait_to_finish"] = True
-            super(BeckhoffEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
+            super(BeckhoffEmulatorLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
         else:
             raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
                           " {} \n".format(automation_tools_dir))
 
 
 class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         labview_scripts_dir = os.path.join(DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
         self.start_command = os.path.join(labview_scripts_dir, "start_sim.bat")
         self.stop_command = os.path.join(labview_scripts_dir, "stop_sim.bat")
         options["emulator_command_line"] = self.start_command
         options["emulator_wait_to_finish"] = True
-        super(DAQMxEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
+        super(DAQMxEmulatorLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
 
     def _close(self):
         self.disconnect_device()

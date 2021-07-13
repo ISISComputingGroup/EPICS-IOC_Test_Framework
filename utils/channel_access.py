@@ -242,9 +242,8 @@ class ChannelAccess(object):
         if message is None:
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
                 .format(func.__name__, self.create_pv_with_prefix(pv))
-
+            
         err = self._wait_for_pv_lambda(partial(_wrapper, message), timeout)
-
         if err is not None:
             raise AssertionError(err)
 

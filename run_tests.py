@@ -8,6 +8,7 @@ import sys
 import traceback
 import unittest
 from typing import List, Any
+import importlib
 
 import six
 import xmlrunner
@@ -17,7 +18,8 @@ from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
-from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLewisLauncher, Emulator, TestEmulatorData
+from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLewisLauncher, Emulator, TestEmulatorData, \
+    DEVICE_EMULATOR_PATH
 from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
@@ -98,10 +100,11 @@ def make_device_launchers_from_module(test_module, mode):
 
         if "emulator" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulator_launcher_class", LewisLauncher)
-            emulator_launcher = emulator_launcher_class(test_module.__name__, ioc["emulator"], var_dir,
+            emulator_launcher = emulator_launcher_class(test_module.__name__, ioc["emulator"], emulator_path, var_dir,
                                                         emmulator_port, ioc)
         elif "emulator" in ioc:
-            emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], var_dir, None, ioc)
+            emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], emulator_path, var_dir,
+                                                     None, ioc)
         elif "emulators" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulators_launcher_class", MultiLewisLauncher)
             test_emulator_data: List[TestEmulatorData] = ioc.get("emulators", [])
@@ -273,7 +276,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
         'EPICS_CA_ADDR_LIST': "127.255.255.255"
     }
 
-    test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
+    test_names = [f"tests.{test}" for test in tests_to_run]
 
     runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
     test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
@@ -294,13 +297,6 @@ if __name__ == '__main__':
         print("IOC system tests should now be run under python 3. Aborting.")
         sys.exit(-1)
 
-    pythondir = os.environ.get("PYTHON3DIR", None)
-
-    if pythondir is not None:
-        emulator_path = os.path.join(pythondir, "scripts")
-    else:
-        emulator_path = None
-
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',
@@ -309,10 +305,6 @@ if __name__ == '__main__':
                         help='Report devices that have not been tested.', action="store_true")
     parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
-    parser.add_argument('-e', '--emulator-path', default=emulator_path,
-                        help="The path of the lewis.py file")
-    parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python3\python.exe",
-                        help="The path of python.exe")
     parser.add_argument('--var-dir', default=None,
                         help="Directory in which to create a log dir to write log file to and directory in which to "
                              "create tmp dir which contains environments variables for the IOC. Defaults to "
@@ -322,7 +314,7 @@ if __name__ == '__main__':
                         Module just runs the tests in a module. 
                         Module.class runs the the test class in Module.
                         Module.class.method runs a specific test.""")
-    parser.add_argument('-tp', '--tests-path', default="tests",
+    parser.add_argument('-tp', '--tests-path', default=f"{os.path.dirname(os.path.realpath(__file__))}\\tests",
                         help="""Path to find the tests in, this must be a valid python module. 
                         Default is in the tests folder of this repo""")
     parser.add_argument('-f', '--failfast', action='store_true',
@@ -332,17 +324,29 @@ if __name__ == '__main__':
                         emulator/IOC or attach debugger for tests""")
     parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM'],
                         help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
+    parser.add_argument('--test_and_emulator', default=None,
+                        help="""Specify a folder that holds both the tests (in a folder called tests) and a lewis 
+                        emulator (in a folder called lewis_emulators).""")
 
     arguments = parser.parse_args()
 
+    if arguments.test_and_emulator:
+        arguments.tests_path = os.path.join(arguments.test_and_emulator, "tests")
+        emulator_path = arguments.test_and_emulator
+    else:
+        emulator_path = DEVICE_EMULATOR_PATH
+
     if os.path.dirname(arguments.tests_path):
         full_path = os.path.abspath(arguments.tests_path)
-        if not os.path.isdir(full_path):
-            print("Test path {} not found".format(full_path))
+        init_file_path = os.path.join(full_path, "__init__.py")
+        if not os.path.isfile(init_file_path):
+            print(f"Test path {full_path} not found")
             sys.exit(-1)
-        tests_module_path = os.path.dirname(full_path)
-        sys.path.insert(0, tests_module_path)
-        arguments.tests_path = os.path.basename(arguments.tests_path)
+        # Import the specified path as the tests module
+        spec = importlib.util.spec_from_file_location("tests", init_file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
 
     if arguments.list_devices:
         print("Available tests:")
@@ -354,10 +358,6 @@ if __name__ == '__main__':
 
     if arguments.prefix is None:
         print("Cannot run without instrument prefix, you may need to run this using an EPICS terminal")
-        sys.exit(-1)
-
-    if arguments.emulator_path is None:
-        print("Cannot run without emulator path, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
