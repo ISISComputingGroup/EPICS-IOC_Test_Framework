@@ -1,8 +1,9 @@
 import unittest
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
+from utils.testing import get_running_lewis_and_ioc, parameterized_list
+from parameterized import parameterized
 
 DEVICE_PREFIX = "MCLEN_01"
 EMULATOR_NAME = "mclennan"
@@ -28,6 +29,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MCLEN"),
         "emulator": EMULATOR_NAME,
+        "ioc_launcher_class": ProcServLauncher,
         "macros": {
             "MTRCTRL": "01",
             "AXIS1": "yes",
@@ -74,7 +76,12 @@ class MclennanTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("position", test_position/mres)
         self.ca_motor.assert_that_pv_is_number(MTR_RBV, test_position)
 
-    def test_WHEN_velocity_changes_WHEN_sending_home_THEN_velocity_is_changed_then_set_back_after_home(self):
+    @parameterized.expand(parameterized_list([True, False]))
+    def test_WHEN_velocity_changes_WHEN_sending_home_THEN_velocity_is_changed_then_set_back_after_home(self, _, is_pm304):
+        # test both models as interface is slightly different for querying speeds
+        self._lewis.backdoor_set_on_device("is_pm304", is_pm304)
+        # restart IOC to pick up ID changes
+        self._ioc.start_ioc()
         vel = 100
         self.ca_motor.set_pv_value(MTR2_HVEL, vel)
         self.ca_motor.set_pv_value(MTR2_HOMR, 1)
