@@ -24,7 +24,7 @@ IOCS = [
             "POLARITY": "BIPOLAR",
         },
         "emulator": EMULATOR_NAME,
-        "lewis_protocol": "model9100",
+        "lewis_protocol": "model9X00",
         "ioc_launcher_class": ProcServLauncher,
     },
 ]
