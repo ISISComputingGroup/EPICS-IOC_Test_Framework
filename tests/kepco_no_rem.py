@@ -50,7 +50,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         error_message_calls = ""
         for var, val in lewis_vars_and_vals:
             try:
-                self._lewis.assert_that_emulator_value_is(var, set_func(val))
+                self._lewis.assert_that_emulator_value_is(var, set_func(val), cast=int)
             except AssertionError as e:
                 error_message_calls += "\n{}\n{}".format(var, e.message)
         if error_message_calls != "":
@@ -80,8 +80,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
             self.ca.assert_that_pv_is(pv, value)
 
         # Make sure autosave writes the value
-        self._ioc.send_telnet_command('manual_save("KEPCO_01_info_settings.req")')
-        self._ioc.send_telnet_command('manual_save("KEPCO_01_info_positions.req")')
+        self._ioc.force_manual_save()
 
         # Set counts to zero and remote mode to false
         # We want lewis_vars and lewis_vals separate as they are checked later
@@ -94,8 +93,8 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         # Restart the ioc, initiating a reset and sending of values after 100 microseconds
         with self._ioc.start_with_macros(macros, "VOLTAGE"):
             # Assert reset occurred
-            self._lewis.assert_that_emulator_value_is("reset_count", 1)
-            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True)
+            self._lewis.assert_that_emulator_value_is("reset_count", 1, cast=int)
+            self._lewis.assert_that_emulator_value_is("remote_comms_enabled", True, cast=strtobool)
             # Wait for reset to be done as is done in the IOC
             time.sleep(1)
 

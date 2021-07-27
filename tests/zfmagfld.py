@@ -52,7 +52,7 @@ PVS_WHICH_USE_DAQ_DATA = [
 class ZeroFieldMagFieldTests(unittest.TestCase):
     def setUp(self):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         self.write_offset(0)
         self.ca.set_pv_value("RANGE", 1.0, sleep_after_set=0.0)
