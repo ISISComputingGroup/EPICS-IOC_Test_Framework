@@ -23,9 +23,9 @@ Then `cd` to `C:\Instrument\Apps\EPICS\support\IocTestFramework\master` and use:
 python run_tests.py
 ```
 
-There is a batch file which does this for you, called `run_all_tests.bat`. Or, if you are already in an EPICS 
-terminal you can call `make ioctests` (note that if your MAKEFLAGS env variable contains `-Otarget` you will 
-not see the test output until all tests are complete.
+There is a batch file which does this for you, called `run_all_tests.bat`. If you are already in an EPICS 
+terminal you can call `make ioctests`, but it is best to do this from the directory above this as you
+will not see test output until all complete - see comments in `Makefile`
 
 ### Running tests in modules
 
