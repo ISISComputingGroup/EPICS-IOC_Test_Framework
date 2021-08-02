@@ -25,7 +25,7 @@ python run_tests.py
 
 There is a batch file which does this for you, called `run_all_tests.bat`. If you are already in an EPICS 
 terminal you can call `make ioctests`, but it is best to do this from the directory above this as you
-will not see test output untial all complete - see comments in `Makefile`
+will not see test output until all complete - see comments in `Makefile`
 
 ### Running tests in modules
 
