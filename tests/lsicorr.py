@@ -86,9 +86,17 @@ class LSITests(unittest.TestCase):
     def setUp(self):
         self._ioc = IOCRegister.get_running("LSI")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca.set_pv_value('WAIT', 2)
 
     def test_GIVEN_setting_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
         pv_name = "MEASUREMENTDURATION"
+        pv_value = 1000
+
+        self.ca.set_pv_value(pv_name, pv_value)
+        self.ca.assert_that_pv_is_number(pv_name, pv_value)
+
+    def test_GIVEN_setting_wait_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
+        pv_name = "WAIT"
         pv_value = 1000
 
         self.ca.set_pv_value(pv_name, pv_value)
@@ -171,9 +179,11 @@ class LSITests(unittest.TestCase):
         "LAGS"
     ]))
     def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_correlation_and_lags_populated(self, _, pv):
+
         self.ca.assert_that_pv_is("RUNNING", "NO", timeout=10)
 
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+
 
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
 
