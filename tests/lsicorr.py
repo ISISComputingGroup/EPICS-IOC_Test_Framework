@@ -87,6 +87,7 @@ class LSITests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("LSI")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.set_pv_value('WAIT', 2)
+        self.ca.set_pv_value('MIN_TIME_LAG',200)
 
     def test_GIVEN_setting_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
         pv_name = "MEASUREMENTDURATION"
@@ -101,6 +102,13 @@ class LSITests(unittest.TestCase):
 
         self.ca.set_pv_value(pv_name, pv_value)
         self.ca.assert_that_pv_is_number(pv_name, pv_value)
+
+    def test_GIVEN_setting_min_time_lag_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
+        pv_name = 'MIN_TIME_LAG'
+        pv_value = 50
+
+        self.ca.set_pv_value(pv_name, pv_value)
+        self.ca.assert_that_pv_is(pv_name, pv_value)
 
     def test_GIVEN_setting_pv_WHEN_pv_written_to_with_invalid_value_THEN_value_not_updated(self):
         pv_name = "MEASUREMENTDURATION"
