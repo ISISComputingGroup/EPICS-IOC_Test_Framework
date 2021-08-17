@@ -87,7 +87,7 @@ class LSITests(unittest.TestCase):
         self._ioc = IOCRegister.get_running("LSI")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
         self.ca.set_pv_value('WAIT', 2)
-        self.ca.set_pv_value('MIN_TIME_LAG',0)
+        self.ca.set_pv_value('MIN_TIME_LAG', 0)
 
     def test_GIVEN_setting_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
         pv_name = "MEASUREMENTDURATION"
@@ -188,49 +188,38 @@ class LSITests(unittest.TestCase):
 
     ]))
     def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_correlation_and_lags_populated(self, _, pv):
-
         self.ca.set_pv_value("MIN_TIME_LAG", 0)
-
         self.ca.assert_that_pv_is("RUNNING", "NO", timeout=10)
-
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
-
-
-
-
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
-
         test_data = np.linspace(0, array_size, array_size)
-
         self.ca.assert_that_pv_value_causes_func_to_return_true(pv, lambda pv_value: np.allclose(pv_value, test_data))
 
     @parameterized.expand (parameterized_list([
         "CORRELATION_FUNCTION",
         "LAGS"]))
     def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_lags_data_below_min_time_lag_calculated(self, _, pv):
+        # Arrange
         pv_name = 'MIN_TIME_LAG'
-        pv_value = 50
-
-        self.ca.set_pv_value(pv_name, pv_value)
-        self.ca.assert_that_pv_is(pv_name, pv_value)
-
+        min_time_lag = 50
+        self.ca.set_pv_value(pv_name, min_time_lag)
+        self.ca.assert_that_pv_is(pv_name, min_time_lag)
         self.ca.assert_that_pv_is("RUNNING", "NO", timeout=10)
-
+        # Act
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
-
-
+        # Assert
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
-
         test_data = np.linspace(0, array_size, array_size)
         indices = []
         for count in range(0, len(test_data)):
-            if test_data[count] < pv_value:
+            if test_data[count] < min_time_lag:
                 indices.append(count)
         test_data = np.delete(test_data, indices)
         test_data = np.append(test_data, np.zeros(len(indices)))
-        print(test_data)
-
-        self.ca.assert_that_pv_value_causes_func_to_return_true(pv, lambda pv_value: np.allclose(pv_value, test_data))
+        self.ca.assert_that_pv_value_causes_func_to_return_true(
+            pv, lambda pv_value: np.allclose(pv_value, test_data), 
+            message=f"PV {pv} data not all close to test data.\n Test data: {test_data}"
+        )
 
     def test_GIVEN_start_pressed_WHEN_measurement_already_on_THEN_error_raised(self):
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
@@ -238,3 +227,38 @@ class LSITests(unittest.TestCase):
 
         error_message = "LSI --- Cannot configure: Measurement active"
         self.ca.assert_that_pv_is("ERRORMSG", error_message)
+    
+    def test_GIVEN_wait_at_start_AND_wait_set_WHEN_start_run_THEN_waits_happen(self):
+        # Arrange
+        self.ca.set_pv_value("WAIT_AT_START", "YES")
+        repetitions = 3
+        self.ca.set_pv_value("REPETITIONS", repetitions)
+        self.ca.set_pv_value("WAIT", 2)
+        # Act
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+        # Assert
+        for i in range(repetitions):
+            print(i)
+            self.ca.assert_that_pv_is("WAITING", "YES")
+            self.ca.assert_that_pv_is("WAITING", "NO")
+            self.ca.assert_that_pv_is("RUNNING", "YES")
+            self.ca.assert_that_pv_is("RUNNING", "NO")
+    
+    def test_GIVEN_wait_set_WHEN_start_run_THEN_waits_happen(self):
+        # Arrange
+        self.ca.set_pv_value("WAIT_AT_START", False)
+        repetitions = 3
+        self.ca.set_pv_value("REPETITIONS", repetitions)
+        self.ca.set_pv_value("WAIT", 2)
+        # Act
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+        # Assert
+        for i in range(repetitions - 1):
+            print(i)
+            self.ca.assert_that_pv_is("RUNNING", "YES")
+            self.ca.assert_that_pv_is("RUNNING", "NO")
+            self.ca.assert_that_pv_is("WAITING", "YES")
+            self.ca.assert_that_pv_is("WAITING", "NO")
+        self.ca.assert_that_pv_is("RUNNING", "YES")
+        self.ca.assert_that_pv_is("RUNNING", "NO")
+            
