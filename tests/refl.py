@@ -754,7 +754,6 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is(param_pv, "Test String")
 
     def test_GIVEN_PNR_mode_with_SM_angle_WHEN_move_in_disable_mode_and_into_PNR_THEN_beamline_is_updated_on_mode_change_and_value_of_pd_offsets_correct(self):
-        # input("hit it ...")
         self.ca.set_pv_value("BL:MODE:SP", "POLARISED")
         self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 0.2)
         self.ca.set_pv_value("BL:MOVE", 1)
