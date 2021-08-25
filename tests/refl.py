@@ -55,11 +55,15 @@ IOCS = [
         },
         "inits": {
             "MTR0102.VMAX": INITIAL_VELOCITY,
+            "MTR0102.VELO": INITIAL_VELOCITY,
             "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0104.VMAX": INITIAL_VELOCITY,
+            "MTR0104.VELO": INITIAL_VELOCITY,
             "MTR0105.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
-            "MTR0107.VMAX": FAST_VELOCITY,
+            "MTR0105.VELO": FAST_VELOCITY,
+            "MTR0107.VMAX": FAST_VELOCITY,  # Speed up parking / unparking supermirror
+            "MTR0107.VELO": FAST_VELOCITY,
             "MTR0104.LLM": SOFT_LIMIT_LO,
             "MTR0104.HLM": SOFT_LIMIT_HI,
             "MTR0105.LLM": SOFT_LIMIT_LO,
