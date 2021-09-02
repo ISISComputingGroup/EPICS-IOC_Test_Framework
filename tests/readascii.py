@@ -44,7 +44,7 @@ class ReadasciiTests(unittest.TestCase):
     Tests for ReadASCII
     """
 
-    def _write_contents_of_temporary_test_file(self, headers, data):
+    def _write_contents_of_temporary_test_file(self, headers, data, name=TEMP_SETTINGS_FILE_NAME):
         """
         Writes the given data to the temporary test file.
 
@@ -52,14 +52,14 @@ class ReadasciiTests(unittest.TestCase):
 
         :param data: a list of 5-element tuples (setpoint, p, i, d, heater_range)
         """
-        with open(os.path.join(TEMP_TEST_SETTINGS_DIR, TEMP_SETTINGS_FILE_NAME), "w") as f:
+        with open(os.path.join(TEMP_TEST_SETTINGS_DIR, name), "w") as f:
             f.write("{}\n".format(" ".join(str(d) for d in headers)))
             for row in data:
                 f.write("{}\n".format(" ".join(str(d) for d in row)))
         time.sleep(5)  # allow new file on disk to be noticed
 
     @contextmanager
-    def _generate_temporary_test_file(self, headers, data):
+    def _generate_temporary_test_file(self, headers, data, name=TEMP_SETTINGS_FILE_NAME):
         """
         Context manager which generates a temporary test file containing the given data.
         :param data: a list of 5-element tuples (setpoint, p, i, d, heater_range)
@@ -68,7 +68,7 @@ class ReadasciiTests(unittest.TestCase):
             os.mkdir(TEMP_TEST_SETTINGS_DIR)
 
         try:
-            self._write_contents_of_temporary_test_file(headers, data)
+            self._write_contents_of_temporary_test_file(headers, data, name)
             yield
         finally:
             shutil.rmtree(TEMP_TEST_SETTINGS_DIR)
@@ -79,7 +79,7 @@ class ReadasciiTests(unittest.TestCase):
         self.ca.set_pv_value("LUTON", 1)
 
     @contextmanager
-    def _use_test_file(self):
+    def _use_test_file(self, name=TEMP_SETTINGS_FILE_NAME):
         """
         Context manager which sets the ReadASCII file to the temporary test file on entry, and reverts it back to the
         default on exit.
@@ -88,7 +88,7 @@ class ReadasciiTests(unittest.TestCase):
         cannot be deleted properly
         """
         try:
-            self._set_and_use_file(TEMP_TEST_SETTINGS_DIR, TEMP_SETTINGS_FILE_NAME)
+            self._set_and_use_file(TEMP_TEST_SETTINGS_DIR, name)
             yield
         finally:
             self._set_and_use_file(DEFAULT_SETTINGS_DIR, DEFAULT_SETTINGS_FILE)
@@ -193,6 +193,12 @@ class ReadasciiTests(unittest.TestCase):
             self.ca.assert_setting_setpoint_sets_readback(val, set_point_pv="VAL:SP", readback_pv="OUT_SP")
 
     def test_GIVEN_ramping_is_on_WHEN_setting_setpoint_THEN_setpoint_sent_to_the_device_ramps(self):
+        # This ensures that other tests don't mess with this one
+        headers = ["SP", "P", "I", "D", "MH"]
+        rows = [(0, 0, 0, 0, 0), ]
+        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
+            pass
+
         setpoint_change = 1  # K
 
         # secs - The test will take at least this long to run but if it's too small may get random timing problems
@@ -205,6 +211,9 @@ class ReadasciiTests(unittest.TestCase):
         self._set_ramp_status(False)
         self.ca.set_pv_value("VAL:SP", 0)
         self.ca.assert_that_pv_is("OUT_SP", 0)
+
+        self.ca.set_pv_value("CURRENT_VAL", 0)
+        self.ca.assert_that_pv_is("CURRENT_VAL", 0)
 
         # Set up ramp and set a setpoint so that the ramp starts.
         self.ca.assert_setting_setpoint_sets_readback(ramp_rate, "RATE")
@@ -219,9 +228,17 @@ class ReadasciiTests(unittest.TestCase):
         self.ca.assert_that_pv_is("OUT_SP", setpoint_change, timeout=ramp_time + 3)
 
     def test_GIVEN_the_test_file_has_not_enough_columns_THEN_it_updates_only_known_columns(self):
-        headers = ["SP", "P", "I", "D"]
-        # since we don't have MH, we expect 0 to be output to OUT:MAX on any set point
+        headers = ["SP", "P", "I", "D", "MH"]
+        # we are expecting all the values to be normal
         rows = [
+            (50, 1, 2, 3, 4),
+            (100, 5, 6, 7, 8),
+            (150, 9, 10, 11, 12),
+        ]
+
+        headers2 = ["SP", "P", "I", "D"]
+        # since we don't have MH, we expect 12 to be output to OUT:MAX on any set point since it was last set value
+        rows2 = [
             (50, 1, 2, 3),
             (100, 5, 6, 7),
             (150, 9, 10, 11),
@@ -230,21 +247,10 @@ class ReadasciiTests(unittest.TestCase):
         check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
         with self._generate_temporary_test_file(headers, rows), self._use_test_file():
             for row in rows:
-                self._set_and_check_flexible(row[0], check_pvs, row[1:] + (0,))
-
-    def test_GIVEN_the_test_file_has_unknown_column_THEN_it_updates_only_known_columns(self):
-        headers = ["SP", "P", "I", "UNKNOWN", "MH"]
-        # we are expecting to get 0 where D normally would be but otherwise work normally
-        rows = [
-            (50, 1, 2, 3, 4),
-            (100, 5, 6, 7, 8),
-            (150, 9, 10, 11, 12),
-        ]
-
-        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
-        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
-            for row in rows:
-                self._set_and_check_flexible(row[0], check_pvs, row[1:3] + (0,) + row[4:])
+                self._set_and_check_flexible(row[0], check_pvs, row[1:])
+            self._write_contents_of_temporary_test_file(headers2, rows2)
+            for row in rows2:
+                self._set_and_check_flexible(row[0], check_pvs, row[1:] + (12,))
 
     def test_GIVEN_the_test_file_has_too_many_columns_THEN_it_updates_only_known_columns(self):
         headers = ["SP", "P", "I", "D", "MH", "UNKNOWN"]
@@ -260,7 +266,7 @@ class ReadasciiTests(unittest.TestCase):
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:5])
 
-    def test_WHEN_the_test_file_header_is_renamed_after_startup_THEN_values_set_to_zero(self):
+    def test_WHEN_the_test_file_header_is_lost_THEN_last_column_values_remain(self):
         headers = ["SP", "P", "I", "D", "MH"]
         # we are expecting all the values to be normal
         rows = [
@@ -269,62 +275,17 @@ class ReadasciiTests(unittest.TestCase):
             (150, 9, 10, 11, 12),
         ]
 
-        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
-        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
-            for row in rows:
-                self._set_and_check_flexible(row[0], check_pvs, row[1:])
-
-        # this is effectively one of previous tests after standard settings
-        headers = ["SP", "P", "I", "UNKNOWN", "MH"]
-        # we are expecting to get 0 where D normally would be but otherwise work normally
-        rows = [
-            (50, 1, 2, 3, 4),
-            (100, 5, 6, 7, 8),
-            (150, 9, 10, 11, 12),
-        ]
-
-        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
-        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
-            for row in rows:
-                self._set_and_check_flexible(row[0], check_pvs, row[1:3] + (0,) + row[4:])
-
-    def test_GIVEN_the_test_file_lacks_column_header_THEN_it_updates_only_known_columns(self):
-        headers = ["SP", "P", "I", "MH"]
-        # since we dont have D, we expect it to be zero and all other values normal
-        # this test is also to make sure the IOC doesnt crash on incorrect file formatting
-        rows = [
-            (50, 1, 2, 3, 4),
-            (100, 5, 6, 7, 8),
-            (150, 9, 10, 11, 12),
-        ]
-
-        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
-        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
-            for row in rows:
-                self._set_and_check_flexible(row[0], check_pvs, row[1:3] + (0,) + (row[3],))
-
-    def test_GIVEN_the_test_file_looses_column_header_THEN_its_values_set_to_zero(self):
-        headers = ["SP", "P", "I", "D", "MH"]
-        # we are expecting all the values to be normal
-        rows = [
-            (50, 1, 2, 3, 4),
-            (100, 5, 6, 7, 8),
-            (150, 9, 10, 11, 12),
-        ]
+        headers2 = ["SP", "P", "I", "UNKNOWN", "MH"]
+        # we are expecting last value where D would be normally. Last value is going to be 11
+        # since it's last in the table to set-and-check
 
         check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
         with self._generate_temporary_test_file(headers, rows), self._use_test_file():
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:])
-
-        headers = ["SP", "P", "I", "MH"]
-        # we lost D so we expect D to be zero but the rest as normal
-        # this test will also make sure that IOC is doesnt crash when file formatting is broken in the middle of running
-
-        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
-        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
+            self._write_contents_of_temporary_test_file(headers2, rows)
             for row in rows:
-                self._set_and_check_flexible(row[0], check_pvs, row[1:3] + (0,) + (row[3],))
+                self._set_and_check_flexible(row[0], check_pvs, row[1:3] + (11,) + row[4:])
 
     def test_GIVEN_the_test_file_incorrectly_formatted_THEN_interpret_existing_data_without_failing(self):
         headers = ["SP", "P", "I", "D", "MH"]
@@ -346,3 +307,64 @@ class ReadasciiTests(unittest.TestCase):
         with self._generate_temporary_test_file(headers, rows), self._use_test_file():
             for i in range(len(rows)):
                 self._set_and_check_flexible(rows[i][0], check_pvs, rows_expected[i])
+
+    def test_GIVEN_the_test_file_has_column_repeated_THEN_last_column_overwrite(self):
+        headers = ["SP", "P", "I", "D", "MH", "D"]
+        # we are expecting all the values to be normal
+        rows = [
+            (50, 1, 2, 3, 4, 13),
+            (100, 5, 6, 7, 8, 14),
+            (150, 9, 10, 11, 12, 15),
+        ]
+
+        check_pvs = ["OUT_P", "OUT_I", "OUT_MAX", "OUT_D"]
+        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
+            for row in rows:
+                self._set_and_check_flexible(row[0], check_pvs, row[1:3]+row[4:])
+
+    def test_GIVEN_data_file_name_changed_THEN_new_file_used(self):
+        headers = ["SP", "P", "I", "D", "MH"]
+        # we are expecting all the values to be normal
+        rows = [
+            (50, 1, 2, 3, 4),
+            (100, 5, 6, 7, 8),
+            (150, 9, 10, 11, 12),
+        ]
+
+        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
+        with self._generate_temporary_test_file(headers, rows), self._use_test_file():
+            for row in rows:
+                self._set_and_check_flexible(row[0], check_pvs, row[1:])
+
+        headers = ["SP", "P", "I", "D", "MH"]
+        # we are expecting all the values to be normal again but loaded from different file
+        rows = [
+            (100, 10, 20, 30, 40),
+            (200, 50, 60, 70, 80),
+            (300, 90, 95, 97, 99),
+        ]
+
+        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
+        # we use file2 this time and expect new values
+        with self._generate_temporary_test_file(headers, rows, "file2"), self._use_test_file("file2"):
+            for row in rows:
+                self._set_and_check_flexible(row[0], check_pvs, row[1:])
+
+    def test_GIVEN_invalid_filename_then_fixing_it_THEN_first_alarm_then_correct(self):
+        # this should put file pv on alarm since we set a non-existing file
+        self.ca.assert_setting_setpoint_sets_readback(TEMP_TEST_SETTINGS_DIR, "DIRBASE")
+        self.ca.set_pv_value("RAMP_FILE", "FakeFile")
+        self.ca.assert_setting_setpoint_sets_readback("FakeFile", "RAMP_FILE", None, None, "INVALID")
+
+        headers = ["SP", "P", "I", "D", "MH"]
+        # we are expecting all the values to be normal when using real file
+        rows = [
+            (50, 1, 2, 3, 4),
+            (100, 5, 6, 7, 8),
+            (150, 9, 10, 11, 12),
+        ]
+
+        check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
+        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file("RealFile"):
+            for row in rows:
+                self._set_and_check_flexible(row[0], check_pvs, row[1:])
