@@ -82,6 +82,7 @@ class IOCRegister(object):
     RunningIOCs = {}
 
     uses_rec_sim = False
+    test_mode = TestModes.DEVSIM
 
     @classmethod
     def get_running(cls, ioc_name):
@@ -141,14 +142,16 @@ class BaseLauncher(object):
         self.command_line = []
         self.log_file_manager = None
         self._process = None
+        self._test_mode = test_mode
 
-        if test_mode not in [TestModes.RECSIM, TestModes.DEVSIM]:
+        if test_mode not in [TestModes.RECSIM, TestModes.DEVSIM, TestModes.NOSIM]:
             raise ValueError("Invalid test mode provided")
 
         self.use_rec_sim = test_mode == TestModes.RECSIM
         IOCRegister.uses_rec_sim = self.use_rec_sim
+        IOCRegister.test_mode = self._test_mode
 
-        self.log_file_name = log_filename(self._test_name, "ioc", self._device, self.use_rec_sim, self._var_dir)
+        self.log_file_name = log_filename(self._test_name, "ioc", self._device, self._test_mode, self._var_dir)
 
     def open(self):
         """
@@ -238,14 +241,21 @@ class BaseLauncher(object):
         :return: (Dict): The names and values of the environment variables.
         """
         settings = os.environ.copy()
-        if self.use_rec_sim:
+        if self._test_mode  == TestModes.RECSIM:
             # Using record simulation
             settings['TESTDEVSIM'] = ''
             settings['TESTRECSIM'] = 'yes'
-        else:
+            settings['TESTNOSIM'] = ''
+        elif self._test_mode  == TestModes.DEVSIM:
             # Not using record simulation
             settings['TESTDEVSIM'] = 'yes'
             settings['TESTRECSIM'] = ''
+            settings['TESTNOSIM'] = ''
+        else:
+            # real hardware
+            settings['TESTDEVSIM'] = ''
+            settings['TESTRECSIM'] = ''
+            settings['TESTNOSIM'] = 'yes'
 
         # Set the port
         settings['EMULATOR_PORT'] = str(self.emulator_port)

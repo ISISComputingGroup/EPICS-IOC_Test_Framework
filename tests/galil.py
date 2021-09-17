@@ -1,9 +1,12 @@
 import unittest
 import time
+import os
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
+
+test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "galil"))
 
 DEVICE_PREFIX = "GALIL_01"
 
@@ -15,12 +18,60 @@ IOCS = [
         "macros": {
             "MTRCTRL": "01",
             "GALILADDR1": "127.0.0.1",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM]
+# parameters appropriate for galil harware in R3 support office
+MOTOR_SETUP = {
+    "MOT:MTR{}{}_K1_SP" : 0.000000,
+    "MOT:MTR{}{}_K2_SP" : 0.000000,
+    "MOT:MTR{}{}_K3_SP" : 0.000000,
+    "MOT:MTR{}{}_ZP_SP" : 0.000000,
+    "MOT:MTR{}{}_ZN_SP" : 0.000000,
+    "MOT:MTR{}{}_TL_SP" : 0.000000,
+    "MOT:MTR{}{}_CP_SP" : -1.000000,
+    "MOT:MTR{}{}_CT_SP" : 10.000000,
+    "MOT:MTR{}{}_AF_SP" : 0.000000,
+    "MOT:MTR{}{}.PREM" : "",
+    "MOT:MTR{}{}.POST" : "",
+    "MOT:MTR{}{}.MRES" : 2.000000E-3,
+    "MOT:MTR{}{}.ERES" : 2.000000E-3,
+    "MOT:MTR{}{}.VMAX" : 4.096000E+0,
+    "MOT:MTR{}{}.VELO" : 4.096000E+0,
+    "MOT:MTR{}{}.DESC" : "Motor",
+    "MOT:MTR{}{}.EGU" : "mm",
+    "MOT:MTR{}{}.ACCL" : 1.000000,
+    "MOT:MTR{}{}.BDST" : 0.000000,
+    "MOT:MTR{}{}.BVEL" : 4.096000,
+    "MOT:MTR{}{}.BACC" : 1.000000,
+    "MOT:MTR{}{}.RDBD" : 0.005000,
+    "MOT:MTR{}{}.RTRY" : 0,
+    "MOT:MTR{}{}.RMOD" : "Default",
+    "MOT:MTR{}{}.HVEL" : 4.096000,
+    "MOT:MTR{}{}.PCOF" : 0.000000E+0,
+    "MOT:MTR{}{}.ICOF" : 0.000000E+0,
+    "MOT:MTR{}{}.DCOF" : 0.000000E+0,
+    "MOT:MTR{}{}.UEIP" : "No",
+    "MOT:MTR{}{}.HLM" : 1000.000000,
+    "MOT:MTR{}{}.LLM" : -1000.000000,
+    "MOT:MTR{}{}_EGUAFTLIMIT_SP" : 2.048000,
+    "MOT:MTR{}{}_MENCTYPE_CMD" : "Normal Quadrature",
+    "MOT:MTR{}{}_MTRTYPE_CMD" : "LA Stepper",
+    "MOT:MTR{}{}_ON_CMD" : "Off",
+    "MOT:MTR{}{}_AUTOONOFF_CMD" : "On",
+}
 
+CONTROLLER_SETUP = {
+    "MOT:DMC{}:SEND_CMD_STR" : "CN-1,-1",
+    "MOT:DMC{}:LIMITTYPE_CMD" : "NO",
+    "MOT:DMC{}:HOMETYPE_CMD" : "NO",
+    "MOT:DMC{}:LIMITTYPE_CMD" : "NO",
+    "MOT:DMC{}:HOMETYPE_CMD" : "NO",
+}
+
+TEST_MODES = [TestModes.DEVSIM,TestModes.NOSIM]
 
 class GalilTests(unittest.TestCase):
     """
@@ -33,12 +84,14 @@ class GalilTests(unittest.TestCase):
         for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
             self.ca.set_pv_value("MOT:MTR{}{}".format(self.controller, motor), 0)
             self.ca.assert_that_pv_is("MOT:MTR{}{}".format(self.controller, motor), 0)
+            self.ca.assert_that_pv_is("MOT:MTR{}{}.RBV".format(self.controller, motor), 0)
     
     def setUp(self):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=None, default_timeout=20)
+        self.setup_motors()
 
     def test_GIVEN_ioc_started_THEN_pvs_for_all_motors_exist(self):
         """
@@ -84,9 +137,24 @@ class GalilTests(unittest.TestCase):
         self.ca.set_pv_value("MOT:MTR0101", val)
         self.ca.assert_that_pv_is_number("MOT:MTR0101", val)
         self.ca.assert_that_pv_is_number("MOT:MTR0101.RBV", val, tolerance=eres)
+        #self.ca.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
+        #self.ca.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
         self.ca.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", 0.0, tolerance=eres)
         
         # now double encoder resolution so encoder now thinks it is at 2*val
         # giving difference (val - 2*val) 
         self.ca.set_pv_value("MOT:MTR0101.ERES", eres * 2.0)
+        #self.ca.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
+        #self.ca.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
+        #self.ca.assert_that_pv_is_number("MOT:MTR0101.RBV", 2.0 * val, tolerance=eres)
         self.ca.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", -val, tolerance=eres)
+
+    def setup_motors(self):
+        for key, value in CONTROLLER_SETUP.items():
+            self.ca.set_pv_value(key.format(self.controller), value)
+            self.ca.assert_that_pv_is(key.format(self.controller), value)
+            
+        for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
+            for key, value in MOTOR_SETUP.items():
+                self.ca.set_pv_value(key.format(self.controller, motor), value)
+                self.ca.assert_that_pv_is(key.format(self.controller, motor), value)

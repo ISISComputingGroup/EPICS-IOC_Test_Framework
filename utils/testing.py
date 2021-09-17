@@ -7,6 +7,7 @@ import six
 from utils.ioc_launcher import IOCRegister, IocLauncher
 from utils.emulator_launcher import EmulatorRegister, LewisLauncher
 
+from utils.test_modes import TestModes
 
 class ManagerMode(object):
     """A context manager for switching manager mode on."""
@@ -153,7 +154,10 @@ def skip_if_condition(condition, reason):
 skip_if_recsim = functools.partial(skip_if_condition, lambda: IOCRegister.uses_rec_sim)
 
 """Decorator to skip tests if running in devsim"""
-skip_if_devsim = functools.partial(skip_if_condition, lambda: not IOCRegister.uses_rec_sim)
+skip_if_devsim = functools.partial(skip_if_condition, lambda: IOCRegister.test_mode == TestModes.DEVSIM)
+
+"""Decorator to skip tests if running in nosim"""
+skip_if_nosim = functools.partial(skip_if_condition, lambda: IOCRegister.test_mode == TestModes.NOSIM)
 
 
 def add_method(method):

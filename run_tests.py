@@ -135,7 +135,7 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         failfast: Determines if tests abort after first failure.
         report_coverage: Report test coverage of test modules versus ioc directories.
         ask_before_running_tests: ask whether to run the tests before running them
-        tests_mode: test mode to run (default: both RECSIM and DEVSIM)
+        tests_mode: test mode to run (default: all)
 
     Returns:
         boolean: True if all tests pass and false otherwise.
@@ -322,8 +322,8 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--ask-before-running', action='store_true',
                         help="""Pauses after starting emulator and ioc. Allows you to use booted
                         emulator/IOC or attach debugger for tests""")
-    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM'],
-                        help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
+    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM', 'NOSIM'],
+                        help="""Tests mode to run e.g. DEVSIM, RECSIM or NOSIM (default: all).""")
     parser.add_argument('--test_and_emulator', default=None,
                         help="""Specify a folder that holds both the tests (in a folder called tests) and a lewis 
                         emulator (in a folder called lewis_emulators).""")
@@ -370,6 +370,8 @@ if __name__ == '__main__':
         tests_mode = TestModes.RECSIM
     if arguments.tests_mode == "DEVSIM":
         tests_mode = TestModes.DEVSIM
+    if arguments.tests_mode == "NOSIM":
+        tests_mode = TestModes.NOSIM
 
     try:
         success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
