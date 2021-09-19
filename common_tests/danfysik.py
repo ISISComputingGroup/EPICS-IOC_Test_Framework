@@ -1,3 +1,4 @@
+import time
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc
@@ -232,10 +233,20 @@ class DanfysikCommon(DanfysikBase):
     ])
     @skip_if_recsim("In rec sim this test fails as there is nothing holding the device state")
     def test_WHEN_IOC_is_restarted_THEN_current_and_powered_are_not_changed(self, _, power_state, current):
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", int(power_state))
         self.ca.assert_that_pv_is("POWER", "On" if power_state else "Off")
         self.ca.set_pv_value("CURR:SP", current)
         self.ca.assert_that_pv_is("CURR", current)
+        
+        # check emulator is in correct state before ioc restart
+        self.assertEqual(str(float(current)), self._lewis.backdoor_get_from_device("absolute_current"))
+        self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))
+        
+        # currently using 30 second autosave for autoonoff etc. adding this wait makes sure we have autosaved
+        # the above autoonoff setting as this gets modified in other tests and we may potentially pick up their autosaved
+        # value instead. If this wait fixes things, we need to look at the logic more for a better fix
+        time.sleep(35)
 
         self._ioc.start_ioc()
 
