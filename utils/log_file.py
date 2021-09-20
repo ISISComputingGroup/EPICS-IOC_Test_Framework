@@ -36,7 +36,6 @@ class LogFileManager(object):
 
     def __init__(self, filename):
         self.log_file = open(filename, "w+")
-        self.reading_from = 0
 
     def read_log(self):
         """
@@ -45,9 +44,15 @@ class LogFileManager(object):
         Returns:
             new_messages (list): list of any new messages that have been received
         """
-        self.log_file.seek(self.reading_from)
-        new_messages = list(self.log_file)
-        self.reading_from = self.log_file.tell()
+        new_messages = []
+        while True:
+            where = self.log_file.tell()
+            mess = self.log_file.readline()
+            if not mess:
+                self.log_file.seek(where)
+                break
+            new_messages.append(mess)
+            
         return new_messages
 
     def wait_for_console(self, timeout, ioc_started_text):
