@@ -284,6 +284,19 @@ class ZeroFieldTests(unittest.TestCase):
             yield
         finally:
             self.magnetometer_ca.set_pv_value("DISABLE", 0, sleep_after_set=0)
+    
+    @contextlib.contextmanager
+    def _simulate_tolerance_not_achievable(self):
+        """
+        While this context manager is active, the magnetometer IOC will fail to take any new readings or process any PVs
+        """
+        psu_write_tolerance_pv = "OUTPUT:PSU_WRITE_TOLERANCE"
+        old_tolerance = self.zfcntrl_ca.get_pv_value(psu_write_tolerance_pv)
+        self.zfcntrl_ca.set_pv_value(psu_write_tolerance_pv, -1, sleep_after_set=0)
+        try:
+            yield
+        finally:
+            self.zfcntrl_ca.set_pv_value(psu_write_tolerance_pv, old_tolerance, sleep_after_set=0)
 
     @contextlib.contextmanager
     def _simulate_invalid_magnetometer_readings(self):
@@ -718,3 +731,15 @@ class ZeroFieldTests(unittest.TestCase):
             sleep(2)
             self._ioc.start_ioc(True)
             self.zfcntrl_ca.assert_that_pv_is("AUTOFEEDBACK", AUTOFEEDBACK_VALUES[autofeedback])
+    
+    def test_GIVEN_in_autofeedback_mode_WHEN_tolerance_not_achievable_THEN_tolerance_errors_recorded(self):
+
+        self._set_autofeedback(True)
+        tolerance_errors_pv = "TOLERANCE_ERRORS"
+        original_tolerance_errors = self.zfcntrl_ca.get_pv_value(tolerance_errors_pv)
+
+        with self._simulate_tolerance_not_achievable():
+            self.zfcntrl_ca.assert_that_pv_is(tolerance_errors_pv, original_tolerance_errors + 1)
+            self._assert_status(Statuses.NO_ERROR)
+        self._assert_status(Statuses.NO_ERROR)
+        
