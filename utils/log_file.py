@@ -35,7 +35,8 @@ class LogFileManager(object):
     """
 
     def __init__(self, filename):
-        self.log_file = open(filename, "w+")
+        self.log_file_w = open(filename, "w", 1)
+        self.log_file_r = open(filename, "r")
 
     def read_log(self):
         """
@@ -46,10 +47,10 @@ class LogFileManager(object):
         """
         new_messages = []
         while True:
-            where = self.log_file.tell()
-            mess = self.log_file.readline()
+            where = self.log_file_r.tell()
+            mess = self.log_file_r.readline()
             if not mess:
-                self.log_file.seek(where)
+                self.log_file_r.seek(where)
                 break
             new_messages.append(mess)
             
@@ -82,4 +83,5 @@ class LogFileManager(object):
         """
         Returns: close the log file
         """
-        self.log_file.close()
+        self.log_file_r.close()
+        self.log_file_w.close()
