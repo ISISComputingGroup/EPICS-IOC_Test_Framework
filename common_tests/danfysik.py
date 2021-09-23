@@ -248,9 +248,8 @@ class DanfysikCommon(DanfysikBase):
         # value instead. If this wait fixes things, we need to look at the logic more for a better fix
         time.sleep(35)
 
-        self._ioc.start_ioc()
+        self._ioc.start_ioc(True)
 
-        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT)
         self.ca.assert_that_pv_exists("DISABLE", 60)
 
         self.ca.assert_that_pv_is("CURR", current)
