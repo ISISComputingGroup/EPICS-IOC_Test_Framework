@@ -457,3 +457,14 @@ IOCS = [
   },
 ]
 ```
+
+## My test doesn't always pass when it should
+
+### Incorrect behaviour when restarting an ioc (autosave)
+
+IOCs will often autosave values to be restored on restart. Autosaving is done periodically on a timer loop (potentially 30 seconds), so a changed value will not immediately be written to the file for use on restart. If your test involves restarting an IOC and checking a particular value or behaviour is preverved, then you will need to be aware of the autosave frequency. Waiting > 30 seconds will probably do, but we should look to provide a convenience function to help e.g. "wait for next autosave". This may not be trivial though as pvs could be in different autosave sets with different save frequencies. 
+
+## Incorrect behaviour when device is dicconnected (scanning / lockTimeout)
+
+Is a lewis device is told to diconnect, then all future stream device calls will timeout after replyTimeout. A record set to process has lockTimeout seconds to start processing its first protcol "out" before timing out. If you disconnect a device in your ioc test and then want to see if e.g. a PV goes into an alarm start, you will need to make sure you give it at least `lockTimeout` seconds to enter its invalid state. `lockTimeout` is 5 seconds by default, but is configurable on a per device basis - see the stream device protocol file.      
+
