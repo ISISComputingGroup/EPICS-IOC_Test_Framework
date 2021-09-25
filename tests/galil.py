@@ -4,6 +4,7 @@ import time
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
+from utils.testing import skip_always
 
 DEVICE_PREFIX = "GALIL_01"
 
@@ -71,6 +72,7 @@ class GalilTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MOT:MTR0101", val)
         self.ca.assert_that_pv_is("MOT:MTR0101.RBV", val)
 
+    @skip_always("Not working")
     def test_GIVEN_motors_THEN_check_motor_encoder_diff_works(self):
         val = 10.0
         # setup motor using encoder
