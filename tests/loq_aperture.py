@@ -9,7 +9,7 @@ from collections import OrderedDict
 # Internal Address of device (must be 2 characters)
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR = "127.0.0.1"
 
 PREFIX = "MOT"
 
@@ -105,7 +105,7 @@ class LoqApertureTests(unittest.TestCase):
         # Move 25 per cent forwards and backwards off centre of setpoint
         for fraction_moved_off_setpoint in [0.25, -0.25]:
             initial_position = list(MOTION_SETPOINT.values())[start_index] + (fraction_moved_off_setpoint * SETPOINT_GAP)
-            self.ca.set_pv_value(MOTOR, initial_position)
+            self.ca.set_pv_value(MOTOR, initial_position, wait=True)
             self.ca.assert_that_pv_is_number(MOTOR, initial_position, tolerance=TOLERANCE)
 
             # This assertion ensures that this calc record has updated with the closest beam stop position
