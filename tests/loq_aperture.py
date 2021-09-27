@@ -5,6 +5,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from parameterized import parameterized
 from collections import OrderedDict
+from utils.testing import unstable_test
 
 # Internal Address of device (must be 2 characters)
 from utils.test_modes import TestModes
@@ -100,6 +101,7 @@ class LoqApertureTests(unittest.TestCase):
         ("Stop_02",         3, 3),
         ("Aperture_small",  4, 3),
     ])
+    @unstable_test()
     def test_GIVEN_motor_off_setpoint_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, _, start_index, closest_stop):
         # GIVEN
         # Move 25 per cent forwards and backwards off centre of setpoint
