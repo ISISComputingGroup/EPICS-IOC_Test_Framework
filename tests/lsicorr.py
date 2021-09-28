@@ -75,7 +75,9 @@ SETTING_PVS = [("CORRELATIONTYPE", "CROSS"),
                ("SAMPLE_TEMP", 298),
                ("SOLVENT_VISCOSITY", 1),
                ("SOLVENT_REFRACTIVE_INDEX", 1.33),
-               ("LASER_WAVELENGTH", 642)]
+               ("LASER_WAVELENGTH", 642),
+               ("WAIT", 1000),
+               ("MIN_TIME_LAG", 50)]
 
 
 class LSITests(unittest.TestCase):
@@ -95,20 +97,6 @@ class LSITests(unittest.TestCase):
 
         self.ca.set_pv_value(pv_name, pv_value)
         self.ca.assert_that_pv_is_number(pv_name, pv_value)
-
-    def test_GIVEN_setting_wait_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
-        pv_name = "WAIT"
-        pv_value = 1000
-
-        self.ca.set_pv_value(pv_name + ":SP", pv_value)
-        self.ca.assert_that_pv_is_number(pv_name, pv_value)
-
-    def test_GIVEN_setting_min_time_lag_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
-        pv_name = 'MIN_TIME_LAG'
-        pv_value = 50
-
-        self.ca.set_pv_value(pv_name + ":SP", pv_value)
-        self.ca.assert_that_pv_is(pv_name, pv_value)
 
     def test_GIVEN_setting_pv_WHEN_pv_written_to_with_invalid_value_THEN_value_not_updated(self):
         pv_name = "MEASUREMENTDURATION"
@@ -187,8 +175,7 @@ class LSITests(unittest.TestCase):
         "LAGS"
     ]))
     def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_correlation_and_lags_populated(self, _, pv):
-        self.ca.set_pv_value("MIN_TIME_LAG:SP", 0, sleep_after_set=0.5)
-        self.ca.assert_that_pv_is("MIN_TIME_LAG", 0)
+        self.ca.assert_setting_setpoint_sets_readback(0, "MIN_TIME_LAG")
         self.ca.assert_that_pv_is("TAKING_DATA", "NO", timeout=10)
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
@@ -203,22 +190,18 @@ class LSITests(unittest.TestCase):
         # Arrange
         pv_name = 'MIN_TIME_LAG'
         min_time_lag = 50
-        self.ca.set_pv_value(pv_name + ":SP", min_time_lag, sleep_after_set=0.5)
-        self.ca.assert_that_pv_is(pv_name, min_time_lag)
+        self.ca.assert_setting_setpoint_sets_readback(min_time_lag, pv_name)
         self.ca.assert_that_pv_is("TAKING_DATA", "NO", timeout=10)
         # Act
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
         # Assert
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
         test_data = np.linspace(0, array_size, array_size)
-        indices = []
-        for count in range(0, len(test_data)):
-            if test_data[count] < min_time_lag:
-                indices.append(count)
-        test_data = np.delete(test_data, indices)
-        test_data = np.append(test_data, np.zeros(len(indices)))
+        test_data = np.delete(test_data, np.argwhere(test_data < min_time_lag))
+        test_data.resize(array_size)
+
         self.ca.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda pv_value: np.allclose(pv_value, test_data), 
+            pv, lambda pv_value: np.allclose(pv_value, test_data),
             message=f"PV {pv} data not all close to test data.\n Test data: {test_data}"
         )
 
