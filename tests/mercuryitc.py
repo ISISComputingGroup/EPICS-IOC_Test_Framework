@@ -1,4 +1,5 @@
 import itertools
+import pdb
 import unittest
 from datetime import time
 from time import sleep
@@ -6,7 +7,7 @@ from time import sleep
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
+from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list, ManagerMode
 import os
@@ -65,7 +66,7 @@ macros["SPC_GAIN"] = SPC_GAIN
 macros["CALIB_BASE_DIR"] = EPICS_TOP.replace("\\", "/")
 macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings").replace("\\", "/")
 macros["SPC_TABLE_FILE"] = "little_blue_cryostat.txt"
-
+macros["USE_RETRY_PROTO_FILE"] = "NO"
 
 DEVICE_PREFIX = "MERCURY_01"
 
@@ -74,6 +75,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": os.path.join(EPICS_TOP, "ioc", "master", "MERCURY_ITC", "iocBoot", "iocMERCURY-IOC-01"),
         "emulator": "mercuryitc",
+        "ioc_launcher_class": ProcServLauncher,
         "macros": macros
     },
     {
@@ -140,6 +142,7 @@ class MercuryTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("mercuryitc", DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device("connected", True)
+        self._lewis.backdoor_set_on_device("simulating_missed_replies", False)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
         card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         self.ca.assert_setting_setpoint_sets_readback("OFF", readback_pv="{}:SPC".format(card_pv_prefix),
@@ -514,3 +517,18 @@ class MercuryTests(unittest.TestCase):
         self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
 
         self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_device_missing_replies_THEN_retry_handles_correctly(self):
+        card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        new_macros = macros
+        new_macros["USE_RETRY_PROTO_FILE"] = "YES"
+        with self._ioc.start_with_macros(new_macros, pv_to_wait_for="CATALOG:_RAW"):
+            self._lewis.backdoor_set_on_device("simulating_missed_replies", True)
+
+            
+            self.ca.assert_setting_setpoint_sets_readback(
+                PID_TEST_VALUES[0],
+                readback_pv="{}:{}".format(card_pv_prefix, PID_PARAMS[0]),
+                set_point_pv="{}:{}:SP".format(card_pv_prefix, PID_PARAMS[0]))
+            self.ca.assert_that_pv_alarm_is("{}:{}".format(card_pv_prefix, PID_PARAMS[0]), self.ca.Alarms.NONE)
