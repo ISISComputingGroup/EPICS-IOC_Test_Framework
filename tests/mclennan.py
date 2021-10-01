@@ -76,16 +76,20 @@ class MclennanTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("position", test_position/mres)
         self.ca_motor.assert_that_pv_is_number(MTR_RBV, test_position)
 
-    @parameterized.expand(parameterized_list([True, False]))
-    def test_WHEN_velocity_changes_WHEN_sending_home_THEN_velocity_is_changed_then_set_back_after_home(self, _, is_pm304):
-        # test both models as interface is slightly different for querying speeds
-        self._lewis.backdoor_set_on_device("is_pm304", is_pm304)
-        # restart IOC to pick up ID changes
-        self._ioc.start_ioc()
-        vel = 100
+    def test_WHEN_velocity_changes_WHEN_sending_home_THEN_velocity_is_changed_then_set_back_after_home(self):
+        vel = 0.2
         self.ca_motor.set_pv_value(MTR2_HVEL, vel)
         self.ca_motor.set_pv_value(MTR2_HOMR, 1)
         mres = self.ca_motor.get_pv_value(MTR2_MRES)
         self._lewis.assert_that_emulator_value_is("creep_speed", str(int(vel/mres)))
+        self.ca_motor.set_pv_value(MTR2, 1)
+        self._lewis.assert_that_emulator_value_is("creep_speed", str(700))
+
+    def test_WHEN_sending_home_with_high_velocity_THEN_creep_speed_is_capped(self):
+        vel = 100
+        self.ca_motor.set_pv_value(MTR2_HVEL, vel)
+        self.ca_motor.set_pv_value(MTR2_HOMR, 1)
+        # Should be capped at the max creep speed (800)
+        self._lewis.assert_that_emulator_value_is("creep_speed", str(800))
         self.ca_motor.set_pv_value(MTR2, 1)
         self._lewis.assert_that_emulator_value_is("creep_speed", str(700))
