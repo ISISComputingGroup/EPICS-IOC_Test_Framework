@@ -1,28 +1,14 @@
 import unittest
-
+from common_tests.oscillating_collimators import OscillatingCollimatorBase, _custom_name_func, ANGLE, FREQUENCY, RADIUS, \
+    GALIL_ADDR, PREFIX
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from parameterized import parameterized
-
 import os
-
-# IP address of device
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "128.0.0.0"
-
-PREFIX = "MOT:OSCCOL"
-
-# Commonly used PVs
-ANGLE = "ANGLE:SP"
-FREQUENCY = "FREQ:SP"
-RADIUS = "RADIUS"
-VELOCITY = "VEL:SP"
-DISTANCE = "DIST:SP"
-DISCRIMINANT = "VEL:SP:DISC:CHECK"
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "oscillatingCollimator_Wish"))
-
 IOCS = [
     {
         "name": "GALIL_01",
@@ -35,29 +21,19 @@ IOCS = [
         },
     },
 ]
-
 TEST_MODES = [TestModes.DEVSIM]
 
 
-class OscillatingCollimatorTests(unittest.TestCase):
+class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
     """
-    Tests for the LET Oscillating collimator.
-
-    The CA.Client.Exceptions these tests generate are expected because of a workaround we had to make in the DB
-    file to prevent a hang in the case of using asynFloat64 for the SP types. Issue described in ticket #2736
+    Tests for the WISH Oscillating collimator.
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
         ca_mot = ChannelAccess()
         ca_mot.assert_that_pv_exists("MOT:MTR0101", timeout=30)
-        self.ca = ChannelAccess(device_prefix=PREFIX)
+        self.ca = ChannelAccess(device_prefix=PREFIX, default_wait_time=0)
         self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
-
-    def _custom_name_func(testcase_func, param_num, param):
-        return "{}_ang_{}_freq_{}_rad_{}".format(
-            testcase_func.__name__,
-            *param.args[0]
-            )
 
     @parameterized.expand(
         # [(angle, frequency, radius, encoder counts per mm, full motor steps per motor rev, microsteps per motor
@@ -89,32 +65,3 @@ class OscillatingCollimatorTests(unittest.TestCase):
         # Assert
         self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
-
-    def test_WHEN_angle_set_negative_THEN_angle_is_zero(self):
-        self.ca.set_pv_value(ANGLE, -1.0)
-        self.ca.assert_that_pv_is_number(ANGLE, 0.0)
-
-    def test_WHEN_angle_set_greater_than_two_THEN_angle_is_two(self):
-        self.ca.set_pv_value(ANGLE, 5.0)
-        self.ca.assert_that_pv_is_number(ANGLE, 2.0)
-
-    def test_WHEN_frequency_set_negative_THEN_angle_is_zero(self):
-        self.ca.set_pv_value(FREQUENCY, -1.0)
-        self.ca.assert_that_pv_is_number(FREQUENCY, 0.0)
-
-    def test_WHEN_angle_set_greater_than_half_THEN_angle_is_half(self):
-        self.ca.set_pv_value(FREQUENCY, 1.0)
-        self.ca.assert_that_pv_is_number(FREQUENCY, 0.5)
-
-    def test_WHEN_frq_set_greater_than_two_THEN_angle_is_two(self):
-        self.ca.set_pv_value(ANGLE, 5.0)
-        self.ca.assert_that_pv_is_number(ANGLE, 2.0)
-
-    def test_WHEN_collimator_running_THEN_thread_is_not_on_reserved_thread(self):
-        # Threads 0 and 1 are reserved for homing under IBEX
-        self.ca.assert_that_pv_is_not("THREAD", "0")
-        self.ca.assert_that_pv_is_not("THREAD", "1")
-
-    def test_GIVEN_number_of_cycles_to_maintenance_rotation_THEN_time_to_maintenance_cycle_is_correct(self):
-        self.ca.set_pv_value(FREQUENCY, 0.4)
-        self.ca.set_pv_value()
