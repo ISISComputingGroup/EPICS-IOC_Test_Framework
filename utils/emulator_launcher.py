@@ -683,25 +683,18 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
     def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
-            self.solution_path = options["solution_path"]
         except KeyError:
-            raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and `solution_path` options must"
+            raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' option must"
                            " be provided as part of the options dictionary")
 
-        automation_tools_dir = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools")
-        automation_tools_binary = os.path.join(automation_tools_dir, "bin", "x64", "Release", "AutomationTools.exe")
+        run_bat_file = os.path.join(self.beckhoff_root, "run.bat")
 
-        if os.path.exists(automation_tools_binary):
-            plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
-            self.beckhoff_command_line = '{} "{}" '.format(automation_tools_binary, plc_to_start)
-            self.startup_command = self.beckhoff_command_line + "activate run " + options.get("plc_name", "")
-
-            options["emulator_command_line"] = self.startup_command
+        if os.path.exists(run_bat_file):
+            options["emulator_command_line"] = run_bat_file
             options["emulator_wait_to_finish"] = True
             super(BeckhoffEmulatorLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
         else:
-            raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
-                          " {} \n".format(automation_tools_dir))
+            raise IOError("Unable to find run.bat. Trying to run {} \n".format(run_bat_file))
 
 
 class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
