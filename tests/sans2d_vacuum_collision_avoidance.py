@@ -11,7 +11,6 @@ from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.axis import assert_axis_moving, assert_axis_not_moving
 from utils.testing import parameterized_list, ManagerMode
-from math import ceil
 
 try:
     from contextlib import nullcontext
@@ -22,32 +21,51 @@ test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
 )
 
-GALIL_ADDR = "127.0.0.1"
+GALIL_ADDR1 = "127.0.0.3"
+GALIL_ADDR2 = "127.0.0.2"
+GALIL_ADDR3 = "127.0.0.0"
 
 # Create GALIL_03, GALIL_04 and GALIL_05
 IOCS = [
     {
-        "name": "GALIL_0{}".format(i),
-        "directory": get_default_ioc_dir("GALIL", i),
+        "name": "GALIL_03",
+        "directory": get_default_ioc_dir("GALIL", 3),
         "custom_prefix": "MOT",
-        "pv_for_existence": "MTR0{}01".format(i),
+        "pv_for_existence": "MTR0301",
         "macros": {
-            "GALILADDR": GALIL_ADDR,
-            "MTRCTRL": "0{}".format(i),
+            "GALILADDR": GALIL_ADDR1,
+            "MTRCTRL": "03",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         }
-    } for i in [3, 4, 5]
+    },
+    {
+        "name": "GALILMUL_02",
+        "directory": get_default_ioc_dir("GALILMUL", 2),
+        "custom_prefix": "MOT",
+        "pv_for_existence": "MTR0401",
+        "macros": {
+            "MTRCTRL1": "04",
+            "GALILADDR1": GALIL_ADDR2,
+            "MTRCTRL2": "05",
+            "GALILADDR2": GALIL_ADDR3,
+            "GALILCONFIGDIR": test_path.replace("\\", "/"),
+        }
+    },
+    {
+        "name": "INSTETC",
+        "directory": get_default_ioc_dir("INSTETC"),
+        "custom_prefix": "CS",
+        "pv_for_existence": "MANAGER",
+    }
 ]
 
-IOCS.append(
-        {
-            "name": "INSTETC",
-            "directory": get_default_ioc_dir("INSTETC"),
-            "custom_prefix": "CS",
-            "pv_for_existence": "MANAGER",
-        })
-
 TEST_MODES = [TestModes.RECSIM]
+
+ERRORS = {
+    "FDFB": "Front Det & baffle collision detected",
+    "FBRB": "Front & rear baffle collision detected",
+    "RBRD": "Rear baffle & det collision detected"
+}
 
 
 class AxisPair(object):
@@ -73,7 +91,6 @@ AXIS_PAIRS = [
              name="RBRD", interval_setpoint_name="RBSPRDSP", minimum_interval=350),
 ]
 
-
 BAFFLES_AND_DETECTORS_Z_AXES = set(
     [interval.front_axis for interval in AXIS_PAIRS] + [interval.rear_axis for interval in AXIS_PAIRS])
 
@@ -93,294 +110,65 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess(device_prefix="MOT", default_timeout=30)
         with ManagerMode(ChannelAccess()):
-            self._disable_collision_avoidance()
-
             for axis in BAFFLES_AND_DETECTORS_Z_AXES:
-                current_position = self.ca.get_pv_value("{}".format(axis))
-
-                new_position = self._get_axis_default_position("{}".format(axis))
-
                 self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED, sleep_after_set=0)
                 self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED, sleep_after_set=0)
                 self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION, sleep_after_set=0)
 
-                if current_position != new_position:
-                    self.ca.set_pv_value("{}:SP".format(axis), new_position, sleep_after_set=0)
-
-                timeout = self._get_timeout_for_moving_to_position(axis, new_position)
-                self.ca.assert_that_pv_is("{}".format(axis), new_position, timeout=timeout)
-
-            # re-enable collision avoidance
-            self._enable_collision_avoidance()
-
-    def _disable_collision_avoidance(self):
-        self._set_collision_avoidance_state(1, "DISABLED")
-
-    def _enable_collision_avoidance(self):
-        self._set_collision_avoidance_state(0, "ENABLED")
-
-    def _set_collision_avoidance_state(self, write_value, read_value):
-
-        # Do nothing if manager mode is already in correct state
-        if ChannelAccess().get_pv_value(ManagerMode.MANAGER_MODE_PV) != "Yes":
-            cm = ManagerMode(ChannelAccess())
-        else:
-            cm = nullcontext()
-
-        with cm:
-            err = None
-            for _ in range(20):
-                try:
-                    self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", write_value, sleep_after_set=0)
-                    break
-                except WriteAccessException as e:
-                    err = e
-                    sleep(1)
-            else:
-                raise err
-            self.ca.assert_that_pv_is("SANS2DVAC:COLLISION_AVOIDANCE", read_value)
-
-    @contextlib.contextmanager
-    def _assert_last_stop_time_updated(self, timeout=5):
-        initial_stop_time = self.ca.get_pv_value("SANS2DVAC:_LAST_STOP_TIME")
-        try:
-            yield
-        except Exception as e:
-            raise e
-        else:
-            self.ca.assert_that_pv_is_not("SANS2DVAC:_LAST_STOP_TIME", initial_stop_time, timeout=timeout)
+    @parameterized.expand(parameterized_list(AXIS_PAIRS))
+    def test_GIVEN_setpoint_for_each_axis_THEN_axis_not_moved(self, _, axis_pair):
+        front_axis_new_position = 0
+        self.ca.set_pv_value(axis_pair.front_axis_sp,
+                             self.ca.get_pv_value(axis_pair.front_axis_sp) + front_axis_new_position)
+        assert_axis_not_moving(axis_pair.front_axis)
+        self.ca.set_pv_value(axis_pair.rear_axis_sp,
+                             (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) + 50)
+        assert_axis_not_moving(axis_pair.front_axis)
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_motor_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, axis_pair):
-        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        self._disable_collision_avoidance()
-
-        rear_axis_position = self.ca.get_pv_value(axis_pair.rear_axis)
-        front_axis_position = rear_axis_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
-        expected_interval = rear_axis_position - front_axis_position
-
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position, sleep_after_set=0)
-
-        timeout = self._get_timeout_for_moving_to_position(axis_pair.front_axis, front_axis_position)
-        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), expected_interval, timeout=timeout, tolerance=0.1)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.NONE)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_setpoint_interval_above_minor_warning_threshold_THEN_interval_is_correct_and_not_in_alarm(self, _, axis_pair):
-        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        self._disable_collision_avoidance()
-
-        rear_axis_position = 1000
-        front_axis_position = rear_axis_position - 50 - MINOR_ALARM_INTERVAL_THRESHOLD
-        expected_interval = rear_axis_position - front_axis_position
-
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position, sleep_after_set=0)
-        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_position, sleep_after_set=0)
-        self._assert_axis_position_reached(axis_pair.front_axis, front_axis_position)
-        self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_position)
-
-        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), expected_interval, timeout=5, tolerance=0.1)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.NONE)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_motor_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, axis_pair):
-        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        self._disable_collision_avoidance()
-
-        rear_position = self.ca.get_pv_value(axis_pair.rear_axis)
-        front_new_position = rear_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = rear_position - front_new_position
-
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_new_position, sleep_after_set=0)
-
-        timeout = self._get_timeout_for_moving_to_position(axis_pair.front_axis, front_new_position)
-        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), expected_interval, timeout=timeout, tolerance=0.1)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.MINOR)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_setpoint_interval_under_minor_warning_threshold_THEN_interval_is_correct_and_in_minor_alarm(self, _, axis_pair):
-        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        self._disable_collision_avoidance()
-
-        rear_axis_position = 1000
-        front_axis_position = rear_axis_position - MINOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = rear_axis_position - front_axis_position
-
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position, sleep_after_set=0)
-        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_position, sleep_after_set=0)
-        self._assert_axis_position_reached(axis_pair.front_axis, front_axis_position)
-        self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_position)
-
-        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), expected_interval, timeout=5, tolerance=0.1)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.MINOR)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_motor_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, axis_pair):
-        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        self._disable_collision_avoidance()
-
-        rear_axis_position = self.ca.get_pv_value(axis_pair.rear_axis)
-        front_axis_position = rear_axis_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = rear_axis_position - front_axis_position
-
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position, sleep_after_set=0)
-
-        timeout = self._get_timeout_for_moving_to_position(axis_pair.front_axis, front_axis_position)
-        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), expected_interval, timeout=timeout, tolerance=0.1)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.MAJOR)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_setpoint_interval_under_major_warning_threshold_THEN_interval_is_correct_and_in_major_alarm(self, _, axis_pair):
-        # disable collision avoidance so it does not interfere with checking the intervals and their alarm status
-        self._disable_collision_avoidance()
-
-        rear_axis_position = 1000
-        front_axis_position = rear_axis_position - MAJOR_ALARM_INTERVAL_THRESHOLD + 1
-        expected_interval = rear_axis_position - front_axis_position
-
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_position, sleep_after_set=0)
-        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_position, sleep_after_set=0)
-
-        self._assert_axis_position_reached(axis_pair.front_axis, front_axis_position)
-        self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_position)
-
-        self.ca.assert_that_pv_is_number("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), expected_interval, timeout=5, tolerance=0.1)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.MAJOR)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_greater_than_threshold_THEN_motor_not_stopped(self, _, axis_pair):
-        front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval) - 50
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=0)
-
-        self._assert_axis_position_reached(axis_pair.front_axis, front_axis_new_position)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self, _, axis_pair):
-
-        with self._assert_last_stop_time_updated():
-            front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval) + 50
-            self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=0)
-
-            self.ca.assert_that_pv_is("{}:MTR.MOVN".format(axis_pair.front_axis), 1, timeout=1)
-            self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.front_axis), 1, timeout=1)
-
-            timeout = self._get_timeout_for_moving_to_position(axis_pair.front_axis, front_axis_new_position)
-            assert_axis_not_moving(axis_pair.front_axis, timeout=timeout)
-            self.ca.assert_that_pv_is_not(axis_pair.front_axis, front_axis_new_position, timeout=timeout)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_front_axis_within_threhsold_distance_to_rear_axis_WHEN_set_to_move_away_THEN_motor_not_stopped(self, _, axis_pair):
+    def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_warning_message_is_available(
+            self, _, axis_pair):
         front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval) + 50
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=0)
 
-        self.ca.assert_that_pv_is("{}:MTR.MOVN".format(axis_pair.front_axis), 1, timeout=1)
-        self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.front_axis), 1, timeout=1)
-
-        timeout = self._get_timeout_for_moving_to_position(axis_pair.front_axis, front_axis_new_position)
-        assert_axis_not_moving(axis_pair.front_axis, timeout=timeout)
-        self.ca.assert_that_pv_is_not(axis_pair.front_axis, front_axis_new_position, timeout=timeout)
-
-        front_axis_new_position = self.ca.get_pv_value(axis_pair.front_axis) - 200
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=0)
-
-        assert_axis_moving(axis_pair.front_axis, timeout=1)
-        self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.front_axis), 0, timeout=1)
-        self._assert_axis_position_reached(axis_pair.front_axis, front_axis_new_position)
+        error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
+        self.assertEquals(error_message, ERRORS[axis_pair.name])
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_rear_axis_moves_towards_front_axis_WHEN_setpoint_interval_greater_than_threshold_THEN_motor_not_stopped(self, _, axis_pair):
-        rear_axis_position = (self.ca.get_pv_value(axis_pair.front_axis) + axis_pair.minimum_interval) + 50
-        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_position, sleep_after_set=0)
+    def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_warning_message_is_not_available(
+            self, _, axis_pair):
+        front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis_sp) - axis_pair.minimum_interval) - 51
+        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=1)
 
-        self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_position)
+        error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
+        self.assertEquals(error_message, "")
 
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_rear_axis_moves_towards_front_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_motor_stops(self, _, axis_pair):
-        with self._assert_last_stop_time_updated():
-            rear_axis_new_position = (self.ca.get_pv_value(axis_pair.front_axis) + axis_pair.minimum_interval) - 50
-            self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_new_position, sleep_after_set=0)
+    def test_GIVEN_all_positions_valid_WHEN_move_all_THEN_all_axes_moved(self):
+        # set front det initial position
+        self.ca.set_pv_value("FRONTDETZ:SP", 100)
+        end_values = {"FRONTDETZ": 100}
+        for axis_pair in AXIS_PAIRS:
+            rear_axis_pos = (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) + 50
+            end_values[axis_pair.rear_axis] = rear_axis_pos
+            self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos, sleep_after_set=0)
 
-            self.ca.assert_that_pv_is("{}:MTR.MOVN".format(axis_pair.rear_axis), 1, timeout=1)
-            self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.rear_axis), 0, timeout=1)
+        self.ca.set_pv_value("SANS2DVAC:CALC_MOVE_ALL.PROC", 1, sleep_after_set=10)
+        for key in end_values.keys():
+            self.assertEquals(end_values[key], self.ca.get_pv_value(key))
 
-            timeout = self._get_timeout_for_moving_to_position(axis_pair.rear_axis, rear_axis_new_position)
-            assert_axis_not_moving(axis_pair.rear_axis, timeout=timeout)
-            self.ca.assert_that_pv_is_not(axis_pair.rear_axis, rear_axis_new_position, timeout=timeout)
+    def test_GIVEN_positions_invalid_WHEN_move_all_THEN_axes_movement_is_inhibited(self):
+        for axis_pair in AXIS_PAIRS:
+            rear_axis_pos = (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) - 50
+            self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos, sleep_after_set=0)
 
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_rear_axis_within_threhsold_distance_to_front_axis_WHEN_set_to_move_away_THEN_motor_not_stopped(self, _, axis_pair):
-        rear_axis_new_position = (self.ca.get_pv_value(axis_pair.front_axis) + axis_pair.minimum_interval) - 50
-        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_new_position, sleep_after_set=0)
+        with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
+            self.ca.set_pv_value("SANS2DVAC:CALC_MOVE_ALL.PROC", 1, sleep_after_set=10)
 
-        self.ca.assert_that_pv_is("{}:MTR.MOVN".format(axis_pair.rear_axis), 1, timeout=1)
-        self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.rear_axis), 0, timeout=1)
+    def test_GIVEN_some_positions_invalid_WHEN_move_all_THEN_axes_movement_is_inhibited(self):
+        # invalid, invalid, valid, valid positions
+        positions = {"FRONTDETZ": 100, "FRONTBAFFLEZ": 200, "REARBAFFLEZ": 500, "REARDETZ": 1000}
+        for axis_pair in AXIS_PAIRS:
+            self.ca.set_pv_value(axis_pair.rear_axis_sp, positions[axis_pair.rear_axis])
 
-        timeout = self._get_timeout_for_moving_to_position(axis_pair.rear_axis, rear_axis_new_position)
-        assert_axis_not_moving(axis_pair.rear_axis, timeout=timeout)
-        self.ca.assert_that_pv_is_not(axis_pair.rear_axis, rear_axis_new_position, timeout=timeout)
-
-        rear_axis_new_position = self.ca.get_pv_value(axis_pair.rear_axis) + 200
-        self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_new_position, sleep_after_set=0)
-
-        assert_axis_moving(axis_pair.rear_axis, timeout=1)
-        self.ca.assert_that_pv_is("{}:MTR.TDIR".format(axis_pair.rear_axis), 1, timeout=1)
-        self._assert_axis_position_reached(axis_pair.rear_axis, rear_axis_new_position)
-
-    def _invalid_alarm_on_motor(self, motor, invalid):
-        """
-        Puts a motor into invalid alarm. The simulated motor record doesn't respect SIMS so instead use a readback
-        link pointing at an invalid PV and tell the motor to use the readback link. This causes an invalid alarm as
-        desired.
-        """
-        if invalid:
-            self.ca.set_pv_value("{}:MTR.RDBL".format(motor), "fake_input_link_doesnt_connect", sleep_after_set=0)
-
-        self.ca.set_pv_value("{}:MTR.URIP".format(motor), "Yes" if invalid else "No", sleep_after_set=0)
-
-        self.ca.assert_that_pv_alarm_is(motor, self.ca.Alarms.INVALID if invalid else self.ca.Alarms.NONE)
-
-    @parameterized.expand(parameterized_list(AXIS_PAIRS))
-    def test_GIVEN_axis_has_comms_error_THEN_axes_are_stopped(self, _, axis_pair):
-        with self._assert_last_stop_time_updated(timeout=10):
-            self._invalid_alarm_on_motor(axis_pair.front_axis, True)
-            self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.INVALID)
-        self._invalid_alarm_on_motor(axis_pair.front_axis, False)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.NONE)
-
-        with self._assert_last_stop_time_updated(timeout=10):
-            self._invalid_alarm_on_motor(axis_pair.rear_axis, True)
-            self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.INVALID)
-        self._invalid_alarm_on_motor(axis_pair.rear_axis, False)
-        self.ca.assert_that_pv_alarm_is("SANS2DVAC:{}:INTERVAL".format(axis_pair.name), self.ca.Alarms.NONE)
-
-    def _get_axis_default_position(self, axis):
-        if axis == "FRONTDETZ":
-            new_position = 1000
-        elif axis == "FRONTBAFFLEZ":
-            new_position = 3000
-        elif axis == "REARBAFFLEZ":
-            new_position = 5000
-        elif axis == "REARDETZ":
-            new_position = 7000
-        else:
-            raise ValueError("invalid axis!")
-
-        return new_position
-
-    def _get_timeout_for_moving_to_position(self, moving_axis, new_position):
-        distance_to_travel = abs(new_position - self.ca.get_pv_value(moving_axis))
-
-        time_to_accelerate_and_decelerate = 2 * TEST_ACCELERATION
-
-        # between 0 and full speed, the average speed is half the full speed, same for when decelerating.
-        # Therefore, the distance traveled when accelerating and decelerating is
-        # 2 * (full_speed/2 * acceleration_time), so full_speed / acceleration_time
-        time_at_full_speed = (distance_to_travel - TEST_SPEED * TEST_ACCELERATION) / TEST_SPEED
-
-        total_time = ceil(time_to_accelerate_and_decelerate + time_at_full_speed)
-
-        return total_time + 10  # +10 as a small tolerance to avoid instability
-
-    def _assert_axis_position_reached(self, axis, position):
-        timeout = self._get_timeout_for_moving_to_position(axis, position)
-        self.ca.assert_that_pv_is_number(axis, position, tolerance=0.1, timeout=timeout)
+        with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
+            self.ca.set_pv_value("SANS2DVAC:CALC_MOVE_ALL.PROC", 1, sleep_after_set=10)

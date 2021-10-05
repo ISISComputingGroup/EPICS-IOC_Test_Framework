@@ -15,30 +15,41 @@ test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
 )
 
-GALIL_ADDR = "127.0.0.1"
+GALIL_ADDR1 = "127.0.0.3"
+GALIL_ADDR2 = "127.0.0.2"
+GALIL_ADDR3 = "127.0.0.0"
 
 # Create GALIL_03, GALIL_04 and GALIL_05
 IOCS = [
     {
-        "name": "GALIL_0{}".format(i),
-        "directory": get_default_ioc_dir("GALIL", i),
+        "name": "GALIL_03",
+        "directory": get_default_ioc_dir("GALIL", 3),
         "custom_prefix": "MOT",
-        "pv_for_existence": "MTR0{}01".format(i),
+        "pv_for_existence": "MTR0301",
         "macros": {
-            "GALILADDR": GALIL_ADDR,
-            "MTRCTRL": "0{}".format(i),
+            "GALILADDR": GALIL_ADDR1,
+            "MTRCTRL": "03",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         }
-    } for i in [3, 4, 5]
+    },
+    {
+        "name": "GALILMUL_02",
+        "directory": get_default_ioc_dir("GALILMUL", 2),
+        "custom_prefix": "MOT",
+        "pv_for_existence": "MTR0401",
+        "macros": {
+            "MTRCTRL1": "04",
+            "GALILADDR1": GALIL_ADDR2,
+            "MTRCTRL2": "05",
+            "GALILADDR2": GALIL_ADDR3,
+            "GALILCONFIGDIR": test_path.replace("\\", "/"),
+        }
+    },
 ]
 
-IOCS.append(
-        {
-            "name": "INSTETC",
-            "directory": get_default_ioc_dir("INSTETC"),
-            "custom_prefix": "CS",
-            "pv_for_existence": "MANAGER",
-        })
+# SPMG
+PAUSE, MOVE, GO = 1, 2, 3
+
 
 TEST_MODES = [TestModes.RECSIM]
 
@@ -47,6 +58,9 @@ AXES_TO_STOP = [
     "BEAMSTOPX", "BEAMSTOP2Y", "BEAMSTOP1Y", "BEAMSTOP3Y", "FRONTBEAMSTOP",
     "JAWRIGHT", "JAWLEFT", "JAWUP", "JAWDOWN", "FRONTSTRIP", "REARSTRIP"
 ]
+
+AXES_FOR_CA = ["FRONTDETZ", "FRONTDETX", "FRONTDETROT", "REARDETZ", "REARDETX", "REARBAFFLEZ", "FRONTBAFFLEZ"]
+
 
 
 class Sans2dVacTankTests(unittest.TestCase):
@@ -59,8 +73,13 @@ class Sans2dVacTankTests(unittest.TestCase):
         self.lower_inhibit_bound = -2
         self.upper_inhibit_bound = 2
 
+    def set_axis_SPMG(self, axis, state):
+        self.ca.set_pv_value("{}:MTR.SPMG".format(axis), state)
+
     def reset_axis_to_non_inhibit(self, axis):
+        self.set_axis_SPMG(axis, MOVE)
         self.ca.set_pv_value("{}:SP".format(axis), 0)
+
         self.ca.assert_that_pv_is_number(axis, 0, tolerance=1.9, timeout=10)
         self.ca.set_pv_value("{}:MTR.STOP".format(axis), 1, wait=True)
 
@@ -89,22 +108,23 @@ class Sans2dVacTankTests(unittest.TestCase):
                 raise err
 
     @parameterized.expand(AXES_TO_STOP)
-    def test_GIVEN_axis_moving_WHEN_stop_all_THEN_axis_stopped(self, axis):
-        self._set_collision_avoidance_state_with_retries(1)
-
+    def test_GIVEN_axis_moving_WHEN_stop_all_THEN_axis_stopped_and_appropriate_axis_set_to_pause(self, axis):
         for _ in range(3):
+            self.set_axis_SPMG(axis, GO)
             set_axis_moving(axis)
             assert_axis_moving(axis)
             self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL", 1)
+            if axis in AXES_FOR_CA:
+                self.ca.assert_that_pv_is("{}:MTR.SPMG".format(axis), "Pause")
+
             assert_axis_not_moving(axis)
         self.reset_axis_to_non_inhibit(axis)
-
-        self._set_collision_avoidance_state_with_retries(0)
 
     @parameterized.expand([("FRONTBEAMSTOP", "FRONTDETROT"), ("FRONTDETROT", "FRONTBEAMSTOP")])
     def test_GIVEN_axes_in_range_WHEN_axis_goes_out_of_range_THEN_other_axis_inhibited(self, inhibiting_axis, inhibited_axis):
         # Arrange
         self.reset_axes_to_non_inhibit(inhibited_axis, inhibiting_axis)
+        self.set_axis_SPMG(inhibiting_axis, GO)
         try:
             # Act
             self.ca.set_pv_value("{}:SP".format(inhibiting_axis), -3, wait=True)
@@ -119,4 +139,4 @@ class Sans2dVacTankTests(unittest.TestCase):
         finally:
             # Rearrange
             self.reset_axes_to_non_inhibit(inhibited_axis, inhibiting_axis)
-
+            self.ca.set_pv_value("{}:MTR.SPMG".format(inhibiting_axis), PAUSE)
