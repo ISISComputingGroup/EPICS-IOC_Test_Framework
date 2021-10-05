@@ -66,16 +66,17 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
 
-    def test_GIVEN_number_of_cycles_to_maintenance_rotation_THEN_time_to_maintenance_cycle_is_correct(self):
-        freq = 0.4
-        maintenance_cycles_before_rotation = 5000
-        current_cycle = 2500
+    @parameterized.expand(
+        [[0.4, 5000, 2500],
+         [0.2, 10000, 800]]
+    )
+    def test_GIVEN_number_of_cycles_to_maintenance_rotation_THEN_time_to_maintenance_cycle_is_correct(self, freq, mnt_cycles, current_cycle):
         self.ca.set_pv_value(FREQUENCY, freq)
-        self.ca.set_pv_value("MNTCYCLES:SP", maintenance_cycles_before_rotation)
+        self.ca.set_pv_value("MNTCYCLES", mnt_cycles)
         self.ca.set_pv_value("CYCLE", current_cycle)
 
         inverted_freq = 1/freq
 
-        seconds_to_rotation = (inverted_freq * maintenance_cycles_before_rotation) - (inverted_freq * current_cycle)
+        seconds_to_rotation = (inverted_freq * mnt_cycles) - (inverted_freq * current_cycle)
 
         self.ca.assert_that_pv_is("MNTTIME", seconds_to_rotation)
