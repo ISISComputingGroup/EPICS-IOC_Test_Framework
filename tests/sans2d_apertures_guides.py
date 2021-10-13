@@ -1,5 +1,7 @@
 import unittest
 import os
+
+from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
 
 from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
@@ -60,6 +62,7 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
     def setUp(self):
         self.ca = ChannelAccess()
 
+
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_move_enabled_axis_moving_WHEN_stop_all_THEN_axis_stopped(self, axis):
         # Set interlock to enabled
@@ -85,15 +88,18 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
             set_axis_moving(axis)
             assert_axis_moving(axis)
             self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
+            self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
             self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:ALL", 1)
             assert_axis_moving(axis)
             self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 64)
+            self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CAN MOVE")
 
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_move_disabled_THEN_all_axis_motion_is_inhibited(self, axis):
 
-        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
+        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0, wait=True)
         self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
         for _ in range(3):
-            set_axis_moving(axis)
-            assert_axis_not_moving(axis)
+            with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
+                set_axis_moving(axis)
+
