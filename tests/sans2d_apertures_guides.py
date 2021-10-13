@@ -77,12 +77,23 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
 
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_move_disabled_axis_moving_WHEN_stop_all_THEN_axis_not_stopped(self, axis):
-        # Set interlock to disabled
-        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
-        self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
+        # Set interlock to enabled
+        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 64)
+        self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CAN MOVE")
         # Execute test
         for _ in range(3):
             set_axis_moving(axis)
             assert_axis_moving(axis)
+            self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
             self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:ALL", 1)
             assert_axis_moving(axis)
+            self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 64)
+
+    @parameterized.expand(AXES_TO_STOP)
+    def test_GIVEN_move_disabled_THEN_all_axis_motion_is_inhibited(self, axis):
+
+        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
+        self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
+        for _ in range(3):
+            set_axis_moving(axis)
+            assert_axis_not_moving(axis)
