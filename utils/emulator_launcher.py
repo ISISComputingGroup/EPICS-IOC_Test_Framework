@@ -3,7 +3,6 @@ Lewis emulator interface classes.
 """
 import abc
 import os
-import shutil
 import subprocess
 
 import sys
@@ -19,8 +18,6 @@ from utils.ioc_launcher import EPICS_TOP
 from utils.log_file import log_filename
 from utils.formatters import format_value
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
-from genie_python import genie as g
-
 
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
 DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
@@ -686,23 +683,11 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
     def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
-            self.tpy_file_to_copy = options["tpy_file_path"]
         except KeyError:
             raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and 'tpy_file_path' options must"
                            " be provided as part of the options dictionary")
 
         run_bat_file = os.path.join(self.beckhoff_root, "run.bat")
-
-        # Copy the tpy file to the config area
-        inst = os.environ.get("INSTRUMENT", g.adv.get_instrument())
-        tpy_file_destination = os.path.join(os.path.sep, "instrument", "settings", "config", inst, "configurations", "beckhoff")
-        if os.path.exists(self.tpy_file_to_copy):
-            # Make beckhoff directory if it does not exist already
-            if not os.path.exists(tpy_file_destination):
-                os.mkdir(tpy_file_destination)
-            shutil.copy(self.tpy_file_to_copy, tpy_file_destination)
-        else:
-            raise IOError(f"tpy_file_path invalid: {self.tpy_file_to_copy}")
 
         if os.path.exists(run_bat_file):
             options["emulator_command_line"] = run_bat_file
