@@ -695,7 +695,7 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
 
         # Copy the tpy file to the config area
         inst = os.environ.get("INSTRUMENT", g.adv.get_instrument())
-        tpy_file_destination = os.path.join(os.path.sep, "instrument", "settings", "config", inst, "configurations", "beckhoff")
+        tpy_file_destination = os.path.join(os.path.sep, "instrument", "settings", "config", inst, "configurations", "twincat")
         if os.path.exists(self.tpy_file_to_copy):
             # Make beckhoff directory if it does not exist already
             if not os.path.exists(tpy_file_destination):
