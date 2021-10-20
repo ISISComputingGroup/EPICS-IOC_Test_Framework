@@ -65,7 +65,6 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         # Assert
         steps_per_full_rev_expected = settings[4]*settings[5]*settings[6]
         self.ca.assert_that_pv_is_number("FULLREV:SP", steps_per_full_rev_expected, tolerance)
-        self.ca.assert_that_pv_is_number("FULLREV", steps_per_full_rev_expected, tolerance)
         self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
 
