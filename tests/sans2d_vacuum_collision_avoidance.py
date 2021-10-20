@@ -1,7 +1,5 @@
-import contextlib
 import unittest
 import os
-from time import sleep
 
 from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
@@ -9,7 +7,7 @@ from parameterized import parameterized
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.axis import assert_axis_moving, assert_axis_not_moving
+from utils.axis import assert_axis_not_moving
 from utils.testing import parameterized_list, ManagerMode
 
 try:
@@ -114,9 +112,9 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL.PROC", 1)
         with ManagerMode(ChannelAccess()):
             for axis in BAFFLES_AND_DETECTORS_Z_AXES:
-                self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED, sleep_after_set=0)
-                self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED, sleep_after_set=0)
-                self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION, sleep_after_set=0)
+                self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED)
+                self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED)
+                self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION)
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
     def test_GIVEN_setpoint_for_each_axis_THEN_axis_not_moved(self, _, axis_pair):
@@ -132,7 +130,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_warning_message_is_available(
             self, _, axis_pair):
         front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval) + 50
-        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=0)
+        self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position)
 
         error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
         self.assertEquals(error_message, ERRORS[axis_pair.name])
@@ -153,7 +151,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         for axis_pair in AXIS_PAIRS:
             rear_axis_pos = (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) + 50
             end_values[axis_pair.rear_axis] = rear_axis_pos
-            self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos, sleep_after_set=0)
+            self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos)
 
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=10)
         for key in end_values.keys():
@@ -162,7 +160,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     def test_GIVEN_positions_invalid_WHEN_move_all_THEN_axes_movement_is_inhibited(self):
         for axis_pair in AXIS_PAIRS:
             rear_axis_pos = (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) - 50
-            self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos, sleep_after_set=0)
+            self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos)
 
         with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
             self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=10)
@@ -193,9 +191,9 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(BAFFLES_AND_DETECTORS_Z_AXES))
     def test_GIVEN_some_axes_have_stopped_moving_THEN_stopped_axes_are_set_to_PAUSE(self, _, axis):
 
-        self.ca.set_pv_value("{}:MTR.VMAX".format(axis), 1, sleep_after_set=0)
-        self.ca.set_pv_value("{}:MTR.VELO".format(axis), 1, sleep_after_set=0)
-        self.ca.set_pv_value("{}:MTR.ACCL".format(axis), 1, sleep_after_set=0)
+        self.ca.set_pv_value("{}:MTR.VMAX".format(axis), 1)
+        self.ca.set_pv_value("{}:MTR.VELO".format(axis), 1)
+        self.ca.set_pv_value("{}:MTR.ACCL".format(axis), 1)
 
         global FRONTDET_INITIAL_POS
         FRONTDET_INITIAL_POS = FRONTDET_INITIAL_POS + 100
@@ -215,7 +213,6 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
         self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL.PROC", 1)
 
-        self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED, sleep_after_set=0)
-        self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED, sleep_after_set=0)
-        self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION, sleep_after_set=0)
-
+        self.ca.set_pv_value("{}:MTR.VMAX".format(axis), TEST_SPEED)
+        self.ca.set_pv_value("{}:MTR.VELO".format(axis), TEST_SPEED)
+        self.ca.set_pv_value("{}:MTR.ACCL".format(axis), TEST_ACCELERATION)
