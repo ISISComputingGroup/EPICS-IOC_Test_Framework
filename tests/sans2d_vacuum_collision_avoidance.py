@@ -191,7 +191,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
             with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
                 self.ca.set_pv_value(axis_position + ":MTR", positions[axis_position])
 
-    @parameterized.expand(parameterized_list(["FRONTDETZ", "FRONTBAFFLEZ", "REARBAFFLEZ", "REARDETZ"]))
+    @parameterized.expand(parameterized_list(BAFFLES_AND_DETECTORS_Z_AXES))
     def test_GIVEN_some_axes_have_stopped_moving_THEN_stopped_axes_are_set_to_PAUSE(self, _, axis):
 
         self.set_motor_speed_settings(axis, 1, 1, 1)
