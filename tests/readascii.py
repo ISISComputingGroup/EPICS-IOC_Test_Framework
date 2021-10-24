@@ -8,6 +8,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import EPICS_TOP
 from utils.test_modes import TestModes
 from utils.ioc_launcher import IOCRegister
+from parameterized import parameterized
 
 DEFAULT_SETTINGS_DIR = \
     os.path.join("C:/", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings")
@@ -128,9 +129,13 @@ class ReadasciiTests(unittest.TestCase):
     def _set_ramp_status(self, status):
         self.ca.set_pv_value("RAMPON", status)
 
+    @parameterized.expand([
+        ("new MH header name", "MH"),
+        ("old MH header name", "heater"),
+    ])
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(
-            self):
-        headers = ["SP", "P", "I", "D", "MH"]
+            self, _, MH_name):
+        headers = ["SP", "P", "I", "D", MH_name]
         rows = [
             (50, 1, 2, 3, 4),
             (100, 5, 6, 7, 8),
