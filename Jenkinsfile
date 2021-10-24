@@ -57,7 +57,7 @@ pipeline {
 
     stage("Install latest IBEX") {
       steps {
-         lock(resource: ELOCK, inversePrecedence: true) {
+         lock(resource: ELOCK, inversePrecedence: false) {
            bat """
             if EXIST "ibex_utils" rmdir /s /q ibex_utils
             git clone https://github.com/ISISComputingGroup/ibex_utils.git ibex_utils
@@ -97,7 +97,7 @@ pipeline {
     
     stage("IOC Tests") {
       steps {
-         lock(resource: ELOCK, inversePrecedence: true) {
+         lock(resource: ELOCK, inversePrecedence: false) {
            timeout(time: 1800, unit: 'MINUTES') {
            bat """
              set \"MYJOB=${env.JOB_NAME}\"
