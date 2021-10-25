@@ -108,7 +108,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.ca = ChannelAccess(device_prefix="MOT", default_timeout=0)
+        self.ca = ChannelAccess(device_prefix="MOT", default_timeout=30, default_wait_time=0.0)
         self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL.PROC", 1)
         with ManagerMode(ChannelAccess()):
             for axis in BAFFLES_AND_DETECTORS_Z_AXES:
@@ -166,7 +166,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
             self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos)
 
         with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
-            self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=10)
+            self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1)
 
     def test_GIVEN_some_positions_invalid_WHEN_move_all_THEN_axes_movement_is_inhibited(self):
         # invalid, invalid, valid, valid positions
@@ -175,7 +175,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
             self.ca.set_pv_value(axis_pair.rear_axis_sp, positions[axis_pair.rear_axis])
 
         with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
-            self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=10)
+            self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1)
 
     def test_GIVEN_some_axis_are_moving_THEN_not_possible_to_change_SP(self):
         positions = {"FRONTDETZ": 5000, "FRONTBAFFLEZ": 6100, "REARBAFFLEZ": 7500, "REARDETZ": 8000}
@@ -193,7 +193,6 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(BAFFLES_AND_DETECTORS_Z_AXES))
     def test_GIVEN_some_axes_have_stopped_moving_THEN_stopped_axes_are_set_to_PAUSE(self, _, axis):
-
         self.set_motor_speed_settings(axis, 1, 1, 1)
         global FRONTDET_INITIAL_POS
         FRONTDET_INITIAL_POS = FRONTDET_INITIAL_POS + 100
@@ -210,6 +209,3 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
                 self.ca.assert_that_pv_is("{}:MTR.SPMG".format(tank_axis), "Move")
             else:
                 self.ca.assert_that_pv_is("{}:MTR.SPMG".format(tank_axis), "Pause")
-
-        self.ca.set_pv_value("SANS2DVAC:STOP_MOTORS:ALL.PROC", 1)
-        self.set_motor_speed_settings(axis, TEST_SPEED, TEST_SPEED, TEST_ACCELERATION)
