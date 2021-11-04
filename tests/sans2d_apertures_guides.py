@@ -54,7 +54,7 @@ AXES_TO_STOP = ["APERTURE_{}".format(i) for i in range(1, 6)] + ["GUIDE_{}".form
 
 class Sans2dAperturesGuidesTests(unittest.TestCase):
     """
-    Tests for the sans2d waveguides and apertures tank motor extensions.
+    Tests for the sans2d guides and apertures tank motor extensions.
     """
 
     def setUp(self):
