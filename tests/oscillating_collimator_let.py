@@ -37,7 +37,6 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         ca_mot.assert_that_pv_exists("MOT:MTR0103", timeout=30)
         ca_mot.assert_setting_setpoint_sets_readback(DEFAULT_MOTOR_RESOLUTION,
                                                      set_point_pv="MOT:MTR0103.MRES", readback_pv="MOT:MTR0103.MRES", )
-        ca_mot.set_pv_value("MOT:MTR0103.STOP", 1)  # To avoid issue #6881
         self.ca = ChannelAccess(device_prefix=PREFIX, default_wait_time=0)
         self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
 

@@ -68,9 +68,8 @@ IOCS = [
             "MTR0104.HLM": SOFT_LIMIT_HI,
             "MTR0105.LLM": SOFT_LIMIT_LO,
             "MTR0105.HLM": SOFT_LIMIT_HI,
-            # Must not do MRES last so as to avoid issue #6881
-            "MTR0107.MRES": 0.001,
             "MTR0107.ERES": 0.001,
+            "MTR0107.MRES": 0.001,
         }
     },
     {
@@ -84,9 +83,8 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
-            # Must not do MRES last so as to avoid issue #6881
-            "MTR0208.MRES": 0.001,
             "MTR0208.ERES": 0.001,
+            "MTR0208.MRES": 0.001
         }
     },
     {
@@ -282,7 +280,6 @@ class ReflTests(unittest.TestCase):
         pos_above_res = 0.01
         pos_below_res = pos_above_res + 0.0001
         self.ca_galil.set_pv_value("MTR0101.MRES", target_mres)
-        self.ca_galil.set_pv_value("MTR0101.STOP", 1)  # To avoid issue #6881
 
         with self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res), \
              self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
