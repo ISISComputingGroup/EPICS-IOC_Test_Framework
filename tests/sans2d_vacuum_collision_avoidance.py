@@ -55,14 +55,15 @@ IOCS = [
         "custom_prefix": "CS",
         "pv_for_existence": "MANAGER",
     }
+
 ]
 
 TEST_MODES = [TestModes.RECSIM]
 
 ERRORS = {
-    "FDFB": "Front Det & baffle collision detected",
-    "FBRB": "Front & rear baffle collision detected",
-    "RBRD": "Rear baffle & det collision detected"
+    "FDFB": "FDFB Collision",
+    "FBRB": "FBRB Collision",
+    "RBRD": "RBRD Collision"
 }
 
 
