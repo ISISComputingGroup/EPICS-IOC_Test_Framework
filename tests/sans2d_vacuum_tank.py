@@ -9,6 +9,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.testing import ManagerMode
+from utils.axis import set_axis_moving
 
 test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
@@ -61,10 +62,9 @@ AXES_TO_STOP = [
 AXES_FOR_CA = ["FRONTDETZ", "FRONTDETX", "FRONTDETROT", "REARDETZ", "REARDETX", "REARBAFFLEZ", "FRONTBAFFLEZ"]
 
 
-
 class Sans2dVacTankTests(unittest.TestCase):
     """
-    Tests for the sans2d vacuum tank motor extensions.
+    Tests for the sans2d vacuum tank motor extensions (limiting the rotation in the tank).
     """
 
     def setUp(self):
@@ -72,12 +72,9 @@ class Sans2dVacTankTests(unittest.TestCase):
         self.lower_inhibit_bound = -2
         self.upper_inhibit_bound = 2
 
-    def set_axis_SPMG(self, axis, state):
-        self.ca.set_pv_value("{}:MTR.SPMG".format(axis), state, wait=True)
-
     def reset_axis_to_non_inhibit(self, axis):
         self.ca.set_pv_value("{}:SP".format(axis), 0)
-        self.ca.assert_that_pv_is_number(axis, 0, tolerance=1.9, timeout=10)
+        self.ca.assert_that_pv_is_number(axis, 0, timeout=10)
 
     def reset_axes_to_non_inhibit(self, axis_one, axis_two):
         axis_one_val = self.ca.get_pv_value("{}:SP".format(axis_one))
@@ -91,19 +88,6 @@ class Sans2dVacTankTests(unittest.TestCase):
         elif axis_two_inhibiting:
             self.reset_axis_to_non_inhibit(axis_two)
 
-    def _set_collision_avoidance_state_with_retries(self, state):
-        with ManagerMode(ChannelAccess()):
-            for _ in range(5):
-                try:
-                    self.ca.set_pv_value("SANS2DVAC:COLLISION_AVOIDANCE", state)
-                    break
-                except WriteAccessException as e:
-                    err = e
-                    time.sleep(1)
-            else:
-                raise err
-
-
     @parameterized.expand([("FRONTBEAMSTOP", "FRONTDETROT"), ("FRONTDETROT", "FRONTBEAMSTOP")])
     def test_GIVEN_axes_in_range_WHEN_axis_goes_out_of_range_THEN_other_axis_inhibited(self, inhibiting_axis, inhibited_axis):
         # Arrange
@@ -114,7 +98,7 @@ class Sans2dVacTankTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("{}:SP".format(inhibiting_axis), -3)
             start_position = self.ca.get_pv_value(inhibited_axis)
             with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
-                self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1)
+                set_axis_moving(inhibited_axis)
             # Assert
             self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_{}".format(inhibited_axis), 1)
             end_position = self.ca.get_pv_value(inhibited_axis)
