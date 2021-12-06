@@ -55,8 +55,8 @@ IOCS = [
         "custom_prefix": "CS",
         "pv_for_existence": "MANAGER",
     }
-
 ]
+
 
 TEST_MODES = [TestModes.RECSIM]
 
@@ -188,9 +188,6 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         for axis_position in positions:
             with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
                 self.ca.set_pv_value(axis_position + ":SP", positions[axis_position])
-
-            with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
-                self.ca.set_pv_value(axis_position + ":MTR", positions[axis_position])
 
     @parameterized.expand(parameterized_list(BAFFLES_AND_DETECTORS_Z_AXES))
     def test_GIVEN_some_axes_have_stopped_moving_THEN_stopped_axes_are_set_to_PAUSE(self, _, axis):
