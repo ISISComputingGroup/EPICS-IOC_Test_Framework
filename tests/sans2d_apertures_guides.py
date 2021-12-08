@@ -100,6 +100,6 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
         self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0, wait=True)
         self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
         for _ in range(3):
-            with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
-                set_axis_moving(axis)
+            self.ca.assert_that_pv_is("MOT:" + axis + ":SP.DISP", "1")
+            self.ca.assert_that_pv_is("MOT:" + axis + ":MTR.DISP", "1")
 
