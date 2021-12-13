@@ -58,11 +58,13 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         self.ca.set_pv_value(FREQUENCY, settings[1])
         self.ca.set_pv_value(RADIUS, settings[2])
         self.ca.set_pv_value("ENC_COUNTS_PER_MM", settings[3])
-        self.ca.set_pv_value("_STEPS_PER_REV", settings[4])
+        self.ca.set_pv_value("FULL_STEPS_PER_REV", settings[4])
         self.ca.set_pv_value("MICROSTEPS_PER_STEP", settings[5])
         self.ca.set_pv_value("GEARBOX_RATIO", settings[6])
 
         # Assert
+        steps_per_full_rev_expected = settings[4]*settings[5]*settings[6]
+        self.ca.assert_that_pv_is_number("FULLREV:SP", steps_per_full_rev_expected, tolerance)
         self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
 
