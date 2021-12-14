@@ -137,6 +137,7 @@ class BaseLauncher(object):
         self.emulator_port = int(self.macros['EMULATOR_PORT'])
         self._extra_environment_vars = ioc_config.get("environment_vars", {})
         self._init_values = ioc_config.get('inits', {})
+        self._delay_after_startup = ioc_config.get('delay_after_startup', 0)
         self._var_dir = var_dir
         self._test_name = test_name
         self.ca = None
@@ -193,6 +194,8 @@ class BaseLauncher(object):
                 self.ca.set_pv_value(key, value)
 
         IOCRegister.add_ioc(self._device, self)
+
+        sleep(self._delay_after_startup)
 
     def _command_line(self):
         """

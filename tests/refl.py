@@ -70,7 +70,8 @@ IOCS = [
             "MTR0105.HLM": SOFT_LIMIT_HI,
             "MTR0107.ERES": 0.001,
             "MTR0107.MRES": 0.001,
-        }
+        },
+        "delay_after_startup": 5
     },
     {
         "name": GALIL_PREFIX_JAWS,
@@ -85,7 +86,8 @@ IOCS = [
         "inits": {
             "MTR0208.ERES": 0.001,
             "MTR0208.MRES": 0.001
-        }
+        },
+        "delay_after_startup": 5
     },
     {
         "name": "INSTETC",
