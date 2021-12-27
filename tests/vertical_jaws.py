@@ -36,7 +36,7 @@ IOCS = [
         "macros": {
             "MTRCTRL": "01",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
-            "GALILADDR": "127.0.0.1",
+            "GALILADDR": "127.0.0.11",
         },
     },
 ]

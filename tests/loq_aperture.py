@@ -10,7 +10,7 @@ from utils.testing import unstable_test
 # Internal Address of device (must be 2 characters)
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "127.0.0.1"
+GALIL_ADDR = "127.0.0.11"
 
 PREFIX = "MOT"
 

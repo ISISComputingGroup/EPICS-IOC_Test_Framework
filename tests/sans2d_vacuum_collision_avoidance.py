@@ -19,9 +19,9 @@ test_path = os.path.realpath(
     os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
 )
 
-GALIL_ADDR1 = "127.0.0.3"
-GALIL_ADDR2 = "127.0.0.2"
-GALIL_ADDR3 = "127.0.0.0"
+GALIL_ADDR1 = "127.0.0.11"
+GALIL_ADDR2 = "127.0.0.12"
+GALIL_ADDR3 = "127.0.0.13"
 
 # Create GALIL_03, GALIL_04 and GALIL_05
 IOCS = [

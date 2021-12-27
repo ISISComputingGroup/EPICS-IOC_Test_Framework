@@ -10,7 +10,7 @@ from common_tests.jaws_manager_utils import JawsManagerBase, UNDERLYING_GAP_SP
 from utils.test_modes import TestModes
 from time import sleep
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR = "127.0.0.11"
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "polaris_jaws"))

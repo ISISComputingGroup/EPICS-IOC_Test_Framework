@@ -16,8 +16,8 @@ galil_settings_path = os.path.realpath(
     )
 )
 
-GALIL_ADDR1 = "127.0.0.1"
-GALIL_ADDR2 = "127.0.0.2"
+GALIL_ADDR1 = "127.0.0.11"
+GALIL_ADDR2 = "127.0.0.12"
 
 ioc_name = "FINS"
 fins_settings_path = os.path.join(EPICS_TOP, "ioc", "master", ioc_name, "exampleSettings", "SANS2D_vacuum")
