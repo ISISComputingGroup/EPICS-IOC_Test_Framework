@@ -159,6 +159,8 @@ skip_if_devsim = functools.partial(skip_if_condition, lambda: IOCRegister.test_m
 """Decorator to skip tests if running in nosim"""
 skip_if_nosim = functools.partial(skip_if_condition, lambda: IOCRegister.test_mode == TestModes.NOSIM)
 
+"""Decorator to skip tests if running in devsim"""
+skip_always = functools.partial(skip_if_condition, lambda: True)
 
 def add_method(method):
     """

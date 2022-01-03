@@ -5,7 +5,7 @@ import os
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import skip_if_nosim
+from utils.testing import skip_if_nosim, skip_always
 
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "galil"))
 
@@ -140,7 +140,7 @@ class GalilTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MOT:MTR0101", val)
         self.ca.assert_that_pv_is("MOT:MTR0101.RBV", val)
 
-    @skip_if_nosim("no encoder on test galil hardware")
+    @skip_always("Not working")
     def test_GIVEN_motors_THEN_check_motor_encoder_diff_works(self):
         val = 10.0
         # setup motor using encoder

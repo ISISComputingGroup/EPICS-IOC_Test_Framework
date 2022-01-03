@@ -26,6 +26,8 @@ IOCS_DIR = os.path.join(EPICS_TOP, "ioc", "master")
 PYTHON3 = os.environ.get("PYTHON3", os.path.join(APPS_BASE, "Python3", "python.exe"))
 
 DEFAULT_IOC_START_TEXT = "epics>"
+#DEFAULT_IOC_START_TEXT = "iocRun: All initialization complete"
+
 MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
 
 EPICS_CASE_ENVIRONMENT_VARS = {
@@ -121,7 +123,7 @@ class BaseLauncher(object):
                  name: String, Device name
                  directory: String, the directory where st.cmd for the IOC is found
                  custom_prefix: String, the prefix for the IOC PVs, default of IOC name
-                 started_text: String, the text printed when the IOC has started, default of `epics>`
+                 started_text: String, the text printed when the IOC has started, default of DEFAULT_IOC_START_TEXT
                  pv_for_existence: String, the PV to check for whether the IOC is running, default of DISABLE
                  macros: Dict, the macros that should be passed to this IOC
             var_dir: The directory into which the launcher will save log files.
@@ -136,6 +138,7 @@ class BaseLauncher(object):
         self.emulator_port = int(self.macros['EMULATOR_PORT'])
         self._extra_environment_vars = ioc_config.get("environment_vars", {})
         self._init_values = ioc_config.get('inits', {})
+        self._delay_after_startup = ioc_config.get('delay_after_startup', 0)
         self._var_dir = var_dir
         self._test_name = test_name
         self.ca = None
@@ -174,14 +177,14 @@ class BaseLauncher(object):
             self.create_macros_file()
 
             self.log_file_manager = LogFileManager(self.log_file_name)
-            self.log_file_manager.log_file.write("Started IOC with '{0}'".format(" ".join(self.command_line)))
+            self.log_file_manager.log_file_w.write("Started IOC with '{0}'".format(" ".join(self.command_line)))
 
             # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
             # This does mean that the IOC will need to be closed manually after the tests.
             # Make sure to revert before checking code in
             self._process = subprocess.Popen(" ".join(self.command_line), creationflags=subprocess.CREATE_NEW_CONSOLE,
                                              cwd=self._directory, stdin=subprocess.PIPE,
-                                             stdout=self.log_file_manager.log_file, stderr=subprocess.STDOUT,
+                                             stdout=self.log_file_manager.log_file_w, stderr=subprocess.STDOUT,
                                              env=settings)
 
             # Write a return so that an epics terminal will appear after boot
@@ -194,6 +197,8 @@ class BaseLauncher(object):
                 self.ca.set_pv_value(key, value)
 
         IOCRegister.add_ioc(self._device, self)
+
+        sleep(self._delay_after_startup)
 
     def _command_line(self):
         """
@@ -365,7 +370,7 @@ class ProcServLauncher(BaseLauncher):
 
         self._telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
 
-        # Wait for procServ to become responsive by checking for the IOC started text ("epics>")
+        # Wait for procServ to become responsive by checking for the IOC started text
         init_output = self._telnet.read_until(self._ioc_started_text.encode('ascii'), timeout).decode("ascii")
 
         if "Welcome to procServ" not in init_output:

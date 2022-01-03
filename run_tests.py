@@ -323,7 +323,7 @@ if __name__ == '__main__':
                         help="""Pauses after starting emulator and ioc. Allows you to use booted
                         emulator/IOC or attach debugger for tests""")
     parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM', 'NOSIM'],
-                        help="""Tests mode to run e.g. DEVSIM, RECSIM or NOSIM (default: all).""")
+                        help="""Tests mode to run e.g. DEVSIM, RECSIM or NOSIM (default: all).""", type=str.upper)
     parser.add_argument('--test_and_emulator', default=None,
                         help="""Specify a folder that holds both the tests (in a folder called tests) and a lewis 
                         emulator (in a folder called lewis_emulators).""")
