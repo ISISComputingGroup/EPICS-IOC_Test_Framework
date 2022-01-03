@@ -18,6 +18,7 @@ from utils.ioc_launcher import EPICS_TOP
 from utils.log_file import log_filename
 from utils.formatters import format_value
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
+from utils.test_modes import TestModes
 
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
 DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
@@ -433,7 +434,7 @@ class LewisLauncher(EmulatorLauncher):
         self._connected = True
 
     def _log_filename(self):
-        return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
+        return log_filename(self._test_name, "lewis", self._emulator_id, TestModes.DEVSIM, self._var_dir)
 
     def check(self):
         """
@@ -644,7 +645,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         self._log_file = None
 
     def _open(self):
-        self._log_file = open(log_filename(self._test_name, "cmdemulator", self._device, True, self._var_dir), "w")
+        self._log_file = open(log_filename(self._test_name, "cmdemulator", self._device, TestModes.RECSIM, self._var_dir), "w")
         self._call_command_line(self.command_line.format(port=self._port))
 
     def _call_command_line(self, command_line):

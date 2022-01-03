@@ -1,26 +1,29 @@
 import os
 from time import sleep
 import threading
+from utils.test_modes import TestModes
 
 # Directory for log files
 LOG_FILES_DIRECTORY = os.path.join("logs", "IOCTestFramework")
 
 
-def log_filename(test_name, what, device, uses_rec_sim, var_dir):
+def log_filename(test_name, what, device, test_mode, var_dir):
     """
     Log file name with path. Ensure path exists.
 
     :param test_name: name of test module being run
     :param what: what is being logged for, e.g. lewis
     :param device: device the log is for
-    :param uses_rec_sim: whether rec sim is used
+    :param test_mode: testing mode
     :param var_dir: location of directory to write log file
     :return: path
     """
-    if uses_rec_sim:
+    if test_mode == TestModes.RECSIM:
         sim_type = "recsim"
-    else:
+    elif test_mode == TestModes.DEVSIM:
         sim_type = "devsim"
+    else:
+        sim_type = "nosim"
     full_dir = os.path.join(var_dir, LOG_FILES_DIRECTORY)
     if not os.path.exists(full_dir):
         os.makedirs(full_dir)
