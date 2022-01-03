@@ -24,6 +24,8 @@ IOCS = [
     },
 ]
 
+DEFAULT_VELOCITY = 0.64
+
 # parameters appropriate for galil hardware in R3 support office
 MOTOR_SETUP = {
     "MOT:MTR{}{}_K1_SP" : 0.000000,
@@ -39,18 +41,18 @@ MOTOR_SETUP = {
     "MOT:MTR{}{}.POST" : "",
     "MOT:MTR{}{}.MRES" : 0.0003125,
     "MOT:MTR{}{}.ERES" : 0.0005,
-    "MOT:MTR{}{}.VMAX" : 0.64,
-    "MOT:MTR{}{}.VELO" : 0.64,
+    "MOT:MTR{}{}.VMAX" : DEFAULT_VELOCITY,
+    "MOT:MTR{}{}.VELO" : DEFAULT_VELOCITY,
     "MOT:MTR{}{}.DESC" : "Motor",
     "MOT:MTR{}{}.EGU" : "mm",
     "MOT:MTR{}{}.ACCL" : 1.000000,
     "MOT:MTR{}{}.BDST" : 0.000000,
-    "MOT:MTR{}{}.BVEL" : 0.06,
+    "MOT:MTR{}{}.BVEL" : DEFAULT_VELOCITY / 10.0,
     "MOT:MTR{}{}.BACC" : 1.000000,
     "MOT:MTR{}{}.RDBD" : 0.005000,
     "MOT:MTR{}{}.RTRY" : 3,
     "MOT:MTR{}{}.RMOD" : "Default",
-    "MOT:MTR{}{}.HVEL" : 4.096000,
+    "MOT:MTR{}{}.HVEL" : DEFAULT_VELOCITY,
     "MOT:MTR{}{}.PCOF" : 0.000000E+0,
     "MOT:MTR{}{}.ICOF" : 0.000000E+0,
     "MOT:MTR{}{}.DCOF" : 0.000000E+0,
@@ -125,7 +127,7 @@ class GalilTests(unittest.TestCase):
         self.zero_motors()
 
         # Move motor 0101
-        val = 20.0
+        val = 3.0
         self.ca.set_pv_value("MOT:MTR0101", val)
         self.ca.assert_that_pv_is("MOT:MTR0101", val)
         self.ca.assert_that_pv_is("MOT:MTR0101.RBV", val)
@@ -134,16 +136,17 @@ class GalilTests(unittest.TestCase):
         self.zero_motors()
 
         # Move axis 1
-        val = 21.0
+        val = 4.0
         self.ca.set_pv_value("GALIL_01:AXIS1:SP", val)
         self.ca.assert_that_pv_is("GALIL_01:AXIS1:SP:RBV", val)
         self.ca.assert_that_pv_is("GALIL_01:AXIS1", val)
         self.ca.assert_that_pv_is("MOT:MTR0101", val)
         self.ca.assert_that_pv_is("MOT:MTR0101.RBV", val)
 
-    @skip_always("Not working")
+    #@skip_always("Not working")
+    @skip_if_nosim("No encoder on test real motor")
     def test_GIVEN_motors_THEN_check_motor_encoder_diff_works(self):
-        val = 10.0
+        val = 2.0
         # setup motor using encoder
         self.ca.set_pv_value("MOT:MTR0101.UEIP", "Yes")
         self.ca.assert_that_pv_is("MOT:MTR0101.UEIP", "Yes")
