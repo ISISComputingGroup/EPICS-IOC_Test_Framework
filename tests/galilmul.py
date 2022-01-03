@@ -13,9 +13,9 @@ IOCS = [
         "pv_for_existence": "1:AXIS1",
         "macros": {
             "MTRCTRL1": "01",
-            "GALILADDR1": "127.0.0.1",
+            "GALILADDR1": "127.0.0.11,
             "MTRCTRL2": "02",
-            "GALILADDR2": "127.0.0.1",
+            "GALILADDR2": "127.0.0.12",
         },
     },
 ]

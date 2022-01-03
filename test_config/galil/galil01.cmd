@@ -6,7 +6,7 @@
 
 ## see README_galil_cmd.txt for usage of commands below
 
-GalilCreateController("Galil", "130.246.51.169", 20)
+GalilCreateController("Galil", "130.246.55.136", 20)
 
 GalilCreateAxis("Galil","A",0,"",1)
 GalilCreateAxis("Galil","B",0,"",1)
