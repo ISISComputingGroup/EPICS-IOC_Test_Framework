@@ -120,23 +120,23 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self._set_sp_and_assert("SHUTTER", "OPEN", 1)
 
     def set_test_detector_limits(self, ca, record, current, high):
-        rec_rbv = record + ":RBV"
-        rec_enable = rec_rbv + ":DC:ENABLE"
-        rec_high = rec_rbv + ":DC:HIGH"
-        rec_inrang = rec_rbv + ":DC:INRANGE"
-        ca.set_pv_value(rec_rbv + ".SCAN", "1 second")
+        rec_sim = "SIM:" + record
+        ca.assert_setting_setpoint_sets_readback("YES", record + ".SIMM", record + ".SIMM")
+        rec_enable = record + ":DC:ENABLE"
+        rec_high = record + ":DC:HIGH"
+        rec_inrang = record + ":DC:INRANGE"
         ca.assert_setting_setpoint_sets_readback("NO", rec_enable, rec_enable)
-        ca.assert_setting_setpoint_sets_readback(0, rec_rbv, record)
+        ca.assert_setting_setpoint_sets_readback(0, rec_sim, rec_sim)
         ca.assert_setting_setpoint_sets_readback(high, rec_high, rec_high)
         ca.assert_setting_setpoint_sets_readback("YES", rec_enable, rec_enable)
         ca.assert_setting_setpoint_sets_readback("YES", rec_inrang, rec_inrang)
-        ca.assert_setting_setpoint_sets_readback(current, rec_rbv, record)
+        ca.assert_setting_setpoint_sets_readback(current, rec_sim, rec_sim)
         ca.assert_that_pv_is(rec_inrang, "NO")
-        ca.set_pv_value(rec_rbv + ".SCAN", "Passive")
 
     def reset_detector_limits(self, ca, record):
         rec_enable = record + ":DC:ENABLE"
         ca.assert_setting_setpoint_sets_readback("NO", rec_enable, rec_enable)
+        ca.assert_setting_setpoint_sets_readback("NO", record + ".SIMM", record + ".SIMM")
 
     def test_WHEN_detector_rate_exceeded_THEN_shutter_closes(self):
         for detector, record in (("AD1", "INTG:RATE"), ("AD1", "INTG:SPEC:RATE"),
