@@ -120,17 +120,18 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self._set_sp_and_assert("SHUTTER", "OPEN", 1)
 
     def set_test_detector_limits(self, ca, record, current, high):
+        # the value of record is updated by writing to rec_sim when SIMM is enabled
         rec_sim = "SIM:" + record
         ca.assert_setting_setpoint_sets_readback("YES", record + ".SIMM", record + ".SIMM")
         rec_enable = record + ":DC:ENABLE"
         rec_high = record + ":DC:HIGH"
         rec_inrang = record + ":DC:INRANGE"
         ca.assert_setting_setpoint_sets_readback("NO", rec_enable, rec_enable)
-        ca.assert_setting_setpoint_sets_readback(0, rec_sim, rec_sim)
+        ca.assert_setting_setpoint_sets_readback(0, record, rec_sim)
         ca.assert_setting_setpoint_sets_readback(high, rec_high, rec_high)
         ca.assert_setting_setpoint_sets_readback("YES", rec_enable, rec_enable)
         ca.assert_setting_setpoint_sets_readback("YES", rec_inrang, rec_inrang)
-        ca.assert_setting_setpoint_sets_readback(current, rec_sim, rec_sim)
+        ca.assert_setting_setpoint_sets_readback(current, record, rec_sim)
         ca.assert_that_pv_is(rec_inrang, "NO")
 
     def reset_detector_limits(self, ca, record):
