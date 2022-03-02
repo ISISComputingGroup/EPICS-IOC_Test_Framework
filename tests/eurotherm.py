@@ -25,6 +25,7 @@ IOCS = [
     {
         "name": DEVICE,
         "directory": get_default_ioc_dir("EUROTHRM"),
+        "ioc_launcher_class": ProcServLauncher,
         "macros": {
             "ADDR": ADDRESS,
             "ADDR_1": ADDR_1,
@@ -39,7 +40,6 @@ IOCS = [
             "ADDR_10": ""
         },
         "emulator": EMULATOR_DEVICE,
-        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
