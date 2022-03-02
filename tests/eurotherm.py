@@ -10,7 +10,7 @@ from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP, Proc
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
 
 # Internal Address of device (must be 2 characters)
-ADDRESS = "A010"
+ADDRESS = "A01"
 # Numerical address of the device
 ADDR_1 = 1 # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
 DEVICE = "EUROTHRM_01"
@@ -27,7 +27,7 @@ IOCS = [
         "directory": get_default_ioc_dir("EUROTHRM"),
         "macros": {
             "ADDR": ADDRESS,
-            "ADDR_1": "",
+            "ADDR_1": ADDR_1,
             "ADDR_2": "",
             "ADDR_3": "",
             "ADDR_4": "",
@@ -36,7 +36,7 @@ IOCS = [
             "ADDR_7": "",
             "ADDR_8": "",
             "ADDR_9": "",
-            "ADDR_10": ADDR_1
+            "ADDR_10": ""
         },
         "emulator": EMULATOR_DEVICE,
         "ioc_launcher_class": ProcServLauncher,
