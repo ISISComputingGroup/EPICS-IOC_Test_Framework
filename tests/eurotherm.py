@@ -6,13 +6,13 @@ import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
+from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP, ProcServLauncher
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
 # Numerical address of the device
-ADDR_1 = 1
+ADDR_1 = 1 # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
 DEVICE = "EUROTHRM_01"
 PREFIX = "{}:{}".format(DEVICE, ADDRESS)
 
@@ -25,6 +25,7 @@ IOCS = [
     {
         "name": DEVICE,
         "directory": get_default_ioc_dir("EUROTHRM"),
+        "ioc_launcher_class": ProcServLauncher,
         "macros": {
             "ADDR": ADDRESS,
             "ADDR_1": ADDR_1,
@@ -34,7 +35,9 @@ IOCS = [
             "ADDR_5": "",
             "ADDR_6": "",
             "ADDR_7": "",
-            "ADDR_8": ""
+            "ADDR_8": "",
+            "ADDR_9": "",
+            "ADDR_10": ""
         },
         "emulator": EMULATOR_DEVICE,
     },
