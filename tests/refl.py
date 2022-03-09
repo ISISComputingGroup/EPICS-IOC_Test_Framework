@@ -166,6 +166,7 @@ class ReflTests(unittest.TestCase):
         self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS", default_wait_time=0.0)
         self.ca_no_prefix = ChannelAccess()
         stop_motors_with_retry(self.ca_cs, 5)
+        self.set_up_velocity_tests(INITIAL_VELOCITY)
         with all_motors_in_set_mode(self.ca_galil):
             self.ca.set_pv_value("BL:MODE:SP", "NR")
             self.ca.set_pv_value("PARAM:S1:SP", 0)
