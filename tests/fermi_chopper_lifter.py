@@ -7,7 +7,7 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 # Internal Address of device (must be 2 characters)
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR = "127.0.0.11"
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "emma_chopper_lifter"))

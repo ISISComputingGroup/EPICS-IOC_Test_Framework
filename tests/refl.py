@@ -13,7 +13,8 @@ from utils.testing import unstable_test
 import time
 
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR1 = "127.0.0.11"
+GALIL_ADDR2 = "127.0.0.12"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
@@ -44,12 +45,13 @@ IOCS = [
         }
     },
     {
+        "ioc_launcher_class": ProcServLauncher,
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "MTR0101",
         "macros": {
-            "GALILADDR": GALIL_ADDR,
+            "GALILADDR": GALIL_ADDR1,
             "MTRCTRL": "1",
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
@@ -74,12 +76,13 @@ IOCS = [
         "delay_after_startup": 5
     },
     {
+        "ioc_launcher_class": ProcServLauncher,
         "name": GALIL_PREFIX_JAWS,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL", iocnum=2),
         "pv_for_existence": "MTR0201",
         "macros": {
-            "GALILADDR": GALIL_ADDR,
+            "GALILADDR": GALIL_ADDR2,
             "MTRCTRL": "2",
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },

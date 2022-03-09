@@ -8,7 +8,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
 
-GALIL_ADDR = "127.0.0.1"
+GALIL_ADDR = "127.0.0.11"
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motionSetPoints", "master", "settings"))
