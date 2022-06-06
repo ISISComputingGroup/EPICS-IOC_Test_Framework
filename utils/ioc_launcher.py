@@ -345,7 +345,7 @@ class ProcServLauncher(BaseLauncher):
     def _command_line(self):
         comspec = os.getenv("ComSpec")
         cygwin_dir = self.to_cygwin_address(self._directory)
-        return ["{}\\cygwin_bin\\procServ.exe".format(self.ICPTOOLS), '--logstamp',
+        return ["{}\\cygwin\\bin\\procServ.exe".format(self.ICPTOOLS), '--logstamp',
                 '--logfile="{}"'.format(self.to_cygwin_address(self.log_file_name)),
                 '--timefmt="%Y-%m-%d %H:%M:%S"',
                 '--restrict', '--ignore="^D^C"', '--autorestart', '--wait',
