@@ -8,7 +8,6 @@ from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 from enum import Enum
 from itertools import product
-from time import sleep
 
 DEVICE_PREFIX = "TPG300_01"
 
@@ -20,7 +19,6 @@ IOCS = [
         "emulator": "tpg300",
     },
 ]
-
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
@@ -55,7 +53,7 @@ class Tpg300Tests(unittest.TestCase):
 
     def _set_units(self, unit):
         self._lewis.backdoor_run_function_on_device("backdoor_set_unit", [unit.value])
-        self.ca.set_pv_value("UNITS:SP:RBV", unit.name)
+        self.ca.set_pv_value("SIM:UNITS", unit.name)
 
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
@@ -91,7 +89,8 @@ class Tpg300Tests(unittest.TestCase):
     def set_switching_function(self, function):
         self.ca.set_pv_value("FUNCTION", function)
 
-    def set_switching_function_thresholds(self, threshold_low, exponent_low, threshold_high, exponent_high, circuit_assignment):
+    def set_switching_function_thresholds(self, threshold_low, exponent_low, threshold_high, exponent_high,
+                                          circuit_assignment):
         self.ca.set_pv_value("FUNCTION:LOW:SP", threshold_low)
         self.ca.set_pv_value("FUNCTION:LOW:E:SP", exponent_low)
         self.ca.set_pv_value("FUNCTION:HIGH:SP", threshold_high)
@@ -100,42 +99,34 @@ class Tpg300Tests(unittest.TestCase):
         self.ca.process_pv("FUNCTION:ASSIGN:SP:OUT")
 
     def check_switching_function_thresholds(self, function, thresholds, check_pv_is=True):
-        readback_string = str(thresholds[0]) + 'E' + str(thresholds[1]) + ',' + str(thresholds[2]) + 'E' + \
-                          str(thresholds[3]) + ',' + str(thresholds[4])
         if check_pv_is:
-            self.ca.assert_that_pv_is("FUNCTION:"+function+":RB", readback_string)
-            self.ca.assert_that_pv_is("FUNCTION:"+function+":LOW:RB", thresholds[0])
-            self.ca.assert_that_pv_is("FUNCTION:"+function+":LOW:E:RB", thresholds[1])
-            self.ca.assert_that_pv_is("FUNCTION:"+function+":HIGH:RB", thresholds[2])
-            self.ca.assert_that_pv_is("FUNCTION:"+function+":HIGH:E:RB", thresholds[3])
-            self.ca.assert_that_pv_is("FUNCTION:"+function+":ASSIGN:RB", thresholds[4])
-        else:
-            self.ca.assert_that_pv_is_not("FUNCTION:"+function+":RB", readback_string)
-            self.ca.assert_that_pv_is_not("FUNCTION:"+function+":LOW:RB", thresholds[0])
-            self.ca.assert_that_pv_is_not("FUNCTION:"+function+":LOW:E:RB", thresholds[1])
-            self.ca.assert_that_pv_is_not("FUNCTION:"+function+":HIGH:RB", thresholds[2])
-            self.ca.assert_that_pv_is_not("FUNCTION:"+function+":HIGH:E:RB", thresholds[3])
-            self.ca.assert_that_pv_is_not("FUNCTION:"+function+":ASSIGN:RB", thresholds[4])
+            low_value = thresholds[0] * 10 ** thresholds[1]
+            high_value = thresholds[2] * 10 ** thresholds[3]
+            self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":LOW:SP:RBV", low_value, 0.001)
+            self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":HIGH:SP:RBV", high_value, 0.001)
+            self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":ASSIGN:SP:RBV", thresholds[4], 0.001)
 
     @parameterized.expand([
         (('2', 0.5, 2, 1.7, -5, 2), (0.5, 2, 1.7, -5, 2)),
-        (('A', 0.5534, 215, 125, -5, 6), (0.5, 99, 9.9, -5, 6))
+        (('A', 0.5534, 215, 125, -5, 6), (0.5, 99, 9.9, -5, 6)),  # The values are truncated not rounded
+        (('B', 12, -215, -12, 3, 3), (9.9, -99, 0.0, 3, 3))
     ])
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_function_thresholds_set_THEN_thresholds_readback_correct(self, function_set, function_read):
         self.set_switching_function("1")
         self.set_switching_function_thresholds(0.0, 0, 0.0, 0, 0)
         self.set_switching_function(function_set[0])
-        self.set_switching_function_thresholds(function_set[1], function_set[2], function_set[3], function_set[4], function_set[5])
+        self.set_switching_function_thresholds(function_set[1], function_set[2], function_set[3], function_set[4],
+                                               function_set[5])
         self.check_switching_function_thresholds(str(function_set[0]), function_read)
         self.set_switching_function("1")
-        self.check_switching_function_thresholds("1", function_read, False)
+        self.check_switching_function_thresholds("1", (0.0, 0, 0.0, 0, 0))
 
     def check_switching_function_statuses(self, expected_statuses):
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:1:RB", expected_statuses[0])
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:2:RB", expected_statuses[1])
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:3:RB", expected_statuses[2])
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:4:RB", expected_statuses[3])
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:1:RB", str(expected_statuses[0]))
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:2:RB", str(expected_statuses[1]))
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:3:RB", str(expected_statuses[2]))
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:4:RB", str(expected_statuses[3]))
 
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_function_status_set_THEN_readback_correct(self):
@@ -153,4 +144,3 @@ class Tpg300Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 1)
         self._set_pressure(501.0, "A2")
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 0)
-
