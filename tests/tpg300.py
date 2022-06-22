@@ -1,4 +1,5 @@
 import unittest
+import contextlib
 
 from parameterized import parameterized
 
@@ -99,12 +100,14 @@ class Tpg300Tests(unittest.TestCase):
         self.ca.process_pv("FUNCTION:ASSIGN:SP:OUT")
 
     def check_switching_function_thresholds(self, function, thresholds, check_pv_is=True):
+        assignments = ("No assignment", "A1", "A2", "B1", "B1", "A1 self-monitor", "A2 self-monitor", "B1 self-monitor", "B1 self-monitor")
         if check_pv_is:
             low_value = thresholds[0] * 10 ** thresholds[1]
             high_value = thresholds[2] * 10 ** thresholds[3]
+            assignment = assignments[thresholds[4]]
             self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":LOW:SP:RBV", low_value, 0.001)
             self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":HIGH:SP:RBV", high_value, 0.001)
-            self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":ASSIGN:SP:RBV", thresholds[4], 0.001)
+            self.ca.assert_that_pv_is("FUNCTION:" + function + ":ASSIGN:SP:RBV", assignment)
 
     @parameterized.expand([
         (('2', 0.5, 2, 1.7, -5, 2), (0.5, 2, 1.7, -5, 2)),
@@ -114,13 +117,13 @@ class Tpg300Tests(unittest.TestCase):
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_function_thresholds_set_THEN_thresholds_readback_correct(self, function_set, function_read):
         self.set_switching_function("1")
-        self.set_switching_function_thresholds(0.0, 0, 0.0, 0, 0)
+        self.set_switching_function_thresholds(0.0, 0, 0.0, 0, 1)
         self.set_switching_function(function_set[0])
         self.set_switching_function_thresholds(function_set[1], function_set[2], function_set[3], function_set[4],
                                                function_set[5])
         self.check_switching_function_thresholds(str(function_set[0]), function_read)
         self.set_switching_function("1")
-        self.check_switching_function_thresholds("1", (0.0, 0, 0.0, 0, 0))
+        self.check_switching_function_thresholds("1", (0.0, 0, 0.0, 0, 1))
 
     def check_switching_function_statuses(self, expected_statuses):
         self.ca.assert_that_pv_is("FUNCTION:STATUS:1:RB", str(expected_statuses[0]))
@@ -144,3 +147,26 @@ class Tpg300Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 1)
         self._set_pressure(501.0, "A2")
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 0)
+
+    @contextlib.contextmanager
+    def _disconnect_device(self):
+        self._disconnect_emulator()
+        try:
+            yield
+        finally:
+            self._connect_emulator()
+
+    def check_alarm_status_rbvs(self, alarm):
+        for channel in ("SEL", "1", "2", "3", "4", "A", "B"):
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":RB", alarm)
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":LOW:SP:RBV", alarm)
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":HIGH:SP:RBV", alarm)
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":ASSIGN:SP:RBV", alarm)
+
+    @skip_if_recsim("Requires emulator")
+    def test_WHEN_device_disconnected_THEN_rbv_values_go_into_alarm(self):
+        self.check_alarm_status_rbvs(self.ca.Alarms.NONE)
+        with self._disconnect_device():
+            self.check_alarm_status_rbvs(self.ca.Alarms.INVALID)
+
+        self.check_alarm_status_rbvs(self.ca.Alarms.NONE)
