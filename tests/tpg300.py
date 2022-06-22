@@ -163,6 +163,12 @@ class Tpg300Tests(unittest.TestCase):
             self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":HIGH:SP:RBV", alarm)
             self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":ASSIGN:SP:RBV", alarm)
 
+    def check_alarm_status_function_statuses(self, alarm):
+        self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:RB", alarm)
+        for channel in ("1", "2", "3", "4"):
+            self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:" + channel + ":RB", alarm)
+
+
     @skip_if_recsim("Requires emulator")
     def test_WHEN_device_disconnected_THEN_rbv_values_go_into_alarm(self):
         self.check_alarm_status_rbvs(self.ca.Alarms.NONE)
@@ -170,3 +176,11 @@ class Tpg300Tests(unittest.TestCase):
             self.check_alarm_status_rbvs(self.ca.Alarms.INVALID)
 
         self.check_alarm_status_rbvs(self.ca.Alarms.NONE)
+
+    @skip_if_recsim("Requires emulator")
+    def test_WHEN_device_disconnected_THEN_function_statuses_go_into_alarm(self):
+        self.check_alarm_status_function_statuses(self.ca.Alarms.NONE)
+        with self._disconnect_device():
+            self.check_alarm_status_function_statuses(self.ca.Alarms.INVALID)
+
+        self.check_alarm_status_function_statuses(self.ca.Alarms.NONE)
