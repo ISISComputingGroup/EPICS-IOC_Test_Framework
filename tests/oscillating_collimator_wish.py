@@ -9,6 +9,14 @@ from utils.test_modes import TestModes
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "oscillatingCollimator_Wish"))
+
+# Mechanically bound variables
+MICROSTEPS_PER_STEP = 32 
+GEARBOX_RATIO = 100 
+ENC_COUNTS_PER_MM = 200
+STEPS_PER_REV = 200
+RADIUS = 375
+
 IOCS = [
     {
         "name": "GALIL_01",
@@ -18,6 +26,11 @@ IOCS = [
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "01",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
+            "MICROSTEPS_PER_STEP": MICROSTEPS_PER_STEP, 
+            "GEARBOX_RATIO": GEARBOX_RATIO,
+            "ENC_COUNTS_PER_MM": ENC_COUNTS_PER_MM,
+            "STEPS_PER_REV": STEPS_PER_REV,
+            "RADIUS": RADIUS
         },
     },
 ]
@@ -36,16 +49,12 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
 
     @parameterized.expand(
-        # [(angle, frequency, radius, encoder counts per mm, full motor steps per motor rev, microsteps per motor
-        # step, gearbox ratio), (expected distance, expected velocity)
+        # [(angle, frequency, radius), (expected distance, expected velocity)
         # Values confirmed via LabView VI
-        [[(1.125, 0.4, 375, 200, 200, 32, 100), (2058.337, 1693.34)],
-         [(2, 0.4, 375, 200, 200, 32, 100), (3760.254, 3171.962)],
-         [(1.1, 0.4, 375, 200, 200, 32, 100), (2011.176, 1653.427)],
-         [(1.233, 0.4, 375, 200, 200, 32, 100), (2262.922, 1867.076)],
-
-         [(1.233, 0.4, 375, 200, 100, 32, 100), (1112.603, 903.365)],
-         [(1.233, 0.4, 395, 100, 100, 32, 80), (887.295, 718.232)],
+        [[(1.125, 0.4, RADIUS), (2058.337, 1693.34)],
+         [(2, 0.4, RADIUS), (3760.254, 3171.962)],
+         [(1.1, 0.4, RADIUS), (2011.176, 1653.427)],
+         [(1.233, 0.4, RADIUS), (2262.922, 1867.076)],
          ], testcase_func_name=_custom_name_func
     )
     def test_GIVEN_angle_frequency_and_radius_WHEN_set_THEN_distance_and_velocity_match_LabView_generated_values(self, settings, expected_values):
@@ -56,16 +65,14 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         # Act
         self.ca.set_pv_value(ANGLE, settings[0])
         self.ca.set_pv_value(FREQUENCY, settings[1])
-        self.ca.set_pv_value(RADIUS, settings[2])
-        self.ca.set_pv_value("ENC_COUNTS_PER_MM", settings[3])
-        self.ca.set_pv_value("FULL_STEPS_PER_REV", settings[4])
-        self.ca.set_pv_value("MICROSTEPS_PER_STEP", settings[5])
-        self.ca.set_pv_value("GEARBOX_RATIO", settings[6])
 
         # Assert
-        steps_per_full_rev_expected = settings[4]*settings[5]*settings[6]
-        self.ca.assert_that_pv_is_number("FULLREV:SP", steps_per_full_rev_expected, tolerance)
-        self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance)
+        FULL_REV_STEPS = STEPS_PER_REV * MICROSTEPS_PER_STEP * GEARBOX_RATIO
+        
+        self.ca.assert_that_pv_is_number("FULLREV:SP", FULL_REV_STEPS, tolerance)
+        # Allow for 0.1 degrees tolerance (steps per full rev/360 degrees/0.1)
+        # This is to account for differences in precision of PI etc. between labview + epics
+        self.ca.assert_that_pv_is_number("DIST:PART:SP", expected_values[0], tolerance=FULL_REV_STEPS/360/0.1)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
 
     @parameterized.expand(
