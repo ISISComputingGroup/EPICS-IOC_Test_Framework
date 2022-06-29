@@ -19,20 +19,20 @@ IOCS = [
             "MAX_CURR": 135,
             "T_TO_A": 0.037,
             "MAX_VOLT": 9.9,
-            "WRITE_UNIT": "AMPS",
-            "DISPLAY_UNIT": "GAUSS",
+            "WRITE_UNIT": "TESLA",
+            "DISPLAY_UNIT": "TESLA",
             "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\default.txt",
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.01,
-            "ALLOW_PERSIST": "No",
-            "USE_SWITCH": "No",
+            "ALLOW_PERSIST": "Yes",
+            "USE_SWITCH": "Yes",
             "FAST_FILTER_VALUE": 1,
             "FILTER_VALUE": 0.1,
             "NPP": 0.0005,
             "FAST_PERSISTENT_SETTLETIME": 5,
-            "PERSISTENT_SETTLETIME": 60,
-            "NON_PERSISTENT_SETTLETIME": 30,
-            "SWITCH_TEMP_PV": "CRYOSMS_01:SIM:SWITCH:TEMP",
+            "PERSISTENT_SETTLETIME": 5,  # 60 on HIFI
+            "NON_PERSISTENT_SETTLETIME": 5,  # 30 on HIFI
+            "SWITCH_TEMP_PV": "TE:NDLT1172:CRYOSMS_01:SIM:SWITCH:TEMP",
             "SWITCH_HIGH": 3.7,
             "SWITCH_LOW": 3.65,
             "SWITCH_STABLE_NUMBER": 10,
@@ -40,18 +40,18 @@ IOCS = [
             "HEATER_TOLERANCE": 0.2,
             "HEATER_OFF_TEMP": 3.7,
             "HEATER_ON_TEMP": 3.65,
-            "HEATER_OUT": "CRYOSMS_01:SIM:TEMP:HEATER",
+            "HEATER_OUT": "TE:NDLT1172:CRYOSMS_01:SIM:TEMP:HEATER",
             "USE_MAGNET_TEMP": "Yes",
-            "MAGNET_TEMP_PV": "CRYOSMS_01:SIM:TEMP:MAGNET",
+            "MAGNET_TEMP_PV": "TE:NDLT1172:CRYOSMS_01:SIM:TEMP:MAGNET",
             "MAX_MAGNET_TEMP": 5.5,
             "MIN_MAGNET_TEMP": 1,
             "COMP_OFF_ACT": "Yes",
             "NO_OF_COMP": "2",
             "MIN_NO_OF_COMP": 1,
-            "COMP_1_STAT_PV": "CRYOSMS_01:SIM:COMP1STAT",
-            "COMP_2_STAT_PV": "CRYOSMS_01:SIM:COMP2STAT",
-            "HOLD_TIME_ZERO": 12,
-            "HOLD_TIME": 30,
+            "COMP_1_STAT_PV": "TE:NDLT1172:CRYOSMS_01:SIM:COMP1STAT",
+            "COMP_2_STAT_PV": "TE:NDLT1172:CRYOSMS_01:SIM:COMP2STAT",
+            "HOLD_TIME_ZERO": 5,  # 12 on HIFI
+            "HOLD_TIME": 5,  # 30 on HIFI
             "VOLT_STABILITY_DURATION": 300,
             "VOLT_TOLERANCE": 0.2,
             "FAST_RATE": 0.5,
@@ -63,14 +63,14 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
-TEST_RAMPS = [[(0.0, 10000.0), {10000: 1.12}],
-              [(5000.0, 25000.0), {10000: 1.12, 20000: 0.547, 25000: 0.038}],
-              [(-5000.0, -25000.0), {-10000: 1.12, -20000: 0.547, -25000: 0.038}],
-              [(25000.0, 5000.0), {20000: 0.038, 10000: 0.547, 0: 1.12}],
-              [(25000.0, -25000.0), {20000: 0.038, 10000: 0.547, -10000: 1.12, -20000: 0.547, -25000: 0.038}],
-              [(-25000.0, 25000.0), {-20000: 0.038, -10000: 0.547, 10000: 1.12, 20000: 0.547, 25000: 0.038}],
-              [(-25000.0, 0), {-20000: 0.038, -10000: 0.547, 0: 1.12}],
-              [(25000.0, 0), {20000: 0.038, 10000: 0.547, 0: 1.12}],
+TEST_RAMPS = [[(0.0, 1.0), {1: 1.12}],
+              [(0.5, 2.5), {1: 1.12, 2: 0.547, 2.5: 0.038}],
+              [(-0.5, -2.5), {-1: 1.12, -2: 0.547, -2.5: 0.038}],
+              [(2.5, 0.5), {2: 0.038, 1: 0.547, 0: 1.12}],
+              [(2.5, -2.5), {2: 0.038, 1: 0.547, -1: 1.12, -2: 0.547, -2.5: 0.038}],
+              [(-2.5, 2.5), {-2: 0.038, -1: 0.547, 1: 1.12, 2: 0.547, 2.5: 0.038}],
+              [(-2.5, 0), {-2: 0.038, -1: 0.547, 0: 1.12}],
+              [(2.5, 0), {2: 0.038, 1: 0.547, 0: 1.12}],
               ]
 
 
@@ -84,13 +84,14 @@ class CryoSMSTests(unittest.TestCase):
         else:
             self._lewis.backdoor_set_on_device("is_quenched", False)
             self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=60)
+            self.ca.set_pv_value("PERSIST", 0)
             self.ca.set_pv_value("SIM:TEMP:MAGNET", 3.67)
             self.ca.set_pv_value("SIM:COMP1STAT", 1)
             self.ca.set_pv_value("SIM:COMP2STAT", 1)
             self._lewis.backdoor_set_on_device("mid_target", 0)
             self._lewis.backdoor_set_on_device("output", 0)
             self.ca.set_pv_value("PAUSE:SP", 0)
-            self.ca.set_pv_value("ABORT:SP", 1)
+            self.ca.set_pv_value("ABORT", 1)
             self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
             self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
 
@@ -102,22 +103,26 @@ class CryoSMSTests(unittest.TestCase):
                           "OUTPUT:PERSIST": 0,
                           "OUTPUT:VOLT": 0,
                           "RAMP:RATE": 1.12,
-                          "READY": 1,
+                          "READY": "Ready",
                           "RAMP:RAMPING": 0,
                           "TARGET:TIME": 0,
                           "STAT": "Ready",
                           "HEATER:STAT": "ON",
                           "START:SP.DISP": "0",
                           "PAUSE:SP.DISP": "0",
-                          "ABORT:SP.DISP": "0",
+                          "ABORT.DISP": "0",
                           "OUTPUT:SP.DISP": "0",
-                          "MAGNET:MODE.DISP": "1",
-                          "RAMP:LEADS.DISP": "1",
+                          "PERSIST.DISP": "0",
+                          "RAMP:LEADS.DISP": "0",
                           }
         failedPVs = []
         for PV in expectedValues:
             try:
-                self.ca.assert_that_pv_is(PV, expectedValues[PV], timeout=5)
+                if type(expectedValues[PV]) in [int, float]:
+                    self.ca.assert_that_pv_is_within_range(PV, expectedValues[PV]-0.01,
+                                                           expectedValues[PV]+0.01, timeout=5)
+                else:
+                    self.ca.assert_that_pv_is(PV, expectedValues[PV], timeout=5)
             except Exception as e:
                 if hasattr(e, "message"):
                     failedPVs.append(e.message)
@@ -141,7 +146,7 @@ class CryoSMSTests(unittest.TestCase):
         # correctly
         sign = 1 if start_point >= 0 else -1
         self._lewis.backdoor_run_function_on_device("switch_direction", [sign])
-        self._lewis.backdoor_set_on_device("output", abs(start_point)/(0.037 * 10000))
+        self._lewis.backdoor_set_on_device("output", abs(start_point))
         self.ca.set_pv_value("TARGET:SP", end_point)
         self.ca.set_pv_value("START:SP", 1)
         for mid_point in ramp_rates:
@@ -163,7 +168,7 @@ class CryoSMSTests(unittest.TestCase):
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_IOC_not_ramping_WHEN_ramp_started_THEN_simulated_ramp_performed(self):
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING", msg="Ramping failed to start")
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
@@ -171,7 +176,7 @@ class CryoSMSTests(unittest.TestCase):
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_IOC_ramping_WHEN_paused_and_unpaused_THEN_ramp_is_paused_resumed_and_completes(self):
         # GIVEN ramping
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
         # Pauses when pause set to true
@@ -187,45 +192,45 @@ class CryoSMSTests(unittest.TestCase):
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_IOC_ramping_WHEN_aborted_THEN_ramp_aborted(self):
         # Given Ramping
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
         # Aborts when abort set to true, then hits ready again
-        self.ca.set_pv_value("ABORT:SP", 1)
+        self.ca.set_pv_value("ABORT", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_IOC_paused_WHEN_aborted_THEN_ramp_aborted(self):
         # GIVEN paused
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         self.ca.set_pv_value("PAUSE:SP", 1)
         rampTarget = self.ca.get_pv_value("MID")
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON PAUSE", msg="Ramping failed to pause")
         # Aborts when abort set to true, then hits ready again
-        self.ca.set_pv_value("ABORT:SP", 1)
+        self.ca.set_pv_value("ABORT", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
         self.ca.assert_that_pv_is_not("MID", rampTarget)
 
     @skip_if_recsim("Test is to tell whether data from emulator is correctly received")
     def test_GIVEN_output_nonzero_WHEN_units_changed_THEN_output_raw_adjusts(self):
         # Check that it is currently working correctly in Amps
-        self._lewis.backdoor_set_on_device("is_paused", True)
-        self._lewis.backdoor_set_on_device("output", 1/0.037)  # 1T (0.037 = T_TO_A)
-        self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1/0.037, 0.001)
-        self.ca.assert_that_pv_is_number("OUTPUT", 10000, 1)  # OUTPUT should remain in Gauss
-        # Set outputmode to tesla
-        self.ca.set_pv_value("OUTPUTMODE:SP", "TESLA")
+        self._lewis.backdoor_set_on_device("mid_target", 1)
+        self._lewis.backdoor_set_on_device("output", 1)  # 1T (0.037 = T_TO_A)
         self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1, 0.001)
-        self.ca.assert_that_pv_is_number("OUTPUT", 10000, 1)
-        # Confirm functionality returns to normal when going back to Amps
+        self.ca.assert_that_pv_is_number("OUTPUT", 1, 1)  # OUTPUT should remain in Gauss
+        # Set outputmode to tesla
         self.ca.set_pv_value("OUTPUTMODE:SP", "AMPS")
         self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1/0.037, 0.001)
-        self.ca.assert_that_pv_is_number("OUTPUT", 10000, 1)
+        self.ca.assert_that_pv_is_number("OUTPUT", 1, 1)
+        # Confirm functionality returns to normal when going back to Amps
+        self.ca.set_pv_value("OUTPUTMODE:SP", "TESLA")
+        self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1, 0.001)
+        self.ca.assert_that_pv_is_number("OUTPUT", 1, 1)
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_ramping_WHEN_quenched_THEN_paused_with_correct_message(self):
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         self._lewis.backdoor_set_on_device("is_quenched", True)
         self.ca.assert_that_pv_is("PAUSE", "OFF")
@@ -233,16 +238,16 @@ class CryoSMSTests(unittest.TestCase):
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_ramping_WHEN_1_comp_off_but_more_than_min_on_THEN_keep_ramping(self):
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         self.ca.set_pv_value("SIM:COMP1STAT", 0)
-        self.ca.assert_that_pv_is_within_range("OUTPUT", 9999.9, 10000.1)
+        self.ca.assert_that_pv_is_within_range("OUTPUT", 0.99999, 1.00001)
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
-        self.ca.assert_that_pv_is("STAT", "Ready")
+        self.ca.assert_that_pv_is("STAT", "Ready", timeout=15)
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_ramping_WHEN_less_than_min_number_of_comp_on_THEN_pause(self):
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         self.ca.set_pv_value("SIM:COMP1STAT", 0)
         self.ca.set_pv_value("SIM:COMP2STAT", 0)
@@ -251,14 +256,14 @@ class CryoSMSTests(unittest.TestCase):
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_WHEN_write_unit_changed_THEN_changes_back_after_macro_defined_time(self):
-        self.ca.set_pv_value("OUTPUTMODE:SP", "TESLA")
-        self.ca.assert_that_pv_is("OUTPUTMODE", "TESLA")
-        self.ca.assert_that_pv_is("OUTPUTMODE", "AMPS", timeout=15)
+        self.ca.set_pv_value("OUTPUTMODE:SP", "AMPS")
+        self.ca.assert_that_pv_is("OUTPUTMODE", "AMPS")
+        self.ca.assert_that_pv_is("OUTPUTMODE", "TESLA", timeout=15)
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_ramping_WHEN_temp_not_in_range_THEN_pauses_and_WHEN_back_in_range_THEN_resumes(self):
         # Start ramp
-        self.ca.set_pv_value("TARGET:SP", 10000)
+        self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
         # Make sure it's ramping before changing temps else we'll stop it too quickly
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
@@ -283,6 +288,27 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MAGNET:TEMP:PAUSE", "Unpaused")
         self.ca.assert_that_pv_is("MAGNET:TEMP:INRANGE", "Yes")
         self.ca.assert_that_pv_is("MAGNET:TEMP:TOOHOT", "Good heat")
-        self.ca.assert_that_pv_is_within_range("OUTPUT", 9999.9, 10000.1)
+        self.ca.assert_that_pv_is_within_range("OUTPUT", 0.99999, 1.00001)
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
+        self.ca.assert_that_pv_is("STAT", "Ready", timeout=15)
+
+    @skip_if_recsim("C++ driver can not correctly initialised in recsim")
+    def test_GIVEN_persistent_mode_and_leads_at_field_WHEN_target_reached_THEN_cools_correctly(self):
+        # Start a ramp in persistenet mode with leads staying at field
+        self.ca.set_pv_value("PERSIST", 1)
+        self.ca.set_pv_value("RAMP:LEADS", 0)
+        self.ca.set_pv_value("TARGET:SP", 1)
+        self.ca.set_pv_value("START:SP", 1)
+        # Make sure we're warm with heater off whilst ramping
+        self.ca.assert_that_pv_is("HEATER:STAT", "ON")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warm")
+        self.ca.assert_that_pv_is("SWITCH:STAT:NOW", "Warm")
+        # Make sure we get there
+        self.ca.assert_that_pv_is_within_range("OUTPUT", 0.99999, 1.00001)
+        # Heater should go off, temp should go from warm to cooling to cold
+        self.ca.assert_that_pv_is("HEATER:STAT", "OFF")
+        self.ca.assert_that_pv_is("SWITCH:STAT:NOW", "Cool")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Cooling")
+        self.ca.assert_that_pv_is("SWITCH:STAT:INC", 10, timeout=11)
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Cold")
         self.ca.assert_that_pv_is("STAT", "Ready")
