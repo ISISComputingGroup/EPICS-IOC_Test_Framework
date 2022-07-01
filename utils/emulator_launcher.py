@@ -426,6 +426,7 @@ class LewisLauncher(EmulatorLauncher):
         lewis_command_line.extend(["-e", str(self._speed), self._device])
         print("Starting Lewis")
         self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+        self._logFile.flush()
         print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
         self._process = subprocess.Popen(lewis_command_line,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
@@ -499,6 +500,7 @@ class LewisLauncher(EmulatorLauncher):
         lewis_command_line.extend(lewis_command)
         time_stamp = datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
         self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
+        self._logFile.flush()
         try:
             p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             for i in range(1, 40):
