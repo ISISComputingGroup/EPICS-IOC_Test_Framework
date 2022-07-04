@@ -107,7 +107,7 @@ class Tpg300Tests(unittest.TestCase):
     @parameterized.expand([
         (('2', 0.5E2, 1.7E-5, 2), (0.5E2, 1.7E-5, 2)),
         (('A', 0.5534E55, 1.25E-5, 6), (5.5E54, 1.25E-5, 6)),
-        (('B', 12E-215, -12E3, 3), (9.9E-99, 0.0E3, 3))
+        (('B', 12E-215, 0.0, 3), (9.9E-99, 0.0, 3))
     ])
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_function_thresholds_set_THEN_thresholds_readback_correct(self, function_set, function_read):
