@@ -1,5 +1,5 @@
 import unittest
-from common_tests.oscillating_collimators import OscillatingCollimatorBase, _custom_name_func, ANGLE, FREQUENCY, RADIUS, \
+from common_tests.oscillating_collimators import OscillatingCollimatorBase, _custom_name_func, ANGLE, FREQUENCY, \
     GALIL_ADDR, PREFIX
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -34,7 +34,7 @@ IOCS = [
         },
     },
 ]
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
 class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
@@ -70,9 +70,7 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         FULL_REV_STEPS = STEPS_PER_REV * MICROSTEPS_PER_STEP * GEARBOX_RATIO
         
         self.ca.assert_that_pv_is_number("FULLREV:SP", FULL_REV_STEPS, tolerance)
-        # Allow for 0.1 degrees tolerance (steps per full rev/360 degrees/0.1)
-        # This is to account for differences in precision of PI etc. between labview + epics
-        self.ca.assert_that_pv_is_number("DIST:PART:SP", expected_values[0], tolerance=FULL_REV_STEPS/360/0.1)
+        self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance=tolerance)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
 
     @parameterized.expand(
