@@ -70,7 +70,7 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         FULL_REV_STEPS = STEPS_PER_REV * MICROSTEPS_PER_STEP * GEARBOX_RATIO
         
         self.ca.assert_that_pv_is_number("FULLREV:SP", FULL_REV_STEPS, tolerance)
-        self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance=tolerance)
+        self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
 
     @parameterized.expand(
