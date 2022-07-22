@@ -513,6 +513,11 @@ class LewisLauncher(EmulatorLauncher):
                 print("Lewis backdoor command {1} did not finish!")
                 self._logFile.write("Lewis backdoor command {1} did not finish!")
                 self._logFile.flush()
+
+            for line in p.stdout:
+                if b"failed to create process" in line.lower():
+                    raise IOError(f"Failed to spawn lewis-control.exe for backdoor set {lewis_command}.")
+
             return [line.strip() for line in p.stdout]
         except subprocess.CalledProcessError as ex:
             for loc in [sys.stderr, self._logFile]:
