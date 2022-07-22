@@ -121,3 +121,17 @@ class TtiplpTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
         self.ca.assert_that_pv_is("OVERVOLT:STAT", "Tripped")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_current_higher_than_overcurr_protection_limit_THEN_overcurr_status_set_to_tripped(self):
+        self.set_init_state(volt_sp=10., curr_sp=2., ov_volt_sp=20., ov_curr_sp=1, output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Tripped")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_current_and_voltage_higher_than_protection_limits_THEN_both_statuses_set_to_tripped(self):
+        self.set_init_state(volt_sp=10., curr_sp=2., ov_volt_sp=5., ov_curr_sp=1, output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Tripped")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Tripped")
