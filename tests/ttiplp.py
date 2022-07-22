@@ -135,3 +135,27 @@ class TtiplpTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("OVERCURR:STAT", "Tripped")
         self.ca.assert_that_pv_is("OVERVOLT:STAT", "Tripped")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_GIVEN_overvolt_tripped_WHEN_triprst_called_THEN_overvolt_ok(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=5., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Tripped")
+
+        self.ca.process_pv("TRIPRST")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_GIVEN_overcurr_tripped_WHEN_triprst_called_THEN_overcurr_ok(self):
+        self.set_init_state(volt_sp=10., curr_sp=3., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Tripped")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+        self.ca.process_pv("TRIPRST")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
