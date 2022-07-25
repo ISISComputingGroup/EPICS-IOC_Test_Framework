@@ -510,8 +510,8 @@ class LewisLauncher(EmulatorLauncher):
                 sleep(0.1)
             else:
                 p.terminate()
-                print("Lewis backdoor command {1} did not finish!")
-                self._logFile.write("Lewis backdoor command {1} did not finish!")
+                print(f"Lewis backdoor command {lewis_command_line} did not finish!")
+                self._logFile.write(f"Lewis backdoor command {lewis_command_line} did not finish!")
                 self._logFile.flush()
 
             for line in p.stdout:
@@ -521,8 +521,8 @@ class LewisLauncher(EmulatorLauncher):
             return [line.strip() for line in p.stdout]
         except subprocess.CalledProcessError as ex:
             for loc in [sys.stderr, self._logFile]:
-                loc.write("Error using backdoor: {0}\n".format(ex.output))
-                loc.write("Error code {0}\n".format(ex.returncode))
+                loc.write(f"Error using backdoor: {ex.output}\n")
+                loc.write(f"Error code {ex.returncode}\n")
             self._logFile.flush()
             raise ex
 
