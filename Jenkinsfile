@@ -22,7 +22,6 @@ pipeline {
   // The options directive is for configuration that applies to the whole job.
   options {
     buildDiscarder(logRotator(numToKeepStr:'7', daysToKeepStr: '7'))
-    disableConcurrentBuilds()
     timestamps()
     // as we "checkout scm" as a stage, we do not need to do it here too
     skipDefaultCheckout(true)
@@ -39,6 +38,11 @@ pipeline {
                     url: "${env.MSTEAMS_URL}"
             ]]
     )
+    throttleJobProperty(
+          categories: ['system_tests_ioc'],
+          throttleEnabled: true,
+          throttleOption: 'category'
+    )
   }
 
   stages {  
@@ -53,7 +57,7 @@ pipeline {
 
     stage("Install latest IBEX") {
       steps {
-         lock(resource: ELOCK, inversePrecedence: true) {
+         lock(resource: ELOCK, inversePrecedence: false) {
            bat """
             if EXIST "ibex_utils" rmdir /s /q ibex_utils
             git clone https://github.com/ISISComputingGroup/ibex_utils.git ibex_utils
@@ -93,7 +97,7 @@ pipeline {
     
     stage("IOC Tests") {
       steps {
-         lock(resource: ELOCK, inversePrecedence: true) {
+         lock(resource: ELOCK, inversePrecedence: false) {
            timeout(time: 1800, unit: 'MINUTES') {
            bat """
              set \"MYJOB=${env.JOB_NAME}\"

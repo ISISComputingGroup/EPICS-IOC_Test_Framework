@@ -6,6 +6,7 @@ import os
 import subprocess
 
 import sys
+from datetime import datetime
 from time import sleep, time
 from functools import partial
 import six
@@ -16,17 +17,12 @@ from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP
 from utils.log_file import log_filename
 from utils.formatters import format_value
-
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
-
-from lewis.scripts.control import call_method
-from lewis.core.control_client import ControlClient
+from utils.test_modes import TestModes
 
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
 DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
 
-# Python 2 required to emulate the v1 mezei flipper
-DEFAULT_PY_2_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python")
 
 class EmulatorRegister(object):
     """
@@ -69,11 +65,12 @@ class EmulatorRegister(object):
 @six.add_metaclass(abc.ABCMeta)
 class EmulatorLauncher(object):
 
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         """
         Args:
             test_name: The name of the test we are creating a device emulator for
             device: The name of the device to emulate
+            emulator_path: The path where the emulator can be found
             var_dir: The directory in which to store logs
             port: The TCP port to listen on for connections
             options: Dictionary of any additional options required by specific launchers
@@ -84,6 +81,7 @@ class EmulatorLauncher(object):
         self._port = port
         self._options = options
         self._test_name = test_name
+        self._emulator_path = emulator_path
 
     def __enter__(self):
         self._open()
@@ -196,7 +194,7 @@ class EmulatorLauncher(object):
             UnableToConnectToPVException: if emulator property does not exist within timeout
         """
         self.backdoor_set_on_device(variable, value)
-        self.assert_that_emulator_value_is(variable, value)
+        self.assert_that_emulator_value_is(variable, str(value))
 
     def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None,
                                       cast=lambda val: val):
@@ -359,22 +357,23 @@ class LewisLauncher(EmulatorLauncher):
 
     _DEFAULT_LEWIS_PATH = os.path.join(DEFAULT_PY_PATH, "scripts")
 
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         """
         Constructor that also launches Lewis.
 
         Args:
             test_name: name of test we are creating device emulator for
             device: device to start
+            emulator_path: The path where the emulator can be found
             var_dir: location of directory to write log file and macros directories
             port: the port to use
         """
-        super(LewisLauncher, self).__init__(test_name, device, var_dir, port, options)
+        super(LewisLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
 
         self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
         self._python_path = options.get("python_path", os.path.join(DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
-        self._lewis_additional_path = options.get("lewis_additional_path", DEVICE_EMULATOR_PATH)
+        self._lewis_additional_path = options.get("lewis_additional_path", emulator_path)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
         self._default_timeout = options.get("default_timeout", 5)
         self._speed = options.get("speed", 100)
@@ -412,40 +411,31 @@ class LewisLauncher(EmulatorLauncher):
         :param port: the port on which to run lewis
         :return:
         """
-        print("opening log file")
-        with open(self._log_filename(), "w") as self._logFile:
-            self._logFile.write("getting free control port\n")
-            print("getting free control port\n")
-            self._control_port = str(get_free_ports(1)[0])
-            self._logFile.write("control port is {}\n".format(str(self._control_port)))
-            print("control port is {}\n".format(str(self._control_port)))
-            lewis_command_line = [self._python_path, "-m", "lewis",
-                                  "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-            lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
-                                      .format(protocol=self._lewis_protocol, port=self._port)])
-            if self._lewis_additional_path is not None:
-                lewis_command_line.extend(["-a", self._lewis_additional_path])
-            if self._lewis_package is not None:
-                lewis_command_line.extend(["-k", self._lewis_package])
+        self._logFile = open(self._log_filename(), "w")
+        self._control_port = str(get_free_ports(1)[0])
+        lewis_command_line = [self._python_path, "-m", "lewis",
+                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+        lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
+                                  .format(protocol=self._lewis_protocol, port=self._port)])
+        if self._lewis_additional_path is not None:
+            lewis_command_line.extend(["-a", self._lewis_additional_path])
+        if self._lewis_package is not None:
+            lewis_command_line.extend(["-k", self._lewis_package])
 
-            # Set lewis speed
-            lewis_command_line.extend(["-e", str(self._speed), self._device])
-            print("Starting Lewis")
-            self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
-            print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
-            self._process = subprocess.Popen(lewis_command_line,
-                                             creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                             stdout=self._logFile,
-                                             stderr=subprocess.STDOUT)
-            self._connected = True
-            self._logFile.write("starting controlclient\n")
-            print("starting controlclient\n")
-            self.remote = ControlClient("127.0.0.1", self._control_port)
-            self._logFile.write("finished starting controlclient\n")
-            print("finished starting controlclient\n")
+        # Set lewis speed
+        lewis_command_line.extend(["-e", str(self._speed), self._device])
+        print("Starting Lewis")
+        self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+        self._logFile.flush()
+        print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+        self._process = subprocess.Popen(lewis_command_line,
+                                         creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                         stdout=self._logFile,
+                                         stderr=subprocess.STDOUT)
+        self._connected = True
 
     def _log_filename(self):
-        return log_filename(self._test_name, "lewis", self._emulator_id, False, self._var_dir)
+        return log_filename(self._test_name, "lewis", self._emulator_id, TestModes.DEVSIM, self._var_dir)
 
     def check(self):
         """
@@ -505,10 +495,36 @@ class LewisLauncher(EmulatorLauncher):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
+        lewis_command_line = [os.path.join(self._lewis_path, "lewis-control.exe"),
+                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+        lewis_command_line.extend(lewis_command)
+        time_stamp = datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
+        self._logFile.write("{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line)))
+        self._logFile.flush()
         try:
-            return call_method(self.remote.get_object_collection(), lewis_command[0], lewis_command[1], lewis_command[2:])
-        except Exception as e:
-            sys.stderr.write(f"Error using backdoor: {e}\n")
+            p = subprocess.Popen(lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+            for i in range(1, 40):
+                code = p.poll()
+                if code == 0:
+                    break
+                sleep(0.1)
+            else:
+                p.terminate()
+                print(f"Lewis backdoor command {lewis_command_line} did not finish!")
+                self._logFile.write(f"Lewis backdoor command {lewis_command_line} did not finish!")
+                self._logFile.flush()
+
+            for line in p.stdout:
+                if b"failed to create process" in line.lower():
+                    raise IOError(f"Failed to spawn lewis-control.exe for backdoor set {lewis_command}.")
+
+            return [line.strip() for line in p.stdout]
+        except subprocess.CalledProcessError as ex:
+            for loc in [sys.stderr, self._logFile]:
+                loc.write(f"Error using backdoor: {ex.output}\n")
+                loc.write(f"Error code {ex.returncode}\n")
+            self._logFile.flush()
+            raise ex
 
     def backdoor_emulator_disconnect_device(self):
         """
@@ -537,7 +553,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: the variables value
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
-        return self.backdoor_command(["device", str(variable_name)])
+        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))
 
 
 class MultiLewisLauncher(object):
@@ -623,8 +639,8 @@ class MultiLewisLauncher(object):
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
 
-    def __init__(self, test_name, device, var_dir, port, options):
-        super(CommandLineEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
+        super(CommandLineEmulatorLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
         try:
             self.command_line = options["emulator_command_line"]
         except KeyError:
@@ -640,7 +656,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         self._log_file = None
 
     def _open(self):
-        self._log_file = open(log_filename(self._test_name, "cmdemulator", self._device, True, self._var_dir), "w")
+        self._log_file = open(log_filename(self._test_name, "cmdemulator", self._device, TestModes.RECSIM, self._var_dir), "w")
         self._call_command_line(self.command_line.format(port=self._port))
 
     def _call_command_line(self, command_line):
@@ -676,38 +692,31 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
 
 class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
 
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
-            self.solution_path = options["solution_path"]
         except KeyError:
-            raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and `solution_path` options must"
+            raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and 'tpy_file_path' options must"
                            " be provided as part of the options dictionary")
 
-        automation_tools_dir = os.path.join(self.beckhoff_root, "util_scripts", "AutomationTools")
-        automation_tools_binary = os.path.join(automation_tools_dir, "bin", "x64", "Release", "AutomationTools.exe")
+        run_bat_file = os.path.join(self.beckhoff_root, "run.bat")
 
-        if os.path.exists(automation_tools_binary):
-            plc_to_start = os.path.join(self.beckhoff_root, self.solution_path)
-            self.beckhoff_command_line = '{} "{}" '.format(automation_tools_binary, plc_to_start)
-            self.startup_command = self.beckhoff_command_line + "activate run " + options.get("plc_name", "")
-
-            options["emulator_command_line"] = self.startup_command
+        if os.path.exists(run_bat_file):
+            options["emulator_command_line"] = run_bat_file
             options["emulator_wait_to_finish"] = True
-            super(BeckhoffEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
+            super(BeckhoffEmulatorLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
         else:
-            raise IOError("Unable to find AutomationTools.exe. Hint: You must build the solution located at:"
-                          " {} \n".format(automation_tools_dir))
+            raise IOError("Unable to find run.bat. Trying to run {} \n".format(run_bat_file))
 
 
 class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
-    def __init__(self, test_name, device, var_dir, port, options):
+    def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         labview_scripts_dir = os.path.join(DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
         self.start_command = os.path.join(labview_scripts_dir, "start_sim.bat")
         self.stop_command = os.path.join(labview_scripts_dir, "stop_sim.bat")
         options["emulator_command_line"] = self.start_command
         options["emulator_wait_to_finish"] = True
-        super(DAQMxEmulatorLauncher, self).__init__(test_name, device, var_dir, port, options)
+        super(DAQMxEmulatorLauncher, self).__init__(test_name, device, emulator_path, var_dir, port, options)
 
     def _close(self):
         self.disconnect_device()

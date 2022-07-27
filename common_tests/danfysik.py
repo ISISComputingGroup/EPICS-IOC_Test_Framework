@@ -1,6 +1,7 @@
+import time
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, skip_if_condition
+from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc
 from utils.ioc_launcher import IOCRegister, MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT
 from parameterized import parameterized
 
@@ -126,7 +127,6 @@ class DanfysikCommon(DanfysikBase):
             self.ca.assert_that_pv_is("{}VOLT".format(id_prefix), expected_value)
 
     @skip_if_recsim("Recsim is unable to simulate comms being uninitialized")
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "Unintialised comms not implemented in RKNPS")
     def test_GIVEN_power_supply_comms_become_uninitialized_THEN_ioc_recovers(self):
         try:
             for volt in TEST_VOLTAGES:
@@ -155,7 +155,6 @@ class DanfysikCommon(DanfysikBase):
             self.ca.assert_that_pv_is("{}CURR".format(id_prefix), 0)
             self.ca.assert_that_pv_is("{}VOLT".format(id_prefix), 0)
 
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_on_and_zero_sp_WHEN_enabling_auto_onoff_THEN_device_is_powered_off(self):
         self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 1)
@@ -166,7 +165,6 @@ class DanfysikCommon(DanfysikBase):
 
         self.ca.assert_that_pv_is("POWER:SP", "Off")
 
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_off_and_non_zero_sp_WHEN_enabling_auto_onoff_THEN_device_is_powered_on(self):
         self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 0)
@@ -177,7 +175,6 @@ class DanfysikCommon(DanfysikBase):
 
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_off_and_zero_sp_WHEN_enabling_auto_onoff_THEN_device_remains_off(self):
         self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 0)
@@ -188,7 +185,6 @@ class DanfysikCommon(DanfysikBase):
 
         self.ca.assert_that_pv_is("POWER:SP", "Off")
 
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_on_and_non_zero_sp_WHEN_enabling_auto_onoff_THEN_device_remains_on(self):
         self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 1)
@@ -199,7 +195,6 @@ class DanfysikCommon(DanfysikBase):
 
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_on_and_auto_onoff_enabled_WHEN_setting_zero_value_THEN_device_is_powered_off(self):
         self.ca.set_pv_value("POWER:SP", 1)
         self.ca.set_pv_value("CURR:SP", 10)
@@ -210,7 +205,6 @@ class DanfysikCommon(DanfysikBase):
 
         self.ca.assert_that_pv_is("POWER:SP", "Off")
 
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_power_off_and_auto_onoff_enabled_WHEN_setting_non_zero_value_THEN_device_is_powered_on(self):
         self.set_autoonoff(True)
         self.ca.set_pv_value("POWER:SP", 0)
@@ -221,7 +215,6 @@ class DanfysikCommon(DanfysikBase):
 
         self.ca.assert_that_pv_is("POWER:SP", "On")
 
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(), "AUTOONOFF not implemented in RKNPS")
     def test_GIVEN_auto_onoff_disabled_WHEN_sweep_to_zero_and_turn_off_triggered_THEN_actioned_by_enabling_auto_onoff_and_setting_sp_to_zero(self):
         self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", 1)
@@ -238,22 +231,29 @@ class DanfysikCommon(DanfysikBase):
         ("power_on_and_current_at_10",  True, 10),
         ("power_off_and_current_at_50", False, 50),
     ])
-    @skip_if_condition(lambda: "RKNPS_01" in IOCRegister.RunningIOCs.keys(),
-                       "RKNPS has a different emulator and IOC structure which means this test doesn't work.")
     @skip_if_recsim("In rec sim this test fails as there is nothing holding the device state")
     def test_WHEN_IOC_is_restarted_THEN_current_and_powered_are_not_changed(self, _, power_state, current):
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", int(power_state))
         self.ca.assert_that_pv_is("POWER", "On" if power_state else "Off")
         self.ca.set_pv_value("CURR:SP", current)
         self.ca.assert_that_pv_is("CURR", current)
+        
+        # check emulator is in correct state before ioc restart
+        self.assertEqual(str(float(current)), self._lewis.backdoor_get_from_device("absolute_current"))
+        self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))
+        
+        # currently using 30 second autosave for autoonoff etc. adding this wait makes sure we have autosaved
+        # the above autoonoff setting as this gets modified in other tests and we may potentially pick up their autosaved
+        # value instead. If this wait fixes things, we need to look at the logic more for a better fix
+        time.sleep(35)
 
-        self._ioc.start_ioc()
+        self._ioc.start_ioc(True)
 
-        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT)
         self.ca.assert_that_pv_exists("DISABLE", 60)
 
         self.ca.assert_that_pv_is("CURR", current)
         self.ca.assert_that_pv_is("POWER", "On" if power_state else "Off")
 
-        self.assertEqual(current, self._lewis.backdoor_get_from_device("absolute_current"))
-        self.assertEqual(power_state, self._lewis.backdoor_get_from_device("power"))
+        self.assertEqual(str(float(current)), self._lewis.backdoor_get_from_device("absolute_current"))
+        self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))

@@ -56,7 +56,7 @@ class Itc503Tests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("itc503", DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("DISABLE")
         self._make_device_scan_faster()
 

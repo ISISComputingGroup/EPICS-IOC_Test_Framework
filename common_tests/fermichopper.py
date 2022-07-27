@@ -50,13 +50,11 @@ class FermichopperBase(object):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("fermichopper", self._get_device_prefix())
 
-        self.ca = ChannelAccess(device_prefix=self._get_device_prefix(), default_timeout=30)
+        self.ca = ChannelAccess(device_prefix=self._get_device_prefix(), default_timeout=30, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("SPEED")
 
-        self.ca.set_pv_value("DELAY:SP", 0)
-        self.ca.set_pv_value("GATEWIDTH:SP", 0)
-        self.ca.assert_that_pv_is_number("DELAY:SP:RBV", 0)
-        self.ca.assert_that_pv_is_number("GATEWIDTH", 0)
+        self.ca.assert_setting_setpoint_sets_readback(0, "DELAY:SP:RBV", set_point_pv="DELAY:SP")
+        self.ca.assert_setting_setpoint_sets_readback(0, "GATEWIDTH")
 
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
@@ -65,15 +63,15 @@ class FermichopperBase(object):
         if IOCRegister.uses_rec_sim:
             return False  # In recsim, assume device is always ok
         else:
-            return self._lewis.backdoor_get_from_device("is_broken")
+            return self._lewis.backdoor_get_from_device("is_broken") != "False"
 
     def tearDown(self):
         self.assertFalse(self.is_device_broken(), "Device was broken.")
 
     def _turn_on_bearings_and_run(self):
-        self.ca.set_pv_value("COMMAND:SP", 4)  # Switch magnetic bearings on
+        self.ca.set_pv_value("COMMAND:SP", 4, sleep_after_set=1)  # Switch magnetic bearings on
         self.ca.assert_that_pv_is("STATUS.B3", "1")
-        self.ca.set_pv_value("COMMAND:SP", 3)  # Switch drive on and run
+        self.ca.set_pv_value("COMMAND:SP", 3, sleep_after_set=1)  # Switch drive on and run
         self.ca.assert_that_pv_is("STATUS.B5", "1")
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
@@ -134,7 +132,6 @@ class FermichopperBase(object):
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_a_stopped_chopper_WHEN_start_command_is_sent_THEN_chopper_goes_to_setpoint(self):
-
         for speed in self.test_chopper_speeds:
             # Setup setpoint speed
             self.ca.set_pv_value("SPEED:SP", speed)

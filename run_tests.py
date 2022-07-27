@@ -8,6 +8,7 @@ import sys
 import traceback
 import unittest
 from typing import List, Any
+import importlib
 
 import six
 import xmlrunner
@@ -17,8 +18,9 @@ from run_utils import package_contents, modified_environment
 from run_utils import ModuleTests
 
 from utils.device_launcher import device_launcher, device_collection_launcher
-from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLewisLauncher, Emulator, TestEmulatorData
-from utils.ioc_launcher import IocLauncher, EPICS_TOP
+from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLewisLauncher, Emulator, TestEmulatorData, \
+    DEVICE_EMULATOR_PATH
+from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 
@@ -52,13 +54,14 @@ def check_and_do_pre_ioc_launch_hook(ioc):
 
 def make_device_launchers_from_module(test_module, mode):
     """
-    Returns a list of device launchers for the given test module.
+    Returns a list of device launchers and directories for the given test module.
     Args:
         test_module: module containing IOC tests
         mode (TestModes): The mode to run in.
 
     Returns:
         list of device launchers (context managers which launch ioc + emulator pairs)
+        set of device directories
 
     """
     try:
@@ -78,11 +81,11 @@ def make_device_launchers_from_module(test_module, mode):
     print("Testing module {} in {} mode.".format(test_module.__name__, TestModes.name(mode)))
 
     device_launchers = []
+    device_directories = set()
     for ioc in iocs:
-
         check_and_do_pre_ioc_launch_hook(ioc)
-
         free_port = get_free_ports(2)
+        device_directories.add(ioc["directory"])
         try:
             macros = ioc["macros"]
         except KeyError:
@@ -97,10 +100,11 @@ def make_device_launchers_from_module(test_module, mode):
 
         if "emulator" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulator_launcher_class", LewisLauncher)
-            emulator_launcher = emulator_launcher_class(test_module.__name__, ioc["emulator"], var_dir,
+            emulator_launcher = emulator_launcher_class(test_module.__name__, ioc["emulator"], emulator_path, var_dir,
                                                         emmulator_port, ioc)
         elif "emulator" in ioc:
-            emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], var_dir, None, ioc)
+            emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], emulator_path, var_dir,
+                                                     None, ioc)
         elif "emulators" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulators_launcher_class", MultiLewisLauncher)
             test_emulator_data: List[TestEmulatorData] = ioc.get("emulators", [])
@@ -119,18 +123,19 @@ def make_device_launchers_from_module(test_module, mode):
 
         device_launchers.append(device_launcher(ioc_launcher, emulator_launcher))
 
-    return device_launchers
+    return device_launchers, device_directories
 
 
-def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mode=None):
+def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running_tests, tests_mode=None):
     """
     Loads and runs the dotted unit tests to be run.
 
     Args:
         test_names: List of dotted unit tests to run.
         failfast: Determines if tests abort after first failure.
+        report_coverage: Report test coverage of test modules versus ioc directories.
         ask_before_running_tests: ask whether to run the tests before running them
-        tests_mode: test mode to run (default: both RECSIM and DEVSIM)
+        tests_mode: test mode to run (default: all)
 
     Returns:
         boolean: True if all tests pass and false otherwise.
@@ -140,6 +145,7 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
     modules_to_be_tested = [ModuleTests(module) for module in modules_to_be_loaded]
 
     modes = set()
+    tested_ioc_directories = set()
 
     for module in modules_to_be_tested:
         # Add tests that are either the module or a subset of the module i.e. module.TestClass
@@ -156,10 +162,14 @@ def load_and_run_tests(test_names, failfast, ask_before_running_tests, tests_mod
 
         for module in modules_to_be_tested_in_current_mode:
             clean_environment()
-            device_launchers = make_device_launchers_from_module(module.file, mode)
+            device_launchers, device_directories = make_device_launchers_from_module(module.file, mode)
+            tested_ioc_directories.update(device_directories)
             test_results.append(
                 run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
                           failfast, ask_before_running_tests))
+
+    if report_coverage:
+        report_test_coverage_for_devices(tested_ioc_directories)
 
     return all(test_result is True for test_result in test_results)
 
@@ -184,6 +194,36 @@ def prompt_user_to_run_tests(test_names):
             print("Not running tests, emulator and IOC only. Ctrl+c to quit.")
         elif answer.upper()[0] == "Y":
             return
+
+
+def report_test_coverage_for_devices(tested_directories):
+    """
+    Report the ioc directories not tested
+
+    Args:
+        tested_directories (list): List of IOC boot directories generated by make_device_launchers_from_module
+
+    Returns:
+        None
+    """
+    # get names of iocs from ioc folder
+    iocs = []
+    for dir in os.listdir(IOCS_DIR):
+        if os.path.isdir(os.path.join(IOCS_DIR, dir)):
+            iocs.append(dir)
+    iocs = set(ioc.lower() for ioc in iocs)
+
+    tested_iocs = []
+    for dir in tested_directories:
+        # Get the 3rd folder up from the ioc boot directory (should be device name) in lowercase
+        tested_iocs.append(os.path.normpath(dir).split(os.path.sep)[-3].lower())
+
+    tested_iocs = set(tested_iocs)
+    missing_tests = sorted(iocs.difference(tested_iocs))
+
+    print("\nThe following IOCs have not been tested:\n")
+    for test in missing_tests:
+        print(test)
 
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
@@ -236,7 +276,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
         'EPICS_CA_ADDR_LIST': "127.255.255.255"
     }
 
-    test_names = ["{}.{}".format(arguments.tests_path, test) for test in tests_to_run]
+    test_names = [f"tests.{test}" for test in tests_to_run]
 
     runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
     test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
@@ -257,23 +297,14 @@ if __name__ == '__main__':
         print("IOC system tests should now be run under python 3. Aborting.")
         sys.exit(-1)
 
-    pythondir = os.environ.get("PYTHONDIR", None)
-
-    if pythondir is not None:
-        emulator_path = os.path.join(pythondir, "scripts")
-    else:
-        emulator_path = None
-
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',
                         help="List available devices for testing.", action="store_true")
+    parser.add_argument('-rc', '--report-coverage',
+                        help='Report devices that have not been tested.', action="store_true")
     parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
-    parser.add_argument('-e', '--emulator-path', default=emulator_path,
-                        help="The path of the lewis.py file")
-    parser.add_argument('-py', '--python-path', default="C:\Instrument\Apps\Python\python.exe",
-                        help="The path of python.exe")
     parser.add_argument('--var-dir', default=None,
                         help="Directory in which to create a log dir to write log file to and directory in which to "
                              "create tmp dir which contains environments variables for the IOC. Defaults to "
@@ -283,7 +314,7 @@ if __name__ == '__main__':
                         Module just runs the tests in a module. 
                         Module.class runs the the test class in Module.
                         Module.class.method runs a specific test.""")
-    parser.add_argument('-tp', '--tests-path', default="tests",
+    parser.add_argument('-tp', '--tests-path', default=f"{os.path.dirname(os.path.realpath(__file__))}\\tests",
                         help="""Path to find the tests in, this must be a valid python module. 
                         Default is in the tests folder of this repo""")
     parser.add_argument('-f', '--failfast', action='store_true',
@@ -291,19 +322,31 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--ask-before-running', action='store_true',
                         help="""Pauses after starting emulator and ioc. Allows you to use booted
                         emulator/IOC or attach debugger for tests""")
-    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM'],
-                        help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
+    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM', 'NOSIM'],
+                        help="""Tests mode to run e.g. DEVSIM, RECSIM or NOSIM (default: all).""", type=str.upper)
+    parser.add_argument('--test_and_emulator', default=None,
+                        help="""Specify a folder that holds both the tests (in a folder called tests) and a lewis 
+                        emulator (in a folder called lewis_emulators).""")
 
     arguments = parser.parse_args()
 
+    if arguments.test_and_emulator:
+        arguments.tests_path = os.path.join(arguments.test_and_emulator, "tests")
+        emulator_path = arguments.test_and_emulator
+    else:
+        emulator_path = DEVICE_EMULATOR_PATH
+
     if os.path.dirname(arguments.tests_path):
         full_path = os.path.abspath(arguments.tests_path)
-        if not os.path.isdir(full_path):
-            print("Test path {} not found".format(full_path))
+        init_file_path = os.path.join(full_path, "__init__.py")
+        if not os.path.isfile(init_file_path):
+            print(f"Test path {full_path} not found")
             sys.exit(-1)
-        tests_module_path = os.path.dirname(full_path)
-        sys.path.insert(0, tests_module_path)
-        arguments.tests_path = os.path.basename(arguments.tests_path)
+        # Import the specified path as the tests module
+        spec = importlib.util.spec_from_file_location("tests", init_file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
 
     if arguments.list_devices:
         print("Available tests:")
@@ -317,12 +360,9 @@ if __name__ == '__main__':
         print("Cannot run without instrument prefix, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
-    if arguments.emulator_path is None:
-        print("Cannot run without emulator path, you may need to run this using an EPICS terminal")
-        sys.exit(-1)
-
     tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
     failfast = arguments.failfast
+    report_coverage = arguments.report_coverage
     ask_before_running_tests = arguments.ask_before_running
 
     tests_mode = None
@@ -330,9 +370,11 @@ if __name__ == '__main__':
         tests_mode = TestModes.RECSIM
     if arguments.tests_mode == "DEVSIM":
         tests_mode = TestModes.DEVSIM
+    if arguments.tests_mode == "NOSIM":
+        tests_mode = TestModes.NOSIM
 
     try:
-        success = load_and_run_tests(tests, failfast, ask_before_running_tests, tests_mode)
+        success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
     except Exception as e:
         print("---\n---\n---\nAn Error occurred loading the tests: ")
         traceback.print_exc()

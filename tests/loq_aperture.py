@@ -5,11 +5,12 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from parameterized import parameterized
 from collections import OrderedDict
+from utils.testing import unstable_test
 
 # Internal Address of device (must be 2 characters)
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR = "127.0.0.11"
 
 PREFIX = "MOT"
 
@@ -100,12 +101,13 @@ class LoqApertureTests(unittest.TestCase):
         ("Stop_02",         3, 3),
         ("Aperture_small",  4, 3),
     ])
+    @unstable_test()
     def test_GIVEN_motor_off_setpoint_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, _, start_index, closest_stop):
         # GIVEN
         # Move 25 per cent forwards and backwards off centre of setpoint
         for fraction_moved_off_setpoint in [0.25, -0.25]:
             initial_position = list(MOTION_SETPOINT.values())[start_index] + (fraction_moved_off_setpoint * SETPOINT_GAP)
-            self.ca.set_pv_value(MOTOR, initial_position)
+            self.ca.set_pv_value(MOTOR, initial_position, wait=True)
             self.ca.assert_that_pv_is_number(MOTOR, initial_position, tolerance=TOLERANCE)
 
             # This assertion ensures that this calc record has updated with the closest beam stop position

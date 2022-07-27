@@ -10,6 +10,7 @@ class TestModes(Enum):
     """
     RECSIM = 1
     DEVSIM = 2
+    NOSIM = 3
 
     @staticmethod
     def name(mode):
@@ -20,6 +21,8 @@ class TestModes(Enum):
             return "Rec sim"
         elif mode == TestModes.DEVSIM:
             return "Device sim"
+        elif mode == TestModes.NOSIM:
+            return "No sim"
         elif mode is None:
             return "test mode not set!!!!"
         else:

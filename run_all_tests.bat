@@ -7,5 +7,7 @@ call "%~dp0..\..\..\config_env.bat"
 
 set "PYTHONUNBUFFERED=1"
 
-call %PYTHON3% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %*
+REM Command line arguments always passed to the test script
+SET ARGS=-rc
+call %PYTHON3% "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
 IF %ERRORLEVEL% NEQ 0 EXIT /b %errorlevel%

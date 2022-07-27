@@ -485,6 +485,7 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), SPC_MAX_PRESSURE)  # final value
 
+    @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_auto_flow_set_off_THEN_pressure_is_not_updated(self):
         diff = 1000
         set_point = 10
@@ -507,7 +508,11 @@ class MercuryTests(unittest.TestCase):
         expected_value = -10
         self.ca.set_pv_value("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
         self._lewis.backdoor_set_on_device("connected", False)
-        self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.INVALID)
+        # we have a lot of db records scanning in the ioc, they will start to fail but it may take a while
+        # (and this will be variable) before the record we choose gets processed and fails or hits
+        # the stream device lock timeout instead.
+        # So we need to wait for at least as long as stream device lock timeout to see an alarm raised
+        self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.INVALID, timeout=60)
 
         self.ca.set_pv_value("{}:SPC:SP".format(card_pv_prefix), "ON")
         self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)

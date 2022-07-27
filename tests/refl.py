@@ -10,9 +10,11 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, Pyth
 from utils.test_modes import TestModes
 from utils.testing import ManagerMode
 from utils.testing import unstable_test
+import time
 
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR1 = "127.0.0.11"
+GALIL_ADDR2 = "127.0.0.12"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
@@ -43,44 +45,52 @@ IOCS = [
         }
     },
     {
+        "ioc_launcher_class": ProcServLauncher,
         "name": GALIL_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "MTR0101",
         "macros": {
-            "GALILADDR": GALIL_ADDR,
+            "GALILADDR": GALIL_ADDR1,
             "MTRCTRL": "1",
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
             "MTR0102.VMAX": INITIAL_VELOCITY,
+            "MTR0102.VELO": INITIAL_VELOCITY,
             "MTR0103.VMAX": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0103.VELO": MEDIUM_VELOCITY,  # Remove s4 as a speed limiting factor
             "MTR0104.VMAX": INITIAL_VELOCITY,
+            "MTR0104.VELO": INITIAL_VELOCITY,
             "MTR0105.VMAX": FAST_VELOCITY,  # Remove angle as a speed limiting factor
-            "MTR0107.VMAX": FAST_VELOCITY,
+            "MTR0105.VELO": FAST_VELOCITY,
+            "MTR0107.VMAX": FAST_VELOCITY,  # Speed up parking / unparking supermirror
+            "MTR0107.VELO": FAST_VELOCITY,
             "MTR0104.LLM": SOFT_LIMIT_LO,
             "MTR0104.HLM": SOFT_LIMIT_HI,
             "MTR0105.LLM": SOFT_LIMIT_LO,
             "MTR0105.HLM": SOFT_LIMIT_HI,
             "MTR0107.ERES": 0.001,
             "MTR0107.MRES": 0.001,
-        }
+        },
+        "delay_after_startup": 5
     },
     {
+        "ioc_launcher_class": ProcServLauncher,
         "name": GALIL_PREFIX_JAWS,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL", iocnum=2),
         "pv_for_existence": "MTR0201",
         "macros": {
-            "GALILADDR": GALIL_ADDR,
+            "GALILADDR": GALIL_ADDR2,
             "MTRCTRL": "2",
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
             "MTR0208.ERES": 0.001,
             "MTR0208.MRES": 0.001
-        }
+        },
+        "delay_after_startup": 5
     },
     {
         "name": "INSTETC",
@@ -105,6 +115,48 @@ OUT_POSITION_HIGH = 5
 MOTOR_TOLERANCE = 0.001
 
 
+@contextmanager
+def all_motors_in_set_mode(channel_access):
+    """
+    Uses a context to place motor into set mode and ensure that it leaves set mode after context has ended. If it
+    can not set the mode correctly will not run the yield. This is used so that all moves are instantaneous.
+    Returns:
+    """
+    calibration_set_pv = "{}.SET"
+    offset_freeze_switch_pv = "{}.FOFF"
+
+    all_motors = ["MTR0101", "MTR0102", "MTR0103", "MTR0103", "MTR0104", "MTR0105", "MTR0106", "MTR0107", "MTR0108",
+                  "MTR0201", "MTR0202", "MTR0203", "MTR0203", "MTR0204", "MTR0205", "MTR0206", "MTR0207", "MTR0208"]
+
+    for motor in all_motors:
+        channel_access.set_pv_value(calibration_set_pv.format(motor), "Set")
+        offset_freeze_switch = channel_access.get_pv_value(offset_freeze_switch_pv.format(motor))
+        channel_access.set_pv_value(offset_freeze_switch_pv.format(motor), "Frozen")
+
+    try:
+        yield
+    finally:
+        for motor in all_motors:
+            channel_access.set_pv_value(calibration_set_pv.format(motor), "Use")
+            channel_access.set_pv_value(offset_freeze_switch_pv.format(motor), offset_freeze_switch)
+
+
+def stop_motors_with_retry(channel_access, n_retry):
+    """
+    Tries to stop all motors several times as this operation sometimes fails for simulated axes.
+
+    Args:
+     channel_access: The channel access interface to use
+     n_retry: The number of retries
+    """
+    for _ in range(n_retry):
+        channel_access.set_pv_value("MOT:STOP:ALL", 1, wait=True)
+        if channel_access.get_pv_value("MOT:MOVING") == 0.0:
+            break
+        time.sleep(1)
+    channel_access.assert_that_pv_is("MOT:MOVING", 0, timeout=5)
+
+
 class ReflTests(unittest.TestCase):
     """
     Tests for reflectometry server
@@ -112,30 +164,31 @@ class ReflTests(unittest.TestCase):
 
     def setUp(self):
         self._ioc = IOCRegister.get_running("refl")
-        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
-        self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT")
-        self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS")
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
+        self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT", default_wait_time=0.0)
+        self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS", default_wait_time=0.0)
         self.ca_no_prefix = ChannelAccess()
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
-        self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
-        self.ca.set_pv_value("BL:MODE:SP", "NR")
-        self.ca.set_pv_value("PARAM:S1:SP", 0)
-        self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 0)
-        self.ca.set_pv_value("PARAM:SMOFFSET:SP_NO_ACTION", 0)
-        self.ca.set_pv_value("PARAM:SMINBEAM:SP", "OUT")
-        self.ca.set_pv_value("PARAM:THETA:SP", 0)
-        self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
-        self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
-        self.ca.set_pv_value("PARAM:DET_LONG:SP", 0)
-        self.ca.set_pv_value("PARAM:S3INBEAM:SP", "IN")
-        self.ca.set_pv_value("PARAM:S3:SP", 0)
-        self.ca.set_pv_value("PARAM:CHOICE:SP", "MTR0205")
-        self.ca_galil.set_pv_value("MTR0207", 0)
-        self.ca.set_pv_value("PARAM:NOTINMODE:SP", 0)
-        self.ca.set_pv_value("BL:MODE:SP", "NR")
-        self.ca.set_pv_value("BL:MOVE", 1)
-        self.ca_galil.assert_that_pv_is("MTR0105", 0.0)
-        self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
+        stop_motors_with_retry(self.ca_cs, 5)
+        self.set_up_velocity_tests(INITIAL_VELOCITY)
+        with all_motors_in_set_mode(self.ca_galil):
+            self.ca.set_pv_value("BL:MODE:SP", "NR")
+            self.ca.set_pv_value("PARAM:S1:SP", 0)
+            self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 0)
+            self.ca.set_pv_value("PARAM:SMOFFSET:SP_NO_ACTION", 0)
+            self.ca.set_pv_value("PARAM:SMINBEAM:SP", "OUT")
+            self.ca.set_pv_value("PARAM:THETA:SP", 0)
+            self.ca.set_pv_value("PARAM:DET_POS:SP", 0)
+            self.ca.set_pv_value("PARAM:DET_ANG:SP", 0)
+            self.ca.set_pv_value("PARAM:DET_LONG:SP", 0)
+            self.ca.set_pv_value("PARAM:S3INBEAM:SP", "IN")
+            self.ca.set_pv_value("PARAM:S3:SP", 0)
+            self.ca.set_pv_value("PARAM:CHOICE:SP", "MTR0205")
+            self.ca_galil.set_pv_value("MTR0207", 0)
+            self.ca.set_pv_value("PARAM:NOTINMODE:SP", 0)
+            self.ca.set_pv_value("BL:MODE:SP", "NR")
+            self.ca.set_pv_value("BL:MOVE", 1)
+            self.ca_galil.assert_that_pv_is("MTR0105", 0.0)
+            self.ca_cs.assert_that_pv_is("MOT:MOVING", 0, timeout=60)
 
     def set_up_velocity_tests(self, velocity):
         self.ca_galil.set_pv_value("MTR0102.VELO", velocity)
@@ -143,15 +196,15 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.set_pv_value("MTR0105.VELO", FAST_VELOCITY)  # Remove angle as a speed limiting factor
 
     def _check_param_pvs(self, param_name, expected_value):
-        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number(f"PARAM:{param_name}", expected_value, 0.01)
+        self.ca.assert_that_pv_is_number(f"PARAM:{param_name}:SP", expected_value, 0.01)
+        self.ca.assert_that_pv_is_number(f"PARAM:{param_name}:SP:RBV", expected_value, 0.01)
 
     @contextmanager
     def _assert_pv_monitors(self, param_name, expected_value):
-        with self.ca.assert_that_pv_monitor_is_number("PARAM:%s" % param_name, expected_value, 0.01), \
-             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01), \
-             self.ca.assert_that_pv_monitor_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01):
+        with self.ca.assert_that_pv_monitor_is_number(f"PARAM:{param_name}", expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number(f"PARAM:{param_name}:SP", expected_value, 0.01), \
+             self.ca.assert_that_pv_monitor_is_number(f"PARAM:{param_name}:SP:RBV", expected_value, 0.01):
             yield
 
     def test_GIVEN_loaded_WHEN_read_status_THEN_status_ok(self):
@@ -312,7 +365,6 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0102.VELO", expected)
 
     def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode_and_PVs_inmode_are_labeled_as_such(self):
-
         expected_mode_value = "TESTING"
         PARAM_PREFIX = "PARAM:"
         IN_MODE_SUFFIX = ":IN_MODE"
@@ -333,7 +385,6 @@ class ReflTests(unittest.TestCase):
             self.ca.assert_that_pv_monitor_is("{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_out_of_mode_value)
 
     def test_GIVEN_jaws_set_to_value_WHEN_change_sp_at_low_level_THEN_jaws_sp_rbv_does_not_change(self):
-
         expected_gap_in_refl = 0.2
         expected_change_to_gap = 1.0
 
@@ -362,7 +413,7 @@ class ReflTests(unittest.TestCase):
         value = value
 
         self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+        stop_motors_with_retry(self.ca_cs, 5)
 
         self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
 
@@ -373,7 +424,7 @@ class ReflTests(unittest.TestCase):
         value = value
 
         self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+        stop_motors_with_retry(self.ca_cs, 5)
 
         self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
 
@@ -384,7 +435,7 @@ class ReflTests(unittest.TestCase):
         value = value
 
         self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
-        self.ca_cs.set_pv_value("MOT:STOP:ALL", 1)
+        stop_motors_with_retry(self.ca_cs, 5)
 
         self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
 
@@ -693,26 +744,22 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is_not(param_pv, new_position)
 
     def test_GIVEN_value_parameter_WHEN_read_THEN_value_returned(self):
-
         param_pv = "CONST:TEN"
 
         self.ca.assert_that_pv_is(param_pv, 10)
         self.ca.assert_that_pv_is("{}.DESC".format(param_pv), "The value 10")
 
     def test_GIVEN_bool_parameter_WHEN_read_THEN_value_returned(self):
-
         param_pv = "CONST:YES"
 
         self.ca.assert_that_pv_is(param_pv, "YES")
 
     def test_GIVEN_string_constant_parameter_WHEN_read_THEN_value_returned(self):
-
         param_pv = "CONST:STRING"
 
         self.ca.assert_that_pv_is(param_pv, "Test String")
 
     def test_GIVEN_PNR_mode_with_SM_angle_WHEN_move_in_disable_mode_and_into_PNR_THEN_beamline_is_updated_on_mode_change_and_value_of_pd_offsets_correct(self):
-
         self.ca.set_pv_value("BL:MODE:SP", "POLARISED")
         self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 0.2)
         self.ca.set_pv_value("BL:MOVE", 1)
@@ -746,13 +793,12 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_component_with_multiple_out_of_beam_positions_is_out_of_beam_WHEN_beam_intercept_moves_above_threshold_THEN_driver_moves_to_correct_out_of_beam_position(self):
         self.ca.assert_that_pv_is("PARAM:S3INBEAM", "IN")
         self.ca.set_pv_value("PARAM:S3INBEAM:SP", "OUT", wait=True)
-        self.ca.assert_that_pv_is("PARAM:S3INBEAM:CHANGING", "NO", timeout=30)
+        self.ca.assert_that_pv_is("PARAM:S3INBEAM:CHANGING", "NO", timeout=40)
         self.ca_galil.assert_that_pv_is_number("MTR0102.RBV", OUT_POSITION_HIGH, timeout=20)
 
         self.ca.set_pv_value("PARAM:THETA:SP", 22.5, wait=True)
 
         self.ca_galil.assert_that_pv_is_number("MTR0102.VAL", OUT_POSITION_LOW, timeout=5)
-
 
     @parameterized.expand([(0, OUT_POSITION_HIGH, "OUT"),
                            (0, OUT_POSITION_LOW, "IN"),

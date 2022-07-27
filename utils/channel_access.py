@@ -5,6 +5,7 @@ import os
 import time
 import operator
 import ctypes
+import datetime
 from contextlib import contextmanager
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
@@ -237,14 +238,14 @@ class ChannelAccess(object):
             if return_value:
                 return None
             else:
-                return "{}{}{}".format(message, os.linesep, "Final PV value was {}".format(format_value(value)))
+                return "Exception date time: {}{}{}{}{}".format(datetime.datetime.now(), os.linesep,
+                                                               message, os.linesep, "Final PV value was {}".format(format_value(value)))
 
         if message is None:
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
                 .format(func.__name__, self.create_pv_with_prefix(pv))
-
+            
         err = self._wait_for_pv_lambda(partial(_wrapper, message), timeout)
-
         if err is not None:
             raise AssertionError(err)
 
@@ -480,7 +481,7 @@ class ChannelAccess(object):
         else:
             # Last try.
             if not self.ca.pv_exists(pv, timeout=1.0):
-                raise AssertionError("PV {pv} does not exist".format(pv=pv))
+                raise AssertionError("Exception date time: {time}\nPV {pv} does not exist".format(time=datetime.datetime.now(),pv=pv))
 
     def assert_that_pv_does_not_exist(self, pv, timeout=2):
         """
