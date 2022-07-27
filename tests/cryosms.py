@@ -35,7 +35,7 @@ IOCS = [
             "SWITCH_LOW": 3.65,
             "SWITCH_STABLE_NUMBER": 10,
             "SWITCH_TIMEOUT": 300,
-            "SWITCH_TEMP_PV": "CRYOSMS_01:SIM:TEMP:SWITCH"
+            "SWITCH_TEMP_PV": "CRYOSMS_01:SIM:TEMP:SWITCH",
             "HEATER_TOLERANCE": 0.2,
             "HEATER_OFF_TEMP": 3.65,
             "HEATER_ON_TEMP": 3.7,
