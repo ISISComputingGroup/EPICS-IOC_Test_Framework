@@ -90,7 +90,6 @@ class CryoSMSTests(unittest.TestCase):
             self.ca.set_pv_value("SIM:COMP2STAT", 1)
             self._lewis.backdoor_set_on_device("mid_target", 0)
             self._lewis.backdoor_set_on_device("output", 0)
-            self.ca.set_pv_value("PAUSE:SP", 0)
             self.ca.set_pv_value("ABORT", 1)
             self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
             self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
@@ -204,6 +203,7 @@ class CryoSMSTests(unittest.TestCase):
         # GIVEN paused
         self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
         self.ca.set_pv_value("PAUSE:SP", 1)
         rampTarget = self.ca.get_pv_value("MID")
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON PAUSE", msg="Ramping failed to pause")
