@@ -373,3 +373,15 @@ class ReadasciiTests(unittest.TestCase):
         with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file("RealFile"):
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:])
+    
+    def test_GIVEN_no_file_is_set_THEN_file_not_default_PV_is_false(self):
+        self.ca.set_pv_value("RAMP_FILE", DEFAULT_SETTINGS_FILE)
+        self.ca.assert_that_pv_is("RAMP_FILE_NOT_DEFAULT", 0)
+
+    def test_GIVEN_file_is_set_THEN__file_not_default_PV_is_true(self):
+        headers = ["SP", "P", "I", "D", "MH"]
+        rows = [(0, 0, 0, 0, 0), ]
+
+        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file("RealFile"):
+            self.ca.assert_that_pv_is("RAMP_FILE_NOT_DEFAULT", 1)
+
