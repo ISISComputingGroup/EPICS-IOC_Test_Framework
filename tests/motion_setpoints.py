@@ -290,6 +290,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
     def test_GIVEN_file_WHEN_duplicate_name_value_THEN_load_no_positions(self):
         self.caDN.assert_that_pv_is("POSN:NUM", 0)
+        self.caDN.assert_that_pv_is("ERRORMSG", "Duplicate name: \"Sample1\".")   
 
     @parameterized.expand(
         parameterized_list([1, 2, 10])
@@ -464,3 +465,10 @@ class MotionSetpointsTests(unittest.TestCase):
             new_position = 5 + coord
             self.ca2D.assert_setting_setpoint_sets_readback(new_position, f"COORD{coord}:RBV", f"COORD{coord}:SP")
             self.motor_ca.assert_that_pv_is(f"MTR010{coord+1}.RBV", new_position)
+
+    def test_GIVEN_files_WHEN_file_names_checked_THEN_current_names_correct(self):
+        self.ca1D.assert_that_pv_is("FILENAME", "lookup1D.txt")
+        self.ca2D.assert_that_pv_is("FILENAME", "lookup2D.txt")
+        self.ca10D.assert_that_pv_is("FILENAME", "lookup10D.txt")
+        self.caDN.assert_that_pv_is("FILENAME", "duplicate_names.txt")
+        self.caDP.assert_that_pv_is("FILENAME", "duplicate_positions.txt")
