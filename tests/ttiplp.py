@@ -159,3 +159,19 @@ class TtiplpTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
         self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_GIVEN_hardware_trip_WHEN_triprst_called_THEN_hardware_trip_not_reset(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self._lewis.backdoor_set_on_device("hardware_tripped", True)
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+        self.ca.assert_that_pv_is("TRIP:STAT", "Tripped")
+
+        self.ca.process_pv("TRIPRST")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+        self.ca.assert_that_pv_is("TRIP:STAT", "Tripped")
