@@ -520,7 +520,7 @@ class MercuryTests(unittest.TestCase):
         self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
 
     @parameterized.expand(parameterized_list(
-        itertools.product(PRESSURE_CARDS)))
+        itertools.product(TEMP_CARDS + PRESSURE_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_heater_voltage_updated_THEN_heater_voltage_percent_updated(self, _, card):
         original_voltage = 10
@@ -545,7 +545,7 @@ class MercuryTests(unittest.TestCase):
         self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
 
     @parameterized.expand(parameterized_list(
-        itertools.product(PRESSURE_CARDS)))
+        itertools.product(TEMP_CARDS + PRESSURE_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_voltage_limit_updated_then_voltage_percent_updated(self, _, card):
         voltage = 10
