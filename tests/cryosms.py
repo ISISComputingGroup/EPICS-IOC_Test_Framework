@@ -18,8 +18,8 @@ IOCS = [
             "MAX_CURR": 135,
             "T_TO_A": 0.037,
             "MAX_VOLT": 9.9,
-            "WRITE_UNIT": "Amps",
-            "DISPLAY_UNIT": "TESLA",
+            "WRITE_UNIT": "AMPS",
+            "DISPLAY_UNIT": "GAUSS",
             "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\default.txt",
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.1,
@@ -31,7 +31,7 @@ IOCS = [
             "FAST_PERSISTENT_SETTLETIME": 5,
             "PERSISTENT_SETTLETIME": 5,  # 60 on HIFI
             "NON_PERSISTENT_SETTLETIME": 5,  # 30 on HIFI
-            "SWITCH_TEMP_PV": "TE:NDLT1172:CRYOSMS_01:SIM:SWITCH:TEMP",
+            "SWITCH_TEMP_PV": "CRYOSMS_01:SIM:SWITCH:TEMP",
             "SWITCH_HIGH": 3.7,
             "SWITCH_LOW": 3.65,
             "SWITCH_STABLE_NUMBER": 10,
@@ -47,8 +47,8 @@ IOCS = [
             "COMP_OFF_ACT": "Yes",
             "NO_OF_COMP": "2",
             "MIN_NO_OF_COMP": 1,
-            "COMP_1_STAT_PV": "TE:NDLT1172:CRYOSMS_01:SIM:COMP1STAT",
-            "COMP_2_STAT_PV": "TE:NDLT1172:CRYOSMS_01:SIM:COMP2STAT",
+            "COMP_1_STAT_PV": "CRYOSMS_01:SIM:COMP1STAT",
+            "COMP_2_STAT_PV": "CRYOSMS_01:SIM:COMP2STAT",
             "HOLD_TIME_ZERO": 5,  # 12 on HIFI
             "HOLD_TIME": 5,  # 30 on HIFI
             "VOLT_STABILITY_DURATION": 300,
@@ -85,8 +85,12 @@ class CryoSMSTests(unittest.TestCase):
             self.ca.set_pv_value("RAMP:LEADS", 0)
             self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=60)
             self.ca.set_pv_value("MAGNET:MODE", 0)
+            self._lewis.backdoor_set_on_device("is_paused", False)
             self._lewis.backdoor_set_on_device("mid_target", 0)
+            self._lewis.backdoor_set_on_device("is_output_mode_tesla", False)
             self._lewis.backdoor_set_on_device("output", 0)
+            self._lewis.backdoor_set_on_device("heater_value", 0)
+            self._lewis.backdoor_set_on_device("is_heater_on", True)
             self.ca.set_pv_value("ABORT:SP", 1)
             self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
             self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
