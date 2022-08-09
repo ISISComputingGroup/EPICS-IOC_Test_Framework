@@ -1,71 +1,49 @@
-import os
-import unittest
+import abc
 from parameterized import parameterized
 
 import time
 from utils.channel_access import ChannelAccess
-from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP, ProcServLauncher
+from utils.ioc_launcher import IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
-
-# Internal Address of device (must be 2 characters)
-ADDRESS = "A01"
-# Numerical address of the device
-ADDR_1 = 1 # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
-DEVICE = "EUROTHRM_01"
-PREFIX = "{}:{}".format(DEVICE, ADDRESS)
-
-# PV names
-RBV_PV = "RBV"
-
-EMULATOR_DEVICE = "eurotherm"
-
-IOCS = [
-    {
-        "name": DEVICE,
-        "directory": get_default_ioc_dir("EUROTHRM"),
-        "ioc_launcher_class": ProcServLauncher,
-        "macros": {
-            "ADDR": ADDRESS,
-            "ADDR_1": ADDR_1,
-            "ADDR_2": "",
-            "ADDR_3": "",
-            "ADDR_4": "",
-            "ADDR_5": "",
-            "ADDR_6": "",
-            "ADDR_7": "",
-            "ADDR_8": "",
-            "ADDR_9": "",
-            "ADDR_10": ""
-        },
-        "emulator": EMULATOR_DEVICE,
-    },
-]
 
 SENSOR_DISCONNECTED_VALUE = 1529
 NONE_TXT_CALIBRATION_MAX_TEMPERATURE = 10000.0
 NONE_TXT_CALIBRATION_MIN_TEMPERATURE = 0.0
 
+# PV names
+RBV_PV = "RBV"
 
-TEST_MODES = [TestModes.DEVSIM]
 
-
-class EurothermTests(unittest.TestCase):
+class EurothermBaseTests(metaclass=abc.ABCMeta):
     """
     Tests for the Eurotherm temperature controller.
     """
+    @abc.abstractmethod
+    def get_device(self):
+        pass
+
+    @abc.abstractmethod
+    def get_emulator_device(self):
+        pass
+
+    @abc.abstractmethod
+    def get_address(self):
+        pass
+
+    def get_prefix(self):
+        return "{}:{}".format(self.get_device(), self.get_address())
 
     def setUp(self):
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
 
     def _setup_lewis_and_channel_access(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, DEVICE)
-        self.ca = ChannelAccess(device_prefix=PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc(self.get_emulator_device(), self.get_device())
+        self.ca = ChannelAccess(device_prefix=self.get_prefix())
         self.ca.assert_that_pv_exists(RBV_PV, timeout=30)
         self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
-        self._lewis.backdoor_set_on_device("address", ADDRESS)
+        self._lewis.backdoor_set_on_device("address", self.get_address())
 
     def _reset_device_state(self):
         self._lewis.backdoor_set_on_device('connected', True)
