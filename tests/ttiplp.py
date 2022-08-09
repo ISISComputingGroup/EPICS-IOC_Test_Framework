@@ -175,3 +175,27 @@ class TtiplpTests(unittest.TestCase):
         self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
         self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
         self.ca.assert_that_pv_is("TRIP:STAT", "Tripped")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_in_current_limit_THEN_cc_pv_active(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Ok")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Ok")
+
+        self._lewis.backdoor_set_on_device("current_limited", True)
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Ok")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Limit")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_in_voltage_limit_THEN_cv_pv_active(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Ok")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Ok")
+
+        self._lewis.backdoor_set_on_device("voltage_limited", True)
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Limit")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Ok")
