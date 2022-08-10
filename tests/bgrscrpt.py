@@ -7,8 +7,8 @@ from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "BGRSCRPT_01"
 IOC_DIR = get_default_ioc_dir("BGRSCRPT")
-SCRIPT_PATH = "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\tests\\bgrscrpt_script.py"
-TEMP_DIR = os.path.join(IOC_DIR, "BGRSCRPT_01_test_dir")
+SCRIPT_PATH = os.path.join(os.getenv("EPICS_KIT_ROOT"), "ioc\\master\\BGRSCRPT\\settings\\bgrscrpt_script.py")
+TEMP_DIR = "C:\\Instrument\\Var\\tmp\\BGRSCRPT_01_test_dir"
 
 IOCS = [
     {
