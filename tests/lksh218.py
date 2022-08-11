@@ -80,28 +80,25 @@ class Lksh218Tests(unittest.TestCase):
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP_and_SENSOR(self):
-        self._lewis.backdoor_set_on_device("connected", False)
-        self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
-        time.sleep(10) # wait for pvs to disconnect, we need to wait for at least stream device lockTimeout
-
-        for i in range(1, 9):
-            self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), ChannelAccess.Alarms.INVALID)
-            self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), ChannelAccess.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
+            time.sleep(10) # wait for pvs to disconnect, we need to wait for at least stream device lockTimeout
+            for i in range(1, 9):
+                self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), ChannelAccess.Alarms.INVALID)
+                self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_SENSORALL(self):
-        self._lewis.backdoor_set_on_device("connected", False)
-        self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
-
-        self.ca.process_pv("SENSORALL")
-        time.sleep(10) # wait for pvs to disconnect, we need to wait for at least stream device lockTimeout
-        self.ca.assert_that_pv_alarm_is("SENSORALL", ChannelAccess.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
+            self.ca.process_pv("SENSORALL")
+            time.sleep(10) # wait for pvs to disconnect, we need to wait for at least stream device lockTimeout
+            self.ca.assert_that_pv_alarm_is("SENSORALL", ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMPALL(self):
-        self._lewis.backdoor_set_on_device("connected", False)
-        self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
- 
-        self.ca.process_pv("TEMPALL")
-        time.sleep(10) # wait for pvs to disconnect, we need to wait for at least stream device lockTimeout
-        self.ca.assert_that_pv_alarm_is("TEMPALL", ChannelAccess.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
+            self.ca.process_pv("TEMPALL")
+            time.sleep(10) # wait for pvs to disconnect, we need to wait for at least stream device lockTimeout
+            self.ca.assert_that_pv_alarm_is("TEMPALL", ChannelAccess.Alarms.INVALID)
