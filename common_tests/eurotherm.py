@@ -1,4 +1,6 @@
 import abc
+import unittest
+
 from parameterized import parameterized
 
 import time
@@ -40,7 +42,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
 
     def _setup_lewis_and_channel_access(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(self.get_emulator_device(), self.get_device())
-        self.ca = ChannelAccess(device_prefix=self.get_prefix())
+        self.ca = ChannelAccess(device_prefix=self.get_prefix(), default_wait_time=0)
         self.ca.assert_that_pv_exists(RBV_PV, timeout=30)
         self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
         self._lewis.backdoor_set_on_device("address", self.get_address())
@@ -143,7 +145,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         # Arrange
         temperature = 50.0
         rbv_change_timeout = 10
-        tolerance = 0.01
+        tolerance = 0.2
         self.ca.set_pv_value("RAMPON:SP", 0)
         reset_calibration_file(self.ca)
         self.ca.set_pv_value("TEMP:SP", temperature)
@@ -214,46 +216,6 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
 
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.A", temperature)
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER", expected_value_of_under_range_calc_pv)
-
-    @parameterized.expand([
-        ("over_range_calc_pv_is_over_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE + 5.0, 1.0),
-        ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
-        ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE, 0.0)
-    ])
-    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
-            self, _, temperature, expected_value_of_over_range_calc_pv):
-        # Arrange
-
-        self._assert_using_mock_table_location()
-        with use_calibration_file(self.ca, "None.txt"):
-            self.ca.assert_that_pv_exists("CAL:RANGE")
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
-
-            # Act:
-            self._set_setpoint_and_current_temperature(temperature)
-
-            # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.A", temperature)
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
-
-    def test_GIVEN_None_txt_calibration_file_WHEN_changed_to_C006_txt_calibration_file_THEN_the_calibration_limits_change(
-            self):
-        C006_CALIBRATION_FILE_MAX = 330.26135292267900000000
-        C006_CALIBRATION_FILE_MIN = 1.20927230303971000000
-
-        # Arrange
-        self._assert_using_mock_table_location()
-        with use_calibration_file(self.ca, "None.txt"):
-            self.ca.assert_that_pv_exists("CAL:RANGE")
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
-
-        # Act:
-        with use_calibration_file(self.ca, "C006.txt"):
-
-            # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
 
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
