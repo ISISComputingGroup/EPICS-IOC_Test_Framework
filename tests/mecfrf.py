@@ -64,8 +64,8 @@ class MecfrfTests(unittest.TestCase):
     def test_WHEN_emulator_disconnected_THEN_records_go_into_alarm(self, _, sensor):
         self.ca.assert_that_pv_is("_READINGS_OUTDATED", "No")
         self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
-
-        self._lewis.backdoor_set_on_device("connected", False)
-
-        self.ca.assert_that_pv_is("_READINGS_OUTDATED", "Yes")
-        self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_is("_READINGS_OUTDATED", "Yes")
+            self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
