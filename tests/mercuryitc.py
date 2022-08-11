@@ -571,3 +571,6 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
 
+    def test_WHEN_ioc_started_THEN_state_machine_initialized(self):
+        self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_alarm_is("STATEMACHINE:STATE", self.ca.Alarms.NONE)
