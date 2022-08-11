@@ -62,14 +62,6 @@ class Lakeshore372Tests(unittest.TestCase):
         for readback_pv in ["TEMP", "TEMP:SP:RBV", "P", "I", "D", "HEATER:POWER", "RESISTANCE", "HEATER:RANGE"]:
             self.ca.assert_that_pv_alarm_is(readback_pv, alarm)
 
-    @contextlib.contextmanager
-    def _simulate_disconnected_device(self):
-        self._lewis.backdoor_set_on_device("connected", False)
-        try:
-            yield
-        finally:
-            self._lewis.backdoor_set_on_device("connected", True)
-
     @parameterized.expand(parameterized_list(TEST_TEMPERATURES))
     def test_WHEN_temp_setpoint_is_set_THEN_actual_temperature_updates(self, _, temperature):
         self.ca.assert_setting_setpoint_sets_readback(temperature, set_point_pv="TEMP:SP", readback_pv="TEMP")
@@ -107,7 +99,7 @@ class Lakeshore372Tests(unittest.TestCase):
     @skip_if_recsim("Recsim does not support simulated disconnection")
     def test_WHEN_device_does_not_respond_THEN_pvs_go_into_invalid_alarm(self):
         self._assert_readback_alarm_states(self.ca.Alarms.NONE)
-        with self._simulate_disconnected_device():
+        with self._lewis.backdoor_simulate_disconnected_device():
             self._assert_readback_alarm_states(self.ca.Alarms.INVALID)
         # Assert alarms clear on reconnection
         self._assert_readback_alarm_states(self.ca.Alarms.NONE)
