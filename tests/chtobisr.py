@@ -41,8 +41,8 @@ class ChtobisrTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_ID_requested_WHEN_device_disconnected_THEN_alarm_is_raised(self):
-        self._lewis.backdoor_set_on_device("connected", False)
-        self.ca.assert_that_pv_alarm_is("ID", self.ca.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is("ID", self.ca.Alarms.INVALID)
 
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_reset_requested_THEN_emulator_is_reset(self):
