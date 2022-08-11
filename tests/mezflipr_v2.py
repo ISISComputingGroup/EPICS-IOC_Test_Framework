@@ -93,8 +93,9 @@ class MezfliprTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(["MODE", "COMPENSATION", "PARAMS"]))
     @skip_if_recsim("Recsim cannot test disconnected device")
     def test_WHEN_device_is_disconnected_THEN_pvs_are_in_invalid_alarm(self, _, pv):
-        try:
+        self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.NONE)
+        with self._lewis.backdoor_simulate_disconnected_device():
             self._lewis.backdoor_set_on_device("connected", False)
             self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.INVALID)
-        finally:
-            self._lewis.backdoor_set_on_device("connected", True)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.NONE)
