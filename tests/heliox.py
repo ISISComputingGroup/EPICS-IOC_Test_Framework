@@ -112,8 +112,10 @@ class HelioxTests(unittest.TestCase):
     @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
     def test_WHEN_device_disconnected_THEN_temperature_goes_into_alarm(self):
         self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
-        self._lewis.backdoor_set_on_device("connected", False)
-        self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is("TEMP", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
     @slow_test
