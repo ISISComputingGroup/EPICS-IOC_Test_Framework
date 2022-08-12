@@ -144,6 +144,7 @@ class MercuryTests(unittest.TestCase):
         card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         self.ca.assert_setting_setpoint_sets_readback("OFF", readback_pv="{}:SPC".format(card_pv_prefix),
                                                       expected_alarm=self.ca.Alarms.MAJOR)
+        
 
     @parameterized.expand(parameterized_list(
         itertools.product(PID_PARAMS, PID_TEST_VALUES, TEMP_CARDS + PRESSURE_CARDS)))
@@ -574,3 +575,17 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_ioc_started_THEN_state_machine_initialized(self):
         self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
         self.ca.assert_that_pv_alarm_is("STATEMACHINE:STATE", self.ca.Alarms.NONE)
+
+    def test_WHEN_auto_pres_ctrl_disabled_THEN_statemachine_in_init(self):
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_alarm_is("STATEMACHINE:STATUS", self.ca.Alarms.NONE)
+
+    def test_GIVEN_sm_off_WHEN_auto_pres_ctrl_enabled_THEN_statemachine_enters_calc_state(self):
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_alarm_is("STATEMACHINE:STATUS", self.ca.Alarms.NONE)
+
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is("STATEMACHINE:STATE", "calc_new_sp")
