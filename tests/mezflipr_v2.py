@@ -95,7 +95,6 @@ class MezfliprTests(unittest.TestCase):
     def test_WHEN_device_is_disconnected_THEN_pvs_are_in_invalid_alarm(self, _, pv):
         self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_device():
-            self._lewis.backdoor_set_on_device("connected", False)
             self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.INVALID)
         # Assert alarms clear on reconnection
         self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.NONE)
