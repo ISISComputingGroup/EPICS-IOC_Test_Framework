@@ -22,7 +22,6 @@ IOCS = [
     },
 ]
 
-
 TEST_MODES = [TestModes.DEVSIM]
 
 
@@ -135,9 +134,13 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*automeasure_interval)
 
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('MEASUREMENT', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('TEMPERATURE:SP:RBV', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('TEMPERATURE', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('DENSITY', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('CONDITION', ChannelAccess.Alarms.INVALID)
+        PVS = ['MEASUREMENT', 'TEMPERATURE:SP:RBV', 'TEMPERATURE', 'DENSITY', 'CONDITION']
+        for pv in PVS:
+            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+
+        with self._lewis.backdoor_simulate_disconnected_device():
+            for pv in PVS:
+                self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        for pv in PVS:
+            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
