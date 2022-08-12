@@ -7,7 +7,7 @@ from common_tests.eurotherm import EurothermBaseTests
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
 # Numerical address of the device
-ADDR_1 = 1 # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
+ADDR_1 = "01" # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
 DEVICE = "EUROTHRM_01"
 
 EMULATOR_DEVICE = "eurotherm"
@@ -41,11 +41,13 @@ TEST_MODES = [TestModes.DEVSIM]
 
 
 class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
-    def get_address(self):
-        return ADDRESS
-
     def get_device(self):
         return DEVICE
 
     def get_emulator_device(self):
         return EMULATOR_DEVICE
+
+    def test_WHEN_autotune_set_THEN_readback_updates(self):
+        for state in [0, 1]:
+            self.ca.set_pv_value("AUTOTUNE:SP", state)
+            self.ca.assert_that_pv_is("AUTOTUNE", state)

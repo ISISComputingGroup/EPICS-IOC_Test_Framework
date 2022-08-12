@@ -1,11 +1,12 @@
 import abc
+import os
 import unittest
 
 from parameterized import parameterized
 
 import time
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 from utils.ioc_launcher import IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
 
@@ -15,6 +16,11 @@ NONE_TXT_CALIBRATION_MIN_TEMPERATURE = 0.0
 
 # PV names
 RBV_PV = "RBV"
+
+TEST_VALUES = [-50, 0.1, 50, 3000]
+
+# PIDs cannot be floating-point
+PID_TEST_VALUES = [-50, 50, 3000]
 
 
 class EurothermBaseTests(metaclass=abc.ABCMeta):
@@ -29,12 +35,8 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     def get_emulator_device(self):
         pass
 
-    @abc.abstractmethod
-    def get_address(self):
-        pass
-
     def get_prefix(self):
-        return "{}:{}".format(self.get_device(), self.get_address())
+        return "{}:A01".format(self.get_device())
 
     def setUp(self):
         self._setup_lewis_and_channel_access()
@@ -45,7 +47,6 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca = ChannelAccess(device_prefix=self.get_prefix(), default_wait_time=0)
         self.ca.assert_that_pv_exists(RBV_PV, timeout=30)
         self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
-        self._lewis.backdoor_set_on_device("address", self.get_address())
 
     def _reset_device_state(self):
         self._lewis.backdoor_set_on_device('connected', True)
@@ -168,7 +169,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     def _assert_using_mock_table_location(self):
         for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
-            self.ca.assert_that_pv_is("{}.BDIR".format(pv), EPICS_TOP.replace("\\", "/") + "support")
+            self.ca.assert_that_pv_is("{}.BDIR".format(pv), os.path.join(EPICS_TOP, "support").replace("\\", "/"))
 
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
         self._assert_using_mock_table_location()
@@ -220,4 +221,46 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
         self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=30)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_p_set_via_backdoor_THEN_p_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("p", val)
+        self.ca.assert_that_pv_is_number("P", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_i_set_via_backdoor_THEN_i_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("i", val)
+        self.ca.assert_that_pv_is_number("I", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_d_set_via_backdoor_THEN_d_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("d", val)
+        self.ca.assert_that_pv_is_number("D", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_output_set_via_backdoor_THEN_output_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("output", val)
+        self.ca.assert_that_pv_is_number("OUTPUT", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_output_set_via_backdoor_THEN_output_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("max_output", val)
+        self.ca.assert_that_pv_is_number("MAX_OUTPUT", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_high_limit_set_via_backdoor_THEN_high_lim_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("high_lim", val)
+        self.ca.assert_that_pv_is_number("HILIM", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_low_limit_set_via_backdoor_THEN_low_lim_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("low_lim", val)
+        self.ca.assert_that_pv_is_number("LOWLIM", val, tolerance=0.05, timeout=15)
