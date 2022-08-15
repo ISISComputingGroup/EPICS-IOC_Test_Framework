@@ -103,7 +103,6 @@ class EdwardsTICBase(object):
         self._lewis, self._ioc = get_running_lewis_and_ioc("edwardstic", DEVICE_PREFIX)
 
         self.ca = get_common_channel_access()
-        self._lewis.backdoor_set_on_device("is_connected", True)
 
     @parameterized.expand([
         (0, ChannelAccess.Alarms.NONE),
@@ -141,7 +140,7 @@ class EdwardsTICBase(object):
 
     def test_GIVEN_device_disconnected_WHEN_base_PV_read_THEN_alert_and_priority_PVs_read_disconnected(self):
         # GIVEN
-        self._lewis.backdoor_set_on_device("is_connected", False)
+        self._lewis.backdoor_set_on_device("connected", False)
 
         expected_alarm = ChannelAccess.Alarms.INVALID
 
@@ -225,7 +224,7 @@ class EdwardsTICTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("edwardstic", DEVICE_PREFIX)
 
         self.ca = get_common_channel_access()
-        self._lewis.backdoor_set_on_device("is_connected", True)
+        self._lewis.backdoor_set_on_device("connected", True)
 
         self.ca.assert_setting_setpoint_sets_readback("No", "TURBO:STBY", set_point_pv="TURBO:SETSTBY", timeout=30)
 
@@ -260,7 +259,7 @@ class EdwardsTICTests(unittest.TestCase):
     ])
     def test_GIVEN_disconnected_device_THEN_record_redirected_PVs_read_invalid(self, _, base_pv):
         # GIVEN
-        self._lewis.backdoor_set_on_device("is_connected", False)
+        self._lewis.backdoor_set_on_device("connected", False)
 
         # WHEN
         self.ca.assert_that_pv_alarm_is(base_pv, self.ca.Alarms.INVALID, timeout=20)

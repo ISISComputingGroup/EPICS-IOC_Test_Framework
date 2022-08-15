@@ -500,9 +500,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
 
     def test_GIVEN_device_is_not_communicating_WHEN_read_all_status_THEN_values_have_error(self):
-        self._lewis.backdoor_set_on_device("disconnected", True)
-
-        for pv in ["FREQ:SP:RBV",
+        PVs = ["FREQ:SP:RBV",
                    "FREQ",
                    "PHAS:SP:RBV",
                    "PHAS",
@@ -526,6 +524,14 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
                    "INTERLOCK:MB:AMP:CURR:STAT",
                    "INTERLOCK:DRIVE:AMP:TEMP:STAT",
                    "INTERLOCK:DRIVE:AMP:CURR:STAT",
-                   "INTERLOCK:UPS:STAT"]:
+                   "INTERLOCK:UPS:STAT"]
 
-            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+        for pv in PVs:
+                self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
+
+        with self._lewis.backdoor_simulate_disconnected_device():
+            for pv in PVs:
+                self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID, timeout=30)
+        # Assert alarms off afterwards
+        for pv in PVs:
+                self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)

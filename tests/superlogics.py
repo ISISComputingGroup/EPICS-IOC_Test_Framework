@@ -35,7 +35,6 @@ class SuperlogicsTests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=PREFIX)
         self.ca.assert_that_pv_exists("{}:1:VALUE".format("01"))
-        self._set_connected(True)
 
     def _set_channel_values(self, values, address):
         """
@@ -60,12 +59,6 @@ class SuperlogicsTests(unittest.TestCase):
         pv_name = "SIM:{}:VERSION".format(address)
         self._ioc.set_simulated_value(pv_name, value)
 
-    def _set_connected(self, value):
-        """
-        Set if the device is disconnected
-        :param value: the state to set the device to
-        """
-        self._lewis.backdoor_set_on_device("connected", value)
 
     def test_GIVEN_address_01_one_value_set_WHEN_read_THEN_value_is_as_expected(self):
         address = "01"
@@ -140,8 +133,8 @@ class SuperlogicsTests(unittest.TestCase):
         address = "02"
         expected_values = [1., 2., 3., 4., 5., 6., 7., 8.]
         self._set_channel_values(expected_values, address)
-        self._set_connected(False)
-
-        for channel, expected_value in enumerate(expected_values):
-            pv_name = "{}:{}:VALUE".format(address, channel+1)
-            self.ca.assert_that_pv_alarm_is(pv_name, self.ca.Alarms.INVALID)
+        
+        with self._lewis.backdoor_simulate_disconnected_device():
+            for channel, expected_value in enumerate(expected_values):
+                pv_name = "{}:{}:VALUE".format(address, channel+1)
+                self.ca.assert_that_pv_alarm_is(pv_name, self.ca.Alarms.INVALID)
