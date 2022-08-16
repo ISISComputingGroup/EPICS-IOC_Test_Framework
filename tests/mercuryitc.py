@@ -514,7 +514,9 @@ class MercuryTests(unittest.TestCase):
             # So we need to wait for at least as long as stream device lock timeout to see an alarm raised`
             self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.INVALID, timeout=60)
 
-        self.ca.set_pv_value("{}:SPC:SP".format(card_pv_prefix), "ON")
-        self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
+            self.ca.set_pv_value("{}:SPC:SP".format(card_pv_prefix), "ON")
+            self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
 
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
+            self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
+        
+        self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.NONE, timeout=60)
