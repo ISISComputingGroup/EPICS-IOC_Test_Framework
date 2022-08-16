@@ -527,11 +527,11 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
                    "INTERLOCK:UPS:STAT"]
 
         for pv in PVs:
-                self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
 
         with self._lewis.backdoor_simulate_disconnected_device():
             for pv in PVs:
                 self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID, timeout=30)
         # Assert alarms off afterwards
         for pv in PVs:
-                self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
