@@ -134,7 +134,16 @@ class SuperlogicsTests(unittest.TestCase):
         expected_values = [1., 2., 3., 4., 5., 6., 7., 8.]
         self._set_channel_values(expected_values, address)
         
+        for channel, expected_value in enumerate(expected_values):
+                pv_name = "{}:{}:VALUE".format(address, channel+1)
+                self.ca.assert_that_pv_alarm_is(pv_name, self.ca.Alarms.NONE)
+        
         with self._lewis.backdoor_simulate_disconnected_device():
             for channel, expected_value in enumerate(expected_values):
                 pv_name = "{}:{}:VALUE".format(address, channel+1)
                 self.ca.assert_that_pv_alarm_is(pv_name, self.ca.Alarms.INVALID)
+                
+        # Assert alarms clear on reconnection
+        for channel, expected_value in enumerate(expected_values):
+                pv_name = "{}:{}:VALUE".format(address, channel+1)
+                self.ca.assert_that_pv_alarm_is(pv_name, self.ca.Alarms.NONE)
