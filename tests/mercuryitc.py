@@ -66,6 +66,8 @@ macros["CALIB_BASE_DIR"] = EPICS_TOP.replace("\\", "/")
 macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings").replace("\\", "/")
 macros["FLOW_SPC_TABLE_FILE"] = "little_blue_cryostat.txt"
 
+macros["VTI_SPC_PRESSURE_1"] = 1
+
 
 DEVICE_PREFIX = "MERCURY_01"
 
@@ -584,8 +586,27 @@ class MercuryTests(unittest.TestCase):
     def test_GIVEN_sm_off_WHEN_auto_pres_ctrl_enabled_THEN_statemachine_enters_calc_state(self):
         self.ca.set_pv_value("STATEMACHINE:STATUS", "Off")
         self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
-        self.ca.assert_that_pv_alarm_is("STATEMACHINE:STATUS", self.ca.Alarms.NONE)
 
         self.ca.set_pv_value("STATEMACHINE:STATUS", "On")
 
+        # Check we immidiately start calculating the new pressure setpoint
         self.ca.assert_that_pv_is("STATEMACHINE:STATE", "calc_new_sp")
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_sm_on_WHEN_temp_less_or_eq_tempsp_THEN_pressure_sp_set_to_pres_sp_minimum(self):
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
+        temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        # Set up the PVs for the low temp loop and start the statemachine
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [f"{temp_card_pv_prefix}:TEMP", "temperature", 50])
+        self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 60)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
+        self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
+        
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
