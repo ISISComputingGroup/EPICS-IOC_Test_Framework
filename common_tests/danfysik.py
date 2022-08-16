@@ -59,11 +59,6 @@ class DanfysikBase(object):
 
 
 class DanfysikCommon(DanfysikBase):
-    def disconnect_device(self):
-        """Helper method to put the device in a disconnected state, overloaded by child classes"""
-        self._lewis.backdoor_set_on_device('comms_initialized', False)
-        self._lewis.backdoor_set_on_device('device_available', False)
-
     def set_voltage(self, voltage):
         """Sets the voltage of the device, overloaded by child classes"""
         self._lewis.backdoor_set_on_device("voltage", voltage)
@@ -72,10 +67,14 @@ class DanfysikCommon(DanfysikBase):
         """Helper method to check PVs alarm when device is disconnected."""
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID)
-        self.disconnect_device()
-        for id_prefix in self.id_prefixes:
-            self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=10)
 
+        with self._lewis.backdoor_simulate_disconnected_device("comms_initialized"):
+            for id_prefix in self.id_prefixes:
+                self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=10)
+
+        for id_prefix in self.id_prefixes:
+            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID)
+            
     def _deactivate_interlocks(self):
         # Most danfysiks have interlocks deactivated on startup anyway
         pass
