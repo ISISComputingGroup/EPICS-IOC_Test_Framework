@@ -54,17 +54,17 @@ macros = {}
 macros.update({"TEMP_{}".format(key): val for key, val in enumerate(TEMP_CARDS, start=1)})
 macros.update({"PRESSURE_{}".format(key): val for key, val in enumerate(PRESSURE_CARDS, start=1)})
 macros.update({"LEVEL_{}".format(key): val for key, val in enumerate(LEVEL_CARDS, start=1)})
-macros["SPC_PRESSURE_1"] = 1
-macros["SPC_MIN_PRESSURE"] = SPC_MIN_PRESSURE
-macros["SPC_TEMP_DEADBAND"] = SPC_TEMP_DEADBAND
-macros["SPC_MAX_PRESSURE"] = SPC_MAX_PRESSURE
-macros["SPC_OFFSET"] = SPC_OFFSET
-macros["SPC_OFFSET_DURATION"] = SPC_OFFSET_DURATION
-macros["SPC_GAIN"] = SPC_GAIN
+macros["FLOW_SPC_PRESSURE_1"] = 1
+macros["FLOW_SPC_MIN_PRESSURE"] = SPC_MIN_PRESSURE
+macros["FLOW_SPC_TEMP_DEADBAND"] = SPC_TEMP_DEADBAND
+macros["FLOW_SPC_MAX_PRESSURE"] = SPC_MAX_PRESSURE
+macros["FLOW_SPC_OFFSET"] = SPC_OFFSET
+macros["FLOW_SPC_OFFSET_DURATION"] = SPC_OFFSET_DURATION
+macros["FLOW_SPC_GAIN"] = SPC_GAIN
 
 macros["CALIB_BASE_DIR"] = EPICS_TOP.replace("\\", "/")
 macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings").replace("\\", "/")
-macros["SPC_TABLE_FILE"] = "little_blue_cryostat.txt"
+macros["FLOW_SPC_TABLE_FILE"] = "little_blue_cryostat.txt"
 
 
 DEVICE_PREFIX = "MERCURY_01"
