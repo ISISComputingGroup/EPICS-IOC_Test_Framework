@@ -310,15 +310,15 @@ class EmulatorLauncher(object):
             emulator_property, lambda value: min_value <= float(value), timeout, message)
     
     @contextlib.contextmanager
-    def backdoor_simulate_disconnected_device(self):
+    def backdoor_simulate_disconnected_device(self, property="connected"):
         """
         Simulate device disconnection
         """
-        self.backdoor_set_on_device("connected", False)
+        self.backdoor_set_on_device(property, False)
         try:
             yield
         finally:
-            self.backdoor_set_on_device("connected", True)
+            self.backdoor_set_on_device(property, True)
 
 
 class NullEmulatorLauncher(EmulatorLauncher):
