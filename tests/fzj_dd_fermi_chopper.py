@@ -532,6 +532,7 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         with self._lewis.backdoor_simulate_disconnected_device():
             for pv in PVs:
                 self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID, timeout=30)
-        # Assert alarms off afterwards
+        
+        # Assert alarms clear on reconnection
         for pv in PVs:
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
