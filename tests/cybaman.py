@@ -200,16 +200,19 @@ class CybamanTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
         self.ca.assert_that_pv_value_is_unchanged("A", 5)
 
+    def _check_pv_alarm(self, alarm_state):
+        """
+        Helper function to check pv alarms in correct state
+        """
+        self.ca.assert_that_pv_alarm_is('A', alarm_state)
+        self.ca.assert_that_pv_alarm_is('B', alarm_state)
+        self.ca.assert_that_pv_alarm_is('C', alarm_state)
+
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self.ca.assert_that_pv_alarm_is('A', ChannelAccess.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is('B', ChannelAccess.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is('C', ChannelAccess.Alarms.NONE)
+        self._check_pv_alarm(ChannelAccess.Alarms.NONE)
+
         with self._lewis.backdoor_simulate_disconnected_device():
-            self.ca.assert_that_pv_alarm_is('A', ChannelAccess.Alarms.INVALID)
-            self.ca.assert_that_pv_alarm_is('B', ChannelAccess.Alarms.INVALID)
-            self.ca.assert_that_pv_alarm_is('C', ChannelAccess.Alarms.INVALID)
+            self._check_pv_alarm(ChannelAccess.Alarms.INVALID)
         # Assert alarms clear on reconnection
-        self.ca.assert_that_pv_alarm_is('A', ChannelAccess.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is('B', ChannelAccess.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is('C', ChannelAccess.Alarms.NONE)
+        self._check_pv_alarm(ChannelAccess.Alarms.NONE)
