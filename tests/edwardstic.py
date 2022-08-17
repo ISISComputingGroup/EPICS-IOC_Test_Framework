@@ -104,6 +104,9 @@ class EdwardsTICBase(object):
 
         self.ca = get_common_channel_access()
 
+        self._lewis.backdoor_run_function_on_device(self.get_alert_function(), arguments=(0,))
+        self._lewis.backdoor_run_function_on_device(self.get_priority_function(), arguments=("OK", ))
+
     @parameterized.expand([
         (0, ChannelAccess.Alarms.NONE),
         (1, ChannelAccess.Alarms.MINOR),

@@ -229,6 +229,7 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:SP", 10)
         self.ca.set_pv_value("TIMED:SP", 1)
 
+        self.ca.assert_that_pv_is_not_number("TIME:REMAINING", 0, tolerance=0.001)
         self.ca.assert_that_pv_value_is_decreasing("TIME:REMAINING", wait=5)
 
     @skip_if_recsim("Can not test disconnection in rec sim")

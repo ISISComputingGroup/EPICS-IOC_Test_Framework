@@ -39,6 +39,7 @@ class Amint2lTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device('connected', True)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
+        self._lewis.backdoor_set_on_device("pressure", 0.0)
 
     def _set_pressure(self, expected_pressure):
         self._lewis.backdoor_set_on_device("pressure", expected_pressure)
