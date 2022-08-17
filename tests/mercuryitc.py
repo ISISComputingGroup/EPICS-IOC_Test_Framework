@@ -67,6 +67,11 @@ macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings"
 macros["FLOW_SPC_TABLE_FILE"] = "little_blue_cryostat.txt"
 
 macros["VTI_SPC_PRESSURE_1"] = 1
+macros["VTI_SPC_MIN_PRESSURE"] = 10
+macros["VTI_SPC_MAX_PRESSURE"] = 40
+macros["VTI_SPC_PRESSURE_CONSTANT"] = 5
+macros["VTI_SPC_TEMP_CUTOFF_POINT"] = 5
+
 
 
 DEVICE_PREFIX = "MERCURY_01"
@@ -613,7 +618,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
-        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 1)
         self.ca.set_pv_value("VTI_SPC:TEMP:CUTOFF", 15)
         self.ca.set_pv_value("VTI_SPC:PRESSURE:CONST", 5)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
@@ -622,3 +627,46 @@ class MercuryTests(unittest.TestCase):
         self.ca.set_pv_value("STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 5, tolerance=0.01)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_sm_on_WHEN_temp_sp_less_than_cutoff_THEN_pressure_bounded_by_minimum(self):
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
+        temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        # Set up the PVs for the low temp loop and start the statemachine
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
+        self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 12)
+        self.ca.set_pv_value("VTI_SPC:TEMP:CUTOFF", 15)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:CONST", 7)
+        self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
+        self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 12, tolerance=0.01)
+        
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 12, tolerance=0.01)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_sm_on_WHEN_temp_sp_less_than_cutoff_THEN_pressure_bounded_by_maximum(self):
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("STATEMACHINE:STATE", "init")
+        temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        # Set up the PVs for the low temp loop and start the statemachine
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
+        self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 5)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MAX", 17)
+        self.ca.set_pv_value("VTI_SPC:TEMP:CUTOFF", 15)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:CONST", 20)
+        self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
+        self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 17, tolerance=0.01)
+        
+        self.ca.set_pv_value("STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 17, tolerance=0.01)
