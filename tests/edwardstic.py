@@ -142,9 +142,9 @@ class EdwardsTICBase(object):
         """
         Helper function to check required PVs in correct alarm state
         """
-        self.ca.assert_that_pv_alarm_is(self.get_base_PV(), expected_alarm)
-        self.ca.assert_that_pv_alarm_is(self.get_alert_PV(), expected_alarm)
-        self.ca.assert_that_pv_alarm_is(self.get_priority_PV(), expected_alarm)
+        self.ca.assert_that_pv_alarm_is(self.get_base_PV(), expected_alarm, timeout=30)
+        self.ca.assert_that_pv_alarm_is(self.get_alert_PV(), expected_alarm, timeout=30)
+        self.ca.assert_that_pv_alarm_is(self.get_priority_PV(), expected_alarm, timeout=30)
     
     def test_GIVEN_device_disconnected_WHEN_base_PV_read_THEN_alert_and_priority_PVs_read_disconnected(self):
         self._check_alert_and_priority_PVs(ChannelAccess.Alarms.NONE)
@@ -260,9 +260,9 @@ class EdwardsTICTests(unittest.TestCase):
         """
         Helper function to check required PVs in correct alarm state
         """
-        self.ca.assert_that_pv_alarm_is(base_pv, expected_alarm, timeout=20)
-        self.ca.assert_that_pv_alarm_is("{base}:ALERT".format(base=base_pv), expected_alarm)
-        self.ca.assert_that_pv_alarm_is("{base}:PRI".format(base=base_pv), expected_alarm)
+        self.ca.assert_that_pv_alarm_is(base_pv, expected_alarm, timeout=30)
+        self.ca.assert_that_pv_alarm_is("{base}:ALERT".format(base=base_pv), expected_alarm, timeout=30)
+        self.ca.assert_that_pv_alarm_is("{base}:PRI".format(base=base_pv), expected_alarm, timeout=30)
 
     @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
