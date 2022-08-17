@@ -858,6 +858,5 @@ class ReflTests(unittest.TestCase):
                 count +=1
         self.assertEqual(count, NUM_ERROR_MESSAGES, f"Expected {NUM_ERROR_MESSAGES} got {count} number of error messages.")
 
-        log = self.ca.get_pv_value("LOG")
-        self.assertTrue(len(log) <= 10_000, f"Error log with size{len(log)} exceeds character limit.")
-        self.assertTrue(len(log) > 0, "Error log should not be empty.")
+        log_length = len(self.ca.get_pv_value("LOG"))
+        self.assertEqual(log_length, 10_000, f"Error log with size {log_length} exceeds character limit.")
