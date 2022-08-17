@@ -71,6 +71,7 @@ macros["VTI_SPC_MIN_PRESSURE"] = 10
 macros["VTI_SPC_MAX_PRESSURE"] = 50
 macros["VTI_SPC_PRESSURE_CONSTANT"] = 5
 macros["VTI_SPC_TEMP_CUTOFF_POINT"] = 5
+macros["VTI_SPC_TEMP_SCALE"] = 5
 
 
 
@@ -658,7 +659,7 @@ class MercuryTests(unittest.TestCase):
 
         # Set up the PVs for the low temp loop and start the statemachine
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 10])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
         self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 12)
         self.ca.set_pv_value("VTI_SPC:TEMP:CUTOFF", 15)
@@ -691,3 +692,30 @@ class MercuryTests(unittest.TestCase):
         self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 17, tolerance=0.01)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_sm_on_WHEN_temp_sp_greater_than_cutoff_THEN_pressure_calculated_according_to_pressure_law(self):
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
+        temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        # Set up the PVs for the low temp loop and start the statemachine
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 15])
+        self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
+        self.ca.set_pv_value("VTI_SPC:TEMP:SCALE", 2)
+        self.ca.set_pv_value("VTI_SPC:TEMP:CUTOFF", 5)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 5)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MAX", 60)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:CONST", 20)
+        self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
+
+        # Pre-calculation: pressure_setpoint_min + temp_scale * (temperature - temperature_setpoint) ** 2
+        # 5 + 2 * (15 - 10) ** 2 = 55
+
+        self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 55, tolerance=0.01)
+        
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 55, tolerance=0.01)
