@@ -9,7 +9,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import ManagerMode
-from utils.testing import unstable_test, assert_log_messages
+from utils.testing import unstable_test
 import time
 
 
@@ -163,7 +163,7 @@ class ReflTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
+        self._ioc = IOCRegister.get_running("refl")
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self.ca_galil = ChannelAccess(default_timeout=30, device_prefix="MOT", default_wait_time=0.0)
         self.ca_cs = ChannelAccess(default_timeout=30, device_prefix="CS", default_wait_time=0.0)
@@ -844,19 +844,3 @@ class ReflTests(unittest.TestCase):
         self._check_param_pvs("DET_LONG", long_axis_addition)
         self._check_param_pvs("DET_POS", 0.0)
         self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_value, 0.01)
-
-    def test_WHEN_log_error_messages_exceed_character_limit_THEN_log_truncated_correctly(self):
-        NUM_ERROR_MESSAGES = 300
-        ERROR_MESSAGE = "Error: PV PARAM:THETA:CHANGING is read only"
-        with assert_log_messages(self._ioc, in_time=120) as cm:
-            for _ in range(NUM_ERROR_MESSAGES):
-                self.ca.set_pv_value("PARAM:THETA:CHANGING", 1)
-
-        count = 0
-        for message in cm.messages:
-            if ERROR_MESSAGE in message:
-                count +=1
-        self.assertEqual(count, NUM_ERROR_MESSAGES, f"Expected {NUM_ERROR_MESSAGES} got {count} number of error messages.")
-
-        log_length = len(self.ca.get_pv_value("LOG"))
-        self.assertEqual(log_length, 10_000, f"Error log with size {log_length} exceeds character limit.")
