@@ -580,6 +580,15 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
 
+class MercuryVTISPCTests(unittest.TestCase):
+    """
+    Tests for the Mercury IOC VTI Software Pressure Control.
+    """
+    def setUp(self):
+        self._lewis, self._ioc = get_running_lewis_and_ioc("mercuryitc", DEVICE_PREFIX)
+        self._lewis.backdoor_set_on_device("connected", True)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
+
     def test_WHEN_ioc_started_THEN_state_machine_initialized(self):
         self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
         self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
