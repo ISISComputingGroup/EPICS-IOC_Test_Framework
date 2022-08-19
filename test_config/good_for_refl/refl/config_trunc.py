@@ -7,7 +7,7 @@ import random
 import string
 from ReflectometryServer import *
 
-
+random.seed(1)
 RANDOM_STRING = ''.join(random.choices(string.ascii_letters + string.digits, k=5000))
 
 
