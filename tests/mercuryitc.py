@@ -611,6 +611,7 @@ class MercuryVTISPCTests(unittest.TestCase):
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 60)
         self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MAX", 50)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
         
@@ -805,3 +806,27 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
         self.ca.assert_that_pv_is_number("VTI_SPC:PRESSURE:SP:MAX:LKUP", 10, tolerance=0.01)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_sm_on_WHEN_sp_min_greater_than_sp_max_THEN_statemachine_stops(self):
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
+
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 10)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MAX", 20)
+
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", 0)
+        self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.NONE)
+
+        # Set up the PVs
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MAX", 10)
+        
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", 1)
+        self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.INVALID)
+
+        
