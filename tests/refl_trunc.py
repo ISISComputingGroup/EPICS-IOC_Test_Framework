@@ -90,18 +90,13 @@ class ReflTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(WAVEFORM_PVS))
     def test_GIVEN_saturated_configuration_WHEN_waveform_pv_read_THEN_value_truncated(self, _, pv, max_size):
-        size = len(self.ca.get_pv_value(pv))
-        self.assertEqual(size, max_size, f"PARAM_INFO size {size} should be {max_size}.")
+        self.ca.assert_that_pv_value_causes_func_to_return_true(pv, lambda val: len(val) == max_size)
 
     def test_WHEN_server_message_exceeds_character_limit_THEN_message_truncated_correctly(self):
         SERVER_MESSAGE_MAX_SIZE = 400
-
         self.ca.set_pv_value("PARAM:INBEAM:SP", 0, wait=True)
-        sleep(2)
-
-        message : str = self.ca.get_pv_value("MSG")
-        self.assertTrue(message.endswith("<truncated>"), f"Server message has to end with '<truncated>'.\nMESSAGE:\n{message}")
-        self.assertEqual(len(message), SERVER_MESSAGE_MAX_SIZE, f"Server Message size {len(message)} should be {SERVER_MESSAGE_MAX_SIZE}.\nMESSAGE:\n{message}")
+        self.ca.assert_that_pv_value_causes_func_to_return_true("MSG", lambda val: val.endswith("<truncated>"))
+        self.ca.assert_that_pv_value_causes_func_to_return_true("MSG", lambda val: len(val) == SERVER_MESSAGE_MAX_SIZE)
 
     def test_WHEN_log_error_messages_exceed_character_limit_THEN_log_truncated_correctly(self):
         ERROR_LOG_MAX_SIZE = 10_000
@@ -118,5 +113,4 @@ class ReflTests(unittest.TestCase):
                 count +=1
         self.assertEqual(count, NUM_ERROR_MESSAGES, f"Expected {NUM_ERROR_MESSAGES} got {count} number of error messages.")
 
-        size = len(self.ca.get_pv_value("LOG"))
-        self.assertEqual(size, ERROR_LOG_MAX_SIZE, f"Error log with size {size} should be {ERROR_LOG_MAX_SIZE}.")
+        self.ca.assert_that_pv_value_causes_func_to_return_true("LOG", lambda val: len(val) == ERROR_LOG_MAX_SIZE)
