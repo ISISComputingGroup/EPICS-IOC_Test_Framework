@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from parameterized import parameterized
@@ -20,7 +21,7 @@ IOCS = [
             "MAX_VOLT": 9.9,
             "WRITE_UNIT": "AMPS",
             "DISPLAY_UNIT": "GAUSS",
-            "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\default.txt",
+            "RAMP_FILE": os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "cryosms", "master", "ramps", "default.txt"),
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.1,
             "ALLOW_PERSIST": "Yes",
