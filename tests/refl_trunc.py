@@ -86,7 +86,7 @@ class ReflTests(unittest.TestCase):
     
     def setUp(self):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
-        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
 
     @parameterized.expand(parameterized_list(WAVEFORM_PVS))
     def test_GIVEN_saturated_configuration_WHEN_waveform_pv_read_THEN_value_truncated(self, _, pv, max_size):
