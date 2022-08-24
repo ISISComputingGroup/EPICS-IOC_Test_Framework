@@ -263,9 +263,6 @@ class Sm300Tests(unittest.TestCase):
 
     @skip_if_recsim("Needs to set disconnected")
     def test_GIVEN_motor_is_disconnected_WHEN_get_axis_x_ioc_position_THEN_alarm_is_disconnected(self):
-        self.ca.assert_that_pv_alarm_is("MTR0101", self.ca.Alarms.NONE, timeout=30)
+        self._lewis.backdoor_set_on_device("is_disconnected", True)
 
-        with self._lewis.backdoor_simulate_disconnected_device():
-            self.ca.assert_that_pv_alarm_is("MTR0101", self.ca.Alarms.INVALID, timeout=30)
-        
-        self.ca.assert_that_pv_alarm_is("MTR0101", self.ca.Alarms.NONE, timeout=120)
+        self.ca.assert_that_pv_alarm_is("MTR0101", self.ca.Alarms.INVALID)
