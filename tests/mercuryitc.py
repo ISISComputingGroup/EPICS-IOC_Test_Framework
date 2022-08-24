@@ -507,6 +507,7 @@ class MercuryTests(unittest.TestCase):
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
         expected_value = -10
         self.ca.set_pv_value("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
+
         with self._lewis.backdoor_simulate_disconnected_device():
             # we have a lot of db records scanning in the ioc, they will start to fail but it may take a while
             # (and this will be variable) before the record we choose gets processed and fails or hits
@@ -520,3 +521,53 @@ class MercuryTests(unittest.TestCase):
             self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
         
         self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.NONE, timeout=60)
+
+    @parameterized.expand(parameterized_list(
+        itertools.product(TEMP_CARDS + PRESSURE_CARDS)))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_heater_voltage_updated_THEN_heater_voltage_percent_updated(self, _, card):
+        original_voltage = 10
+        new_voltage = 20
+        voltage_limit = 50
+        original_percent = 20
+        new_percent = 40
+
+        card_pv_prefix = get_card_pv_prefix(card)
+        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
+
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [heater_chan_name, "voltage", original_voltage])
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [heater_chan_name, "voltage_limit", voltage_limit])
+
+        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), original_percent)
+
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [heater_chan_name, "voltage", new_voltage])
+
+        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
+
+    @parameterized.expand(parameterized_list(
+        itertools.product(TEMP_CARDS + PRESSURE_CARDS)))
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_WHEN_voltage_limit_updated_then_voltage_percent_updated(self, _, card):
+        voltage = 10
+        original_limit = 50
+        original_percent = 20
+        new_limit = 20
+        new_percent = 50
+
+        card_pv_prefix = get_card_pv_prefix(card)
+        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
+
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [heater_chan_name, "voltage", voltage])
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [heater_chan_name, "voltage_limit", original_limit])
+
+        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), original_percent)
+
+        self.ca.set_pv_value("{}:HEATER:VOLT_LIMIT:SP".format(card_pv_prefix), new_limit)
+
+        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
+
