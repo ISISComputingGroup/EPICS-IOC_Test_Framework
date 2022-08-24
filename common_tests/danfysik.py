@@ -33,6 +33,7 @@ class DanfysikBase(object):
 
         self._lewis.backdoor_run_function_on_device("reinitialise")
         self._lewis.backdoor_set_on_device("comms_initialized", True)
+        self._lewis.backdoor_set_on_device("connected", True)
 
         # Used for daisy chained Danfysiks, default is a single Danfysik so we don't need an id
         self.id_prefixes = [""]
@@ -78,11 +79,10 @@ class DanfysikCommon(DanfysikBase):
     @parameterized.expand(parameterized_list(["VOLT", "CURR"]))
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_pv_checked_THEN_pv_in_alarm(self, _, pv):
-        print(":)")
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
 
-        with self._lewis.backdoor_simulate_disconnected_device("comms_initialized"):
+        with self._lewis.backdoor_simulate_disconnected_device():
             for id_prefix in self.id_prefixes:
                 self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
 
