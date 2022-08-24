@@ -1,7 +1,7 @@
 import time
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc
+from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, parameterized_list
 from utils.ioc_launcher import IOCRegister, MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT
 from parameterized import parameterized
 
@@ -63,40 +63,31 @@ class DanfysikCommon(DanfysikBase):
     Common classes for danfysik tests.
     """
 
-
     def set_voltage(self, voltage):
         """
         Sets the voltage of the device, overloaded by child classes
         """
         self._lewis.backdoor_set_on_device("voltage", voltage)
 
-    def _pv_alarms_when_disconnected(self, pv):
-        """
-        Helper method to check PVs alarm when device is disconnected.
-        """
-        for id_prefix in self.id_prefixes:
-            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID)
-
-        with self._lewis.backdoor_simulate_disconnected_device("comms_initialized"):
-            for id_prefix in self.id_prefixes:
-                self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=10)
-
-        for id_prefix in self.id_prefixes:
-            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID)
-            
     def _deactivate_interlocks(self):
         """
         Most danfysiks have interlocks deactivated on startup anyway
         """
         pass
 
+    @parameterized.expand(parameterized_list(["VOLT", "CURR"]))
     @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
-        self._pv_alarms_when_disconnected("VOLT")
+    def test_GIVEN_device_not_connected_WHEN_pv_checked_THEN_pv_in_alarm(self, _, pv):
+        print(":)")
+        for id_prefix in self.id_prefixes:
+            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
 
-    @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
-        self._pv_alarms_when_disconnected("CURR")
+        with self._lewis.backdoor_simulate_disconnected_device("comms_initialized"):
+            for id_prefix in self.id_prefixes:
+                self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
+
+        for id_prefix in self.id_prefixes:
+            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
 
     def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
         for id_prefix in self.id_prefixes:

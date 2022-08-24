@@ -76,3 +76,4 @@ class MecfrfTests(unittest.TestCase):
         self.ca.assert_that_pv_is("_READINGS_OUTDATED", "No")
         self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
 
+
