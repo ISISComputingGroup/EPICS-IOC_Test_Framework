@@ -259,13 +259,13 @@ class EdwardsTICTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("TURBO:STBY", "No")
 
-    def _check__redirected_PVs(self, base_pv, expected_alarm):
+    def _check_redirected_PVs(self, base_pv, expected_alarm):
         """
         Helper function to check required PVs in correct alarm state
         """
         self.ca.assert_that_pv_alarm_is(base_pv, expected_alarm, timeout=30)
-        self.ca.assert_that_pv_alarm_is("{base}:ALERT".format(base=base_pv), expected_alarm, timeout=30)
-        self.ca.assert_that_pv_alarm_is("{base}:PRI".format(base=base_pv), expected_alarm, timeout=30)
+        self.ca.assert_that_pv_alarm_is(f"{base_pv}:ALERT", expected_alarm, timeout=30)
+        self.ca.assert_that_pv_alarm_is(f"{base_pv}:PRI", expected_alarm, timeout=30)
 
     @parameterized.expand([
         ("turbo_status", "TURBO:STA"),
@@ -276,14 +276,14 @@ class EdwardsTICTests(unittest.TestCase):
         ("turbo_cycle", "TURBO:CYCLE")
     ])
     def test_GIVEN_disconnected_device_THEN_record_redirected_PVs_read_invalid(self, _, base_pv):
-        self._check__redirected_PVs(base_pv, self.ca.Alarms.NONE)
+        self._check_redirected_PVs(base_pv, self.ca.Alarms.NONE)
         # GIVEN (device disconnected)
         with self._lewis.backdoor_simulate_disconnected_device():
             # THEN
-            self._check__redirected_PVs(base_pv, self.ca.Alarms.INVALID)
+            self._check_redirected_PVs(base_pv, self.ca.Alarms.INVALID)
             
         # Assert alarms clear upon reconnection
-        self._check__redirected_PVs(base_pv, self.ca.Alarms.NONE)
+        self._check_redirected_PVs(base_pv, self.ca.Alarms.NONE)
 
 
 class TurboStatusTests(EdwardsTICBase, unittest.TestCase):

@@ -131,18 +131,20 @@ class KepcoTests(object):
         self.ca.process_pv("IDN")
         self.ca.assert_that_pv_is("IDN", expected_idn)
 
-    def _check_pv_alarm_state(self, alarm_state):
-        self.ca.assert_that_pv_alarm_is("OUTPUTMODE", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is("CURRENT", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_alarm_is("VOLTAGE", self.ca.Alarms.NONE)
-
+    @parameterized.expand([
+        ("output_mode", "OUTPUTMODE"),
+        ("current", "CURRENT"),
+        ("voltage", "VOLTAGE")
+    ])
     @skip_if_recsim("In rec sim you can not diconnect the device")
-    def test_GIVEN_diconnected_WHEN_read_THEN_alarms_on_readbacks(self):
-        self._check_pv_alarm_state(self.ca.Alarms.NONE)
+    def test_GIVEN_diconnected_WHEN_read_THEN_invalid_alarm(self, _, pv):
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+
         with self._lewis.backdoor_simulate_disconnected_device():
-            self._check_pv_alarm_state(self.ca.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+
         # Assert alarms clear on reconnection
-        self._check_pv_alarm_state(self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
     def _test_ramp_to_target(self, start_current, target_current, ramp_rate, step_number, wait_between_changes):
         self._write_current(start_current)

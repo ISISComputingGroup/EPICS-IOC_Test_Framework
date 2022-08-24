@@ -256,7 +256,7 @@ If you find yourself needing other assert functions, please add them!
 Note: If using PyCharm, you can add code completeion/suggestions for function names by opening the folder `IoCTestFramework`, rightclick on `master` in the project explorer on the left, and selecting `Mark Directory as... > Sources Root`. 
 
 ### Testing device disconnection behaviour 
-To safely test disconnection behaviour, you can use the emulator utility function `backdoor_simulate_disconnected_device`, with parameters `(self, property="connected")`. 
+To safely test disconnection behaviour, you can use the emulator utility function `backdoor_simulate_disconnected_device`, with parameters `(self, emulator_property="connected")`. 
 This has been written in place of using the below to assert an alarm is INVALID. 
 ```python 
 self.lewis.backdoor_set_on_device("connected", False)

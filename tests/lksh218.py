@@ -84,8 +84,8 @@ class Lksh218Tests(unittest.TestCase):
         correct state
         """
         for i in range(1, 9):
-                self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), alarm_mode)
-                self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), alarm_mode)
+                self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), alarm_mode, timeout=30)
+                self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), alarm_mode, timeout=30)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP_and_SENSOR(self):
@@ -93,10 +93,7 @@ class Lksh218Tests(unittest.TestCase):
 
         with self._lewis.backdoor_simulate_disconnected_device():
             self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
-            time.sleep(10) # wait for pvs to disconnect, we need to wait for at least stream device lockTimeout
-            for i in range(1, 9):
-                self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), ChannelAccess.Alarms.INVALID)
-                self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), ChannelAccess.Alarms.INVALID)
+            self._check_TEMP_and_SENSOR_alarms(ChannelAccess.Alarms.INVALID)
         # Assert alarms clear on reconnect 
         self._check_TEMP_and_SENSOR_alarms(ChannelAccess.Alarms.NONE)
 

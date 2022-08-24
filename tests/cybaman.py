@@ -8,6 +8,8 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
+from parameterized import parameterized
+
 
 DEVICE_PREFIX = "CYBAMAN_01"
 EMULATOR_DEVICE = "cybaman"
@@ -200,19 +202,17 @@ class CybamanTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("A", home_position, tolerance=0.01)
         self.ca.assert_that_pv_value_is_unchanged("A", 5)
 
-    def _check_pv_alarm(self, alarm_state):
-        """
-        Helper function to check pv alarms in correct state
-        """
-        self.ca.assert_that_pv_alarm_is('A', alarm_state)
-        self.ca.assert_that_pv_alarm_is('B', alarm_state)
-        self.ca.assert_that_pv_alarm_is('C', alarm_state)
-
+    @parameterized.expand([
+        ("axis_a", "A"),
+        ("axis_b", "B"),
+        ("axis_c", "C")
+    ])
     @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self._check_pv_alarm(ChannelAccess.Alarms.NONE)
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self, _, axis):
+        self.ca.assert_that_pv_alarm_is(axis, ChannelAccess.Alarms.NONE)
 
         with self._lewis.backdoor_simulate_disconnected_device():
-            self._check_pv_alarm(ChannelAccess.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is(axis, ChannelAccess.Alarms.INVALID)
+        
         # Assert alarms clear on reconnection
-        self._check_pv_alarm(ChannelAccess.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(axis, ChannelAccess.Alarms.NONE)

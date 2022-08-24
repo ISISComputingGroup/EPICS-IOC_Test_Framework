@@ -59,12 +59,21 @@ class DanfysikBase(object):
 
 
 class DanfysikCommon(DanfysikBase):
+    """
+    Common classes for danfysik tests.
+    """
+
+
     def set_voltage(self, voltage):
-        """Sets the voltage of the device, overloaded by child classes"""
+        """
+        Sets the voltage of the device, overloaded by child classes
+        """
         self._lewis.backdoor_set_on_device("voltage", voltage)
 
     def _pv_alarms_when_disconnected(self, pv):
-        """Helper method to check PVs alarm when device is disconnected."""
+        """
+        Helper method to check PVs alarm when device is disconnected.
+        """
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID)
 
@@ -76,7 +85,9 @@ class DanfysikCommon(DanfysikBase):
             self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID)
             
     def _deactivate_interlocks(self):
-        # Most danfysiks have interlocks deactivated on startup anyway
+        """
+        Most danfysiks have interlocks deactivated on startup anyway
+        """
         pass
 
     @skip_if_recsim("Can not test disconnection in rec sim")

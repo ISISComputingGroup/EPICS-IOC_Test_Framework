@@ -133,14 +133,17 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*automeasure_interval)
 
-    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        PVS = ['MEASUREMENT', 'TEMPERATURE:SP:RBV', 'TEMPERATURE', 'DENSITY', 'CONDITION']
-        for pv in PVS:
-            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+    @parameterized.expand([
+        ("measurement", "MEASUREMENT"),
+        ("temp_sp_rbv", "TEMPERATURE:SP:RBV"),
+        ("temperature", "TEMPERATURE"),
+        ("density", "DENSITY"),
+        ("condition", "CONDITION")
+    ])
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self, _, pv):
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
 
         with self._lewis.backdoor_simulate_disconnected_device():
-            for pv in PVS:
-                self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
         # Assert alarms clear on reconnection
-        for pv in PVS:
-            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
