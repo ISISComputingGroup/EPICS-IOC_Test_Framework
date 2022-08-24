@@ -401,7 +401,6 @@ You can force extra debug output by:
 * Using `self.log.debug("message")`
 * `log.info`, `log.warning` and `log.error` are also available
 
-
 ## Other Emulators
  
  By default the test framework will run emulators written under the [Lewis](https://lewis.readthedocs.io/en/latest/) framework. However, in some cases you may want to run up a different emulator. This is useful if there is already an emulator provided by the device manufacture, as is the case for the mezei flipper and the beckhoff.
