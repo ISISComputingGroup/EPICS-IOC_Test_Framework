@@ -1,3 +1,4 @@
+import contextlib
 import itertools
 import unittest
 from datetime import time
@@ -811,12 +812,13 @@ class MercuryVTISPCTests(unittest.TestCase):
     def test_GIVEN_sm_on_WHEN_sp_min_greater_than_sp_max_THEN_statemachine_stops(self):
         self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "Off")
         self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:ERROR", 0)
 
         self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 10)
         self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MAX", 20)
 
-        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", 0)
         self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "No errors")
 
         # Set up the PVs
         self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 20)
@@ -826,7 +828,45 @@ class MercuryVTISPCTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
         self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", 1)
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "Min Pressure > Max")
         self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.INVALID)
 
+    @contextlib.contextmanager
+    def _disconnect_device(self):
+        self._lewis.backdoor_set_on_device("connected", False)
+        try:
+            yield
+        finally:
+            self._lewis.backdoor_set_on_device("connected", True)
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_sm_on_WHEN_device_disconnected_THEN_pressure_unchanged(self):
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
+        temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
+
+        # Set up the PVs for the low temp loop and start the statemachine
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
+        self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 60)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MAX", 50)
+        self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
+        self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
         
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
+
+        with self._disconnect_device():
+            self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 21)
+
+            self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "Temp read failure", timeout=20)
+            self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
+            
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 21, tolerance=0.01)
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "No errors")
+
+
+
