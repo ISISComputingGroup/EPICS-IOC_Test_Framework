@@ -826,7 +826,7 @@ class MercuryVTISPCTests(unittest.TestCase):
         
         self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "On")
 
-        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "error_delay")
         self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
         self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "Min Pressure > Max")
         self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.INVALID)
@@ -862,11 +862,31 @@ class MercuryVTISPCTests(unittest.TestCase):
         with self._disconnect_device():
             self.ca.set_pv_value("VTI_SPC:PRESSURE:SP:MIN", 21)
 
-            self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "Temp read failure", timeout=20)
+            self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "Temp read failure", timeout=60)
             self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
             
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 21, tolerance=0.01)
         self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "No errors")
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_sm_on_WHEN_pressure_card_invalid_THEN_statemachine_stops(self):
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:ERROR", 0)
+
+        self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "No errors")
+
+        # Set up the PVs        
+        self.ca.set_pv_value("VTI_SPC:PRESSURE_ID", "nodevice")
+        self.ca.set_pv_value("VTI_SPC:STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("VTI_SPC:STATEMACHINE:ERROR", "Invalid pressure card")
+        self.ca.assert_that_pv_alarm_is("VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.MINOR)
+
+        # Put the card back how it should be.
+        self.ca.set_pv_value("VTI_SPC:PRESSURE_ID", PRESSURE_CARDS[0])
 
 
 
