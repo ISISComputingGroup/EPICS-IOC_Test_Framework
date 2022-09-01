@@ -151,18 +151,18 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._change_spc_pressure_lookup_table("None.txt")
 
     def test_WHEN_ioc_started_THEN_state_machine_initialized(self):
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:STATE", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
 
     def test_WHEN_auto_pres_ctrl_disabled_THEN_statemachine_in_init(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:STATUS", self.ca.Alarms.NONE)
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:STATUS", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_less_or_eq_tempsp_THEN_pressure_sp_set_to_pres_sp_minimum(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -170,19 +170,19 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 60)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 20)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 50)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 50)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_sp_less_than_cutoff_THEN_pressure_set_to_constant(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -190,20 +190,20 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 15])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 1)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:CUTOFF", 20)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:CONST", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 1)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 20)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 5)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 5, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 5, tolerance=0.01)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_sp_less_than_cutoff_but_actual_temp_above_cutoff_THEN_pressure_not_set_to_constant(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -211,20 +211,20 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 1)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:CUTOFF", 15)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:CONST", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 1)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 15)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 5)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 40, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 40, tolerance=0.01)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_sp_less_than_cutoff_THEN_pressure_bounded_by_minimum(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -232,20 +232,20 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 10])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 12)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:CUTOFF", 15)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:CONST", 7)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 12)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 15)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 7)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 12, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 12, tolerance=0.01)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_sp_less_than_cutoff_THEN_pressure_bounded_by_maximum(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -253,21 +253,21 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 15])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 5)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 17)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:CUTOFF", 15)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:CONST", 20)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 17)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 15)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 20)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 17, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 17, tolerance=0.01)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_sp_greater_than_cutoff_THEN_pressure_calculated_according_to_pressure_law(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -275,11 +275,11 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 11])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 10)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:SCALE", 2)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:CUTOFF", 5)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 5)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 60)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:CONST", 20)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:SCALE", 2)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 60)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 20)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
 
         # Pre-calculation: pressure_setpoint_min + temp_scale * (temperature - temperature_setpoint) ** 2
@@ -287,15 +287,15 @@ class MercuryVTISPCTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 7, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 7, tolerance=0.01)
 
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_sp_greater_than_cutoff_THEN_pressure_calculated_according_to_interpolation_func(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -303,37 +303,37 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 300])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 2)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:SCALE", 2)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:CUTOFF", 5)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 5)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 60)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:CONST", 20)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:SCALE", 2)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 60)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 20)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
 
         # Temp      Pressure Max
         # 0         13
         # 300       13
 
-        self.ca.assert_that_pv_is_number("VTI_SPC_1:PRESSURE:SP:MAX:LKUP", 13, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("1:VTI_SPC:PRESSURE:SP:MAX:LKUP", 13, tolerance=0.01)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 13, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 13, tolerance=0.01)
 
     def _change_spc_pressure_lookup_table(self, file_name):
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.NSPE", file_name)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.NMET", self.ca.get_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.METH"))
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.NBDI", self.ca.get_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.BDIR"))
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.NTDI", self.ca.get_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.TDIR"))
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.INIT", 1)
-        self.ca.assert_that_pv_is("VTI_SPC_1:PRESSURE:SP:MAX:LKUP.ISTA", "Done")
-        self.ca.process_pv("VTI_SPC_1:PRESSURE:SP:MAX:LKUP")
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.NSPE", file_name)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.NMET", self.ca.get_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.METH"))
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.NBDI", self.ca.get_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.BDIR"))
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.NTDI", self.ca.get_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.TDIR"))
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.INIT", 1)
+        self.ca.assert_that_pv_is("1:VTI_SPC:PRESSURE:SP:MAX:LKUP.ISTA", "Done")
+        self.ca.process_pv("1:VTI_SPC:PRESSURE:SP:MAX:LKUP")
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_temp_sp_greater_than_cutoff_THEN_pressure_calculated_according_to_complex_interpolation_func(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -341,11 +341,11 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 250])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 2)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:SCALE", 2)
-        self.ca.set_pv_value("VTI_SPC_1:TEMP:CUTOFF", 5)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 5)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 60)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:CONST", 20)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:SCALE", 2)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 5)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 60)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 20)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self._change_spc_pressure_lookup_table("2x1x2x.txt")
 
@@ -355,45 +355,45 @@ class MercuryVTISPCTests(unittest.TestCase):
         # 200       20
         # 300       30
 
-        self.ca.process_pv("VTI_SPC_1:PRESSURE:SP:MAX:LKUP")
-        self.ca.assert_that_pv_is_number("VTI_SPC_1:PRESSURE:SP:MAX:LKUP", 25, tolerance=0.01)
+        self.ca.process_pv("1:VTI_SPC:PRESSURE:SP:MAX:LKUP")
+        self.ca.assert_that_pv_is_number("1:VTI_SPC:PRESSURE:SP:MAX:LKUP", 25, tolerance=0.01)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 25, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 25, tolerance=0.01)
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
-        self.ca.assert_that_pv_is_number("VTI_SPC_1:PRESSURE:SP:MAX:LKUP", 10, tolerance=0.01)
+        self.ca.assert_that_pv_is_number("1:VTI_SPC:PRESSURE:SP:MAX:LKUP", 10, tolerance=0.01)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_sp_min_greater_than_sp_max_THEN_statemachine_stops(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:ERROR", 0)
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:ERROR", 0)
 
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 10)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 20)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 10)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 20)
 
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:ERROR", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:ERROR", "No errors")
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:ERROR", "No errors")
 
         # Set up the PVs
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 20)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 10)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 10)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "error_delay")
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:STATE", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:ERROR", "Min Pressure > Max")
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:ERROR", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "error_delay")
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:ERROR", "Min Pressure > Max")
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.INVALID)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_device_disconnected_THEN_pressure_unchanged(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
         temp_card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
 
@@ -401,40 +401,40 @@ class MercuryVTISPCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 50])
         self.ca.set_pv_value(f"{temp_card_pv_prefix}:TEMP:SP", 60)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 20)
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MAX", 50)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 20)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MAX", 50)
         self.ca.set_pv_value(f"{pressure_card_pv_prefix}:PRESSURE:SP", 40)
         self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
         
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01, timeout=60)
 
         with self._lewis.backdoor_simulate_disconnected_device():
-            self.ca.set_pv_value("VTI_SPC_1:PRESSURE:SP:MIN", 21)
+            self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 21)
 
-            self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:ERROR", "Temp read failure", timeout=60)
+            self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:ERROR", "Temp read failure", timeout=60)
             self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 20, tolerance=0.01)
             
         self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix}:PRESSURE:SP:RBV", 21, tolerance=0.01)
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:ERROR", "No errors")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:ERROR", "No errors")
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_GIVEN_sm_on_WHEN_pressure_card_invalid_THEN_statemachine_stops(self):
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "Off")
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:STATE", "init")
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:ERROR", 0)
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:ERROR", 0)
 
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:ERROR", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:ERROR", "No errors")
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:ERROR", "No errors")
 
         # Set up the PVs        
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE_ID", "nodevice")
-        self.ca.set_pv_value("VTI_SPC_1:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE_ID", "nodevice")
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
 
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:STATE", self.ca.Alarms.NONE)
-        self.ca.assert_that_pv_is("VTI_SPC_1:STATEMACHINE:ERROR", "Invalid pressure card")
-        self.ca.assert_that_pv_alarm_is("VTI_SPC_1:STATEMACHINE:ERROR", self.ca.Alarms.MINOR)
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:STATE", self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:ERROR", "Invalid pressure card")
+        self.ca.assert_that_pv_alarm_is("1:VTI_SPC:STATEMACHINE:ERROR", self.ca.Alarms.MINOR)
 
         # Put the card back how it should be.
-        self.ca.set_pv_value("VTI_SPC_1:PRESSURE_ID", PRESSURE_CARDS[0])
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE_ID", PRESSURE_CARDS[0])
