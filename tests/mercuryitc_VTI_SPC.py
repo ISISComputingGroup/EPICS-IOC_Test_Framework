@@ -10,7 +10,7 @@ import os
 
 # These definitions should match self.channels in the emulator
 TEMP_CARDS = ["MB0.T0", "DB2.T1"]
-PRESSURE_CARDS = ["DB5.P0"]
+PRESSURE_CARDS = ["DB5.P0", "DB5.P1"]
 LEVEL_CARDS = ["DB8.L0"]
 HEATER_CARDS = ["MB1.H0", "DB3.H1", "DB6.H2"]
 AUX_CARDS = ["DB1.A0", "DB4.A1", "DB7.A2"]
@@ -51,7 +51,7 @@ macros.update({"TEMP_{}".format(key): val for key, val in enumerate(TEMP_CARDS, 
 macros.update({"PRESSURE_{}".format(key): val for key, val in enumerate(PRESSURE_CARDS, start=1)})
 macros.update({"LEVEL_{}".format(key): val for key, val in enumerate(LEVEL_CARDS, start=1)})
 macros["SPC_TYPE_1"] = "VTI"
-macros["SPC_TYPE_2"] = "NONE"
+macros["SPC_TYPE_2"] = "VTI"
 macros["FLOW_SPC_PRESSURE_1"] = 1
 macros["FLOW_SPC_PRESSURE_2"] = 1
 macros["FLOW_SPC_MIN_PRESSURE"] = SPC_MIN_PRESSURE
@@ -66,6 +66,7 @@ macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings"
 macros["FLOW_SPC_TABLE_FILE"] = "little_blue_cryostat.txt"
 
 macros["VTI_SPC_PRESSURE_1"] = 1
+macros["VTI_SPC_PRESSURE_2"] = 2
 macros["VTI_SPC_MIN_PRESSURE"] = 10
 macros["VTI_SPC_MAX_PRESSURE"] = 50
 macros["VTI_SPC_PRESSURE_CONSTANT"] = 5
@@ -438,3 +439,42 @@ class MercuryVTISPCTests(unittest.TestCase):
 
         # Put the card back how it should be.
         self.ca.set_pv_value("1:VTI_SPC:PRESSURE_ID", PRESSURE_CARDS[0])
+
+    @skip_if_recsim("Lewis backdoor not available in recsim")
+    def test_GIVEN_two_temp_pressure_pairs_WHEN_sm_on_for_both_THEN_setpoints_set_correctly(self):
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.set_pv_value("2:VTI_SPC:STATEMACHINE:STATUS", "Off")
+        self.ca.assert_that_pv_is("1:VTI_SPC:STATEMACHINE:STATE", "init")
+        self.ca.assert_that_pv_is("2:VTI_SPC:STATEMACHINE:STATE", "init")
+        temp_card_pv_prefix_1 = get_card_pv_prefix(TEMP_CARDS[0])
+        temp_card_pv_prefix_2 = get_card_pv_prefix(TEMP_CARDS[1])
+        pressure_card_pv_prefix_1 = get_card_pv_prefix(PRESSURE_CARDS[0])
+        pressure_card_pv_prefix_2 = get_card_pv_prefix(PRESSURE_CARDS[1])
+
+        # Set up the temp card 1 PVs for the low temp loop
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", 5])
+        self.ca.set_pv_value(f"{temp_card_pv_prefix_1}:TEMP:SP", 10)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:SP:MIN", 1)
+        self.ca.set_pv_value("1:VTI_SPC:TEMP:CUTOFF", 20)
+        self.ca.set_pv_value("1:VTI_SPC:PRESSURE:CONST", 5)
+        self.ca.set_pv_value(f"{pressure_card_pv_prefix_1}:PRESSURE:SP", 40)
+        self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix_1}:PRESSURE:SP:RBV", 5, tolerance=0.01)
+
+        # Set up the temp card 2 PVs for the constant set
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_channel_property", [TEMP_CARDS[1], "temperature", 15])
+        self.ca.set_pv_value(f"{temp_card_pv_prefix_2}:TEMP:SP", 10)
+        self.ca.set_pv_value("2:VTI_SPC:PRESSURE:SP:MIN", 1)
+        self.ca.set_pv_value("2:VTI_SPC:TEMP:CUTOFF", 25)
+        self.ca.set_pv_value("2:VTI_SPC:PRESSURE:CONST", 5)
+        self.ca.set_pv_value(f"{pressure_card_pv_prefix_2}:PRESSURE:SP", 40)
+        self.ca.assert_that_pv_is_not_number(f"{pressure_card_pv_prefix_2}:PRESSURE:SP:RBV", 5, tolerance=0.01)
+
+        # Start the statemachine
+        
+        self.ca.set_pv_value("1:VTI_SPC:STATEMACHINE:STATUS", "On")
+        self.ca.set_pv_value("2:VTI_SPC:STATEMACHINE:STATUS", "On")
+
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix_1}:PRESSURE:SP:RBV", 1, tolerance=0.01)
+        self.ca.assert_that_pv_is_number(f"{pressure_card_pv_prefix_2}:PRESSURE:SP:RBV", 5, tolerance=0.01)
