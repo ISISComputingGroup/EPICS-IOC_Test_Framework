@@ -73,6 +73,8 @@ macros["VTI_SPC_PRESSURE_CONSTANT"] = 5
 macros["VTI_SPC_TEMP_CUTOFF_POINT"] = 5
 macros["VTI_SPC_TEMP_SCALE"] = 5
 
+macros["VTI_CALIB_BASE_DIR"] = "C:/Instrument/Apps/EPICS/support"
+macros["VTI_SENS_DIR"] = "mercuryitc/master/test_calib/vti_spc"
 
 
 DEVICE_PREFIX = "MERCURY_01"
