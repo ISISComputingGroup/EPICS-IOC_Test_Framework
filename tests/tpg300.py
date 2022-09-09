@@ -66,9 +66,7 @@ class Tpg300Tests(unittest.TestCase):
         for unit in Units:
             expected_unit = unit.name
             self.ca.set_pv_value("UNITS:SP", expected_unit)
-            device_unit_val = int(self._lewis.backdoor_run_function_on_device("backdoor_get_unit")[0])
-
-            self.assertEqual(device_unit_val, unit.value)
+            self._lewis.assert_that_emulator_value_is("backdoor_get_unit", str(unit.value))
             self.ca.assert_that_pv_is("UNITS:SP", expected_unit)
             self.ca.assert_that_pv_is("UNITS", expected_unit)
 
