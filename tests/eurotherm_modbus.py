@@ -1,8 +1,12 @@
 import unittest
 
+from parameterized import parameterized
+
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from common_tests.eurotherm import EurothermBaseTests
+from common_tests.eurotherm import EurothermBaseTests, PID_TEST_VALUES, TEST_VALUES
+
+from utils.testing import parameterized_list
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"
@@ -29,7 +33,12 @@ IOCS = [
             "ADDR_7": "",
             "ADDR_8": "",
             "ADDR_9": "",
-            "ADDR_10": ""
+            "ADDR_10": "",
+            "TEMP_SCALING_1": "0.1",
+            "P_SCALING_1": "1",
+            "I_SCALING_1": "1",
+            "D_SCALING_1": "1",
+            "OUTPUT_SCALING_1": "0.1",
         },
         "emulator": EMULATOR_DEVICE,
         "lewis_protocol": "eurotherm_modbus",
@@ -51,3 +60,19 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
         for state in [0, 1]:
             self.ca.set_pv_value("AUTOTUNE:SP", state)
             self.ca.assert_that_pv_is("AUTOTUNE", state)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    def test_WHEN_p_set_THEN_p_updates(self, _, val):
+        self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="P", timeout=15)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    def test_WHEN_i_set_THEN_i_updates(self, _, val):
+        self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="I", timeout=15)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    def test_WHEN_d_set_THEN_d_updates(self, _, val):
+        self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="D", timeout=15)
+
+    @parameterized.expand(parameterized_list([0, 0.5, 100]))
+    def test_WHEN_max_output_set_THEN_max_output_updates(self, _, val):
+        self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="MAX_OUTPUT", timeout=15)

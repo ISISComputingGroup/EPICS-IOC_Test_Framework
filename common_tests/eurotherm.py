@@ -169,7 +169,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     def _assert_using_mock_table_location(self):
         for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
-            self.ca.assert_that_pv_is("{}.BDIR".format(pv), os.path.join(EPICS_TOP, "support").replace("\\", "/"))
+            self.ca.assert_that_pv_is_path("{}.BDIR".format(pv), os.path.join(EPICS_TOP, "support").replace("\\", "/"))
 
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
         self._assert_using_mock_table_location()
