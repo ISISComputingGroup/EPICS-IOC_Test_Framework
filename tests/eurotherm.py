@@ -279,5 +279,8 @@ class EurothermTests(unittest.TestCase):
 
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)

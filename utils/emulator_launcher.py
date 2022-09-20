@@ -1,6 +1,8 @@
 """
 Lewis emulator interface classes.
 """
+import contextlib
+
 import abc
 import os
 import subprocess
@@ -306,6 +308,17 @@ class EmulatorLauncher(object):
             emulator_property, min_value)
         return self.assert_that_emulator_value_causes_func_to_return_true(
             emulator_property, lambda value: min_value <= float(value), timeout, message)
+    
+    @contextlib.contextmanager
+    def backdoor_simulate_disconnected_device(self, emulator_property="connected"):
+        """
+        Simulate device disconnection
+        """
+        self.backdoor_set_on_device(emulator_property, False)
+        try:
+            yield
+        finally:
+            self.backdoor_set_on_device(emulator_property, True)
 
 
 class NullEmulatorLauncher(EmulatorLauncher):
@@ -555,7 +568,7 @@ class LewisLauncher(EmulatorLauncher):
         :return: the variables value
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
-        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))
+        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))  
 
 
 class MultiLewisLauncher(object):

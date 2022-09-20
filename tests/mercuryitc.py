@@ -507,17 +507,20 @@ class MercuryTests(unittest.TestCase):
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
         expected_value = -10
         self.ca.set_pv_value("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
-        self._lewis.backdoor_set_on_device("connected", False)
-        # we have a lot of db records scanning in the ioc, they will start to fail but it may take a while
-        # (and this will be variable) before the record we choose gets processed and fails or hits
-        # the stream device lock timeout instead.
-        # So we need to wait for at least as long as stream device lock timeout to see an alarm raised
-        self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.INVALID, timeout=60)
 
-        self.ca.set_pv_value("{}:SPC:SP".format(card_pv_prefix), "ON")
-        self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            # we have a lot of db records scanning in the ioc, they will start to fail but it may take a while
+            # (and this will be variable) before the record we choose gets processed and fails or hits
+            # the stream device lock timeout instead.
+            # So we need to wait for at least as long as stream device lock timeout to see an alarm raised`
+            self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.INVALID, timeout=60)
 
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
+            self.ca.set_pv_value("{}:SPC:SP".format(card_pv_prefix), "ON")
+            self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
+
+            self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
+        
+        self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.NONE, timeout=60)
 
     @parameterized.expand(parameterized_list(
         itertools.product(TEMP_CARDS + PRESSURE_CARDS)))
@@ -567,3 +570,4 @@ class MercuryTests(unittest.TestCase):
         self.ca.set_pv_value("{}:HEATER:VOLT_LIMIT:SP".format(card_pv_prefix), new_limit)
 
         self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
+

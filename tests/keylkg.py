@@ -103,9 +103,12 @@ class KeylkgTests(unittest.TestCase):
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('MODE:SP', ChannelAccess.Alarms.NONE)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is('MODE:SP', ChannelAccess.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is('MODE:SP', ChannelAccess.Alarms.NONE)
 
-        self.ca.assert_that_pv_alarm_is('MODE:SP', ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("Unable to use lewis backdoor in RECSIM")
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):

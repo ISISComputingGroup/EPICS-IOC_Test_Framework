@@ -255,6 +255,24 @@ If you find yourself needing other assert functions, please add them!
 
 Note: If using PyCharm, you can add code completeion/suggestions for function names by opening the folder `IoCTestFramework`, rightclick on `master` in the project explorer on the left, and selecting `Mark Directory as... > Sources Root`. 
 
+### Testing device disconnection behaviour 
+To safely test disconnection behaviour, you can use the emulator utility function `backdoor_simulate_disconnected_device`, with parameters `(self, emulator_property="connected")`. 
+This has been written in place of using the below to assert an alarm is INVALID. 
+```python 
+self.lewis.backdoor_set_on_device("connected", False)
+```
+When writing these tests to check alarm behaviour with a disconnected device, you may want to consider asserting alarms are clear before and after to ensure the test is rigorous.
+Here you can see a generic template to use the function:
+```python
+def test_WHEN_device_disconnects_THEN_pvs_go_into_alarm(self, _, pv):
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID, timeout=30)
+
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
+```
+
 ### Skipping tests in RECSIM
 
 RECSIM is not as advanced as DEVSIM – for any reasonably complex emulator, the emulator will have some functionality which RECSIM doesn’t. Tests that require Lewis will error in RECSIM mode.

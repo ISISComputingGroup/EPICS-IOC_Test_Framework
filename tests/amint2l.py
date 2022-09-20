@@ -39,6 +39,7 @@ class Amint2lTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device('connected', True)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
+        self._lewis.backdoor_set_on_device("pressure", 0.0)
 
     def _set_pressure(self, expected_pressure):
         self._lewis.backdoor_set_on_device("pressure", expected_pressure)
@@ -90,5 +91,9 @@ class Amint2lTests(unittest.TestCase):
 
     @skip_if_recsim("Can not test disconnection in recsim")
     def test_GIVEN_device_not_connected_WHEN_get_pressure_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.NONE, timeout=30)
+        with self._lewis.backdoor_simulate_disconnected_device():        
+            self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.INVALID, timeout=30)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.NONE, timeout=30)
+        

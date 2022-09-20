@@ -71,8 +71,12 @@ class SmrtmonTests(unittest.TestCase):
 
     @parameterized.expand(enumerate(DEVICE_PVS + DEVICE_OPLM_PVS + DEVICE_LIMS_PVS + [MAGNET_STATUS_PV_NAME]))
     def test_WHEN_disconnected_THEN_in_alarm(self, _, pv):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+
 
     @parameterized.expand(enumerate(DEVICE_PVS))
     def test_GIVEN_oplm_WHEN_stat_greater_than_oplm_THEN_minor_alarm(self, num, pv):
