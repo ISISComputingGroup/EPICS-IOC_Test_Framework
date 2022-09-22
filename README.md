@@ -20,7 +20,7 @@ C:\Instrument\Apps\EPICS\config_env.bat
 ```
 Then `cd` to `C:\Instrument\Apps\EPICS\support\IocTestFramework\master` and use:
 ```
-python run_tests.py
+python -u run_tests.py
 ```
 
 There is a batch file which does this for you, called `run_all_tests.bat`. If you are already in an EPICS 
@@ -32,7 +32,7 @@ will not see test output until all complete - see comments in `Makefile`
 You can run tests in specific modules using the `-t` argument as follows:
 
 ```
-python run_tests.py -t instron_stress_rig amint2l  # Will run the stress rig tests and then the amint2l tests.
+python -u run_tests.py -t instron_stress_rig amint2l  # Will run the stress rig tests and then the amint2l tests.
 ```
 
 The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` 
@@ -43,7 +43,7 @@ directory, with the `.py` extension removed.
 You can run classes of tests in modules using the `-t` argument as follows:
 
 ```
-python run_tests.py -t sp2xx.RunCommandTests # This will run all the tests in the RunCommandTests class in the sp2xx module. 
+python -u run_tests.py -t sp2xx.RunCommandTests # This will run all the tests in the RunCommandTests class in the sp2xx module. 
 ```
 
 The argument is the "dotted name" of the class containing the tests. The dotted name takes the form `module.class`.
@@ -54,7 +54,7 @@ You can run the tests in multiple classes in different modules.
 You can run tests by name using `-t` argument as follows:
 
 ```
-python run_tests.py -t sp2xx.RunCommandTests.test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped # This will run the test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped test in the RunCommandTests class in the sp2xx module. 
+python -u run_tests.py -t sp2xx.RunCommandTests.test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped # This will run the test_that_GIVEN_an_initialized_pump_THEN_it_is_stopped test in the RunCommandTests class in the sp2xx module. 
 ```
 
 The argument is the "dotted name" of the test containing the tests. The dotted name takes the form `module.class.test`.
@@ -64,33 +64,33 @@ You can run multiple tests from multiple classes in different modules.
 
 Running tests with `-f` argument will cause tests to run normally _until_ the first test fails, upon which it will quit testing and provide the usual output for a failed test.
 
->`python run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
+>`python -u run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
 
 ### Running tests in a given path
 
 By default the framework searches for tests inside `.\tests\`. If you wish to specify tests in another directory you can use the `-tp` flag.
 
->`python run_tests.py -tp C:\my_ioc_tests` will run tests in the `my_ioc_tests` folder.
+>`python -u run_tests.py -tp C:\my_ioc_tests` will run tests in the `my_ioc_tests` folder.
 
 ### Run test but Ask before starting the tests but after the IOC and emmulator are running
 
 It is sometimes useful to attach a debugger to the test using this option means that the framework will ask to run tests before it starts the setup for the test.
 This gives you time to attach a debugger. It also allows you an easy way to set up the system with emmulator and ioc attached to each other for unscripted testing.
 
->  `python run_tests.py -a` will ask if you want to run test before it runs them.
+>  `python -u run_tests.py -a` will ask if you want to run test before it runs them.
 
 ### Run test in a specific mode
 
 Sometimes you might want to run all the tests only in RECSIM or only in DEVSIM. You can do this by doing:
 
->  `python run_tests.py -tm RECSIM`
+>  `python -u run_tests.py -tm RECSIM`
 
 ### Run test and emulator from specific directory
 
 For newer IOCs the emulator and tests live in the support folder of the IOC. To specify this to the test framework
 you can use: 
 
->  `python run_tests.py  --test_and_emulator C:\Instrument\Apps\EPICS\support\CCD100\master\system_tests`
+>  `python -u run_tests.py  --test_and_emulator C:\Instrument\Apps\EPICS\support\CCD100\master\system_tests`
 
 ## Troubleshooting 
 
