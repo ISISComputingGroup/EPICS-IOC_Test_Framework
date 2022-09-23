@@ -28,7 +28,7 @@ class Tekafg3XXXTests(unittest.TestCase):
     """
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("tekafg3XXX", DEVICE_PREFIX)
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0, default_timeout=10)
         self._lewis.backdoor_set_on_device('connected', True)
 
     def test_GIVEN_nothing_WHEN_get_identity_THEN_identity_returned(self):
@@ -42,9 +42,9 @@ class Tekafg3XXXTests(unittest.TestCase):
         self._lewis.assert_that_emulator_value_is("triggered", 'True')
 
     def _assert_rbv_set(self, pv_name, expected_value):
-        with self.ca.assert_that_pv_monitor_is(f"OUTPUT1:{pv_name}:SP:RBV", expected_value), \
-        self.ca.assert_that_pv_monitor_is(f"OUTPUT1:{pv_name}", expected_value) :
-            self.ca.set_pv_value(f"OUTPUT1:{pv_name}:SP", str(expected_value))
+        self.ca.set_pv_value(f"OUTPUT1:{pv_name}:SP", str(expected_value))
+        self.ca.assert_that_pv_is(f"OUTPUT1:{pv_name}", expected_value)
+        self.ca.assert_that_pv_is(f"OUTPUT1:{pv_name}:SP:RBV", expected_value)
 
     def test_GIVEN_scan_macro_set_passive_WHEN_sp_changed_THEN_sp_rbv_changed(self):
         self._assert_rbv_set("FUNC", "RAMP")
