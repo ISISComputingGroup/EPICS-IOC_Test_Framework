@@ -5,7 +5,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 
 
 DEVICE_PREFIX = "KEYLKG_01"
@@ -146,3 +146,12 @@ class KeylkgTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("detector_1_raw_value", expected_value)
 
         self.ca.assert_that_pv_is("VALUE:OUTPUT:1", expected_value)
+
+    @parameterized.expand(parameterized_list(["Passive", "5 second"]))
+    @skip_if_recsim("Scan rate changes do not work in RECSIM.")
+    def test_WHEN_scan_rates_changed_THEN_scan_rates_set_correctly(self, _, rate):
+        self.ca.set_pv_value("SCAN:SP", rate)
+        self.ca.assert_that_pv_is("OFFSET:OUTPUT:1.SCAN", rate)
+        self.ca.assert_that_pv_is("OFFSET:OUTPUT:2.SCAN", rate)
+        self.ca.assert_that_pv_is("MEASUREMODE:HEAD:A.SCAN", rate)
+        self.ca.assert_that_pv_is("MEASUREMODE:HEAD:B.SCAN", rate)
