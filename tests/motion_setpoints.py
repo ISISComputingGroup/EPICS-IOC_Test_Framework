@@ -396,6 +396,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca10D.assert_that_pv_is("COORD{}:RBV.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:NO_OFF.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:OFFSET.EGU".format(motor_num), motor_pv)
+            self.ca10D.assert_that_pv_is("COORD{}:OFFSET:SP.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:RBV:OFF.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:SET:RBV.EGU".format(motor_num), motor_pv)
 
