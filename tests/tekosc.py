@@ -33,3 +33,15 @@ class TekOsc(unittest.TestCase):
         identity_string = "TEKTRONIX,DPO3054,C012754,SCPI:99.0 FV:1.0"
 
         self.ca.assert_that_pv_is("IDN", identity_string[:39])  # limited string size
+
+    def test_GIVEN_nothing_WHEN_curve_queried_THEN_correct_curve_returned(self):
+        expected_ch1_curve = [1,1,4,2,4,3,0,3,3,3,3,3,3,4,3,5,6,6,7,3] + [0 for _ in range(9980)]
+        expected_ch2_curve = [2,1,4,2,4,3,0,3,3,3,3,3,3,4,3,5,6,6,7,3] + [0 for _ in range(9980)]
+        expected_ch3_curve = [3,1,4,2,4,3,0,3,3,3,3,3,3,4,3,5,6,6,7,3] + [0 for _ in range(9980)]
+        expected_ch4_curve = [4,1,4,2,4,3,0,3,3,3,3,3,3,4,3,5,6,6,7,3] + [0 for _ in range(9980)]
+
+        self.ca.assert_that_pv_is("RAWYDATA_CH1", expected_ch1_curve)
+        self.ca.assert_that_pv_is("RAWYDATA_CH2", expected_ch2_curve)
+        self.ca.assert_that_pv_is("RAWYDATA_CH3", expected_ch3_curve)
+        self.ca.assert_that_pv_is("RAWYDATA_CH4", expected_ch4_curve)
+
