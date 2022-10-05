@@ -45,3 +45,37 @@ class TekOsc(unittest.TestCase):
         self.ca.assert_that_pv_is("RAWYDATA_CH3", expected_ch3_curve)
         self.ca.assert_that_pv_is("RAWYDATA_CH4", expected_ch4_curve)
 
+    def test_GIVEN_nothing_when_xinc_requested_THEN_correct_unit_returned(self):
+        expected_x_inc_ch1 = 3
+        expected_x_inc_ch2 = 5
+        expected_x_inc_ch3 = 7
+        expected_x_inc_ch4 = 9
+
+        self.ca.assert_that_pv_is("XINC_CH1", expected_x_inc_ch1)
+        self.ca.assert_that_pv_is("XINC_CH2", expected_x_inc_ch2)
+        self.ca.assert_that_pv_is("XINC_CH3", expected_x_inc_ch3)
+        self.ca.assert_that_pv_is("XINC_CH4", expected_x_inc_ch4)
+
+    def test_GIVEN_nothing_when_ymult_requested_THEN_correct_multiplier_returned(self):
+        expected_y_mult_ch1 = 2
+        expected_y_mult_ch2 = 4
+        expected_y_mult_ch3 = 6
+        expected_y_mult_ch4 = 8
+
+        self.ca.assert_that_pv_is("YMULT_CH1", expected_y_mult_ch1)
+        self.ca.assert_that_pv_is("YMULT_CH2", expected_y_mult_ch2)
+        self.ca.assert_that_pv_is("YMULT_CH3", expected_y_mult_ch3)
+        self.ca.assert_that_pv_is("YMULT_CH4", expected_y_mult_ch4)
+
+    def test_GIVEN_nothing_when_units_requested_THEN_correct_units_returned(self):
+        expected_x_unit = "s"
+        expected_y_unit = "V"
+
+        self.ca.assert_that_pv_is("XUNIT_CH1", expected_x_unit)
+        self.ca.assert_that_pv_is("XUNIT_CH2", expected_x_unit)
+        self.ca.assert_that_pv_is("XUNIT_CH3", expected_x_unit)
+        self.ca.assert_that_pv_is("XUNIT_CH4", expected_x_unit)
+        self.ca.assert_that_pv_is("YUNIT_CH1", expected_y_unit)
+        self.ca.assert_that_pv_is("YUNIT_CH2", expected_y_unit)
+        self.ca.assert_that_pv_is("YUNIT_CH3", expected_y_unit)
+        self.ca.assert_that_pv_is("YUNIT_CH4", expected_y_unit)
