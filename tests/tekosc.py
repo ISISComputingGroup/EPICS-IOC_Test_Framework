@@ -79,3 +79,25 @@ class TekOsc(unittest.TestCase):
         self.ca.assert_that_pv_is("YUNIT_CH2", expected_y_unit)
         self.ca.assert_that_pv_is("YUNIT_CH3", expected_y_unit)
         self.ca.assert_that_pv_is("YUNIT_CH4", expected_y_unit)
+
+    def test_GIVEN_nothing_when_xzero_requested_THEN_correct_xzeros_returned(self):
+        expected_x_zero_ch1 = 12
+        expected_x_zero_ch2 = 14
+        expected_x_zero_ch3 = 16
+        expected_x_zero_ch4 = 18
+
+        self.ca.assert_that_pv_is("XZERO_CH1", expected_x_zero_ch1)
+        self.ca.assert_that_pv_is("XZERO_CH2", expected_x_zero_ch2)
+        self.ca.assert_that_pv_is("XZERO_CH3", expected_x_zero_ch3)
+        self.ca.assert_that_pv_is("XZERO_CH4", expected_x_zero_ch4)
+
+    def test_GIVEN_nothing_when_yzero_requested_THEN_correct_yzeros_returned(self):
+        expected_y_zero_ch1 = 13
+        expected_y_zero_ch2 = 15
+        expected_y_zero_ch3 = 17
+        expected_y_zero_ch4 = 19
+
+        self.ca.assert_that_pv_is("YZERO_CH1", expected_y_zero_ch1)
+        self.ca.assert_that_pv_is("YZERO_CH2", expected_y_zero_ch2)
+        self.ca.assert_that_pv_is("YZERO_CH3", expected_y_zero_ch3)
+        self.ca.assert_that_pv_is("YZERO_CH4", expected_y_zero_ch4)
