@@ -220,8 +220,11 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
 
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=30)
+        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
 
     @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")

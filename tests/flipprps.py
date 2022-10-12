@@ -43,11 +43,20 @@ class FlipprpsTests(unittest.TestCase):
 
     @skip_if_recsim("Lewis backdoor commands not available in RecSim")
     def test_GIVEN_device_not_connected_THEN_id_is_in_alarm(self):
-        self._lewis.backdoor_set_on_device("connected", False)
-        self.ca.assert_that_pv_alarm_is("ID", self.ca.Alarms.INVALID, 20)
+        self.ca.assert_that_pv_alarm_is("ID", self.ca.Alarms.NONE, timeout=30)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is("ID", self.ca.Alarms.INVALID, timeout=30)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is("ID", self.ca.Alarms.NONE, timeout=30)
 
     @skip_if_recsim("Lewis backdoor commands not available in RecSim")
     def test_GIVEN_device_not_connected_THEN_polarity_raises_timeout_alarm_after_set(self):
-        self._lewis.backdoor_set_on_device("connected", False)
+        # Write to PV so alarm state updates
         self.ca.set_pv_value("POLARITY", "Up")
-        self.ca.assert_that_pv_alarm_is("POLARITY", self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is("POLARITY", self.ca.Alarms.NONE, timeout=30)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.set_pv_value("POLARITY", "Up")
+            self.ca.assert_that_pv_alarm_is("POLARITY", self.ca.Alarms.INVALID, timeout=30)
+        # Assert alarms clear on reconnection
+        self.ca.set_pv_value("POLARITY", "Down")
+        self.ca.assert_that_pv_alarm_is("POLARITY", self.ca.Alarms.NONE, timeout=30)

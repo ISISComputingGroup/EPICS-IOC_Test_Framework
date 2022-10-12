@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from parameterized import parameterized
@@ -20,19 +21,42 @@ IOCS = [
             "MAX_VOLT": 9.9,
             "WRITE_UNIT": "AMPS",
             "DISPLAY_UNIT": "GAUSS",
-            "RAMP_FILE": "C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\test.txt",
+            "RAMP_FILE": os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "cryosms", "master", "ramps", "default.txt").replace('\\', '/'),
             "MID_TOLERANCE": 0.1,
-            "TARGET_TOLERANCE": 0.01,
-            "ALLOW_PERSIST": "No",
-            "USE_SWITCH": "No",
-            "USE_MAGNET_TEMP": "No",
-            "COMP_OFF_ACT": "No",
-            "HOLD_TIME_ZERO": 12,
-            "HOLD_TIME": 30,
+            "TARGET_TOLERANCE": 0.1,
+            "ALLOW_PERSIST": "Yes",
+            "USE_SWITCH": "Yes",
+            "FAST_FILTER_VALUE": 1,
+            "FILTER_VALUE": 0.1,
+            "NPP": 0.0005,
+            "FAST_PERSISTENT_SETTLETIME": 5,
+            "PERSISTENT_SETTLETIME": 5,  # 60 on HIFI
+            "NON_PERSISTENT_SETTLETIME": 5,  # 30 on HIFI
+            "SWITCH_TEMP_PV": "CRYOSMS_01:SIM:SWITCH:TEMP",
+            "SWITCH_HIGH": 3.7,
+            "SWITCH_LOW": 3.65,
+            "SWITCH_STABLE_NUMBER": 10,
+            "SWITCH_TIMEOUT": 300,
+            "HEATER_TOLERANCE": 0.2,
+            "HEATER_OFF_TEMP": 3.7,
+            "HEATER_ON_TEMP": 3.65,
+            "HEATER_OUT": "SIM:TEMP:HEATER",
+            "USE_MAGNET_TEMP": "Yes",
+            "MAGNET_TEMP_PV": "SIM:TEMP:MAGNET",
+            "MAX_MAGNET_TEMP": 5.5,
+            "MIN_MAGNET_TEMP": 1,
+            "COMP_OFF_ACT": "Yes",
+            "NO_OF_COMP": "2",
+            "MIN_NO_OF_COMP": 1,
+            "COMP_1_STAT_PV": "CRYOSMS_01:SIM:COMP1STAT",
+            "COMP_2_STAT_PV": "CRYOSMS_01:SIM:COMP2STAT",
+            "HOLD_TIME_ZERO": 5,  # 12 on HIFI
+            "HOLD_TIME": 5,  # 30 on HIFI
             "VOLT_STABILITY_DURATION": 300,
             "VOLT_TOLERANCE": 0.2,
             "FAST_RATE": 0.5,
             "RESTORE_WRITE_UNIT_TIMEOUT": 10,
+            "CRYOMAGNET": "Yes",
         }
     },
 ]
@@ -58,15 +82,17 @@ class CryoSMSTests(unittest.TestCase):
         if IOCRegister.uses_rec_sim:
             self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         else:
+            self.ca.set_pv_value("MAGNET:MODE", 0)
+            self.ca.set_pv_value("RAMP:LEADS", 0)
             self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=60)
+            self.ca.set_pv_value("MAGNET:MODE", 0)
+            self._lewis.backdoor_set_on_device("is_paused", False)
             self._lewis.backdoor_set_on_device("mid_target", 0)
+            self._lewis.backdoor_set_on_device("is_output_mode_tesla", False)
             self._lewis.backdoor_set_on_device("output", 0)
-            self.ca.set_pv_value("MID:SP", 0)
-            self.ca.set_pv_value("START:SP", 1)
-            self.ca.set_pv_value("PAUSE:SP", 1)
-            self._lewis.backdoor_set_on_device("output", 0)
+            self._lewis.backdoor_set_on_device("heater_value", 0)
+            self._lewis.backdoor_set_on_device("is_heater_on", True)
             self.ca.set_pv_value("ABORT:SP", 1)
-            self.ca.set_pv_value("PAUSE:SP", 0)
             self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
             self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
 
@@ -81,21 +107,28 @@ class CryoSMSTests(unittest.TestCase):
                           "READY": 1,
                           "RAMP:RAMPING": 0,
                           "TARGET:TIME": 0,
-                          "STAT": "",
-                          "HEATER:STAT": "OFF",
+                          "STAT": "Ready",
+                          "HEATER:STAT": "ON",
                           "START:SP.DISP": "0",
                           "PAUSE:SP.DISP": "0",
                           "ABORT:SP.DISP": "0",
                           "OUTPUT:SP.DISP": "0",
-                          "MAGNET:MODE.DISP": "1",
-                          "RAMP:LEADS.DISP": "1",
+                          "MAGNET:MODE.DISP": "0",
+                          "RAMP:LEADS.DISP": "0",
                           }
         failedPVs = []
         for PV in expectedValues:
             try:
-                self.ca.assert_that_pv_is(PV, expectedValues[PV], timeout=5)
+                if type(expectedValues[PV]) in [int, float]:
+                    self.ca.assert_that_pv_is_within_range(PV, expectedValues[PV]-0.01,
+                                                           expectedValues[PV]+0.01, timeout=5)
+                else:
+                    self.ca.assert_that_pv_is(PV, expectedValues[PV], timeout=5)
             except Exception as e:
-                failedPVs.append(e.message)
+                if hasattr(e, "message"):
+                    failedPVs.append(e.message)
+                else:
+                    failedPVs.append(repr(e))
         if failedPVs:
             self.fail("The following PVs generated errors:\n{}".format("\n".join(failedPVs)))
 
@@ -105,7 +138,7 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("AMPS", "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
 
     @parameterized.expand(parameterized_list(TEST_RAMPS))
-    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(self, _, ramp_data):
         startPoint, endPoint = ramp_data[0]
         ramp_rates = ramp_data[1]
@@ -182,3 +215,79 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.set_pv_value("OUTPUTMODE:SP", "AMPS")
         self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1/0.037, 0.001)
         self.ca.assert_that_pv_is_number("OUTPUT", 10000, 1)
+
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_heater_off_WHEN_ramp_requested_THEN_switch_warmed_before_ramp(self):
+        self._lewis.backdoor_set_on_device("is_heater_on", False)
+        self.ca.set_pv_value("MID:SP", 10000)
+        self.ca.set_pv_value("START:SP", 1)
+        self.ca.assert_that_pv_is("OUTPUT", 0)
+        self.ca.assert_that_pv_is("HEATER:STAT:_SP", "ON")
+        self.ca.assert_that_pv_is("HEATER:STAT", "ON")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warming")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warm", timeout=15)
+        self.ca.assert_that_pv_is_not("OUTPUT", 0)
+
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_persist_mode_WHEN_ramp_requested_THEN_ramp_fast_to_persist_warm_ramp_normal_enter_persist(self):
+        self.ca.set_pv_value("MAGNET:MODE", 1)
+        self._lewis.backdoor_set_on_device("is_heater_on", False)  # Takes at least 10s to stabilise as "cold"
+        self._lewis.backdoor_set_on_device("heater_value", 2/0.037)
+        self.ca.set_pv_value("MID:SP", 10000)
+        self.ca.set_pv_value("START:SP", 1)
+        # Ramp to persist
+        # x/0.037 = x * 10000 Gauss worth of Amps, timeout is to allow SWITCH:STAT to stabilise
+        self.ca.assert_that_pv_is_within_range("MID:_SP", 2/0.037 - 0.0001, 2/0.037 + 0.0001, timeout=15)
+        self.ca.assert_that_pv_is("RAMP:RATE", 0.5)
+        self.ca.assert_that_pv_is_within_range("OUTPUT", 19999.9, 20000.1, timeout=15)
+        # Warm back up
+        self.ca.assert_that_pv_is("HEATER:STAT", "ON")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warming")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warm", timeout=15)
+        # Ramp to target
+        self.ca.assert_that_pv_is_within_range("MID:_SP", 1/0.037 - 0.0001, 1/0.037 + 0.0001)
+        self.ca.assert_that_pv_is("RAMP:RATE", 0.547)
+        self.ca.assert_that_pv_is_within_range("OUTPUT", 9999.9, 10000.1)
+        # Cool Down to enter Persist
+        self.ca.assert_that_pv_is("HEATER:STAT:_SP", "OFF")
+        self.ca.assert_that_pv_is("HEATER:STAT", "OFF")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Cooling")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Cold", timeout=15)
+
+    @skip_if_recsim("C++ driver can not correctly initialise in recsim")
+    def test_GIVEN_persist_mode_and_ramp_leads_WHEN_ramp_requested_THEN_ramp_fast_zero_after_enter_persist(self):
+        self.ca.set_pv_value("MAGNET:MODE", 1)
+        self.ca.set_pv_value("RAMP:LEADS", 1)
+        self._lewis.backdoor_set_on_device("is_heater_on", False)  # Takes at least 10s to stabilise as "cold"
+        self._lewis.backdoor_set_on_device("heater_value", 2/0.037)
+        self.ca.set_pv_value("MID:SP", 10000)
+        self.ca.set_pv_value("START:SP", 1)
+        # Ramp to persist
+        self.ca.assert_that_pv_is_within_range("OUTPUT", 19999.9, 20000.1, timeout=30)
+        # Warm back up
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warm", timeout=15)
+        # Ramp to target
+        self.ca.assert_that_pv_is_within_range("OUTPUT", 9999.9, 10000.1)
+        # Cool Down to enter Persist
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Cold", timeout=15)
+        # Ramp back down to zero
+        self.ca.assert_that_pv_is("RAMP:RATE", 0.5)
+        self.ca.assert_that_pv_is_within_range("OUTPUT", -0.1, 0.1)
+
+    @skip_if_recsim("requires emulator feedback")
+    def test_WHEN_heater_power_changed_THEN_sim_temp_adjusts(self):
+        self.ca.set_pv_value("HEATER:STAT:_SP", 0)
+        self.ca.assert_that_pv_is("SIM:SWITCH:TEMP", 2.65)
+        self.ca.set_pv_value("HEATER:STAT:_SP", 1)
+        self.ca.assert_that_pv_is("SIM:SWITCH:TEMP", 4.7)
+
+    @skip_if_recsim("requires emulator feedback")
+    def test_GIVEN_heater_on_or_off_WHEN_sim_temp_adjusts_THEN_statuses_adjust_appropriately(self):
+        self.ca.set_pv_value("HEATER:STAT:_SP", 0)
+        self.ca.assert_that_pv_is("SWITCH:STAT:NOW", "Cold")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Cooling")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Cold")
+        self.ca.set_pv_value("HEATER:STAT:_SP", 1)
+        self.ca.assert_that_pv_is("SWITCH:STAT:NOW", "Warm")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warming")
+        self.ca.assert_that_pv_is("SWITCH:STAT", "Warm")
