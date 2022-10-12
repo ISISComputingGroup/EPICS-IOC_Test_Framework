@@ -1,71 +1,52 @@
+import abc
 import os
 import unittest
+
 from parameterized import parameterized
 
 import time
 from utils.channel_access import ChannelAccess
-from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP, ProcServLauncher
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
+from utils.ioc_launcher import IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
-
-# Internal Address of device (must be 2 characters)
-ADDRESS = "A01"
-# Numerical address of the device
-ADDR_1 = 1 # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
-DEVICE = "EUROTHRM_01"
-PREFIX = "{}:{}".format(DEVICE, ADDRESS)
-
-# PV names
-RBV_PV = "RBV"
-
-EMULATOR_DEVICE = "eurotherm"
-
-IOCS = [
-    {
-        "name": DEVICE,
-        "directory": get_default_ioc_dir("EUROTHRM"),
-        "ioc_launcher_class": ProcServLauncher,
-        "macros": {
-            "ADDR": ADDRESS,
-            "ADDR_1": ADDR_1,
-            "ADDR_2": "",
-            "ADDR_3": "",
-            "ADDR_4": "",
-            "ADDR_5": "",
-            "ADDR_6": "",
-            "ADDR_7": "",
-            "ADDR_8": "",
-            "ADDR_9": "",
-            "ADDR_10": ""
-        },
-        "emulator": EMULATOR_DEVICE,
-    },
-]
 
 SENSOR_DISCONNECTED_VALUE = 1529
 NONE_TXT_CALIBRATION_MAX_TEMPERATURE = 10000.0
 NONE_TXT_CALIBRATION_MIN_TEMPERATURE = 0.0
 
+# PV names
+RBV_PV = "RBV"
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_VALUES = [-50, 0.1, 50, 3000]
+
+# PIDs cannot be floating-point
+PID_TEST_VALUES = [-50, 50, 3000]
 
 
-class EurothermTests(unittest.TestCase):
+class EurothermBaseTests(metaclass=abc.ABCMeta):
     """
     Tests for the Eurotherm temperature controller.
     """
+    @abc.abstractmethod
+    def get_device(self):
+        pass
+
+    @abc.abstractmethod
+    def get_emulator_device(self):
+        pass
+
+    def get_prefix(self):
+        return "{}:A01".format(self.get_device())
 
     def setUp(self):
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
 
     def _setup_lewis_and_channel_access(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, DEVICE)
-        self.ca = ChannelAccess(device_prefix=PREFIX)
+        self._lewis, self._ioc = get_running_lewis_and_ioc(self.get_emulator_device(), self.get_device())
+        self.ca = ChannelAccess(device_prefix=self.get_prefix(), default_wait_time=0)
         self.ca.assert_that_pv_exists(RBV_PV, timeout=30)
         self.ca.assert_that_pv_exists("CAL:SEL", timeout=10)
-        self._lewis.backdoor_set_on_device("address", ADDRESS)
 
     def _reset_device_state(self):
         self._lewis.backdoor_set_on_device('connected', True)
@@ -165,7 +146,7 @@ class EurothermTests(unittest.TestCase):
         # Arrange
         temperature = 50.0
         rbv_change_timeout = 10
-        tolerance = 0.01
+        tolerance = 0.2
         self.ca.set_pv_value("RAMPON:SP", 0)
         reset_calibration_file(self.ca)
         self.ca.set_pv_value("TEMP:SP", temperature)
@@ -188,7 +169,7 @@ class EurothermTests(unittest.TestCase):
     def _assert_using_mock_table_location(self):
         for pv in ["TEMP", "TEMP:SP:CONV", "TEMP:SP:RBV:CONV"]:
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor")
-            self.ca.assert_that_pv_is("{}.BDIR".format(pv), EPICS_TOP.replace("\\", "/") + "support")
+            self.ca.assert_that_pv_is_path("{}.BDIR".format(pv), os.path.join(EPICS_TOP, "support").replace("\\", "/"))
 
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(self):
         self._assert_using_mock_table_location()
@@ -237,46 +218,6 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.A", temperature)
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER", expected_value_of_under_range_calc_pv)
 
-    @parameterized.expand([
-        ("over_range_calc_pv_is_over_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE + 5.0, 1.0),
-        ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
-        ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE, 0.0)
-    ])
-    def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
-            self, _, temperature, expected_value_of_over_range_calc_pv):
-        # Arrange
-
-        self._assert_using_mock_table_location()
-        with use_calibration_file(self.ca, "None.txt"):
-            self.ca.assert_that_pv_exists("CAL:RANGE")
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
-
-            # Act:
-            self._set_setpoint_and_current_temperature(temperature)
-
-            # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.A", temperature)
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
-
-    def test_GIVEN_None_txt_calibration_file_WHEN_changed_to_C006_txt_calibration_file_THEN_the_calibration_limits_change(
-            self):
-        C006_CALIBRATION_FILE_MAX = 330.26135292267900000000
-        C006_CALIBRATION_FILE_MIN = 1.20927230303971000000
-
-        # Arrange
-        self._assert_using_mock_table_location()
-        with use_calibration_file(self.ca, "None.txt"):
-            self.ca.assert_that_pv_exists("CAL:RANGE")
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
-
-        # Act:
-        with use_calibration_file(self.ca, "C006.txt"):
-
-            # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
-
     @parameterized.expand(["TEMP", "TEMP:SP:RBV", "P", "I", "D", "AUTOTUNE", "MAX_OUTPUT", "LOWLIM"])
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
         self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
@@ -284,3 +225,45 @@ class EurothermTests(unittest.TestCase):
             self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID)
         # Assert alarms clear on reconnection
         self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_p_set_via_backdoor_THEN_p_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("p", val)
+        self.ca.assert_that_pv_is_number("P", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_i_set_via_backdoor_THEN_i_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("i", val)
+        self.ca.assert_that_pv_is_number("I", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(PID_TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_d_set_via_backdoor_THEN_d_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("d", val)
+        self.ca.assert_that_pv_is_number("D", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_output_set_via_backdoor_THEN_output_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("output", val)
+        self.ca.assert_that_pv_is_number("OUTPUT", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_output_set_via_backdoor_THEN_output_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("max_output", val)
+        self.ca.assert_that_pv_is_number("MAX_OUTPUT", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_high_limit_set_via_backdoor_THEN_high_lim_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("high_lim", val)
+        self.ca.assert_that_pv_is_number("HILIM", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(TEST_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_low_limit_set_via_backdoor_THEN_low_lim_updates(self, _, val):
+        self._lewis.backdoor_set_on_device("low_lim", val)
+        self.ca.assert_that_pv_is_number("LOWLIM", val, tolerance=0.05, timeout=15)
