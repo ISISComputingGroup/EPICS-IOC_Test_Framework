@@ -3,7 +3,6 @@ import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-from distutils.util import strtobool
 from parameterized import parameterized
 from utils.calibration_utils import use_calibration_file, reset_calibration_file
 
@@ -211,6 +210,19 @@ class KepcoTests(object):
         time.sleep(5)
         self._lewis.assert_that_emulator_value_is("current_set_count", '1')
 
+    def test_GIVEN_auto_ramp_macro_WHEN_relevant_pv_set_THEN_ramping_set_correctly(self):
+        self.ca.set_pv_value("CURRENT:SP", 50)
+        self.ca.assert_that_pv_is("RAMPON", "OFF")
 
+        with self._ioc.start_with_macros({ "AUTO_RAMP": "ON" }, "CURRENT:SP"):
+            self.ca.set_pv_value("CURRENT:SP", 100)
+            self.ca.assert_that_pv_value_is_changing("CURRENT:SP:RBV", wait=5)
+            self.ca.assert_that_pv_is("RAMPON", "ON")
 
+            self.ca.set_pv_value("RAMPON:SP", "OFF")
+            self.ca.assert_that_pv_value_is_unchanged("CURRENT:SP:RBV", wait=5)
+            self.ca.assert_that_pv_is("RAMPON", "OFF")
 
+            self.ca.set_pv_value("CURRENT:SP", 0)
+            self.ca.assert_that_pv_value_is_changing("CURRENT:SP:RBV", wait=5)
+            self.ca.assert_that_pv_is("RAMPON", "ON")
