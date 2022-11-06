@@ -5,6 +5,8 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
+from parameterized import parameterized
+
 chopper_name = "C01"
 
 # Device prefix
@@ -499,33 +501,38 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
 
             self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
 
-    def test_GIVEN_device_is_not_communicating_WHEN_read_all_status_THEN_values_have_error(self):
-        self._lewis.backdoor_set_on_device("disconnected", True)
+    @parameterized.expand([
+        ("frequency_setpoint", "FREQ:SP:RBV"),
+        ("frequency", "FREQ"),
+        ("phase_setpoint", "PHAS:SP:RBV"),
+        ("phase", "PHAS"),
+        ("phase_status", "PHAS:STAT"),
+        ("mag_bear", "MB"),
+        ("mag_bear_status", "MB:STAT"),
+        ("drive", "DRIVE"),
+        ("drive_mode", "DRIVE:MODE"),
+        ("drive_l1_current", "DRIVE:L1:CURR"),
+        ("drive_l2_current", "DRIVE:L2:CURR"),
+        ("drive_l3_current", "DRIVE:L3:CURR"),
+        ("drive_direction", "DRIVE:DIR"),
+        ("drive_temp", "DRIVE:TEMP"),
+        ("phase_outage", "PHAS:OUTAGE"),
+        ("logging", "LOGGING"),
+        ("dsp_monitoring_status", "DSP:STAT"),
+        ("interlock_er_status", "INTERLOCK:ER:STAT"),
+        ("interlock_vacuum_status", "INTERLOCK:VAC:STAT"),
+        ("interlock_freq_monitoring_status", "INTERLOCK:FREQMON:STAT"),
+        ("interlock_mag_bear_amp_temp_status", "INTERLOCK:MB:AMP:TEMP:STAT"),
+        ("interlock_mag_bear_amp_curr_status", "INTERLOCK:MB:AMP:CURR:STAT"),
+        ("interlock_drive_amp_temp_status", "INTERLOCK:DRIVE:AMP:TEMP:STAT"),
+        ("interlock_drive_amp_curr_status", "INTERLOCK:DRIVE:AMP:CURR:STAT"),
+        ("interlock_ups_status", "INTERLOCK:UPS:STAT")
+    ])
+    def test_GIVEN_device_is_not_communicating_WHEN_read_status_THEN_value_has_error(self, _, pv):
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
 
-        for pv in ["FREQ:SP:RBV",
-                   "FREQ",
-                   "PHAS:SP:RBV",
-                   "PHAS",
-                   "PHAS:STAT",
-                   "MB",
-                   "MB:STAT",
-                   "DRIVE",
-                   "DRIVE:MODE",
-                   "DRIVE:L1:CURR",
-                   "DRIVE:L2:CURR",
-                   "DRIVE:L3:CURR",
-                   "DRIVE:DIR",
-                   "DRIVE:TEMP",
-                   "PHAS:OUTAGE",
-                   "LOGGING",
-                   "DSP:STAT",
-                   "INTERLOCK:ER:STAT",
-                   "INTERLOCK:VAC:STAT",
-                   "INTERLOCK:FREQMON:STAT",
-                   "INTERLOCK:MB:AMP:TEMP:STAT",
-                   "INTERLOCK:MB:AMP:CURR:STAT",
-                   "INTERLOCK:DRIVE:AMP:TEMP:STAT",
-                   "INTERLOCK:DRIVE:AMP:CURR:STAT",
-                   "INTERLOCK:UPS:STAT"]:
-
-            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID, timeout=30)
+        
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)

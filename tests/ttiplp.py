@@ -107,3 +107,95 @@ class TtiplpTests(unittest.TestCase):
             self.ca.assert_that_pv_is("OUTPUT", "On")
             self.ca.assert_that_pv_is("CURRENT:SP:RBV", curr)
             self.ca.assert_that_pv_is_number("CURRENT", curr, tolerance=0.01)
+   
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_GIVEN_normal_operation_THEN_limit_event_staus_bits_are_not_set(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_voltage_higher_than_overvolt_protection_limit_THEN_overvolt_status_set_to_tripped(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=5., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Tripped")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_current_higher_than_overcurr_protection_limit_THEN_overcurr_status_set_to_tripped(self):
+        self.set_init_state(volt_sp=10., curr_sp=2., ov_volt_sp=20., ov_curr_sp=1, output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Tripped")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_current_and_voltage_higher_than_protection_limits_THEN_both_statuses_set_to_tripped(self):
+        self.set_init_state(volt_sp=10., curr_sp=2., ov_volt_sp=5., ov_curr_sp=1, output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Tripped")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Tripped")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_GIVEN_overvolt_tripped_WHEN_triprst_called_THEN_overvolt_ok(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=5., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Tripped")
+
+        self.ca.process_pv("TRIPRST")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_GIVEN_overcurr_tripped_WHEN_triprst_called_THEN_overcurr_ok(self):
+        self.set_init_state(volt_sp=10., curr_sp=3., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Tripped")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+        self.ca.process_pv("TRIPRST")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_GIVEN_hardware_trip_WHEN_triprst_called_THEN_hardware_trip_not_reset(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self._lewis.backdoor_set_on_device("hardware_tripped", True)
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+        self.ca.assert_that_pv_is("TRIP:STAT", "Tripped")
+
+        self.ca.process_pv("TRIPRST")
+
+        self.ca.assert_that_pv_is("OVERCURR:STAT", "Ok")
+        self.ca.assert_that_pv_is("OVERVOLT:STAT", "Ok")
+        self.ca.assert_that_pv_is("TRIP:STAT", "Tripped")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_in_current_limit_THEN_cc_pv_active(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Ok")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Ok")
+
+        self._lewis.backdoor_set_on_device("current_limited", True)
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Ok")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Limit")
+
+    @skip_if_recsim("Behaviour not modelled in recsim")
+    def test_WHEN_in_voltage_limit_THEN_cv_pv_active(self):
+        self.set_init_state(volt_sp=10., curr_sp=1., ov_volt_sp=15., ov_curr_sp=2., output="On")
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Ok")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Ok")
+
+        self._lewis.backdoor_set_on_device("voltage_limited", True)
+
+        self.ca.assert_that_pv_is("VOLTAGE:STAT", "Limit")
+        self.ca.assert_that_pv_is("CURRENT:STAT", "Ok")

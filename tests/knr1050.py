@@ -218,14 +218,18 @@ class Knr1050Tests(unittest.TestCase):
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.NONE)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_timed_run_started_THEN_remaining_time_decreases(self):
         self.ca.set_pv_value("TIME:SP", 10)
         self.ca.set_pv_value("TIMED:SP", 1)
 
+        self.ca.assert_that_pv_is_not_number("TIME:REMAINING", 0, tolerance=0.001)
         self.ca.assert_that_pv_value_is_decreasing("TIME:REMAINING", wait=5)
 
     @skip_if_recsim("Can not test disconnection in rec sim")

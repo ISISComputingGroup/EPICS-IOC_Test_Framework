@@ -52,10 +52,6 @@ class Tpg300Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
-    def _set_units(self, unit):
-        self._lewis.backdoor_run_function_on_device("backdoor_set_unit", [unit.value])
-        self.ca.set_pv_value("SIM:UNITS", unit.name)
-
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
 
@@ -68,9 +64,10 @@ class Tpg300Tests(unittest.TestCase):
     @skip_if_recsim("Requires emulator")
     def test_that_GIVEN_a_connected_emulator_WHEN_units_are_set_THEN_unit_is_the_same_as_backdoor(self):
         for unit in Units:
-            self._set_units(unit)
-
             expected_unit = unit.name
+            self.ca.set_pv_value("UNITS:SP", expected_unit)
+            self._lewis.assert_that_emulator_value_is("backdoor_get_unit", str(unit.value))
+            self.ca.assert_that_pv_is("UNITS:SP", expected_unit)
             self.ca.assert_that_pv_is("UNITS", expected_unit)
 
     def test_that_GIVEN_a_connected_emulator_and_pressure_value_WHEN_set_pressure_is_set_THEN_the_ioc_is_updated(self):

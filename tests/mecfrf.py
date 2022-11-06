@@ -52,6 +52,9 @@ class MecfrfTests(unittest.TestCase):
 
     @skip_if_recsim("Uses Lewis backdoor")
     def test_WHEN_emulator_sends_corrupt_packets_THEN_records_go_into_alarm(self):
+        self._lewis.backdoor_set_on_device("corrupted_messages", False)
+        self.ca.assert_that_pv_is("_GETTING_INVALID_MESSAGES", 0)
+        
         with self.ca.assert_pv_processed("_RESET_CONNECTION"):
             self._lewis.backdoor_set_on_device("corrupted_messages", True)
             self.ca.assert_that_pv_is("_GETTING_INVALID_MESSAGES", 1)
@@ -65,7 +68,12 @@ class MecfrfTests(unittest.TestCase):
         self.ca.assert_that_pv_is("_READINGS_OUTDATED", "No")
         self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
 
-        self._lewis.backdoor_set_on_device("connected", False)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_is("_READINGS_OUTDATED", "Yes")
+            self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.INVALID)
 
-        self.ca.assert_that_pv_is("_READINGS_OUTDATED", "Yes")
-        self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_is("_READINGS_OUTDATED", "No")
+        self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
+
+
