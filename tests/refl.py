@@ -862,3 +862,13 @@ class ReflTests(unittest.TestCase):
         self._check_param_pvs("DET_LONG", long_axis_addition)
         self._check_param_pvs("DET_POS", 0.0)
         self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_value, 0.01)
+
+    def test_WHEN_position_defined_with_action_THEN_motor_position_changed(self):
+        position = 12
+
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:S1:DEFINE_POS_SET_AND_NO_ACTION", position)
+            self.ca_galil.assert_that_pv_is_not("MTR0101", position)
+            self.ca.set_pv_value("PARAM:S1:DEFINE_POS_ACTION", 1)
+        
+        self.ca_galil.assert_that_pv_is("MTR0101", position)
