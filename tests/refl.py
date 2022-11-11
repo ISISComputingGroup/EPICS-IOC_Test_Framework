@@ -872,3 +872,26 @@ class ReflTests(unittest.TestCase):
             self.ca.set_pv_value("PARAM:S1:DEFINE_POS_ACTION", 1)
         
         self.ca_galil.assert_that_pv_is("MTR0101", position)
+
+    def test_GIVEN_slit_locked_WHEN_value_set_THEN_value_did_not_change(self):
+        value = 6
+        self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 1)
+        self.ca.set_pv_value("PARAM:S1:SP", value)
+
+        self.ca.assert_that_pv_is_not("PARAM:S1", value)
+
+        self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 0)
+
+    def test_GIVEN_slit_locked_WHEN_value_set_with_action_THEN_no_changes(self):
+        value = 6
+        self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 1)
+        self.ca.set_pv_value("PARAM:S1:SP_NO_ACTION", value)
+
+        self.ca.assert_that_pv_is_not("PARAM:S1:SP_NO_ACTION", value)
+
+        self.ca.set_pv_value("BL:MOVE", 1)
+        
+        self.ca.assert_that_pv_is_not("PARAM:S1:SP:RBV", value)
+        self.ca.assert_that_pv_is_not("PARAM:S1", value)
+
+        self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 0)
