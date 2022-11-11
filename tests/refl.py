@@ -8,7 +8,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, PythonIOCLauncher, ProcServLauncher
 from utils.test_modes import TestModes
-from utils.testing import ManagerMode
+from utils.testing import ManagerMode, parameterized_list
 from utils.testing import unstable_test
 import time
 
@@ -608,7 +608,7 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=30)
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_position)
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_position)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
@@ -644,7 +644,7 @@ class ReflTests(unittest.TestCase):
             self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_gap)
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_gap)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
@@ -681,7 +681,7 @@ class ReflTests(unittest.TestCase):
             self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_centre)
+            self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_centre)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
@@ -701,10 +701,16 @@ class ReflTests(unittest.TestCase):
         self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_centre)
         self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
 
-    def test_GIVEN_theta_THEN_define_position_as_does_not_exist(self):
+    @parameterized.expand(parameterized_list([
+        "DEFINE_POS_SP",
+        "DEFINE_POS_SET_AND_NO_ACTION",
+        "DEFINE_POS_ACTION",
+        "DEFINE_POS_CHANGED"
+    ]))
+    def test_GIVEN_theta_THEN_define_position_pvs_do_not_exist(self, _, suffix):
         param_name = "THETA"
-        self.ca.assert_that_pv_exists("PARAM:{}".format(param_name))
-        self.ca.assert_that_pv_does_not_exist("PARAM:{}:DEFINE_POSITION_AS".format(param_name))
+        self.ca.assert_that_pv_exists(f"PARAM:{param_name}")
+        self.ca.assert_that_pv_does_not_exist(f"PARAM:{param_name}:{suffix}")
 
     def test_GIVEN_motors_at_zero_WHEN_define_motor_position_to_and_back_multiple_times_THEN_motor_position_is_changed_without_move(self):
         param_name = "DET_POS"
@@ -719,7 +725,7 @@ class ReflTests(unittest.TestCase):
         for i in range(20):
             new_position = i - 5
             with ManagerMode(self.ca_no_prefix):
-                self.ca.set_pv_value("PARAM:{}:DEFINE_POSITION_AS".format(param_name), new_position)
+                self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_position)
 
             # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
             # is very quick
@@ -738,9 +744,21 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_parameter_not_in_manager_mode_WHEN_define_position_THEN_position_is_not_defined(self):
         new_position = 10
 
-        param_pv = "PARAM:{}:DEFINE_POSITION_AS".format("DET_POS")
+        param_pv = "PARAM:{}:DEFINE_POS_SP".format("DET_POS")
         self.assertRaises(IOError, self.ca.set_pv_value, param_pv, new_position)
 
+        self.ca.assert_that_pv_is_not(param_pv, new_position)
+
+    def test_GIVEN_parameter_not_in_manager_mode_WHEN_define_position_using_no_action_do_action_THEN_position_is_not_defined(self):
+        new_position = 10
+
+        no_action_pv = "PARAM:{}:DEFINE_POS_SET_AND_NO_ACTION".format("DET_POS")
+        self.assertRaises(IOError, self.ca.set_pv_value, no_action_pv, new_position)
+
+        action_pv = "PARAM:{}:DEFINE_POS_ACTION".format("DET_POS")
+        self.assertRaises(IOError, self.ca.set_pv_value, action_pv, 1)
+
+        param_pv = "PARAM:{}:DEFINE_POS_SP".format("DET_POS")
         self.ca.assert_that_pv_is_not(param_pv, new_position)
 
     def test_GIVEN_value_parameter_WHEN_read_THEN_value_returned(self):
@@ -844,3 +862,13 @@ class ReflTests(unittest.TestCase):
         self._check_param_pvs("DET_LONG", long_axis_addition)
         self._check_param_pvs("DET_POS", 0.0)
         self.ca_galil.assert_that_pv_is_number("MTR0104", expected_det_value, 0.01)
+
+    def test_WHEN_position_defined_with_action_THEN_motor_position_changed(self):
+        position = 12
+
+        with ManagerMode(self.ca_no_prefix):
+            self.ca.set_pv_value("PARAM:S1:DEFINE_POS_SET_AND_NO_ACTION", position)
+            self.ca_galil.assert_that_pv_is_not("MTR0101", position)
+            self.ca.set_pv_value("PARAM:S1:DEFINE_POS_ACTION", 1)
+        
+        self.ca_galil.assert_that_pv_is("MTR0101", position)
