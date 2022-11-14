@@ -11,7 +11,10 @@ IOCS = [
     {
         'name': DEVICE_PREFIX,
         'directory': get_default_ioc_dir('aeroflex'),
-        'macros': {"DEV_TYPE": "2023A"},
+        'macros': {
+            "DEV_TYPE": "2023A",
+            "RF_PREC": "6"
+        },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model2023A",
     },
