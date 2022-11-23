@@ -237,7 +237,7 @@ def get_build_architecture():
     Utility function to get the architecture of the current build 
 
     Returns:
-        string: Architecture of the current build (e.g., "x64" or "x86")
+        BuildArchitectures: Architecture of the current build (e.g., "x64" or "x86")
     """
 
     with open(r'..\\..\\..\\epics_host_arch.txt', 'r') as build_arch:
