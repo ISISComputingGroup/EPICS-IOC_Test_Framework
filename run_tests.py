@@ -161,6 +161,12 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
+            # Skip tests that cannot be run with a 32-bit architecture
+            arch = get_build_architecture()
+            if arch not in module.architectures:
+                print(f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.name(arch)} build architecture")
+                continue
+
             clean_environment()
             device_launchers, device_directories = make_device_launchers_from_module(module.file, mode)
             tested_ioc_directories.update(device_directories)
@@ -225,6 +231,23 @@ def report_test_coverage_for_devices(tested_directories):
     for test in missing_tests:
         print(test)
 
+def get_build_architecture():
+    """
+    Utility function to get the architecture of the current build 
+
+    Returns:
+        string: Architecture of the current build (e.g., "x64" or "x86")
+    """
+
+    with open(r'..\\..\\..\\epics_host_arch.txt', 'r') as build_arch:
+        content = build_arch.read()
+
+        if 'x86' in content:
+            return BuildArchitectures._32BIT
+        elif 'x64' in content:
+            return BuildArchitectures._64BIT
+        else:
+            return ''
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """

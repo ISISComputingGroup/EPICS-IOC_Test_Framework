@@ -100,3 +100,18 @@ def check_test_modes(module):
     return modes
 
 
+def check_build_architectures(module):
+    """
+    Checks for which build architectures the test can run in.
+    If not specified, default to both 64 and 32 bit allowed.
+
+    :param module: Module to check which architectures the test can run in
+    :return: set: Architectures the test can be run in
+    """
+    try:
+        architectures = set(module.BUILD_ARCHITECTURES)
+    except AttributeError:
+        architectures = set([BuildArchitectures._64BIT, BuildArchitectures._32BIT])
+
+    return architectures
+
