@@ -5,6 +5,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
 from utils.test_modes import TestModes
+from utils.build_architectures import BuildArchitectures
 from utils.testing import get_running_lewis_and_ioc, add_method, parameterized_list, skip_if_recsim
 
 
@@ -23,6 +24,8 @@ IOCS = [
 ]
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+# VISA not yet available on 32 bit
+BUILD_ARCHITECTURES = [BuildArchitectures._64BIT]
 
 MAX_NUMBER_OF_CHANNELS = 10
 CHANNEL_LIST = range(1, MAX_NUMBER_OF_CHANNELS + 1)

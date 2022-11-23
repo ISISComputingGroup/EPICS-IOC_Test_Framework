@@ -6,6 +6,7 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
 from parameterized import parameterized
 
 from utils.test_modes import TestModes
+from utils.build_architectures import BuildArchitectures
 from utils.testing import parameterized_list
 
 IOCS = [
@@ -33,6 +34,7 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.RECSIM]
+BUILD_ARCHITECTURES = [BuildArchitectures._64BIT]
 
 
 class Sans2dVacuumSystemTests(unittest.TestCase):
