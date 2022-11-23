@@ -351,7 +351,7 @@ AttributeError: 'obj' object has no attribute '__name__'
 
 This can be avoided by calling the decorator like ` @skip_if_recsim("In rec sim this test fails") `
 
-### ### Avoiding tests affecting other tests
+### Avoiding tests affecting other tests
 
 * When run by the IOC test framework, the IOC + emulator state persists between tests
 * For simple tests/emulators this is not typically an issue, but for complex emulators this can cause tests to pass when run on their own but fail when run as part of a suite, or fail intermittently. This can be very hard to debug!
