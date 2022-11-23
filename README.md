@@ -18,7 +18,9 @@ To run all the tests that are bundled in the test framework, use:
 ```
 C:\Instrument\Apps\EPICS\config_env.bat
 ```
+
 Then `cd` to `C:\Instrument\Apps\EPICS\support\IocTestFramework\master` and use:
+
 ```
 python -u run_tests.py
 ```
@@ -64,13 +66,13 @@ You can run multiple tests from multiple classes in different modules.
 
 Running tests with `-f` argument will cause tests to run normally _until_ the first test fails, upon which it will quit testing and provide the usual output for a failed test.
 
->`python -u run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
+> `python -u run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
 
 ### Running tests in a given path
 
 By default the framework searches for tests inside `.\tests\`. If you wish to specify tests in another directory you can use the `-tp` flag.
 
->`python -u run_tests.py -tp C:\my_ioc_tests` will run tests in the `my_ioc_tests` folder.
+> `python -u run_tests.py -tp C:\my_ioc_tests` will run tests in the `my_ioc_tests` folder.
 
 ### Run test but Ask before starting the tests but after the IOC and emmulator are running
 
@@ -92,7 +94,7 @@ you can use:
 
 >  `python -u run_tests.py  --test_and_emulator C:\Instrument\Apps\EPICS\support\CCD100\master\system_tests`
 
-## Troubleshooting 
+## Troubleshooting
 
 If all tests are failing then it is likely that the PV prefix is incorrect.
 If a large percentage of tests are failing then it may that the macros in the IOC are not being set properly for the testing framework.
@@ -110,11 +112,14 @@ Note: in this mode the IOC will not automatically terminate after the tests have
 For newer IOCs these steps may not be necessary as the st.cmd will be auto-generated to contain them.
 
 st.cmd (or st-common.cmd) should be modified to use the EMULATOR_PORT macro in DEVSIM mode:
+
 ```
 ## For unit testing:
 $(IFDEVSIM) drvAsynIPPortConfigure("$(DEVICE)", "localhost:$(EMULATOR_PORT=)")
 ```
+
 The configurating of the real device should have macros guarded it to stop it trying to connect to the real device when under test.
+
 ```
 ## For real device use:
 $(IFNOTDEVSIM) $(IFNOTRECSIM) drvAsynSerialPortConfigure("L0", "$(PORT=NO_PORT_MACRO)", 0, 0, 0, 0)
@@ -127,6 +132,7 @@ $(IFNOTDEVSIM) $(IFNOTRECSIM) asynSetOption("L0", -1, "stop", "$(STOP=1)")
 ### Adding a suite of tests
 
 To add a another suite of tests:
+
 * Create a Python file. This no longer has to have a specific name, but try to give it a name similar to the IOC and emulator so that it is easy to find.
 * Ensure your test suite has the essential attributes `IOCS` and `TEST_MODES` (see below for more details)
 * Create a test class (deriving from `unittest.TestCase`) in your module and fill it with tests. This no longer has to have a specific name. You can have multiple test classes within a test module, all of them will be executed. 
@@ -137,13 +143,16 @@ To add a another suite of tests:
 The `IOCS` attribute tells the test framework which IOCs need to be launched. Any number of IOCs are allowed. The `IOCS` attribute should be a list of dictionaries, where each dictionary contains information about one IOC/emulator combination. 
 
 Essential attributes:
+
 - `name`: The IOC name of the IOC to launch, e.g. `GALIL_01`.
 - `directory`: The directory containing `runIoc.bat` for this IOC.
 
 Essential attributes in devsim mode:
+
 - `emulator`: The name of the lewis emulator for this device. (or pass `emulators` instead)
 
 Optional attributes:
+
 - `macros`: A dictionary of macros. Defaults to an empty dictionary (no additional macros)
 - `inits` : A dictionary of initialisation values for PVs in this IOC. Defaults to an empty dictionary.
 - `custom_prefix` : A custom PV prefix for this IOC in case this is different from the IOC name (example: custom prefix `MOT` for IOC `GALIL_01`)
@@ -178,8 +187,8 @@ If you want a to run the IOC tests against a different number IOC, e.g. "IOCNAME
 you need to change the following:
 
 1. Set `DEVICE_PREFIX` to `IOCNAME_02`.
-1. Change the "name" property of the IOC dictionary to `IOCNAME_02`.
-1. Pass the keyword argument `iocnum=2` to `get_default_ioc_dir()`.
+2. Change the "name" property of the IOC dictionary to `IOCNAME_02`.
+3. Pass the keyword argument `iocnum=2` to `get_default_ioc_dir()`.
 
 The test framework now start the `IOCNAME_02` IOC to run the tests against.
 
@@ -188,8 +197,23 @@ The test framework now start the `IOCNAME_02` IOC to run the tests against.
 This is a list of test modes to run this test suite in. A list of available test modes can be found in `utils\test_modes.py`. Currently these are RECSIM and DEVSIM.
 
 Example:
+
 ```python
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+```
+
+### The `BUILD_ARCHITECTURES` attribute
+
+This is a list of build architectures that the test suite can be run in. Sometimes a test suite may need to be skipped for 32-bit builds, which you can do by adding the `BUILD_ARCHITECTURES` attribute to your test suite, e.g.:
+
+```python
+BUILD_ARCHITECTURES = [BuildArchitectures._64BIT]
+```
+
+Unlike `TEST_MODES`, this is **NOT** an essential attribute. If it is not set, it will default to run in both 64 and 32 bit:
+
+```python
+BUILD_ARCHITECTURES = [BuildArchitectures._64BIT, BuildArchitectures._32BIT]
 ```
 
 ### Structure of a test
@@ -204,24 +228,27 @@ class MydeviceTests(unittest.TestCase):
         self.ca = ChannelAccess(default_timeout=20, device_prefix="IOCNAME_01", default_wait_time=0.0)
         # Wait for a PV to be available – the IOC may take some time to start
         self.ca.wait_for(“DISABLE", timeout=30)
-        
+
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         # Assert that a PV has a particular value (prefix prepended automatically)          
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 ```
+
 Try to use GIVEN_WHEN_THEN test naming wherever appropriate. By default `ChannelAccess` will wait 1 second after every set, but this can dramatically slow down tests. Newer tests should override this default using `default_wait_time=0.0` and only sleep where definitely required.
 
 ### Setting values
 
 1) Set via channel access:
-```python
-self.ca.set_pv_value("PRESSURE:SP", value)
-```
+   
+   ```python
+   self.ca.set_pv_value("PRESSURE:SP", value)
+   ```
 
 2) Set via Lewis backdoor:
-```python
-self._lewis.backdoor_set_on_device("pressure", value)
-```
+   
+   ```python
+   self._lewis.backdoor_set_on_device("pressure", value)
+   ```
 * This is an “on-the-fly” modification of the device’s internal parameters
 * Use this to set values that you wouldn’t be able to set via the IOC
 * Can be useful to check the IOC’s response to error conditions
@@ -229,40 +256,60 @@ self._lewis.backdoor_set_on_device("pressure", value)
 ### Assertions
 
 A number of custom assert statements are available in the test framework:
+
 * `assert_that_pv_is `
+  
   * Checks that a PV has a particular value (exact).
+
 * `assert_that_pv_is_number`
+  
   * Checks that a PV is a number, within a specified tolerance.
+
 * `assert_that_pv_is_integer_between`
+  
   * Checks that a PV is an integer between two specified bounds.
+
 * `assert_pv_alarm_is`
+  
   * Checks that a PV has a particular alarm state. 
+
 * `assert_setting_setpoint_sets_readback`
+  
   * Checks that a PV is a particular value after the relevant setpoint is changed.
+
 * `assert_that_pv_monitor_is`
+  
   * Checks that a PV has issued a monitor for a pv and that the value is as set. This used in a with:
-      ```
-      with self.ca.assert_that_pv_monitor_is("MY:PV:NAME", expected_value):
-            self.ca.set_pv_value("MY:PV:NAME:SP", 1)
-      ```
+    
+    ```
+    with self.ca.assert_that_pv_monitor_is("MY:PV:NAME", expected_value):
+          self.ca.set_pv_value("MY:PV:NAME:SP", 1)
+    ```
+
 * `assert_that_pv_monitor_is_number`
+  
   * Checks that a PV has issued a monitor for a pv and that it is a number, within a specified tolerance. Used in a similar way to `assert_that_pv_monitor_is`
 
 * `assert_that_emulator_value_is`
+  
   * Checks that an emulator property has the expected value or that it becomes the expected value within the timeout.
 
 If you find yourself needing other assert functions, please add them!
 
 Note: If using PyCharm, you can add code completeion/suggestions for function names by opening the folder `IoCTestFramework`, rightclick on `master` in the project explorer on the left, and selecting `Mark Directory as... > Sources Root`. 
 
-### Testing device disconnection behaviour 
+### Testing device disconnection behaviour
+
 To safely test disconnection behaviour, you can use the emulator utility function `backdoor_simulate_disconnected_device`, with parameters `(self, emulator_property="connected")`. 
 This has been written in place of using the below to assert an alarm is INVALID. 
-```python 
+
+```python
 self.lewis.backdoor_set_on_device("connected", False)
 ```
+
 When writing these tests to check alarm behaviour with a disconnected device, you may want to consider asserting alarms are clear before and after to ensure the test is rigorous.
 Here you can see a generic template to use the function:
+
 ```python
 def test_WHEN_device_disconnects_THEN_pvs_go_into_alarm(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
@@ -278,6 +325,7 @@ def test_WHEN_device_disconnects_THEN_pvs_go_into_alarm(self, _, pv):
 RECSIM is not as advanced as DEVSIM – for any reasonably complex emulator, the emulator will have some functionality which RECSIM doesn’t. Tests that require Lewis will error in RECSIM mode.
 
 To skip these tests in RECSIM, add the following annotation to tests which shouldn't be run in RECSIM mode:
+
 ```python
 from utils.testing import skip_if_recsim
 
@@ -285,11 +333,13 @@ from utils.testing import skip_if_recsim
 def test_GIVEN_condition_WHEN_thing_is_done_THEN_thing_happens(self):
     # Some functionality which doesn’t exist in recsim goes here
 ```
+
 Any test which includes a Lewis backdoor command MUST have this annotation, otherwise it will error because it can’t find lewis in RECSIM mode.
 
 There is also an equivalent `skip_if_devsim` annotation which can be used.
 
 If you do not call the decorator with a message as its first argument, the test will fail with a message like:
+
 ```
 Traceback (most recent call last):
   File "C:\Instrument\Apps\EPICS\support\IocTestFramework\master\utils\testing.py", line 93, in decorator
@@ -301,18 +351,19 @@ AttributeError: 'obj' object has no attribute '__name__'
 
 This can be avoided by calling the decorator like ` @skip_if_recsim("In rec sim this test fails") `
 
-### Avoiding tests affecting other tests
+### ### Avoiding tests affecting other tests
 
 * When run by the IOC test framework, the IOC + emulator state persists between tests
 * For simple tests/emulators this is not typically an issue, but for complex emulators this can cause tests to pass when run on their own but fail when run as part of a suite, or fail intermittently. This can be very hard to debug!
 * Solution is to ensure a consistent startup state in the setUp method of the tests. 
-This will run before each test, and it should “reset” all relevant properties of the device so that each test always starts from a consistent starting state
+  This will run before each test, and it should “reset” all relevant properties of the device so that each test always starts from a consistent starting state
 * Doing lots in the setup method will make the tests run a bit slower – this is preferable to having inconsistently passing tests!
 * When creating base classes for tests please have your base class inherit from `object` and your subclasses inherit
-from your base class and `unittest.TestCase`. See [Python unit tests with base and sub class](https://stackoverflow.com/questions/1323455/python-unit-test-with-base-and-sub-class)
-for more discussion.
+  from your base class and `unittest.TestCase`. See [Python unit tests with base and sub class](https://stackoverflow.com/questions/1323455/python-unit-test-with-base-and-sub-class)
+  for more discussion.
 
 ### Parameterised tests
+
 You can create tests which check a few values, e.g. boundaries, negative numbers, zero, floats and integers (if applicable to the device):
 
 ```python
@@ -321,6 +372,7 @@ def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
         self.ca.set_pv_value("SPEED:SP", speed)
         self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
 ```
+
 Testing different types of values can quickly catch simple errors in the IOC’s records or protocol file, for example accidentally having a %i (integer) instead of %d (double) format converter.
 
 The above was the old way of parameterizing tests. After installing `parameterized` using pip, you can parameterize your tests so that a new test runs for each case. Documentation for parameterized can be found at https://github.com/wolever/parameterized.
@@ -358,7 +410,6 @@ For a non-trivial IOC you might get rounding errors, e.g. setpoint = 2.5, readba
 def test_WHEN_speed_setpoint_is_set_THEN_readback_updates(self):
     self.ca.set_pv_value("SPEED:SP", speed)
     self.ca.assert_that_pv_is_number("SPEED:SP:RBV", speed, tolerance=0.01)
-
 ```
 
 ### PINI records
@@ -378,42 +429,51 @@ def test_ioc_name(self):
 When the IOC is started it can be made to wait until the pv `DISABLE` exist; if it doesn't exist after 30s then the 
 tests will be stopped. To enable this option simply place in the test file the constant `DEVICE_PREFIX` which has the IOC
  prefix in. So for instance in the amint2l the device prefix is `AMINT2l_01` so in the header:
- ```python
-     # Device prefix
-     DEVICE_PREFIX = "AMINT2L_01"
+
+```python
+    # Device prefix
+    DEVICE_PREFIX = "AMINT2L_01"
 ```
+
 If you want this in all your `ChannelAccess` interaction then I suggest passing it into the constructor, eg:
- ```python
-     def setUp(self):
-        ...
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+
+```python
+    def setUp(self):
+       ...
+       self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 ```
+
 Then to assert that the pv `<inst prefix>:AMINT2L_01:PRESSURE` is 1 use:
+
 ```python
     self.ca.assert_that_pv_is("PRESSURE", 1)
 ```
+
 ### Logging
 
 The IOC test framework writes logs to C:\Instrument\Var\logs\IOCTestFramework
 
 You can force extra debug output by:
+
 * Adding `@has_log` at the top of the class
 * Using `self.log.debug("message")`
 * `log.info`, `log.warning` and `log.error` are also available
 
 ## Other Emulators
- 
+
  By default the test framework will run emulators written under the [Lewis](https://lewis.readthedocs.io/en/latest/) framework. However, in some cases you may want to run up a different emulator. This is useful if there is already an emulator provided by the device manufacture, as is the case for the mezei flipper and the beckhoff.
- 
+
 ### Command Line Emulator
 
 Other than Lewis this is currently the only other emulation method. It will run a given command line script and optionally wait for it to complete. To use it you should add the following to the `IOCS` [attribute](#the-iocs-attribute).
 
 Essential attributes:
+
 - `emulator_launcher_class`: Use `CommandLineEmulatorLauncher` to use this emulator.
 - `emulator_command_line`: The script to run on the command line e.g. `python my_emulator.py`
 
 Optional attributes:
+
 - `emulator_wait_to_finish`: If `true` wait for the process to complete and return before running the tests. This can be useful if the emulator will start up as a background process. It defaults to `false`.
 
 ### Adding an Emulator Type
@@ -423,6 +483,7 @@ To add an additional emulator type you should create a class in `emulator_launch
 ### Manager Mode
 
 The utils testing module has a decorator for turning manager mode on and can be used like:
+
 ```python
     from utils.testing import ManagerMode
     def test_something(self):
@@ -433,6 +494,7 @@ The utils testing module has a decorator for turning manager mode on and can be 
 ```
 
 To run this you will need the `INSTETC` IOC running and so the following must be added to your list of IOCs:
+
 ```python
     {
         "name": "INSTETC",
@@ -440,7 +502,7 @@ To run this you will need the `INSTETC` IOC running and so the following must be
     }
 ```
 
-### Launching multiple emulators 
+### Launching multiple emulators
 
 Use the `emulators` `IOCS` attribute instead of `emulator` and pass through a list of `TestEmulatorData` objects. 
 
@@ -485,4 +547,3 @@ IOCs will often autosave values to be restored on restart. Autosaving is done pe
 ## Incorrect behaviour when device is dicconnected (scanning / lockTimeout)
 
 Is a lewis device is told to diconnect, then all future stream device calls will timeout after replyTimeout. A record set to process has lockTimeout seconds to start processing its first protcol "out" before timing out. If you disconnect a device in your ioc test and then want to see if e.g. a PV goes into an alarm start, you will need to make sure you give it at least `lockTimeout` seconds to enter its invalid state. `lockTimeout` is 5 seconds by default, but is configurable on a per device basis - see the stream device protocol file.      
-
