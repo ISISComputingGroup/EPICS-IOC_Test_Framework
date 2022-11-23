@@ -2,6 +2,7 @@ import importlib
 import os
 from contextlib import contextmanager
 
+from utils.build_architectures import BuildArchitectures
 
 def package_contents(package_path):
     """
@@ -49,6 +50,7 @@ class ModuleTests(object):
         self.tests = None
         self.__file = self.__get_file_reference()
         self.__modes = self.__get_modes()
+        self.__architectures = self.__get_architectures()
 
     @property
     def name(self):
@@ -65,6 +67,11 @@ class ModuleTests(object):
         """ Returns a reference to the module file. """
         return self.__file
 
+    @property
+    def architectures(self):
+        """ Returns the architectures the test can be run in. """
+        return self.__architectures
+
     def __get_file_reference(self):
         module = load_module("tests.{}".format(self.__name))
         return module
@@ -73,6 +80,11 @@ class ModuleTests(object):
         if not self.__file:
             self.__get_file_reference()
         return check_test_modes(self.__file)
+    
+    def __get_architectures(self):
+        if not self.__file:
+            self.__get_file_reference()
+        return check_build_architectures(self.__file)
 
 
 def load_module(name):

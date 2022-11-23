@@ -23,6 +23,7 @@ from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLe
 from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
+from utils.build_architectures import BuildArchitectures
 
 
 def clean_environment():
