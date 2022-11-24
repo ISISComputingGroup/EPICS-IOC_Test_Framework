@@ -161,16 +161,16 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
     def test_GIVEN_temperature_set_WHEN_changing_calibration_files_THEN_temperature_rb_pvs_update(self):
-        temperature = 10
-        temperature_calibrated = temperature + 50
-        tolerance = 0.1
+        temperature = 50
+        temperature_calibrated = 500
+        tolerance = 1
         self._set_setpoint_and_current_temperature(temperature)
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "None.txt"):
             self.ca.assert_that_pv_is_number("TEMP", temperature, tolerance=tolerance)
             self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance)
 
-        with use_calibration_file(self.ca, "Add50.txt"):
+        with use_calibration_file(self.ca, "C.txt"):
             self.ca.assert_that_pv_is_number("TEMP", temperature_calibrated, tolerance=tolerance)
             self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature_calibrated, tolerance=tolerance)
 
