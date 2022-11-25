@@ -877,18 +877,18 @@ class ReflTests(unittest.TestCase):
         value = 6
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 1)
+            self.ca.set_pv_value("PARAM:S1:LOCKED", 1)
             self.ca.set_pv_value("PARAM:S1:SP", value)
 
             self.ca.assert_that_pv_is_not("PARAM:S1", value)
 
-            self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 0)
+            self.ca.set_pv_value("PARAM:S1:LOCKEDP", 0)
 
     def test_GIVEN_slit_locked_WHEN_value_set_with_action_THEN_no_changes(self):
         value = 6
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 1)
+            self.ca.set_pv_value("PARAM:S1:LOCKED", 1)
             self.ca.set_pv_value("PARAM:S1:SP_NO_ACTION", value)
 
             self.ca.assert_that_pv_is_not("PARAM:S1:SP_NO_ACTION", value)
@@ -898,4 +898,4 @@ class ReflTests(unittest.TestCase):
             self.ca.assert_that_pv_is_not("PARAM:S1:SP:RBV", value)
             self.ca.assert_that_pv_is_not("PARAM:S1", value)
 
-            self.ca.set_pv_value("PARAM:S1:LOCKED_SP", 0)
+            self.ca.set_pv_value("PARAM:S1:LOCKED", 0)
