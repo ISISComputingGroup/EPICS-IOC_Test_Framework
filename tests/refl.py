@@ -882,7 +882,7 @@ class ReflTests(unittest.TestCase):
 
             self.ca.assert_that_pv_is_not("PARAM:S1", value)
 
-            self.ca.set_pv_value("PARAM:S1:LOCKEDP", 0)
+            self.ca.set_pv_value("PARAM:S1:LOCKED", 0)
 
     def test_GIVEN_slit_locked_WHEN_value_set_with_action_THEN_no_changes(self):
         value = 6
