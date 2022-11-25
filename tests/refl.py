@@ -10,6 +10,7 @@ from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, Pyth
 from utils.test_modes import TestModes
 from utils.testing import ManagerMode, parameterized_list
 from utils.testing import unstable_test
+from genie_python.channel_access_exceptions import WriteAccessException
 import time
 
 
@@ -878,7 +879,7 @@ class ReflTests(unittest.TestCase):
 
         with ManagerMode(self.ca_no_prefix):
             self.ca.set_pv_value("PARAM:S1:LOCKED", 1)
-            self.ca.set_pv_value("PARAM:S1:SP", value)
+            self.assertRaises(WriteAccessException, self.ca.set_pv_value, "PARAM:S1:SP", value)
 
             self.ca.assert_that_pv_is_not("PARAM:S1", value)
 
