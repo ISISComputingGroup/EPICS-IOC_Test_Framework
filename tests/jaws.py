@@ -54,6 +54,8 @@ class JawsTestsBase(object):
 
         self.ca.set_pv_value("MOT:JAWS1:HGAP:SP", 0)
         self.ca.set_pv_value("MOT:JAWS1:VGAP:SP", 0)
+        self.ca.set_pv_value("MOT:JAWS1:HCENT:SP", 0)
+        self.ca.set_pv_value("MOT:JAWS1:VCENT:SP", 0)
 
 
     @parameterized.expand(parameterized_list(DIRECTIONS))
@@ -99,6 +101,99 @@ class JawsTestsBase(object):
         self.ca.assert_that_pv_is(e_pv, 0.5)
         self.ca.assert_that_pv_is(w_pv, -0.5)
 
+    def test_GIVEN_jaws_closed_at_centre_WHEN_JN_moves_THEN_vcent_moves(self):
+        n_pv = "{}:JN".format(JAWS_BASE_PV)
+        n_pv_sp = "{}:JN:SP".format(JAWS_BASE_PV)
+        s_pv = "{}:JS".format(JAWS_BASE_PV)
+        # GIVEN
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0)
+        # WHEN
+        self.ca.set_pv_value(n_pv_sp, 1)
+        # THEN
+        self.ca.assert_that_pv_is(n_pv, 1)
+        self.ca.assert_that_pv_is(s_pv, 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 1)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP:SP", 1)
+        self.ca.assert_that_pv_is("MOT:JAWS1:HGAP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:HGAP:SP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0.5)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT:SP", 0.5)
+        self.ca.assert_that_pv_is(n_pv_sp, 1)
+
+    def test_GIVEN_jaws_closed_at_centre_WHEN_north_low_moved_THEN_vcent_not_move(self):
+        testval = 1
+        n_pv = "{}:JN".format(JAWS_BASE_PV)
+        n_pv_sp = "{}:JN:SP".format(JAWS_BASE_PV)
+        n_pv_low_sp = "{}:JN:MTR".format(JAWS_BASE_PV)
+        n_pv_low = "{}:JN:MTR.RBV".format(JAWS_BASE_PV)
+        s_pv = "{}:JS".format(JAWS_BASE_PV)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0)
+        self.ca.assert_that_pv_is(n_pv_low, 0)
+        # WHEN
+        self.ca.set_pv_value(n_pv_low_sp, testval)
+        # THEN
+        self.ca.assert_that_pv_is(n_pv_low, testval)
+        self.ca.assert_that_pv_is(n_pv, testval)
+        self.ca.assert_that_pv_is(n_pv_sp, 0)
+        self.ca.assert_that_pv_is(s_pv, 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:HGAP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:HGAP:SP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", testval / 2.0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT:SP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP:SP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", testval)
+
+    def test_GIVEN_jaws_offset_WHEN_gap_set_THEN_centre_maintained(self):
+        n_pv = "{}:JN".format(JAWS_BASE_PV)
+        n_pv_sp = "{}:JN:SP".format(JAWS_BASE_PV)
+        n_pv_low_sp = "{}:JN:MTR".format(JAWS_BASE_PV)
+        n_pv_low = "{}:JN:MTR.RBV".format(JAWS_BASE_PV)
+        s_pv = "{}:JS".format(JAWS_BASE_PV)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0)
+        self.ca.assert_that_pv_is(n_pv_low, 0)
+        # WHEN
+        self.ca.set_pv_value(n_pv_low_sp, 1)
+        self.ca.assert_that_pv_is(n_pv_low, 1)
+        self.ca.assert_that_pv_is(n_pv_sp, 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0.5)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT:SP", 0)
+        self.ca.set_pv_value("MOT:JAWS1:VGAP:SP", 4)
+        # THEN
+        self.ca.assert_that_pv_is(n_pv, 2)
+        self.ca.assert_that_pv_is(n_pv_sp, 2)
+        self.ca.assert_that_pv_is(s_pv, -2)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 4)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT:SP", 0)
+
+    def test_GIVEN_jaws_offset_WHEN_centre_set_THEN_gap_maintained(self):
+        n_pv = "{}:JN".format(JAWS_BASE_PV)
+        n_pv_sp = "{}:JN:SP".format(JAWS_BASE_PV)
+        n_pv_low_sp = "{}:JN:MTR".format(JAWS_BASE_PV)
+        n_pv_low = "{}:JN:MTR.RBV".format(JAWS_BASE_PV)
+        s_pv = "{}:JS".format(JAWS_BASE_PV)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0)
+        self.ca.assert_that_pv_is(n_pv_low, 0)
+        # WHEN
+        self.ca.set_pv_value(n_pv_low_sp, 1)
+        self.ca.assert_that_pv_is(n_pv_low, 1)
+        self.ca.assert_that_pv_is(n_pv_sp, 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 0.5)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT:SP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 1)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP:SP", 0)
+        self.ca.set_pv_value("MOT:JAWS1:VCENT:SP", 4)
+        # THEN
+        self.ca.assert_that_pv_is(n_pv, 4)
+        self.ca.assert_that_pv_is(n_pv_sp, 4)
+        self.ca.assert_that_pv_is(s_pv, 4)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VGAP", 0)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 4)
+        self.ca.assert_that_pv_is("MOT:JAWS1:VCENT:SP", 4)
 
     @parameterized.expand([("lock", "Unlocked"),
                            ("able", "Enable")])
