@@ -40,33 +40,33 @@ class RikenFEPLCTests(unittest.TestCase):
     # Also PVs in RIKENFE_Vacuum_Valve_Interlock_Status template
 
     @parameterized.expand(parameterized_list([
-        (0, "SOLENOID:COMMS:STAT", "Comms OK"),
-        (0, "SOLENOID:GH7:STAT", "GH7 Error"),
-        (1, "SOLENOID:COMMS:STAT", "Comms Error"),
-        (1, "SOLENOID:GH7:STAT", "GH7 Error"),
-        (2, "SOLENOID:COMMS:STAT", "Comms OK"),
-        (2, "SOLENOID:GH7:STAT", "GH7 OK"),
-        (4, "SOLENOID:GH8:STAT", "GH8 OK"),
-        (8, "SOLENOID:CRYO_SYS:STAT", "Cryo System OK"),
-        (16, "SOLENOID:COOLDOWN:STAT", "Cooldown Complete"),
-        (32, "SOLENOID:MAG_EXCIT:STAT", "Magnet Excitation ON"),
-        (64, "SOLENOID:COMPRESSOR:STAT", "Compressor ON"),
-        (0, "LV1:ILK:STAT:COMMS:STAT", "Comms Error"),
-        (1, "LV1:ILK:STAT:COMMS:STAT", "Comms OK"),
-        (1, "LV2:ILK:STAT:FSOV:STAT", "FSOV Opened"),
-        (2, "LV3:ILK:STAT:GH28:STAT", "GH28 OK"),
-        (4, "LV4:ILK:STAT:BIT3CONSTANT:STAT", "0"),
-        (8, "LV5:ILK:STAT:GH36:STAT", "GH36 OK"),
-        (16, "LV6:ILK:STAT:BIT5CONSTANT:STAT", "0"),
-        (32, "LV7:ILK:STAT:BB4CLOSE:STAT", "!BB4 Close Command"),
-        (64, "AMGV:ILK:STAT:BIT7CONSTANT:STAT", "1"),
-        (128, "FSOV:ILK:STAT:EPB_FSOV:STAT", "!EPB_FSOV"),
-        (128, "BPV1:ILK:STAT:BPV1CLOSE:STAT", "!Close BPV1"),
+        (0, "SIM:SOLENOID:STAT:RAW", "SOLENOID:COMMS:STAT", "Comms OK"),
+        (0, "SIM:SOLENOID:STAT:RAW", "SOLENOID:GH7:STAT", "GH7 Error"),
+        (1, "SIM:SOLENOID:STAT:RAW", "SOLENOID:COMMS:STAT", "Comms Error"),
+        (1, "SIM:SOLENOID:STAT:RAW", "SOLENOID:GH7:STAT", "GH7 Error"),
+        (2, "SIM:SOLENOID:STAT:RAW", "SOLENOID:COMMS:STAT", "Comms OK"),
+        (2, "SIM:SOLENOID:STAT:RAW", "SOLENOID:GH7:STAT", "GH7 OK"),
+        (4, "SIM:SOLENOID:STAT:RAW", "SOLENOID:GH8:STAT", "GH8 OK"),
+        (8, "SIM:SOLENOID:STAT:RAW", "SOLENOID:CRYO_SYS:STAT", "Cryo System OK"),
+        (16, "SIM:SOLENOID:STAT:RAW", "SOLENOID:COOLDOWN:STAT", "Cooldown Complete"),
+        (32, "SIM:SOLENOID:STAT:RAW", "SOLENOID:MAG_EXCIT:STAT", "Magnet Excitation ON"),
+        (64, "SIM:SOLENOID:STAT:RAW", "SOLENOID:COMPRESSOR:STAT", "Compressor ON"),
+        (0, "SIM:LV1:ILK:STAT:RAW", "LV1:ILK:STAT:COMMS:STAT", "-"),
+        (1, "SIM:LV1:ILK:STAT:RAW", "LV1:ILK:STAT:COMMS:STAT", "Comms OK"),
+        (2, "SIM:LV2:ILK:STAT:RAW", "LV2:ILK:STAT:FSOV:STAT", "FSOV Opened"),
+        (4, "SIM:LV3:ILK:STAT:RAW", "LV3:ILK:STAT:GH28:STAT", "GH28 OK"),
+        (8, "SIM:LV4:ILK:STAT:RAW", "LV4:ILK:STAT:BIT3CONSTANT:STAT", "0"),
+        (16, "SIM:LV5:ILK:STAT:RAW", "LV5:ILK:STAT:GH36:STAT", "GH36 OK"),
+        (32, "SIM:LV6:ILK:STAT:RAW", "LV6:ILK:STAT:BIT5CONSTANT:STAT", "0"),
+        (64, "SIM:LV7:ILK:STAT:RAW", "LV7:ILK:STAT:BB4CLOSE:STAT", "!BB4 Close Command"),
+        (128, "SIM:AMGV:ILK:STAT:RAW", "AMGV:ILK:STAT:BIT7CONSTANT:STAT", "1"),
+        (256, "SIM:FSOV:ILK:STAT:RAW", "FSOV:ILK:STAT:EPB_FSOV:STAT", "!EPB_FSOV"),
+        (256, "SIM:BPV1:ILK:STAT:RAW", "BPV1:ILK:STAT:BPV1CLOSE:STAT", "!Close BPV1"),
     ]))
     def test_GIVEN_value_written_to_raw_pv_THEN_appropriate_bit_value_is_as_expected(
-            self, _, raw_value, pv_name, expected_value):
+            self, _, raw_value, set_pv_name, pv_name, expected_value):
 
-        self.ca.set_pv_value("SIM:SOLENOID:STAT:RAW", raw_value)
+        self.ca.set_pv_value(set_pv_name, raw_value)
         self.ca.assert_that_pv_is(pv_name, expected_value)
 
 
