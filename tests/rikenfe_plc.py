@@ -27,7 +27,7 @@ TEST_MODES = [TestModes.RECSIM]
 
 class RikenFEPLCTests(unittest.TestCase):
     """
-    Tests for the RIKEN FE PLC
+    Tests for the RIKEN Front End PLC
     """
 
     def setUp(self):
@@ -36,6 +36,9 @@ class RikenFEPLCTests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
 
+    # TODO: add cases for each of the remaining bits i.e. 0,1,2,4,16,32,64,
+    # Also PVs in RIKENFE_Vacuum_Valve_Interlock_Status template
+
     @parameterized.expand(parameterized_list([
         (0, "SOLENOID:COMMS:STAT", "Comms OK"),
         (0, "SOLENOID:GH7:STAT", "GH7 Error"),
@@ -43,12 +46,29 @@ class RikenFEPLCTests(unittest.TestCase):
         (1, "SOLENOID:GH7:STAT", "GH7 Error"),
         (2, "SOLENOID:COMMS:STAT", "Comms OK"),
         (2, "SOLENOID:GH7:STAT", "GH7 OK"),
+        (4, "SOLENOID:GH8:STAT", "GH8 OK"),
+        (8, "SOLENOID:CRYO_SYS:STAT", "Cryo System OK"),
+        (16, "SOLENOID:COOLDOWN:STAT", "Cooldown Complete"),
+        (32, "SOLENOID:MAG_EXCIT:STAT", "Magnet Excitation ON"),
+        (64, "SOLENOID:COMPRESSOR:STAT", "Compressor ON"),
+        (0, "LV1:ILK:STAT:COMMS:STAT", "Comms Error"),
+        (1, "LV1:ILK:STAT:COMMS:STAT", "Comms OK"),
+        (1, "LV2:ILK:STAT:FSOV:STAT", "FSOV Opened"),
+        (2, "LV3:ILK:STAT:GH28:STAT", "GH28 OK"),
+        (4, "LV4:ILK:STAT:BIT3CONSTANT:STAT", "0"),
+        (8, "LV5:ILK:STAT:GH36:STAT", "GH36 OK"),
+        (16, "LV6:ILK:STAT:BIT5CONSTANT:STAT", "0"),
+        (32, "LV7:ILK:STAT:BB4CLOSE:STAT", "!BB4 Close Command"),
+        (64, "AMGV:ILK:STAT:BIT7CONSTANT:STAT", "1"),
+        (128, "FSOV:ILK:STAT:EPB_FSOV:STAT", "!EPB_FSOV"),
+        (128, "BPV1:ILK:STAT:BPV1CLOSE:STAT", "!Close BPV1"),
     ]))
     def test_GIVEN_value_written_to_raw_pv_THEN_appropriate_bit_value_is_as_expected(
             self, _, raw_value, pv_name, expected_value):
 
         self.ca.set_pv_value("SIM:SOLENOID:STAT:RAW", raw_value)
         self.ca.assert_that_pv_is(pv_name, expected_value)
+
 
     @parameterized.expand(parameterized_list([
     ("SIM:LV1:OPEN:SP:OUT", "LV1:OPEN:SP"),
