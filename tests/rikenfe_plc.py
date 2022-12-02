@@ -120,3 +120,56 @@ class RikenFEPLCTests(unittest.TestCase):
 
         self.ca.set_pv_value(set_pv_name, expected_value)
         self.ca.assert_that_pv_is(get_pv_name, expected_value)
+
+    @parameterized.expand([
+        ("_all_on_no_interlock", 1, 1, 1, 2, 2, 2, 2, 2, "All On"),
+        ("_all_off_no_interlock", 1, 1, 1, 1, 1, 1, 1, 1,"All Off"),
+        ("_mixed_1_no_interlock", 1, 1, 1, 2, 1, 2, 2, 3,"Mixed State"),
+        ("_mixed_2_no_interlock", 1, 1, 1, 1, 1, 1, 2, 3,"Mixed State"),
+        ("_all_on_water", 4, 1, 1, 2, 2, 2, 2, 4,"Fault"),
+        ("_all_off_water", 4, 1, 1, 1, 1, 1, 1, 4,"Fault"),
+        ("_mixed_water", 4, 1, 1, 2, 1, 2, 2, 4,"Fault"),
+        ("_all_on_vacuum", 1, 4, 1, 2, 2, 2, 2, 4,"Fault"),
+        ("_all_off_vacuum", 1, 4, 1, 1, 1, 1, 1, 4,"Fault"),
+        ("_mixed_vacuum", 1, 4, 1, 2, 1, 2, 2, 4,"Fault"),
+        ("_all_on_mol", 1, 1, 4, 2, 2, 2, 2, 4,"Fault"),
+        ("_all_off_mol", 1, 1, 4, 1, 1, 1, 1, 4,"Fault"),
+        ("_mixed_mol", 1, 1, 4, 2, 1, 2, 2, 4,"Fault"),
+        ("_comms_loss_in_interlock", 0, 1, 4, 2, 1, 2, 2, 0,"Comms Loss"),
+        ("_comms_loss_in_power", 1, 1, 1, 2, 0, 2, 2, 0,"Comms Loss"),
+    ])
+    def test_GIVEN_kicker_state_THEN_correct_summary(self, _, water, vacuum, mol, psu1, psu2, psu3, psu4, result, enum):
+        # Set interlocks
+        self.ca.set_pv_value("SIM:KICKERS:WATER:ILK:STAT", water)
+        self.ca.set_pv_value("SIM:KICKERS:VACUUM:ILK:STAT", vacuum)
+        self.ca.set_pv_value("SIM:KICKERS:MOL:STAT", mol)
+        
+        # Set status
+        self.ca.set_pv_value("SIM:KICKER1:PSU_ON:STAT", psu1)
+        self.ca.set_pv_value("SIM:KICKER2:PSU_ON:STAT", psu2)
+        self.ca.set_pv_value("SIM:KICKER3:PSU_ON:STAT", psu3)
+        self.ca.set_pv_value("SIM:KICKER4:PSU_ON:STAT", psu4)
+        
+        # check states
+        self.ca.assert_that_pv_is("KICKERS:SUMMARY:STAT", result)
+        self.ca.assert_that_pv_is("KICKERS:SUMMARY:ENUM", enum)
+        
+    @parameterized.expand(parameterized_list([
+        (0,0,0,0),
+        (1,2,3,4),
+        (4,3,2,1)
+    ]))
+    def test_GIVEN_current_THEN_correct_total(self, _, inpa, inpb, inpc, inpd):
+        self.ca.set_pv_value("SIM:KICKER1:CURR", 0)
+        self.ca.set_pv_value("SIM:KICKER2:CURR", 0)
+        self.ca.set_pv_value("SIM:KICKER3:CURR", 0)
+        self.ca.set_pv_value("SIM:KICKER4:CURR", 0)
+        
+        self.ca.set_pv_value("SIM:KICKER1:CURR",inpa)
+        self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa)
+        self.ca.set_pv_value("SIM:KICKER2:CURR",inpb)
+        self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa+inpb)
+        self.ca.set_pv_value("SIM:KICKER3:CURR",inpc)
+        self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa+inpb+inpc)
+        self.ca.set_pv_value("SIM:KICKER4:CURR",inpd)
+        self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa+inpb+inpc+inpd)
