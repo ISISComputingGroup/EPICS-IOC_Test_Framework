@@ -36,9 +36,6 @@ class RikenFEPLCTests(unittest.TestCase):
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
 
-    # TODO: add cases for each of the remaining bits i.e. 0,1,2,4,16,32,64,
-    # Also PVs in RIKENFE_Vacuum_Valve_Interlock_Status template
-
     @parameterized.expand(parameterized_list([
         (0, "SIM:SOLENOID:STAT:RAW", "SOLENOID:COMMS:STAT", "Comms OK"),
         (0, "SIM:SOLENOID:STAT:RAW", "SOLENOID:GH7:STAT", "GH7 Error"),
@@ -64,25 +61,29 @@ class RikenFEPLCTests(unittest.TestCase):
         (256, "SIM:BPV1:ILK:STAT:RAW", "BPV1:ILK:STAT:BPV1CLOSE:STAT", "!Close BPV1"),
     ]))
     def test_GIVEN_value_written_to_raw_pv_THEN_appropriate_bit_value_is_as_expected(
-            self, _, raw_value, set_pv_name, pv_name, expected_value):
+            self, _, raw_value, set_pv_name, get_pv_name, expected_value):
+
+        # Test to check that the MBBIDIRECT records are 'split' correctly
 
         self.ca.set_pv_value(set_pv_name, raw_value)
-        self.ca.assert_that_pv_is(pv_name, expected_value)
-
+        self.ca.assert_that_pv_is(get_pv_name, expected_value)
 
     @parameterized.expand(parameterized_list([
-    ("SIM:LV1:OPEN:SP:OUT", "LV1:OPEN:SP"),
-    ("SIM:LV2:OPEN:SP:OUT", "LV2:OPEN:SP"),
-    ("SIM:LV3:OPEN:SP:OUT", "LV3:OPEN:SP"),
-    ("SIM:LV4:OPEN:SP:OUT", "LV4:OPEN:SP"),
-    ("SIM:LV5:OPEN:SP:OUT", "LV5:OPEN:SP"),
-    ("SIM:LV6:OPEN:SP:OUT", "LV6:OPEN:SP"),
-    ("SIM:LV7:OPEN:SP:OUT", "LV7:OPEN:SP"),
-    ("SIM:AMGV:OPEN:SP:OUT", "AMGV:OPEN:SP"),
-    ("SIM:FSOV:OPEN:SP:OUT", "FSOV:OPEN:SP"),
+        ("SIM:LV1:OPEN:SP:OUT", "LV1:OPEN:SP"),
+        ("SIM:LV2:OPEN:SP:OUT", "LV2:OPEN:SP"),
+        ("SIM:LV3:OPEN:SP:OUT", "LV3:OPEN:SP"),
+        ("SIM:LV4:OPEN:SP:OUT", "LV4:OPEN:SP"),
+        ("SIM:LV5:OPEN:SP:OUT", "LV5:OPEN:SP"),
+        ("SIM:LV6:OPEN:SP:OUT", "LV6:OPEN:SP"),
+        ("SIM:LV7:OPEN:SP:OUT", "LV7:OPEN:SP"),
+        ("SIM:AMGV:OPEN:SP:OUT", "AMGV:OPEN:SP"),
+        ("SIM:FSOV:OPEN:SP:OUT", "FSOV:OPEN:SP"),
     ]))
     def test_GIVEN_valve_open_requested_THEN_correct_sequence_generated(
             self, _, sim_pv_name, out_pv_name):
+
+        # PLC requires a rising edge of a register to trigger a valve to open,
+        # so the IOC generates a sequence and this test checks the logic.
 
         # Explicitly set PV to initial value to remove alarm
         self.ca.set_pv_value(sim_pv_name, 0)
@@ -98,5 +99,24 @@ class RikenFEPLCTests(unittest.TestCase):
             # Force process of record
             self.ca.process_pv(out_pv_name)
 
-            # Allow _up to_ 5 seconds for PV to change value, and monitor to notice
+            # Allow _up to_ 5 seconds for the PV to change value and the monitor to notice
             time.sleep(5)
+
+    @parameterized.expand(parameterized_list([
+        ("SIM:RQ1:TEMPMON:TAP01", "RQ1:TEMPMON:TAP01", 12),
+        ("SIM:RQ1:TEMPMON:TAP24", "RQ1:TEMPMON:TAP24", 34),
+        ("SIM:RQ1:TEMPMON:DCCT", "RQ1:TEMPMON:DCCT", 56),
+        ("SIM:RQ2:TEMPMON:TAP01", "RQ2:TEMPMON:TAP01", 12),
+        ("SIM:RQ2:TEMPMON:TAP36", "RQ2:TEMPMON:TAP36", 34),
+        ("SIM:RQ2:TEMPMON:DCCT", "RQ2:TEMPMON:DCCT", 56),
+        ("SIM:RB1:TEMPMON:TAP01", "RB1:TEMPMON:TAP01", 12),
+        ("SIM:RB1:TEMPMON:TAP12", "RB1:TEMPMON:TAP12", 34),
+        ("SIM:RB1:TEMPMON:DCCT", "RB1:TEMPMON:DCCT", 56),
+    ]))
+    def test_GIVEN_temperature_monitoring_db_loaded_THEN_pvs_can_be_read(
+            self, _, set_pv_name, get_pv_name, expected_value):
+
+        # Simple test to check that RIKENFE_TEMPMON.db loads successfully and a selection of PVs can be read
+
+        self.ca.set_pv_value(set_pv_name, expected_value)
+        self.ca.assert_that_pv_is(get_pv_name, expected_value)
