@@ -601,15 +601,21 @@ class ChannelAccess(object):
             pv: the pv name. Must not be the same PV which is written to in the test.
             expected_values (list): list of the expected values
         Raises:
+            AssertionError: if the lengths of the lists of expected and monitor values are not equal
             AssertionError: if the value of the pv did not satisfy the comparator
         """
         monitor = _MonitorAssertion(self, pv)
 
         yield
 
-        for i, expected_value in enumerate(expected_values):
-            if expected_value != monitor.all_values[i]:
-                raise AssertionError("Monitor got {} but expected {}".format(monitor.all_values[i], expected_value))
+        if len(expected_values) == len(monitor.all_values):
+
+            for i, expected_value in enumerate(expected_values):
+                if expected_value != monitor.all_values[i]:
+                    raise AssertionError(f"Monitor got {monitor.all_values[i]}, but expected {expected_value}")
+        else:
+            raise AssertionError(f"List of Monitor values: {monitor.all_values}, but list of Expected values:"
+                                 f" {expected_values}")
 
     @contextmanager
     def assert_that_pv_monitor_is(self, pv, expected_value):
