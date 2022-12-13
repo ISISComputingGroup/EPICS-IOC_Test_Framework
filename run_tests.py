@@ -155,6 +155,9 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
 
     test_results = []
 
+    arch = get_build_architecture()
+    print("Running tests for arch {}".format(arch.name))
+
     for mode in modes:
         if tests_mode is not None and mode != tests_mode:
             continue
@@ -163,9 +166,8 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
 
         for module in modules_to_be_tested_in_current_mode:
             # Skip tests that cannot be run with a 32-bit architecture
-            arch = get_build_architecture()
             if arch not in module.architectures:
-                print(f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.name(arch)} build architecture")
+                print(f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.archname(arch)} build architecture")
                 continue
 
             clean_environment()
