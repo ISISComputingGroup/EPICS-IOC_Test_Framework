@@ -23,6 +23,7 @@ from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLe
 from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
+from utils.build_architectures import BuildArchitectures
 
 
 def clean_environment():
@@ -154,6 +155,9 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
 
     test_results = []
 
+    arch = get_build_architecture()
+    print("Running tests for arch {}".format(arch.name))
+
     for mode in modes:
         if tests_mode is not None and mode != tests_mode:
             continue
@@ -161,6 +165,11 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
+            # Skip tests that cannot be run with a 32-bit architecture
+            if arch not in module.architectures:
+                print(f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.archname(arch)} build architecture")
+                continue
+
             clean_environment()
             device_launchers, device_directories = make_device_launchers_from_module(module.file, mode)
             tested_ioc_directories.update(device_directories)
@@ -225,6 +234,23 @@ def report_test_coverage_for_devices(tested_directories):
     for test in missing_tests:
         print(test)
 
+def get_build_architecture():
+    """
+    Utility function to get the architecture of the current build 
+
+    Returns:
+        BuildArchitectures: Architecture of the current build (e.g., "x64" or "x86")
+    """
+
+    with open('../../../epics_host_arch.txt', 'r') as build_arch:
+        content = build_arch.read()
+
+        if 'x86' in content:
+            return BuildArchitectures._32BIT
+        elif 'x64' in content:
+            return BuildArchitectures._64BIT
+        else:
+            return ''
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """

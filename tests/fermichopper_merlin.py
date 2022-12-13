@@ -1,5 +1,6 @@
 import unittest
 from utils.test_modes import TestModes
+from utils.build_architectures import BuildArchitectures
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import skip_if_recsim, assert_log_messages
 from common_tests.fermichopper import FermichopperBase, ErrorStrings
@@ -22,6 +23,8 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+# VISA not yet available on 32 bit
+BUILD_ARCHITECTURES = [BuildArchitectures._64BIT]
 
 
 class MerlinFermiChopperTests(FermichopperBase, unittest.TestCase):
