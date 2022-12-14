@@ -173,3 +173,4 @@ class RikenFEPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa+inpb+inpc)
         self.ca.set_pv_value("SIM:KICKER4:CURR",inpd)
         self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa+inpb+inpc+inpd)
+
