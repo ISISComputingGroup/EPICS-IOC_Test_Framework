@@ -241,7 +241,7 @@ def get_build_architecture():
     Returns:
         BuildArchitectures: Architecture of the current build (e.g., "x64" or "x86")
     """
-
+    content = ''
     try:
         with open('../../../epics_host_arch.txt', 'r') as build_arch:
             content = build_arch.read()
