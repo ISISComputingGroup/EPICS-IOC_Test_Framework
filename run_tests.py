@@ -242,15 +242,17 @@ def get_build_architecture():
         BuildArchitectures: Architecture of the current build (e.g., "x64" or "x86")
     """
 
-    with open('../../../epics_host_arch.txt', 'r') as build_arch:
-        content = build_arch.read()
-
-        if 'x86' in content:
-            return BuildArchitectures._32BIT
-        elif 'x64' in content:
-            return BuildArchitectures._64BIT
-        else:
-            return ''
+    try:
+        with open('../../../epics_host_arch.txt', 'r') as build_arch:
+            content = build_arch.read()
+    except:
+        content = os.getenv('EPICS_HOST_ARCH', 'windows-x64')
+    if 'x86' in content:
+        return BuildArchitectures._32BIT
+    elif 'x64' in content:
+        return BuildArchitectures._64BIT
+    else:
+        return ''
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """
