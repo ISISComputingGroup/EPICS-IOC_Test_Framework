@@ -39,6 +39,10 @@ class DanfysikBase(object):
         self.id_prefixes = [""]
 
         self.current_readback_factor = 1
+        self.ca.set_pv_value("VOLT.HIGH", TEST_VOLTAGES[-1])
+        self.ca.set_pv_value("VOLT.LOW", -1)
+        self.ca.set_pv_value("CURR.HIGH", TEST_CURRENTS[-1])
+        self.ca.set_pv_value("CURR.LOW", -1)
 
         self.set_autoonoff(False)
 
@@ -258,3 +262,41 @@ class DanfysikCommon(DanfysikBase):
 
         self.assertEqual(str(float(current)), self._lewis.backdoor_get_from_device("absolute_current"))
         self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))
+
+    @parameterized.expand([
+        ("_within_limits", TEST_CURRENTS[1], TEST_CURRENTS[0],  0, "No"),
+        ("_outside_limits", TEST_CURRENTS[0], TEST_CURRENTS[1],  2, "CURR LIMIT"),
+    ])
+    @skip_if_recsim("Cannot catch errors in RECSIM")
+    def test_WHEN_current_set_AND_limits_set_THEN_limit_correct(self, _, limit, setpoint, summary, limit_enum):
+        self.ca.set_pv_value(f"CURR.HIGH", limit)
+        self.ca.set_pv_value(f"CURR.LOW", 0)
+        self.ca.set_pv_value(f"CURR:SP", setpoint)
+        self.ca.assert_that_pv_is_number(f"CURR", setpoint, tolerance=0.5)
+        self.ca.assert_that_pv_is("LIMIT", summary)
+        self.ca.assert_that_pv_is("LIMIT:ENUM", limit_enum)
+        
+    @parameterized.expand([
+        ("_within_limits", TEST_VOLTAGES[1], TEST_VOLTAGES[0], 0, "No"),
+        ("_outside_limits", TEST_VOLTAGES[0], TEST_VOLTAGES[1], 1, "VOLT LIMIT"),
+    ])
+    @skip_if_recsim("Cannot catch errors in RECSIM")
+    def test_WHEN_voltage_set_AND_limits_set_THEN_limit_correct(self, _, limit, setpoint, summary, limit_enum):
+        self.ca.set_pv_value("VOLT.HIGH", limit)
+        self.ca.set_pv_value("VOLT.LOW", -1)
+        self.set_voltage(setpoint)
+        self.ca.assert_that_pv_is_number("VOLT", setpoint, tolerance=0.5)
+        self.ca.assert_that_pv_is("LIMIT", summary)
+        self.ca.assert_that_pv_is("LIMIT:ENUM", limit_enum)
+    
+    @skip_if_recsim("Cannot catch errors in RECSIM")
+    def test_WHEN_both_outside_limits_THEN_both_limit(self):
+        self.ca.set_pv_value("CURR.HIGH", TEST_CURRENTS[0])
+        self.ca.set_pv_value("CURR.LOW", 0)
+        self.ca.set_pv_value("VOLT.HIGH", TEST_VOLTAGES[0])
+        self.ca.set_pv_value("VOLT.LOW", 0)
+        self.ca.set_pv_value("CURR:SP", TEST_CURRENTS[1])
+        self.set_voltage(TEST_VOLTAGES[1])
+        self.ca.assert_that_pv_is("LIMIT", 3)
+        self.ca.assert_that_pv_is("LIMIT:ENUM", "BOTH LIMITS")
+
