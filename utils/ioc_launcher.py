@@ -72,7 +72,7 @@ class check_existence_pv(object):
             self.ca.assert_that_pv_exists(self.test_pv)
         except AssertionError as ex:
             full_pv = self.ca.create_pv_with_prefix(self.test_pv)
-            print("Warning, {} still does not exist after IOC start".format(full_pv))
+            raise AssertionError("PV '{}' still does not exist after IOC start: {}".format(full_pv, ex))
 
 
 class IOCRegister(object):
