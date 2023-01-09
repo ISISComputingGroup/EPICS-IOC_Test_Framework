@@ -61,6 +61,10 @@ class check_existence_pv(object):
         self.test_pv = test_pv
 
     def __enter__(self):
+        if self.test_pv == None:
+            print("No existance PV specified.")
+            return
+
         try:
             print("Check that IOC is not running")
             self.ca.assert_that_pv_does_not_exist(self.test_pv)
@@ -68,6 +72,9 @@ class check_existence_pv(object):
             raise AssertionError("IOC '{}' appears to already be running: {}".format(self.device, ex))
 
     def __exit__(self, type, value, traceback):
+        if self.test_pv == None:
+            return
+
         try:
             self.ca.assert_that_pv_exists(self.test_pv)
         except AssertionError as ex:
