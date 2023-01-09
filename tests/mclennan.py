@@ -30,6 +30,7 @@ IOCS = [
         "directory": get_default_ioc_dir("MCLEN"),
         "emulator": EMULATOR_NAME,
         "ioc_launcher_class": ProcServLauncher,
+        "pv_for_existence": "AXIS1",
         "macros": {
             "MTRCTRL": "01",
             "AXIS1": "yes",
