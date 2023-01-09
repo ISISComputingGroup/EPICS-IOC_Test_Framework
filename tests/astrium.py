@@ -2,6 +2,7 @@ import unittest
 from parameterized import parameterized
 
 from utils.test_modes import TestModes
+from utils.build_architectures import BuildArchitectures
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.testing import skip_if_recsim, skip_if_devsim, parameterized_list
@@ -25,6 +26,7 @@ VALID_PHASE_DELAYS = [0.0, 0.01, 123.45, 999.99]
 
 # Devsim for this device is not a usual lewis emulator but puts the actual IOC into a sort of simulation mode.
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
+BUILD_ARCHITECTURES = [BuildArchitectures._64BIT]
 
 
 class AstriumTests(unittest.TestCase):

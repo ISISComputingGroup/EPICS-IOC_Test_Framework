@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import List, Any, Dict
 
 from utils.free_ports import get_free_ports
-from utils.ioc_launcher import EPICS_TOP
+from utils.ioc_launcher import EPICS_TOP, IOCRegister
 from utils.log_file import log_filename
 from utils.formatters import format_value
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
@@ -715,7 +715,9 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
                            " be provided as part of the options dictionary")
 
         run_bat_file = os.path.join(self.beckhoff_root, "run.bat")
-
+        if IOCRegister.test_mode == TestModes.NOSIM:
+            # if in NOSIM do absolutely nothing ie call rundll32
+            run_bat_file = "C:\\Windows\\System32\\rundll32.exe"
         if os.path.exists(run_bat_file):
             options["emulator_command_line"] = run_bat_file
             options["emulator_wait_to_finish"] = True
