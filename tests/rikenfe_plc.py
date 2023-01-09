@@ -145,7 +145,7 @@ class RikenFEPLCTests(unittest.TestCase):
         ("mixed_all_off", 0, 1, 2, 3, 1, 1, 1, 1, 0, 1, 0),
         ("mixed_all_sweeping", 2, 3, 4, 0, 3, 3, 3, 1, 0, 1, 0),
     ])
-    def test_GIVEN_pumpsets_state_THEN_pumpset_summary_has_correct_state(self, _, gh1, gh2, gh3, gh4, TP, BP, PIV, pumpset, gh_state, other_state, expected_state):
+    def test_GIVEN_pumpsets_state_THEN_pumpset_summary_has_correct_state(self, _, gh1, gh2, gh3, gh4, tp, bp, piv, pumpset, gh_state, other_state, expected_state):
         self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-3}:STAT",gh1)
         self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-2}:STAT",gh2)
         self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-1}:STAT",gh3)
@@ -153,10 +153,9 @@ class RikenFEPLCTests(unittest.TestCase):
         
         self.ca.assert_that_pv_is(f"PUMPSET:{pumpset}:GH", gh_state)
         
-        self.ca.set_pv_value(f"SIM:TP{pumpset}:STAT",TP)
-        self.ca.set_pv_value(f"SIM:PIV{pumpset}:STAT",BP)
-        self.ca.set_pv_value(f"SIM:BP{pumpset}:STAT",PIV)
+        self.ca.set_pv_value(f"SIM:TP{pumpset}:STAT", tp)
+        self.ca.set_pv_value(f"SIM:PIV{pumpset}:STAT", bp)
+        self.ca.set_pv_value(f"SIM:BP{pumpset}:STAT", piv)
         
         self.ca.assert_that_pv_is(f"PUMPSET:{pumpset}:OTHER", other_state)
-        
         self.ca.assert_that_pv_is(f"PUMPSET:{pumpset}:STAT", expected_state)
