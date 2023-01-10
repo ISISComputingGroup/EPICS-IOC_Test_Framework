@@ -18,6 +18,7 @@ IOCS = [
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "AXIS1",
         "macros": {
+            "MTRCTRL": "01",
             "GALILADDR01": GALIL_ADDR,
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },

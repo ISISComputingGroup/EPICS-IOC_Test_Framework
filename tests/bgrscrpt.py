@@ -16,6 +16,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": IOC_DIR,
         "started_text": "IOC started",
+        "pv_for_existence": None,
         "macros": {
             "SCRIPT_PATH": SCRIPT_PATH
         }

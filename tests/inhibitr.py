@@ -19,6 +19,8 @@ IOCS = [
     {
         "name": IOC_PREFIX,
         "directory": get_default_ioc_dir("INHIBITR"),
+        "custom_prefix": "CS:IOC:INHIBITR_01",
+        "pv_for_existence": "DEVIOS:HEARTBEAT",
         "macros": {
             "ICPCONFIGROOT": test_config_path.replace("\\", "/"),
         },

@@ -23,12 +23,14 @@ IOCS = [
     {
         "name": "RUNCTRL_01",
         "directory": (os.path.join(EPICS_TOP, "ioc", "master", "RUNCTRL", "iocBoot", "iocRUNCTRL_01")).replace("\\", "/"),
-        "pv_for_existence": "HEARTBEAT",
+        "custom_prefix": "CS:IOC:RUNCTRL_01",
+        "pv_for_existence": "DEVIOS:HEARTBEAT",
     },
     {
         "name": "ISISDAE_01",
         "directory": get_default_ioc_dir("ISISDAE"),
-        "pv_for_existence": "HEARTBEAT",
+        "custom_prefix": "CS:IOC:ISISDAE_01",
+        "pv_for_existence": "DEVIOS:HEARTBEAT",
     },
 ]
 
