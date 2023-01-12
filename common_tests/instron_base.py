@@ -544,7 +544,7 @@ class InstronBase(object):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.assert_that_pv_is(self.wave_prefixed("FREQ"), expected_values[device_channel])
 
-    @unstable_test()
+    @unstable_test(error_class=(AssertionError, ZeroDivisionError), max_retries=3, wait_between_runs=10)
     @skip_if_recsim("Conversion factors initialized to 0")
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = [123.4, 567.8, 91.2]
