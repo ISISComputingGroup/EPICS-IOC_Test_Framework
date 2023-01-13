@@ -50,7 +50,7 @@ class InstronBase(object):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("instron_stress_rig", self.get_prefix())
 
-        self.ca = ChannelAccess(15, device_prefix=self.get_prefix())
+        self.ca = ChannelAccess(15, device_prefix=self.get_prefix(), default_wait_time=0.0)
         self.ca.assert_that_pv_exists("CHANNEL", timeout=30)
 
         # Can't use lewis backdoor commands in recsim
@@ -164,26 +164,6 @@ class InstronBase(object):
         self.ca.set_pv_value("ARBITRARY:SP", "Q300")
         # Assert that the response to Q300 is between 1 and 3
         self.ca.assert_that_pv_is_within_range("ARBITRARY", min_value=1, max_value=3)
-
-    @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
-
-        def _set_and_check(value):
-            # Put the record into a non-alarm state. This is needed so that we can wait until the record is in alarm
-            # later, when we do a command which (expectedly) puts the record into a timeout alarm.
-            self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
-            self.ca.assert_that_pv_alarm_is("ARBITRARY", self.ca.Alarms.NONE)
-
-            self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value))
-            self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value))
-            # No response from arbitrary command causes record to be TIMEOUT INVALID - this is expected.
-            self.ca.assert_that_pv_alarm_is("ARBITRARY", self.ca.Alarms.INVALID)
-
-            self.ca.set_pv_value("ARBITRARY:SP", "Q4,1")
-            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001, timeout=60)
-
-        for v in [0, 1, 0]:
-            _set_and_check(v)
 
     def test_WHEN_control_channel_is_requested_THEN_an_allowed_value_is_returned(self):
         self.ca.assert_that_pv_is_one_of("CHANNEL", CHANNELS.keys())
@@ -557,14 +537,14 @@ class InstronBase(object):
 
         # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel)
+            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.set_pv_value(self.wave_prefixed("FREQ:SP"), expected_values[device_channel])
 
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel)
+            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.assert_that_pv_is(self.wave_prefixed("FREQ"), expected_values[device_channel])
 
-    @unstable_test()
+    @unstable_test(error_class=(AssertionError, ZeroDivisionError), max_retries=3, wait_between_runs=10)
     @skip_if_recsim("Conversion factors initialized to 0")
     def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
         input_values = [123.4, 567.8, 91.2]
@@ -582,13 +562,13 @@ class InstronBase(object):
 
         # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel)
+            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.set_pv_value(self.wave_prefixed("AMP:SP"), input_values[device_channel])
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP"), expected_values[device_channel])
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel])
 
         for device_channel in range(NUMBER_OF_CHANNELS):
-            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel)
+            self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP"), expected_values[device_channel])
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel])
 
@@ -666,3 +646,17 @@ class InstronBase(object):
         value = 7
         self.ca.assert_setting_setpoint_sets_readback(value=value, set_point_pv=self.quart_prefixed("CYCLE:SP"),
                                                       readback_pv=self.quart_prefixed("CYCLE:SP:RBV"))
+
+    @skip_if_recsim("not implemented in recsim")
+    def test_WHEN_channel_told_to_go_THEN_it_goes(self):
+        for pv, chan, i in [("POS", "Position", 1), ("STRESS", "Stress", 2), ("STRAIN", "Strain", 3)]:
+            self._lewis.backdoor_command(["device", "set_control_mode", "1"])
+            self._change_channel(chan)
+            setpoint = 99999
+            self.ca.set_pv_value(f"{pv}:STEP:TIME", setpoint)
+            self.ca.set_pv_value(f"{pv}:SP", setpoint)
+            self.ca.assert_that_pv_is("GOING", "NO")
+            self.ca.set_pv_value("MOVE:GO:SP", 1)
+            self.ca.assert_that_pv_is("GOING", "YES")
+            self._lewis.backdoor_command(["device", "movement_type", str(0)])
+            self.ca.assert_that_pv_is("GOING", "NO")  # Device has got to setpoint

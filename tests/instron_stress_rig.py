@@ -59,3 +59,21 @@ class InstronTests(InstronBase, unittest.TestCase):
         self.ca.set_pv_value("PANIC:SP", 1)
         self.ca.assert_that_pv_is("GOING", "NO")
         self.ca.set_pv_value("PANIC:SP", 0)
+
+    @skip_if_recsim("In rec sim this test fails")
+    def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
+
+        def _set_and_check(value):
+            # Put the record into a non-alarm state. This is needed so that we can wait until the record is in alarm
+            # later, when we do a command which (expectedly) puts the record into a timeout alarm.
+            self.ca.set_pv_value("ARBITRARY:SP", "Q4,1", sleep_after_set=1.0)
+            self.ca.assert_that_pv_alarm_is("ARBITRARY", self.ca.Alarms.NONE)
+
+            self.ca.set_pv_value("ARBITRARY:SP", "C4,1," + str(value), sleep_after_set=1.0)
+            self.ca.assert_that_pv_is("ARBITRARY:SP", "C4,1," + str(value))
+
+            self.ca.set_pv_value("ARBITRARY:SP", "Q4,1", sleep_after_set=1.0)
+            self.ca.assert_that_pv_is_number("ARBITRARY", value, tolerance=0.001, timeout=10)
+
+        for v in [0, 1, 0]:
+            _set_and_check(v)

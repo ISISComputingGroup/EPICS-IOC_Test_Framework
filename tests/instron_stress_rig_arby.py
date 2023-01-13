@@ -1,3 +1,4 @@
+import time
 import unittest
 
 from common_tests.instron_base import InstronBase
@@ -20,5 +21,11 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class InstronTests(InstronBase, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+
+        # Arby control does not need to refresh the watchdog. Simulate this for tests.
+        self._lewis.backdoor_set_on_device("watchdog_refresh_time", time.time() + 1000000000)
+
     def get_prefix(self):
         return DEVICE_PREFIX
