@@ -8,12 +8,9 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, ProcServLauncher
 from utils.test_modes import TestModes
-from utils.testing import parameterized_list, ManagerMode, unstable_test
+from utils.testing import parameterized_list
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-print(f"DIR PATH: {dir_path}")
-file_path = os.path.join(dir_path, "..", "test-reports")
-print(f"FILE PATH: {file_path}")
 ioc_number = 1
 DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
 
@@ -25,7 +22,7 @@ IOCS = [
         "directory": get_default_ioc_dir("LSICORR", iocnum=ioc_number),
         "started_text": "IOC started",
         "macros": {
-            "FILEPATH": file_path,
+            "FILEPATH": os.path.join(dir_path, "..", "test-reports"),
             "ADDR": "127.0.0.1",
             "FIRMWARE_REVISION": "0"
         }
@@ -89,7 +86,7 @@ class LSITests(unittest.TestCase):
 
     def setUp(self):
         self._ioc = IOCRegister.get_running("LSI")
-        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
         self.ca.set_pv_value('WAIT', 0)
         self.ca.assert_that_pv_is("TAKING_DATA", "NO", timeout=10)        
 
