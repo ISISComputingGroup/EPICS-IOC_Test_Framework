@@ -11,7 +11,9 @@ from utils.test_modes import TestModes
 from utils.testing import parameterized_list, ManagerMode, unstable_test
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-
+print(f"DIR PATH: {dir_path}")
+file_path = os.path.join(dir_path, "..", "test-reports")
+print(f"FILE PATH: {file_path}")
 ioc_number = 1
 DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
 
@@ -23,7 +25,7 @@ IOCS = [
         "directory": get_default_ioc_dir("LSICORR", iocnum=ioc_number),
         "started_text": "IOC started",
         "macros": {
-            "FILEPATH": os.path.join(dir_path, "..", "test-reports"),
+            "FILEPATH": file_path,
             "ADDR": "127.0.0.1",
             "FIRMWARE_REVISION": "0"
         }
@@ -197,7 +199,9 @@ class LSITests(unittest.TestCase):
         # Assert
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
         test_data = np.linspace(0, array_size, array_size)
-        test_data = np.delete(test_data, np.argwhere(test_data < min_time_lag))
+        # Scale minimum time lag from nanoseconds to seconds before comparison with test data
+        min_time_lag_seconds = min_time_lag/1e9
+        test_data = np.delete(test_data, np.argwhere(test_data < min_time_lag_seconds))
         test_data.resize(array_size)
 
         self.ca.assert_that_pv_value_causes_func_to_return_true(
