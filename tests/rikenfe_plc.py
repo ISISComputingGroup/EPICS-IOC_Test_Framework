@@ -122,6 +122,44 @@ class RikenFEPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_is(get_pv_name, expected_value)
 
     @parameterized.expand([
+        ("good_all_on", 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1),
+        ("good_all_off", 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1),
+        ("good_all_sweeping", 2, 2, 2, 2, 3 ,3, 3, 1, 1, 1, 1),
+        ("good_mixed", 2, 2, 2, 2, 4, 3, 1, 1, 1, 0, 0),
+        ("good_fault",2, 2, 2, 2, 4, 4, 4, 1, 1, 0, 0),
+        ("bad_all_on", 1, 1, 1, 1, 2, 2, 2, 1, 0, 1, 0),
+        ("bad_all_off", 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0),
+        ("bad_all_sweeping", 1, 1, 1, 1, 3 ,3, 3, 1, 0, 1, 0),
+        ("bad_fault", 1, 1, 1, 1, 4, 4, 4, 1, 0, 0, 0),
+        ("disconnected_all_on", 0, 0, 0, 0, 2, 2, 2, 1, 0, 1, 0),
+        ("disconnected_all_off", 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0),
+        ("disconnected_all_sweeping", 0, 0, 0, 0, 3 ,3, 3, 1, 0, 1, 0),
+        ("fault_all_on", 4, 4, 4, 4, 2, 2, 2, 1, 0, 1, 0),
+        ("fault_all_off", 4, 4, 4, 4, 1, 1, 1, 1, 0, 1, 0),
+        ("fault_all_sweeping", 4, 4, 4, 4, 3 ,3, 3, 1, 0, 1, 0),
+        ("warning_all_on", 3, 3, 3, 3, 2, 2, 2, 1, 0, 1, 0),
+        ("warning_all_off", 3, 3, 3, 3, 1, 1, 1, 1, 0, 1, 0),
+        ("warning_all_sweeping", 3, 3, 3, 3, 3, 3, 3, 1, 0, 1, 0),
+        ("bad_mixed", 1, 1, 1, 1, 2, 3, 1, 1, 0, 1, 0),
+        ("mixed_all_on", 1, 2, 3, 2, 2, 2, 2, 1, 0, 1, 0),
+        ("mixed_all_off", 0, 1, 2, 3, 1, 1, 1, 1, 0, 1, 0),
+        ("mixed_all_sweeping", 2, 3, 4, 0, 3, 3, 3, 1, 0, 1, 0),
+    ])
+    def test_GIVEN_pumpsets_state_THEN_pumpset_summary_has_correct_state(self, _, gh1, gh2, gh3, gh4, tp, bp, piv, pumpset, gh_state, other_state, expected_state):
+        self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-3}:STAT",gh1)
+        self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-2}:STAT",gh2)
+        self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-1}:STAT",gh3)
+        self.ca.set_pv_value(f"SIM:GH{pumpset*4}:STAT",gh4)
+        
+        self.ca.assert_that_pv_is(f"PUMPSET:{pumpset}:GH", gh_state)
+        
+        self.ca.set_pv_value(f"SIM:TP{pumpset}:STAT", tp)
+        self.ca.set_pv_value(f"SIM:PIV{pumpset}:STAT", bp)
+        self.ca.set_pv_value(f"SIM:BP{pumpset}:STAT", piv)
+        
+        self.ca.assert_that_pv_is(f"PUMPSET:{pumpset}:OTHER", other_state)
+        self.ca.assert_that_pv_is(f"PUMPSET:{pumpset}:STAT", expected_state)
+    @parameterized.expand([
         ("_all_on_no_interlock", 1, 1, 1, 2, 2, 2, 2, 2, "All On"),
         ("_all_off_no_interlock", 1, 1, 1, 1, 1, 1, 1, 1,"All Off"),
         ("_mixed_1_no_interlock", 1, 1, 1, 2, 1, 2, 2, 3,"Mixed State"),
@@ -173,4 +211,3 @@ class RikenFEPLCTests(unittest.TestCase):
         self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa+inpb+inpc)
         self.ca.set_pv_value("SIM:KICKER4:CURR",inpd)
         self.ca.assert_that_pv_is("KICKERS:CURRENT:TOTAL", inpa+inpb+inpc+inpd)
-
