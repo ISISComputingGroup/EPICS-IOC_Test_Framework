@@ -255,20 +255,19 @@ class IpsTests(unittest.TestCase):
         self.ca.process_pv(control_pv)
         self.ca.assert_that_pv_is("CONTROL", "Remote & Unlocked")
 
-# original problem/complaint: in non-persistent mode, heater wait time always implemented, therefore too slow to set new fields
-
+    # original problem/complaint:
+    # in non-persistent mode, heater wait time always implemented, therefore too slow to set new fields
     def test_GIVEN_at_field_in_non_persistent_mode_WHEN_new_field_set_THEN_no_wait_for_heater(self):
-        #arrange
-        # set mode to non-persistent
+        # arrange: set mode to non-persistent, set field
         self._set_and_check_persistent_mode(False)
         self.ca.set_pv_value("FIELD:SP", 3.21)
         self._assert_field_is(3.21)
         self.ca.assert_that_pv_is("STATEMACHINE", "At field")
 
-        #act
+        # act: set new field
         self.ca.set_pv_value("FIELD:SP", 4.56)
 
-        # assert
+        # assert: field starts to change by tolerance within timeout, then reaches within second timeout
         # timeout present to prove new setpoint moved to without waiting for heater if already on
         self.ca.assert_that_pv_is_not_number("FIELD", 3.21, tolerance=0.01, timeout=20)
         self.ca.assert_that_pv_is_number("FIELD", 4.56, tolerance=0.01, timeout=60)
