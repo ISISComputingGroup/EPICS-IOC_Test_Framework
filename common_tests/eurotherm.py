@@ -274,6 +274,10 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self._lewis.backdoor_set_on_device("max_output", val)
         self.ca.assert_that_pv_is_number("MAX_OUTPUT", val, tolerance=0.05, timeout=15)
 
+    @parameterized.expand(parameterized_list([0, 100, 3276]))
+    def test_WHEN_output_rate_set_THEN_output_rate_updates(self, _, val):
+        self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="OUTPUT_RATE", timeout=15)
+
     @parameterized.expand(parameterized_list(TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_high_limit_set_via_backdoor_THEN_high_lim_updates(self, _, val):
