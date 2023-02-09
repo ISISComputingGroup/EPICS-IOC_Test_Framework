@@ -21,6 +21,8 @@ IOCS = [
         "macros": {
             "MANAGER_ASG": "DEFAULT",
             "MAX_SWEEP_RATE": "1.0",
+            "HEATER_WAITTIME": "10",  # On a real system the macro has a default of 60s,
+                                      # but speed it up a bit for the sake of tests.
         }
     },
 ]
@@ -36,9 +38,8 @@ TOLERANCE = 0.0001
 
 HEATER_OFF_STATES = ["Off Mag at 0", "Off Mag at F"]
 
-# Time to wait for the heater to warm up/cool down
-# On a real system this is 60s but speed it up a bit for the sake of tests.
-HEATER_WAIT_TIME = 10
+# Time to wait for the heater to warm up/cool down (extracted from IOC macros above)
+HEATER_WAIT_TIME = float((IOCS[0].get('macros').get('HEATER_WAITTIME')))
 
 ACTIVITY_STATES = ["Hold", "To Setpoint", "To Zero", "Clamped"]
 
@@ -74,8 +75,6 @@ class IpsTests(unittest.TestCase):
         # Don't run reset as the sudden change of state confuses the IOC's state machine. No matter what the initial
         # state of the device the SNL should be able to deal with it.
         # self._lewis.backdoor_run_function_on_device("reset")
-
-        self.ca.set_pv_value("HEATER:WAITTIME", HEATER_WAIT_TIME)
 
         self.ca.set_pv_value("FIELD:RATE:SP", 10)
         # self.ca.assert_that_pv_is_number("FIELD:RATE:SP", 10)
@@ -254,3 +253,20 @@ class IpsTests(unittest.TestCase):
         self.ca.set_pv_value("CONTROL", "Local & Locked")
         self.ca.process_pv(control_pv)
         self.ca.assert_that_pv_is("CONTROL", "Remote & Unlocked")
+
+    # original problem/complaint:
+    # in non-persistent mode, heater wait time always implemented, therefore too slow to set new fields
+    def test_GIVEN_at_field_in_non_persistent_mode_WHEN_new_field_set_THEN_no_wait_for_heater(self):
+        # arrange: set mode to non-persistent, set field
+        self._set_and_check_persistent_mode(False)
+        self.ca.set_pv_value("FIELD:SP", 3.21)
+        self._assert_field_is(3.21)
+        self.ca.assert_that_pv_is("STATEMACHINE", "At field")
+
+        # act: set new field
+        self.ca.set_pv_value("FIELD:SP", 4.56)
+
+        # assert: field starts to change by tolerance within timeout, then reaches within second timeout
+        # timeout present to prove new setpoint moved to _without_ waiting for heater, if already on
+        self.ca.assert_that_pv_is_not_number("FIELD", 3.21, tolerance=0.01, timeout=20)
+        self.ca.assert_that_pv_is_number("FIELD", 4.56, tolerance=0.01, timeout=60)
