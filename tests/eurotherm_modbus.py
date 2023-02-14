@@ -23,6 +23,7 @@ IOCS = [
         "ioc_launcher_class": ProcServLauncher,
         "macros": {
             "COMMS_MODE": "modbus",
+            "NEEDLE_VALVE": "yes",
             "ADDR": ADDRESS,
             "ADDR_1": ADDR_1,
             "ADDR_2": "",
@@ -47,7 +48,6 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.DEVSIM]
-
 
 class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     def get_device(self):
@@ -76,3 +76,29 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     @parameterized.expand(parameterized_list([0, 0.5, 100]))
     def test_WHEN_max_output_set_THEN_max_output_updates(self, _, val):
         self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="MAX_OUTPUT", timeout=15)
+    
+    # temp tests --------------------
+    def test_WHEN_using_needle_valve_THEN_flow_equals_5(self):
+        self.ca.assert_that_pv_is("FLOW", 5.0)
+    
+    def test_WHEN_using_needle_valve_THEN_valve_dir_is_opening(self):
+        self.ca.assert_that_pv_is("VALVE_DIR", "OPENING")
+        
+    def test_WHEN_using_needle_valve_THEN_manual_flow_equals_6(self):
+        self.ca.assert_that_pv_is("MANUAL_FLOW", 6.0)
+        
+    def test_WHEN_using_needle_valve_THEN_flow_low_lim_equals_1(self):
+        self.ca.assert_that_pv_is("FLOW_LOW_LIM", 1.0)
+        
+    def test_WHEN_using_needle_valve_THEN_flow_sp_mode_is_manual(self):
+        self.ca.assert_that_pv_is("FLOW_SP_MODE_SELECT", "MANUAL")
+    # -------------------------------
+    
+    def test_WHEN_set_manual_flow_THEN_manual_flow_updates(self):
+        self.ca.assert_setting_setpoint_sets_readback(value=8.0, readback_pv="MANUAL_FLOW")
+    
+    def test_WHEN_using_needle_valve_WHEN_flow_low_lim_set_THEN_is_updated(self):
+        self.ca.assert_setting_setpoint_sets_readback(value=2.0, readback_pv="FLOW_LOW_LIM")
+    
+    def test_WHEN_using_needle_valve_WHEN_flow_sp_mode_set_THEN_is_updated(self):
+        self.ca.assert_setting_setpoint_sets_readback(value="AUTO", readback_pv="FLOW_SP_MODE_SELECT")
