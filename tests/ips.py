@@ -94,11 +94,9 @@ class IpsTests(unittest.TestCase):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def _assert_field_is(self, field, check_stable=False):
-        self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE)
         self.ca.assert_that_pv_is_number("FIELD:USER", field, tolerance=TOLERANCE)
         if check_stable:
-            self.ca.assert_that_pv_value_is_unchanged("FIELD", wait=30)
-            self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE, timeout=10)
+            self.ca.assert_that_pv_value_is_unchanged("FIELD:USER", wait=30)
             self.ca.assert_that_pv_is_number("FIELD:USER", field, tolerance=TOLERANCE, timeout=10)
 
     def _assert_heater_is(self, heater_state):
@@ -114,16 +112,21 @@ class IpsTests(unittest.TestCase):
     @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
     def test_GIVEN_persistent_mode_enabled_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_ramps_to_zero(self, _, val):
 
+        initial_field = 1
+
         self._set_and_check_persistent_mode(True)
+        self.ca.set_pv_value("FIELD:SP", initial_field)
+        self._assert_field_is(initial_field, check_stable=True)
 
         # Field in the magnet already from persistent mode.
-        persistent_field = float(self.ca.get_pv_value("MAGNET:FIELD:PERSISTENT"))
+        self.ca.assert_that_pv_is("MAGNET:FIELD:PERSISTENT", initial_field)
+        self._assert_heater_is(False)
 
         # Set the new field. This will cause all of the following events based on the state machine.
         self.ca.set_pv_value("FIELD:SP", val)
 
         # PSU should be ramped to match the persistent field inside the magnet
-        self._assert_field_is(persistent_field)
+        self.ca.assert_that_pv_is_number("FIELD", initial_field, tolerance=TOLERANCE)
         self.ca.assert_that_pv_is("ACTIVITY", "To Setpoint")
 
         # Then it is safe to turn on the heater
@@ -156,16 +159,23 @@ class IpsTests(unittest.TestCase):
     @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
     def test_GIVEN_non_persistent_mode_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_does_not_ramp_to_zero(self, _, val):
 
-        self._set_and_check_persistent_mode(False)
+        initial_field = 1
+
+        self._set_and_check_persistent_mode(True)
+        self.ca.set_pv_value("FIELD:SP", initial_field)
+        self._assert_field_is(initial_field, check_stable=True)
 
         # Field in the magnet already from persistent mode.
-        persistent_field = float(self.ca.get_pv_value("MAGNET:FIELD:PERSISTENT"))
+        self.ca.assert_that_pv_is("MAGNET:FIELD:PERSISTENT", initial_field)
+        self._assert_heater_is(False)
+
+        self._set_and_check_persistent_mode(False)
 
         # Set the new field. This will cause all of the following events based on the state machine.
         self.ca.set_pv_value("FIELD:SP", val)
 
         # PSU should be ramped to match the persistent field inside the magnet (if there was one)
-        self._assert_field_is(persistent_field)
+        self.ca.assert_that_pv_is("FIELD", initial_field, timeout=10)
 
         # Then it is safe to turn on the heater (the heater is explicitly switched on and we wait for it even if it
         # was already on out of an abundance of caution).
