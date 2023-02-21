@@ -78,27 +78,43 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="MAX_OUTPUT", timeout=15)
     
     # temp tests --------------------
-    def test_WHEN_using_needle_valve_THEN_flow_equals_5(self):
+    def test_WHEN_using_needle_valve_THEN_flow_exists(self):
         self.ca.assert_that_pv_is("FLOW", 5.0)
     
-    def test_WHEN_using_needle_valve_THEN_valve_dir_is_opening(self):
+    def test_WHEN_using_needle_valve_THEN_valve_dir_exists(self):
         self.ca.assert_that_pv_is("VALVE_DIR", "OPENING")
         
-    def test_WHEN_using_needle_valve_THEN_manual_flow_equals_6(self):
+    def test_WHEN_using_needle_valve_THEN_manual_flow_exists(self):
         self.ca.assert_that_pv_is("MANUAL_FLOW", 6.0)
         
-    def test_WHEN_using_needle_valve_THEN_flow_low_lim_equals_1(self):
-        self.ca.assert_that_pv_is("FLOW_LOW_LIM", 1.0)
+    def test_WHEN_using_needle_valve_THEN_flow_low_lim_exists(self):
+        self.ca.assert_that_pv_is("FLOW_SP_LOWLIM", 1.0)
         
-    def test_WHEN_using_needle_valve_THEN_flow_sp_mode_is_manual(self):
+    def test_WHEN_using_needle_valve_THEN_flow_sp_mode_exists(self):
         self.ca.assert_that_pv_is("FLOW_SP_MODE_SELECT", "MANUAL")
+
+    def test_WHEN_using_needle_valve_THEN_flow_high_lim_exists(self):
+        self.ca.assert_that_pv_is("FLOW_SP_HILIM", 2.0)
+
+    def test_WHEN_using_needle_valve_THEN_IP_1_exists(self):
+        self.ca.assert_that_pv_is("IP_address_1", 255)
+    
+    def test_WHEN_using_needle_valve_THEN_IP_2_exists(self):
+        self.ca.assert_that_pv_is("IP_address_2", 255)
+
+    def test_WHEN_using_needle_valve_THEN_IP_3_exists(self):
+        self.ca.assert_that_pv_is("IP_address_3", 255)
+
+    def test_WHEN_using_needle_valve_THEN_IP_4_exists(self):
+        self.ca.assert_that_pv_is("IP_address_4", 255)
+
     # -------------------------------
     
     def test_WHEN_set_manual_flow_THEN_manual_flow_updates(self):
-        self.ca.assert_setting_setpoint_sets_readback(value=8.0, readback_pv="MANUAL_FLOW")
+        self.ca.assert_setting_setpoint_sets_readback(value=8.0, set_point_pv="MANUAL_FLOW:SP", readback_pv="MANUAL_FLOW")
     
     def test_WHEN_using_needle_valve_WHEN_flow_low_lim_set_THEN_is_updated(self):
-        self.ca.assert_setting_setpoint_sets_readback(value=2.0, readback_pv="FLOW_LOW_LIM")
+        self.ca.assert_setting_setpoint_sets_readback(value=2.0, set_point_pv="FLOW_SP_LOWLIM:SP", readback_pv="FLOW_SP_LOWLIM")
     
     def test_WHEN_using_needle_valve_WHEN_flow_sp_mode_set_THEN_is_updated(self):
-        self.ca.assert_setting_setpoint_sets_readback(value="AUTO", readback_pv="FLOW_SP_MODE_SELECT")
+        self.ca.assert_setting_setpoint_sets_readback(value="AUTO", set_point_pv="FLOW_SP_MODE_SELECT:SP", readback_pv="FLOW_SP_MODE_SELECT")
