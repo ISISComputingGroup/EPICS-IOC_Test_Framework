@@ -5,6 +5,7 @@ from parameterized import parameterized
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from common_tests.eurotherm import EurothermBaseTests, PID_TEST_VALUES, TEST_VALUES
+from utils.testing import skip_if_recsim
 
 from utils.testing import parameterized_list
 
@@ -47,7 +48,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
+TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     def get_device(self):
@@ -55,6 +56,9 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
 
     def get_emulator_device(self):
         return EMULATOR_DEVICE
+    
+    def setUp(self):
+        super(EurothermModbusTests, self).setUp()
 
     def test_WHEN_autotune_set_THEN_readback_updates(self):
         for state in [0, 1]:
@@ -77,38 +81,15 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     def test_WHEN_max_output_set_THEN_max_output_updates(self, _, val):
         self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="MAX_OUTPUT", timeout=15)
     
-    # temp tests --------------------
+    @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_using_needle_valve_THEN_flow_exists(self):
-        self.ca.assert_that_pv_is("FLOW", 5.0)
+            self._lewis.backdoor_set_on_device("flow", 5.0)
+            self.ca.assert_that_pv_is_number("FLOW", 5.0, tolerance=0.05, timeout=15)
     
+    @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_using_needle_valve_THEN_valve_dir_exists(self):
+        self._lewis.backdoor_set_on_device("valve_direction", 1)
         self.ca.assert_that_pv_is("VALVE_DIR", "OPENING")
-        
-    def test_WHEN_using_needle_valve_THEN_manual_flow_exists(self):
-        self.ca.assert_that_pv_is("MANUAL_FLOW", 6.0)
-        
-    def test_WHEN_using_needle_valve_THEN_flow_low_lim_exists(self):
-        self.ca.assert_that_pv_is("FLOW_SP_LOWLIM", 1.0)
-        
-    def test_WHEN_using_needle_valve_THEN_flow_sp_mode_exists(self):
-        self.ca.assert_that_pv_is("FLOW_SP_MODE_SELECT", "MANUAL")
-
-    def test_WHEN_using_needle_valve_THEN_flow_high_lim_exists(self):
-        self.ca.assert_that_pv_is("FLOW_SP_HILIM", 2.0)
-
-    def test_WHEN_using_needle_valve_THEN_IP_1_exists(self):
-        self.ca.assert_that_pv_is("IP_address_1", 255)
-    
-    def test_WHEN_using_needle_valve_THEN_IP_2_exists(self):
-        self.ca.assert_that_pv_is("IP_address_2", 255)
-
-    def test_WHEN_using_needle_valve_THEN_IP_3_exists(self):
-        self.ca.assert_that_pv_is("IP_address_3", 255)
-
-    def test_WHEN_using_needle_valve_THEN_IP_4_exists(self):
-        self.ca.assert_that_pv_is("IP_address_4", 255)
-
-    # -------------------------------
     
     def test_WHEN_set_manual_flow_THEN_manual_flow_updates(self):
         self.ca.assert_setting_setpoint_sets_readback(value=8.0, set_point_pv="MANUAL_FLOW:SP", readback_pv="MANUAL_FLOW")
@@ -118,3 +99,6 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     
     def test_WHEN_using_needle_valve_WHEN_flow_sp_mode_set_THEN_is_updated(self):
         self.ca.assert_setting_setpoint_sets_readback(value="AUTO", set_point_pv="FLOW_SP_MODE_SELECT:SP", readback_pv="FLOW_SP_MODE_SELECT")
+
+    def test_WHEN_using_needle_valve_WHEN_needle_valve_stop_set_THEN_is_updated(self):
+        self.ca.assert_setting_setpoint_sets_readback(value="STOPPED", set_point_pv="NEEDLE_VALVE_STOP:SP", readback_pv="NEEDLE_VALVE_STOP")
