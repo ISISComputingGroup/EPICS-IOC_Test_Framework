@@ -299,7 +299,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
     test_names = [f"tests.{test}" for test in tests_to_run]
 
-    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
+    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch, verbosity=3)
     test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
 
     try:
