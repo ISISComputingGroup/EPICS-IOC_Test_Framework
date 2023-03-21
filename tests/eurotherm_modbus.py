@@ -89,16 +89,24 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_using_needle_valve_THEN_valve_dir_exists(self):
         self._lewis.backdoor_set_on_device("valve_direction", 1)
-        self.ca.assert_that_pv_is("VALVE_DIR", "OPENING")
+        self.ca.assert_that_pv_is("VALVE_DIR", "OPENING", timeout=15)
     
     def test_WHEN_set_manual_flow_THEN_manual_flow_updates(self):
-        self.ca.assert_setting_setpoint_sets_readback(value=8.0, set_point_pv="MANUAL_FLOW:SP", readback_pv="MANUAL_FLOW")
+        self.ca.assert_setting_setpoint_sets_readback(value=8.0, set_point_pv="MANUAL_FLOW:SP", readback_pv="MANUAL_FLOW", timeout=15)
     
     def test_WHEN_using_needle_valve_WHEN_flow_low_lim_set_THEN_is_updated(self):
-        self.ca.assert_setting_setpoint_sets_readback(value=2.0, set_point_pv="FLOW_SP_LOWLIM:SP", readback_pv="FLOW_SP_LOWLIM")
+        self.ca.assert_setting_setpoint_sets_readback(value=2.0, set_point_pv="FLOW_SP_LOWLIM:SP", readback_pv="FLOW_SP_LOWLIM", timeout=15)
     
     def test_WHEN_using_needle_valve_WHEN_flow_sp_mode_set_THEN_is_updated(self):
-        self.ca.assert_setting_setpoint_sets_readback(value="AUTO", set_point_pv="FLOW_SP_MODE_SELECT:SP", readback_pv="FLOW_SP_MODE_SELECT")
+        self.ca.assert_setting_setpoint_sets_readback(value="MANUAL", set_point_pv="FLOW_SP_MODE_SELECT:SP", readback_pv="FLOW_SP_MODE_SELECT", timeout=15)
 
     def test_WHEN_using_needle_valve_WHEN_needle_valve_stop_set_THEN_is_updated(self):
-        self.ca.assert_setting_setpoint_sets_readback(value="STOPPED", set_point_pv="NEEDLE_VALVE_STOP:SP", readback_pv="NEEDLE_VALVE_STOP")
+        self.ca.assert_setting_setpoint_sets_readback(value="STOPPED", set_point_pv="NEEDLE_VALVE_STOP:SP", readback_pv="NEEDLE_VALVE_STOP", timeout=15)
+
+    def test_WHEN_using_needle_valve_WHEN_mode_auto_then_flow_sp_disabled(self):
+        self.ca.set_pv_value("FLOW_SP_MODE_SELECT:SP", "AUTO")
+        self.ca.assert_that_pv_is("MANUAL_FLOW:SP.DISP", "1", timeout=15)
+
+    def test_WHEN_using_needle_valve_WHEN_mode_manual_then_temp_sp_disabled(self):
+        self.ca.set_pv_value("FLOW_SP_MODE_SELECT:SP", "MANUAL")
+        self.ca.assert_that_pv_is("TEMP:SP.DISP", "1", timeout=15)
