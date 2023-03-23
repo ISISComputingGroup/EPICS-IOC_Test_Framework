@@ -48,7 +48,7 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
+TEST_MODES = [TestModes.DEVSIM]
 
 class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     def get_device(self):
