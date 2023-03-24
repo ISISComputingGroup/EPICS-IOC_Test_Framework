@@ -30,7 +30,9 @@ if not "%DEBUGGERCMD%" == "" (
     REM we use the python3 executable rather than python as this allows us to
     REM configure the applicatrion verifier for python3.exe and we don't get
     REM a lot of logs every time tests spawn python.exe for e.g. emulators
-    "%DEBUGGERCMD%" %DEBUGGERARGS% "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
+    REM "%DEBUGGERCMD%" %DEBUGGERARGS% "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %*
+    REM disable windbg as jenkins is non-interactive
+    "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
 ) else (
     "%PYTHON3%" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
 )
