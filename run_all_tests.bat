@@ -7,6 +7,7 @@ call "%~dp0..\..\..\config_env.bat"
 
 set "PYTHONUNBUFFERED=1"
 
+REM use cdb as jenkins is non-interactive
 for /D %%I in ( "C:\Program Files (x86)\Windows Kits\*" ) do (
     if exist "%%I\Debuggers\x64\cdb.exe" SET "WINDBG=%%I\Debuggers\x64\cdb.exe"
 )
