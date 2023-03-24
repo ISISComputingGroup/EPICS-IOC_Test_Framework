@@ -8,7 +8,7 @@ call "%~dp0..\..\..\config_env.bat"
 set "PYTHONUNBUFFERED=1"
 
 for /D %%I in ( "C:\Program Files (x86)\Windows Kits\*" ) do (
-    if exist "%%I\Debuggers\x64\windbg.exe" SET "WINDBG=%%I\Debuggers\x64\windbg.exe"
+    if exist "%%I\Debuggers\x64\cdb.exe" SET "WINDBG=%%I\Debuggers\x64\cdb.exe"
 )
 
 if not "%WINDBG%" == "" (
@@ -30,9 +30,7 @@ if not "%DEBUGGERCMD%" == "" (
     REM we use the python3 executable rather than python as this allows us to
     REM configure the applicatrion verifier for python3.exe and we don't get
     REM a lot of logs every time tests spawn python.exe for e.g. emulators
-    REM "%DEBUGGERCMD%" %DEBUGGERARGS% "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %*
-    REM disable windbg as jenkins is non-interactive
-    "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
+    "%DEBUGGERCMD%" %DEBUGGERARGS% "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %*
 ) else (
     "%PYTHON3%" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
 )
