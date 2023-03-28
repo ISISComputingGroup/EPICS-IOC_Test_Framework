@@ -1,6 +1,6 @@
 import unittest
 from common_tests.oscillating_collimators import OscillatingCollimatorBase, _custom_name_func, ANGLE, FREQUENCY, \
-    GALIL_ADDR, PREFIX
+    GALIL_ADDR, OSC_PREFIX
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from parameterized import parameterized
@@ -45,7 +45,7 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         self._ioc = IOCRegister.get_running("GALIL_01")
         ca_mot = ChannelAccess()
         ca_mot.assert_that_pv_exists("MOT:MTR0101", timeout=30)
-        self.ca = ChannelAccess(device_prefix=PREFIX, default_wait_time=0)
+        self.ca = ChannelAccess(device_prefix=OSC_PREFIX, default_wait_time=0)
         self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
 
     @parameterized.expand(
