@@ -12,7 +12,7 @@ for /D %%I in ( "C:\Program Files (x86)\Windows Kits\*" ) do (
     if exist "%%I\Debuggers\x64\cdb.exe" SET "WINDBG=%%I\Debuggers\x64\cdb.exe"
 )
 
-if not "%WINDBG%" == "" (
+if not "%yyyWINDBG%" == "" (
     set "DEBUGGERCMD=%WINDBG%"
     set "DEBUGGERARGS=-g -xd av -xd ch -xd sov"
 ) else (
@@ -27,12 +27,12 @@ if "%COMPUTERNAME%" == "NDHSPARE70" (
 
 REM Command line arguments always passed to the test script
 SET ARGS=-rc
+REM we use the python3 executable rather than python as this allows us to
+REM configure the applicatrion verifier for python3.exe and we don't get
+REM a lot of logs every time tests spawn python.exe for e.g. emulators
 if not "%DEBUGGERCMD%" == "" (
-    REM we use the python3 executable rather than python as this allows us to
-    REM configure the applicatrion verifier for python3.exe and we don't get
-    REM a lot of logs every time tests spawn python.exe for e.g. emulators
     "%DEBUGGERCMD%" %DEBUGGERARGS% "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %*
 ) else (
-    "%PYTHON3%" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
+    "c:\Instrument\Apps\Python3\Python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
 )
 IF %ERRORLEVEL% NEQ 0 EXIT /b %errorlevel%
