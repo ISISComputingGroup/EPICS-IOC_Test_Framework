@@ -20,7 +20,7 @@ if not "%yyyWINDBG%" == "" (
     set "DEBUGGERARGS="
 )
 REM on NDHSPARE70 launch under Dr. Memory (to attempt to diagnose a memory fault; see https://github.com/ISISComputingGroup/IBEX/issues/7643)
-if "%COMPUTERNAME%" == "NDHSPARE70" (
+if "%COMPUTERNAME%" == "yyyNDHSPARE70" (
     set "DEBUGGERCMD=C:\Users\ibexbuilder\Downloads\DrMemory-Windows-2.5.19327\DrMemory-Windows-2.5.19327\bin64\drmemory.exe"
     set "DEBUGGERARGS=-report_max -1 -no_check_uninitialized -no_follow_children --"
 )
@@ -33,6 +33,6 @@ REM a lot of logs every time tests spawn python.exe for e.g. emulators
 if not "%DEBUGGERCMD%" == "" (
     "%DEBUGGERCMD%" %DEBUGGERARGS% "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %*
 ) else (
-    "c:\Instrument\Apps\Python3\Python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
+    "%PYTHON3%" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
 )
 IF %ERRORLEVEL% NEQ 0 EXIT /b %errorlevel%
