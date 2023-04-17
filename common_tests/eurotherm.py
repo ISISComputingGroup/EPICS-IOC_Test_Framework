@@ -35,6 +35,10 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     def get_emulator_device(self):
         pass
 
+    @abc.abstractmethod
+    def _get_temperature_setter_wrapper(self):
+        pass
+
     def get_prefix(self):
         return "{}:A01".format(self.get_device())
 
@@ -97,7 +101,9 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.set_pv_value("RATE:SP", ramp_rate)
         self.ca.assert_that_pv_is_number("RATE", ramp_rate, 0.1)
         self.ca.set_pv_value("RAMPON:SP", ramp_on)
-        self.ca.set_pv_value("TEMP:SP", setpoint_temperature)
+
+        with self._get_temperature_setter_wrapper():
+            self.ca.set_pv_value("TEMP:SP", setpoint_temperature)
 
         start = time.time()
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, tolerance=0.1, timeout=60)
@@ -149,13 +155,15 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         tolerance = 0.2
         self.ca.set_pv_value("RAMPON:SP", 0)
         reset_calibration_file(self.ca)
-        self.ca.set_pv_value("TEMP:SP", temperature)
+        with self._get_temperature_setter_wrapper():
+            self.ca.set_pv_value("TEMP:SP", temperature)
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
         with use_calibration_file(self.ca, "C006.txt"):
             self.ca.assert_that_pv_is_not_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
             # Act
-            self.ca.set_pv_value("TEMP:SP", temperature)
+            with self._get_temperature_setter_wrapper():
+                self.ca.set_pv_value("TEMP:SP", temperature)
 
             # Assert
             self.ca.assert_that_pv_is_number("TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
