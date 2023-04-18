@@ -1,10 +1,10 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc
 
 # Device prefix
 DEVICE_PREFIX = "SKFCHOPPER_01"
@@ -20,48 +20,46 @@ IOCS = [
             "OPEN": 127.8,
             "CLOSED": 307.8,
         },
-        "emulator": DEVICE_NAME
+        "emulator": DEVICE_NAME,
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
-TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
-
+TEST_MODES = [TestModes.DEVSIM]
+PV_TO_WAIT_FOR = "FREQ"
 
 class SkfG5ChopperTests(unittest.TestCase):
     """
     Tests for the SKF G5 Chopper Controller
-
-    RECSIM is not currently compatible with Asyn, so the only possible test
-    is to check for the presence of a specific PV and therefore that the
-    DB file has loaded correctly.
     """
 
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_GIVEN_state_WHEN_read_THEN_state_is_as_expected(self):
-        expected_state = "Invalid"
-
-        self.ca.assert_that_pv_is("STATE", expected_state)
-
-
-    @skip_if_recsim("requries lewis")
-    def test_GIVEN_state_WHEN_changing_on_device_THEN_state_is_correct(self):
-        expected_state = "Idle"
-
-        self._lewis.backdoor_set_on_device("state", 3)
-
-        self.ca.assert_that_pv_is("STATE", expected_state)
-
-    @skip_if_recsim("requries lewis")
     def test_GIVEN_correct_transaction_id_WHEN_not_skipping_THEN_state_correct(self):
-        pass
+        self._lewis.backdoor_set_on_device("send_ok_transid", True)
+        expected = 56
+        self._lewis.backdoor_set_on_device("freq", expected)
+        self.ca.assert_that_pv_is("FREQ", expected)
     
-    @skip_if_recsim("requries lewis")
+    def test_GIVEN_incorrect_transaction_id_WHEN_not_skipping_THEN_state_incorrect(self):
+        self._lewis.backdoor_set_on_device("send_ok_transid", False)
+        initial = self.ca.get_pv_value("FREQ")
+        expected = 45
+        self._lewis.backdoor_set_on_device("freq", expected)
+        self.ca.assert_that_pv_is_not("FREQ", expected)
+        self.ca.assert_that_pv_is("FREQ", initial)
+    
     def test_GIVEN_incorrect_transaction_id_WHEN_skipping_check_THEN_state_correct(self):
-        pass
+        with self._ioc.start_with_macros({"SKIP_TRANSACTION_ID":1}, pv_to_wait_for=PV_TO_WAIT_FOR):
+            self._lewis.backdoor_set_on_device("send_ok_transid", False)
+            expected = 12
+            self._lewis.backdoor_set_on_device("freq", expected)
+            self.ca.assert_that_pv_is("FREQ", expected)
 
-    @skip_if_recsim("requries lewis")
-    def test_GIVEN_correct_transaction_id_WHEN_skipping_check_THEN_state_correct(self):
-        pass
+            # Also test that sending the correct one still works - do this in the same test as starting with macros takes ages.
+            self._lewis.backdoor_set_on_device("send_ok_transid", True)
+            expected2 = 23
+            self._lewis.backdoor_set_on_device("freq", expected2)
+            self.ca.assert_that_pv_is("FREQ", expected2)
