@@ -6,7 +6,8 @@ VELOCITY = "VEL:SP"
 DISTANCE = "DIST:SP"
 DISCRIMINANT = "VEL:SP:DISC:CHECK"
 GALIL_ADDR = "127.0.0.11"
-PREFIX = "MOT:OSCCOL"
+MOT_PREFIX = "MOT"
+OSC_PREFIX = MOT_PREFIX + ":OSCCOL"
 
 
 def _custom_name_func(testcase_func, param_num, param):
