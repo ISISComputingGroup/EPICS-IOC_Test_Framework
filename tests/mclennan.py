@@ -40,8 +40,8 @@ IOCS = [
             "AXIS2": "yes",
             "NAME1": MTR1_NAME,
             "POLL_RATE": POLL_RATE,
-            "HOME1": 2, # SNL home
-            "HOME2": 0  # builtin controller home to datum
+            "HOME1": 3, # SNL home
+            "HOME2": 2  # builtin controller home to datum
         },
     },
 ]
