@@ -10,15 +10,16 @@ from utils.testing import get_running_lewis_and_ioc
 DEVICE_PREFIX = "SKFCHOPPER_01"
 
 DEVICE_NAME = "skf_chopper"
-
+OPEN = 127.8
+CLOSED = 307.8
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("SKFCHOPPER"),
         "macros": {
             "NAME": "TEST_CHOPPER",
-            "OPEN": 127.8,
-            "CLOSED": 307.8,
+            "OPEN": OPEN,
+            "CLOSED": CLOSED,
         },
         "emulator": DEVICE_NAME,
         "ioc_launcher_class": ProcServLauncher,
@@ -52,7 +53,7 @@ class SkfG5ChopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is("FREQ", initial)
     
     def test_GIVEN_incorrect_transaction_id_WHEN_skipping_check_THEN_state_correct(self):
-        with self._ioc.start_with_macros({"SKIP_TRANSACTION_ID":1}, pv_to_wait_for=PV_TO_WAIT_FOR):
+        with self._ioc.start_with_macros({"SKIP_TRANSACTION_ID":1, "NAME": "TEST_CHOPPER", "OPEN": OPEN, "CLOSED": CLOSED,}, pv_to_wait_for=PV_TO_WAIT_FOR):
             self._lewis.backdoor_set_on_device("send_ok_transid", False)
             expected = 12
             self._lewis.backdoor_set_on_device("freq", expected)
