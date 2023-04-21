@@ -9,7 +9,7 @@ DEVICE_PREFIX = "MCLEN_01"
 EMULATOR_NAME = "mclennan"
 
 MTR1 = "MTR0101"
-MTR1_NAME = "Test"
+MTR1_NAME = "Test1"
 MTR1_DESC = f"{MTR1}.DESC"
 MTR1_JOG = f"{MTR1}.JOGF"
 MTR1_HLM = f"{MTR1}.HLM"
@@ -20,6 +20,7 @@ MTR1_MRES = f"{MTR1}.MRES"
 MTR1_HVEL = f"{MTR1}.HVEL"
 MTR1_HOMR = f"{MTR1}.HOMR"
 MTR2 = "MTR0102"
+MTR2_NAME = "Test2"
 MTR2_MRES = f"{MTR2}.MRES"
 MTR2_HVEL = f"{MTR2}.HVEL"
 MTR2_HOMR = f"{MTR2}.HOMR"
@@ -39,13 +40,15 @@ IOCS = [
             "AXIS1": "yes",
             "AXIS2": "yes",
             "NAME1": MTR1_NAME,
+            "NAME2": MTR2_NAME,
             "POLL_RATE": POLL_RATE,
+            "CMOD1": "OPEN",
+            "CMOD2": "CLOSED",            
             "HOME1": 3, # SNL home
             "HOME2": 2  # builtin controller home to datum
         },
     },
 ]
-
 
 TEST_MODES = [
     TestModes.DEVSIM,
