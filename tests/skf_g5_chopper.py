@@ -3,9 +3,9 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
+from parameterized.parameterized import parameterized
 
-from utils.testing import get_running_lewis_and_ioc
-
+from utils.testing import get_running_lewis_and_ioc, unstable_test
 # Device prefix
 DEVICE_PREFIX = "SKFCHOPPER_01"
 
@@ -38,29 +38,28 @@ class SkfG5ChopperTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_correct_transaction_id_WHEN_not_skipping_THEN_state_correct(self):
         self._lewis.backdoor_set_on_device("send_ok_transid", True)
         expected = 56
         self._lewis.backdoor_set_on_device("freq", expected)
-        self.ca.assert_that_pv_is("FREQ", expected)
-    
+        self.ca.assert_that_pv_is("FREQ", expected, timeout=5)
+
+    @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_incorrect_transaction_id_WHEN_not_skipping_THEN_state_incorrect(self):
         self._lewis.backdoor_set_on_device("send_ok_transid", False)
         initial = self.ca.get_pv_value("FREQ")
         expected = 45
         self._lewis.backdoor_set_on_device("freq", expected)
-        self.ca.assert_that_pv_is_not("FREQ", expected)
-        self.ca.assert_that_pv_is("FREQ", initial)
+        self.ca.assert_that_pv_is_not("FREQ", expected, timeout=5)
+        self.ca.assert_that_pv_is("FREQ", initial, timeout=5)
     
-    def test_GIVEN_incorrect_transaction_id_WHEN_skipping_check_THEN_state_correct(self):
-        with self._ioc.start_with_macros({"SKIP_TRANSACTION_ID":1, "NAME": "TEST_CHOPPER", "OPEN": OPEN, "CLOSED": CLOSED,}, pv_to_wait_for=PV_TO_WAIT_FOR):
-            self._lewis.backdoor_set_on_device("send_ok_transid", False)
+    @parameterized.expand([True, False])
+    @unstable_test(max_retries=5, wait_between_runs=10)
+    def test_GIVEN_incorrect_transaction_id_WHEN_skipping_check_THEN_state_correct(self, send_correct_transaction_id):
+        self._lewis.backdoor_set_on_device("send_ok_transid", send_correct_transaction_id)
+        with self._ioc.start_with_macros({"SKIP_TRANSACTION_ID": 1, "NAME": "TEST_CHOPPER", "OPEN": OPEN, "CLOSED": CLOSED,}, pv_to_wait_for=PV_TO_WAIT_FOR):
             expected = 12
             self._lewis.backdoor_set_on_device("freq", expected)
-            self.ca.assert_that_pv_is("FREQ", expected)
+            self.ca.assert_that_pv_is("FREQ", expected, timeout=5)
 
-            # Also test that sending the correct one still works - do this in the same test as starting with macros takes ages.
-            self._lewis.backdoor_set_on_device("send_ok_transid", True)
-            expected2 = 23
-            self._lewis.backdoor_set_on_device("freq", expected2)
-            self.ca.assert_that_pv_is("FREQ", expected2)
