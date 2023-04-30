@@ -20,7 +20,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-class InstronTests(InstronBase, unittest.TestCase):
+class InstronArbyTests(InstronBase, unittest.TestCase):
     def setUp(self):
         super().setUp()
 
