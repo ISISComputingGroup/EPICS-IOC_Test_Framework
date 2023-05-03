@@ -116,17 +116,8 @@ pipeline {
                 exit /b 1
              )
              del /q C:\\Instrument\\Var\\logs\\IOCTestFramework\\*.*
-             REM glob is case insensitive on windows but on linux would need [a-hA-H]* etc
-             call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat" -tf "[a-h]*"
+             call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests_split.bat"
              set ERRCODE=!ERRORLEVEL!
-             if !ERRCODE! EQU 0 (
-                 call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat" -tf "[i-p]*"
-                 set ERRCODE=!ERRORLEVEL!
-             )
-             if !ERRCODE! EQU 0 (
-                 call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat" -tf "[q-z]*"
-                 set ERRCODE=!ERRORLEVEL!
-             )
              call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
              rmdir "C:\\Instrument\\Apps\\EPICS"
              exit /b !ERRCODE!

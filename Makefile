@@ -7,4 +7,4 @@
 #       instead as this overrides MAKEFLAGS already 
 #
 ioctests:
-	.\run_all_tests.bat
+	.\run_all_tests_split.bat
