@@ -13,7 +13,8 @@ IOCS = [
     "name": DEVICE_PREFIX,
     "directory": get_default_ioc_dir("TPG300"),
     "macros": {},
-    "emulator": "tpg300",
+    "emulator": "tpgx00",
+    "lewis_protocol": "tpg300",
     },
 ]
 
@@ -37,3 +38,4 @@ class Tpg300Tests(Tpgx00Base, unittest.TestCase):
         
     def get_units(self):
         return Units
+

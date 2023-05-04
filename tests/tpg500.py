@@ -7,14 +7,14 @@ from enum import Enum
 
 
 DEVICE_PREFIX = "TPG300_01"
-# DEVICE_EMULATOR = "tpg500"
 
 IOCS = [
     {
     "name": DEVICE_PREFIX,
     "directory": get_default_ioc_dir("TPG300"),
     "macros": {},
-    "emulator": "tpg300",
+    "emulator": "tpgx00",
+    "lewis_protocol": "tpg500",
     },
 ]
 
@@ -39,9 +39,7 @@ class Tpg500Tests(Tpgx00Base, unittest.TestCase):
 
     def get_prefix(self):
         return DEVICE_PREFIX
-
-    # def get_emulator(self):
-    #     return DEVICE_EMULATOR
     
     def get_units(self):
         return Units
+

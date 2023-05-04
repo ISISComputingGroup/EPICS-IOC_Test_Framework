@@ -5,16 +5,16 @@ import abc
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 from itertools import product
 
 CHANNELS = "A1", "A2", "B1", "B2"
 TEST_PRESSURES = 1.23, -10.23, 8, 1e-6, 1e+6
 
 
-class Tpgx00Base(unittest.TestCase):
+class Tpgx00Base():
     """
-    Tests for the TPG300.
+    Tests for the TPGx00.
     """
     @abc.abstractmethod
     def get_prefix(self):
@@ -25,8 +25,7 @@ class Tpgx00Base(unittest.TestCase):
         pass
 
     def setUp(self):
-        print(f"\nprefix: {self.get_prefix()}")
-        self._lewis, self._ioc = get_running_lewis_and_ioc("tpg300", self.get_prefix())
+        self._lewis, self._ioc = get_running_lewis_and_ioc("tpgx00", self.get_prefix())
         self.ca = ChannelAccess(20, device_prefix=self.get_prefix(), default_wait_time=0.0)
 
     def tearDown(self):
@@ -41,8 +40,13 @@ class Tpgx00Base(unittest.TestCase):
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
 
-    def _disconnect_emulator(self):
+    @contextlib.contextmanager
+    def _disconnect_device(self):
         self._lewis.backdoor_run_function_on_device("disconnect")
+        try:
+            yield
+        finally:
+            self._connect_emulator()
 
     def test_that_GIVEN_a_connected_emulator_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -62,13 +66,15 @@ class Tpgx00Base(unittest.TestCase):
             self._set_pressure(expected_pressure, channel)
             self.ca.assert_that_pv_is(pv, expected_pressure)
 
+    @parameterized.expand(parameterized_list(CHANNELS))
     @skip_if_recsim("Recsim is unable to simulate a disconnected device")
-    def test_that_GIVEN_a_disconnected_emulator_WHEN_getting_pressure_THEN_INVALID_alarm_shows(self):
-        self._disconnect_emulator()
+    def test_that_GIVEN_a_disconnected_emulator_WHEN_getting_pressure_THEN_INVALID_alarm_shows(self, _, channel):
+        pv = "PRESSURE_{}".format(channel)
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
+        with self._disconnect_device():
+                self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
 
-        for channel in CHANNELS:
-            pv = "PRESSURE_{}".format(channel)
-            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
     def set_switching_function(self, function):
         self.ca.set_pv_value("FUNCTION", function)
@@ -124,14 +130,6 @@ class Tpgx00Base(unittest.TestCase):
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 1)
         self._set_pressure(501.0, "A2")
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 0)
-
-    @contextlib.contextmanager
-    def _disconnect_device(self):
-        self._disconnect_emulator()
-        try:
-            yield
-        finally:
-            self._connect_emulator()
 
     def check_alarm_status_rbvs(self, alarm):
         for channel in ("SEL", "1", "2", "3", "4", "A", "B"):
