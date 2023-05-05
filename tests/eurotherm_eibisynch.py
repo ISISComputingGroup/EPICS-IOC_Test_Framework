@@ -97,3 +97,8 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
             # Assert
             self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
             self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
+
+    def test_GIVEN_simulated_reply_delay_in_emulator_WHEN_consecutive_read_commands_THEN_all_reads_correct(self):
+        for temp in range(1, 20):
+            self._set_setpoint_and_current_temperature(float(temp))
+            self.ca.assert_that_pv_is("RBV", float(temp))
