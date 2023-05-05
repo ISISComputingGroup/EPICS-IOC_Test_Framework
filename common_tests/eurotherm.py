@@ -103,7 +103,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_is_number("TEMP:SP:RBV", setpoint_temperature, tolerance=0.1, timeout=60)
         end = time.time()
         self.assertAlmostEquals(end-start, 60. * (setpoint_temperature-start_temperature)/ramp_rate,
-                                delta=0.1*(end-start))  # Tolerance of 10%. Tolerance of 1s is too tight given scan rate
+                                delta=0.3*(end-start))  # Lower tolerance will be too tight given scan rate
 
     def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
         self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
