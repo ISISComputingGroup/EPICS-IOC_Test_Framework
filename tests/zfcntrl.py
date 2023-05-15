@@ -140,6 +140,7 @@ class Statuses(object):
     PSU_ON_LIMITS = ("Power supply on limits", ChannelAccess.Alarms.MAJOR)
     PSU_WRITE_FAILED = ("Power supply write failed", ChannelAccess.Alarms.INVALID)
     INVALID_PSU_LIMITS = ("PSU high limit<low limit", ChannelAccess.Alarms.MAJOR)
+    PSU_SP_RBV_OUT_OF_LIMITS = ("PSU sp_rbv out of range", ChannelAccess.Alarms.MAJOR)
 
 
 class AtSetpointStatuses(object):
@@ -530,6 +531,28 @@ class ZeroFieldTests(unittest.TestCase):
 
         # Now simulate recovery and assert error gets cleared correctly
         self._assert_status(Statuses.NO_ERROR)
+    
+    def test_WHEN_psu_sp_rbv_is_out_of_range_THEN_status_is_psu_sp_rbv_out_of_range(self):
+        fields = {"X": 1, "Y": 2, "Z": 3}
+        outputs ={"X": 10, "Y": 10, "Z": 10}
+        self._set_autofeedback(False)
+        self._set_user_setpoints(fields)
+        #self._set_simulated_measured_fields(fields, overload=False)
+
+        self._set_output_limits(
+            lower_limits={k: -3 for k in FIELD_AXES},
+            upper_limits={k: 3 for k in FIELD_AXES}
+        )
+
+        self.x_psu_ca.set_pv_value("SIM:CURRENT:SP:RBV", 10)
+
+        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:X:CURR:SP:RBV", 10)
+        #self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Y:CURR:SP:RBV", 10)
+        #self.zfcntrl_ca.assert_that_pv_is("OUTPUT:Z:CURR:SP:RBV", 10)
+        self._set_autofeedback(True)
+
+        self._assert_status(Statuses.PSU_SP_RBV_OUT_OF_LIMITS)
+
 
     def test_GIVEN_measured_field_and_setpoints_are_identical_THEN_setpoints_remain_unchanged(self):
         fields = {"X": 5, "Y": 10, "Z": -5}
