@@ -27,6 +27,12 @@ class GuageStatus(Enum):
         obj.sevr = sevr
         return obj
 
+@unique
+class SFStatus(Enum):
+    OFF = 0
+    ON  = 1
+
+
 CHANNELS = "A1", "A2", "B1", "B2"
 TEST_PRESSURES = 1.23, -10.23, 8, 1e-6, 1e+6
 
@@ -49,7 +55,7 @@ class Tpgx00Base():
         
         # Reset pressure status for each channel to okay
         for channel in CHANNELS:
-            self._lewis.backdoor_run_function_on_device("backdoor_set_pressure_status", [channel, GAUGE_STATUS["Measured data okay"]])
+            self._lewis.backdoor_run_function_on_device("backdoor_set_pressure_status", [channel, GuageStatus.DATA_OK.value])
 
     def tearDown(self):
         self._connect_emulator()
@@ -142,14 +148,14 @@ class Tpgx00Base():
         self._check_switching_function_thresholds("1", (0.0, 0.0, 1))
 
     def _check_switching_function_statuses(self, expected_statuses):
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:1:RB", str(expected_statuses[0]))
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:2:RB", str(expected_statuses[1]))
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:3:RB", str(expected_statuses[2]))
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:4:RB", str(expected_statuses[3]))
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:1:RB", str(SFStatus[expected_statuses[0]].value))
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:2:RB", str(SFStatus[expected_statuses[1]].value))
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:3:RB", str(SFStatus[expected_statuses[2]].value))
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:4:RB", str(SFStatus[expected_statuses[3]].value))
 
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_function_status_set_THEN_readback_correct(self):
-        function_statuses = [0, 0, 1, 1, 0, 1]
+        function_statuses = ["OFF", "OFF", "ON", "ON", "OFF", "ON"]
         self._lewis.backdoor_run_function_on_device("backdoor_set_switching_function_status", [function_statuses])
         self._check_switching_function_statuses(function_statuses)
 
