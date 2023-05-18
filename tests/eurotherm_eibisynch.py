@@ -8,13 +8,9 @@ from common_tests.eurotherm import (EurothermBaseTests, NONE_TXT_CALIBRATION_MIN
                                     NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
 from utils.calibration_utils import use_calibration_file
 
-# Internal Address of device (must be 2 characters)
-ADDRESS = "A01"
-# Numerical address of the device
-ADDR_1 = "01" # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
-DEVICE = "EUROTHRM_01"
 
-EMULATOR_DEVICE = "eurotherm"
+DEVICE = "EUROTHRM_01"
+EMULATOR = "eurotherm"
 
 IOCS = [
     {
@@ -23,19 +19,18 @@ IOCS = [
         "ioc_launcher_class": ProcServLauncher,
         "macros": {
             "COMMS_MODE": "eibisynch",
-            "ADDR": ADDRESS,
-            "ADDR_1": ADDR_1,
-            "ADDR_2": "",
-            "ADDR_3": "",
-            "ADDR_4": "",
-            "ADDR_5": "",
-            "ADDR_6": "",
+            "ADDR_1": "01",
+            "ADDR_2": "02",
+            "ADDR_3": "03",
+            "ADDR_4": "04",
+            "ADDR_5": "05",
+            "ADDR_6": "06",
             "ADDR_7": "",
             "ADDR_8": "",
             "ADDR_9": "",
             "ADDR_10": ""
         },
-        "emulator": EMULATOR_DEVICE,
+        "emulator": EMULATOR,
     },
 ]
 
@@ -44,12 +39,6 @@ TEST_MODES = [TestModes.DEVSIM]
 
 
 class EurothermTests(EurothermBaseTests, unittest.TestCase):
-    def get_device(self):
-        return DEVICE
-
-    def get_emulator_device(self):
-        return EMULATOR_DEVICE
-
     @parameterized.expand([
         ("over_range_calc_pv_is_over_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE + 5.0, 1.0),
         ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
@@ -64,16 +53,16 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         # Arrange
 
         self._assert_using_mock_table_location()
-        with use_calibration_file(self.ca, "None.txt"):
-            self.ca.assert_that_pv_exists("CAL:RANGE")
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
+        with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
+            self.ca.assert_that_pv_exists("A01:CAL:RANGE")
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
 
             # Act:
             self._set_setpoint_and_current_temperature(temperature)
 
             # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.A", temperature)
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.A", temperature)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
 
     def test_GIVEN_None_txt_calibration_file_WHEN_changed_to_C006_txt_calibration_file_THEN_the_calibration_limits_change(
             self):
@@ -86,19 +75,28 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
 
         # Arrange
         self._assert_using_mock_table_location()
-        with use_calibration_file(self.ca, "None.txt"):
-            self.ca.assert_that_pv_exists("CAL:RANGE")
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
+        with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
+            self.ca.assert_that_pv_exists("A01:CAL:RANGE")
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
 
         # Act:
-        with use_calibration_file(self.ca, "C006.txt"):
+        with use_calibration_file(self.ca, "C006.txt", prefix="A01:"):
 
             # Assert
-            self.ca.assert_that_pv_is("TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
-            self.ca.assert_that_pv_is("TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
 
-    def test_GIVEN_simulated_reply_delay_in_emulator_WHEN_consecutive_read_commands_THEN_all_reads_correct(self):
-        for temp in range(1, 20):
-            self._set_setpoint_and_current_temperature(float(temp))
-            self.ca.assert_that_pv_is("RBV", float(temp))
+    def test_GIVEN_simulated_delay_WHEN_temperature_read_from_multiple_sensors_THEN_all_reads_correct(self):
+        self._lewis.backdoor_set_on_device("delay_time", 300 / 1000)
+
+        for temp in range(1, 10):
+            self._lewis.backdoor_set_on_device("current_temperature", float(temp))
+            self.ca.assert_that_pv_is("A01:RBV", float(temp))
+            self.ca.assert_that_pv_is("A02:RBV", float(temp))
+            self.ca.assert_that_pv_is("A03:RBV", float(temp))
+            self.ca.assert_that_pv_is("A04:RBV", float(temp))
+            self.ca.assert_that_pv_is("A05:RBV", float(temp))
+            self.ca.assert_that_pv_is("A06:RBV", float(temp))
+
+        self._lewis.backdoor_set_on_device("delay_time", None)
