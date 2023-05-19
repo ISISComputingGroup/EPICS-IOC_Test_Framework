@@ -63,3 +63,16 @@ class SkfG5ChopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("freq", expected)
             self.ca.assert_that_pv_is("FREQ", expected, timeout=5)
 
+    @parameterized.expand(["V13", "W13", "V24", "W24", "Z12"])
+    def test_GIVEN_normalised_and_fsv_value_WHEN_peak_position_read_THEN_position_correct(self, pos):
+        norm = 10000
+        fsv = 1234
+        # Calculate peak position in engineering units.
+        expected = ((norm + 32767) / 65534) * (2 * fsv) - fsv
+
+        self._lewis.backdoor_set_on_device(f"{pos.lower()}_norm", norm)
+        self._lewis.backdoor_set_on_device(f"{pos.lower()}_fsv", fsv)
+        
+        self.ca.assert_that_pv_is(f"{pos}:NORM", norm, timeout=30)
+        self.ca.assert_that_pv_is(f"{pos}:FSV", fsv, timeout=30)
+        self.ca.assert_that_pv_is(pos, expected)
