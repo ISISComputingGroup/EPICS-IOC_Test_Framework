@@ -97,7 +97,7 @@ class NimatroTests(unittest.TestCase):
             else:
                 self.ca.assert_that_pv_is_within_range("SPEED:SP:RBV", low_limit, high_limit)
 
-    @parameterized.expand([('low limit', -75.0), ('test_value_1', 10.0), ('test_value_2', 34.2), ('high limit', 75.0)])
+    @parameterized.expand([('low limit', PR_DEFAULT_LOW_LIMIT), ('test_value_1', 10.0), ('test_value_2', 34.2), ('high limit', PR_DEFAULT_HIGH_LIMIT)])
     def test_GIVEN_running_ioc_WHEN_set_target_pressure_sp_THEN_target_pressure_updated(self, _, pressure):
         expected_value = pressure
         self.ca.set_pv_value("PRESSURE:SP", expected_value)
@@ -111,14 +111,14 @@ class NimatroTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_within_range("PRESSURE:SP", -75, 75)
 
-    @parameterized.expand([('low limit', -174.2), ('test_value_1', -23.5), ('test_value_2', 34.2), ('high limit', 174.2)])
+    @parameterized.expand([('low limit', SPEED_DEFAULT_LOW_LIMIT), ('test_value_1', -23.5), ('test_value_2', 34.2), ('high limit', SPEED_DEFAULT_HIGH_LIMIT)])
     def test_GIVEN_running_ioc_WHEN_set_target_speed_sp_THEN_target_speed_updated(self, _, speed):
         expected_value = speed
         self.ca.set_pv_value("SPEED:SP", expected_value)
 
         self.ca.assert_that_pv_is("SPEED", expected_value)
 
-    @parameterized.expand([('low limit check', -175.0), ('high limit check', 175.0)])
+    @parameterized.expand([('low limit check', SPEED_DEFAULT_LOW_LIMIT - 1), ('high limit check', SPEED_DEFAULT_HIGH_LIMIT + 1)])
     def test_GIVEN_running_ioc_WHEN_set_invalid_target_speed_sp_THEN_record_bounded(self, _, speed):
         expected_value = speed
         self.ca.set_pv_value("SPEED:SP", expected_value)
