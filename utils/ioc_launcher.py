@@ -371,7 +371,7 @@ class ProcServLauncher(BaseLauncher):
         """
         super(ProcServLauncher, self).open()
 
-        print("IOC started, connecting to procserv")
+        print(f"IOC started, connecting to procserv at telnet port {self.procserv_port}")
 
         timeout = 20
 
