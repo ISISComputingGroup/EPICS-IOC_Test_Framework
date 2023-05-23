@@ -16,7 +16,7 @@ class ChannelStatus(Enum):
     DATA_OK     = ("Measured data okay", "NO_ALARM")
     UNDERRANGE  = ("Underrange", "MINOR")
     OVERRANGE   = ("Overrange", "MINOR")
-    POINT_ERROR   = ("Point error", "MAJOR")
+    POINT_ERROR = ("Point error", "MAJOR")
     POINT_OFF   = ("Point switched off", "MAJOR")
     NO_HARDWARE = ("No hardware", "INVALID")
 
@@ -52,9 +52,15 @@ class Tpgx00Base():
         self._lewis, self._ioc = get_running_lewis_and_ioc("tpgx00", self.get_prefix())
         self.ca = ChannelAccess(20, device_prefix=self.get_prefix(), default_wait_time=0.0)
         
+        # Reset switching function
+        self._set_switching_function("1")
+        self._set_switching_function_thresholds(0.0, 0.0, 1)
+
         # Reset pressure status for each channel to okay
         for channel in CHANNELS:
             self._lewis.backdoor_run_function_on_device("backdoor_set_pressure_status", [channel, ChannelStatus.DATA_OK.name])
+        
+            
 
     def tearDown(self):
         self._connect_emulator()
@@ -64,6 +70,20 @@ class Tpgx00Base():
         pv = "SIM:PRESSURE"
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
+    
+    def _set_switching_function(self, function):
+        self.ca.set_pv_value("FUNCTION", function)
+
+    def _set_switching_function_thresholds(self, threshold_low, threshold_high, circuit_assignment):
+        self.ca.set_pv_value("FUNCTION:LOW:SP", threshold_low)
+        self.ca.set_pv_value("FUNCTION:HIGH:SP", threshold_high)
+        self.ca.set_pv_value("FUNCTION:ASSIGN:SP", circuit_assignment)
+        self.ca.process_pv("FUNCTION:ASSIGN:SP:OUT")
+    
+    def _check_switching_function_thresholds(self, function, threshold_low, threshold_high, circuit_assignment):
+        self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":LOW:SP:RBV", threshold_low, 0.001)
+        self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":HIGH:SP:RBV", threshold_high, 0.001)
+        self.ca.assert_that_pv_is("FUNCTION:" + function + ":ASSIGN:SP:RBV", circuit_assignment)
 
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
@@ -75,6 +95,7 @@ class Tpgx00Base():
             yield
         finally:
             self._connect_emulator()
+
 
     def test_that_GIVEN_a_connected_emulator_WHEN_ioc_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
@@ -114,37 +135,18 @@ class Tpgx00Base():
             self.ca.assert_that_pv_is(f"PRESSURE_{channel}_STAT.SEVR", status.sevr, timeout=15)
             self.ca.assert_that_pv_is(f"PRESSURE_{channel}.SEVR", status.sevr, timeout=15)
 
-    def _set_switching_function(self, function):
-        self.ca.set_pv_value("FUNCTION", function)
-
-    def _set_switching_function_thresholds(self, threshold_low, threshold_high, circuit_assignment):
-        self.ca.set_pv_value("FUNCTION:LOW:SP", threshold_low)
-        self.ca.set_pv_value("FUNCTION:HIGH:SP", threshold_high)
-        self.ca.set_pv_value("FUNCTION:ASSIGN:SP", circuit_assignment)
-        self.ca.process_pv("FUNCTION:ASSIGN:SP:OUT")
-
-    def _check_switching_function_thresholds(self, function, thresholds, check_pv_is=True):
-        assignments = ("No assignment", "A1", "A2", "B1", "B1", "A1 self-monitor", "A2 self-monitor", "B1 self-monitor", "B1 self-monitor")
-        if check_pv_is:
-            assignment = assignments[thresholds[2]]
-            self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":LOW:SP:RBV", thresholds[0], 0.001)
-            self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":HIGH:SP:RBV", thresholds[1], 0.001)
-            self.ca.assert_that_pv_is("FUNCTION:" + function + ":ASSIGN:SP:RBV", assignment)
-
     @parameterized.expand([
-        (('2', 0.5E2, 1.7E-5, 2), (0.5E2, 1.7E-5, 2)),
-        (('A', 0.5534E55, 1.25E-5, 6), (5.5E54, 1.25E-5, 6)),
-        (('B', 12E-215, 0.0, 3), (9.9E-99, 0.0, 3))
+        ('1', 0.5E2, 1.7E-5, 0.5E2, 1.7E-5),
+        ('4', 0.5534E55, 1.25E-5, 5.5E54, 1.25E-5),
+        ('B', 12E-215, 0.0, 9.9E-99, 0.0)
     ])
     @skip_if_recsim("Requires emulator")
-    def test_GIVEN_function_thresholds_set_THEN_thresholds_readback_correct(self, function_set, function_read):
-        self._set_switching_function("1")
-        self._set_switching_function_thresholds(0.0, 0.0, 1)
-        self._set_switching_function(function_set[0])
-        self._set_switching_function_thresholds(function_set[1], function_set[2], function_set[3])
-        self._check_switching_function_thresholds(str(function_set[0]), function_read)
-        self._set_switching_function("1")
-        self._check_switching_function_thresholds("1", (0.0, 0.0, 1))
+    def test_GIVEN_function_thresholds_set_THEN_thresholds_readback_correct(self, switching_func, set_threshold_low, set_threshold_hi, read_threshold_low, read_threshold_hi):
+        for circuit_assign in self.get_sf_assignment():
+            self._set_switching_function(switching_func)
+            self._set_switching_function_thresholds(set_threshold_low, set_threshold_hi, circuit_assign.value)
+            self._check_switching_function_thresholds(str(switching_func), read_threshold_low, read_threshold_hi, circuit_assign.desc)
+
 
     def _check_switching_function_statuses(self, expected_statuses):
         self.ca.assert_that_pv_is("FUNCTION:STATUS:1:RB", str(SFStatus[expected_statuses[0]].value))

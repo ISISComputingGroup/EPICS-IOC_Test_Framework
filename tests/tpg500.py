@@ -22,6 +22,21 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
+class SFAssignment(Enum):
+    OFF         = (0, "Switched off")
+    A1          = (1, "A1")
+    A2          = (2, "A2")
+    B1          = (3, "B1")
+    B2          = (4, "B2")
+    ON          = (5, "Switched on")
+    
+    def __new__(cls, value, desc):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.desc = desc
+        return obj
+
+
 class Units(Enum):
     hPa = 0
     mbar = 1
@@ -42,4 +57,7 @@ class Tpg500Tests(Tpgx00Base, unittest.TestCase):
     
     def get_units(self):
         return Units
+
+    def get_sf_assignment(self):
+        return SFAssignment
 
