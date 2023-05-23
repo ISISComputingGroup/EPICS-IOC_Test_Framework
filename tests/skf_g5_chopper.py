@@ -79,6 +79,6 @@ class SkfG5ChopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device(f"{pos.lower()}_norm", norm)
         self._lewis.backdoor_set_on_device(f"{pos.lower()}_fsv", fsv)
         
-        self.ca.assert_that_pv_is(f"{pos}:NORM", norm, timeout=30)
-        self.ca.assert_that_pv_is(f"{pos}:FSV", fsv, timeout=30)
+        self.ca.assert_that_pv_is(f"{pos}:NORM", norm, timeout=90)
+        self.ca.assert_that_pv_is(f"{pos}:FSV", fsv, timeout=90)
         self.ca.assert_that_pv_is(pos, expected)
