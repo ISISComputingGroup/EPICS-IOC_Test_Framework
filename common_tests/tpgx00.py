@@ -12,18 +12,17 @@ from itertools import product
 
 
 @unique
-class GuageStatus(Enum):
-    DATA_OK     = (0, "Measured data okay", "NO_ALARM")
-    UNDERRANGE  = (1, "Underrange", "MINOR")
-    OVERRANGE   = (2, "Overrange", "MINOR")
-    POINT_ERR   = (3, "Point error", "MAJOR")
-    POINT_OFF   = (4, "Point switched off", "MAJOR")
-    NO_HARDWARE = (5, "No hardware", "INVALID")
+class ChannelStatus(Enum):
+    DATA_OK     = ("Measured data okay", "NO_ALARM")
+    UNDERRANGE  = ("Underrange", "MINOR")
+    OVERRANGE   = ("Overrange", "MINOR")
+    POINT_ERROR   = ("Point error", "MAJOR")
+    POINT_OFF   = ("Point switched off", "MAJOR")
+    NO_HARDWARE = ("No hardware", "INVALID")
 
-    def __new__(cls, value, desc, sevr):
+    def __new__(cls, value, sevr):
         obj = object.__new__(cls)
         obj._value_ = value
-        obj.desc = desc
         obj.sevr = sevr
         return obj
 
@@ -55,7 +54,7 @@ class Tpgx00Base():
         
         # Reset pressure status for each channel to okay
         for channel in CHANNELS:
-            self._lewis.backdoor_run_function_on_device("backdoor_set_pressure_status", [channel, GuageStatus.DATA_OK.value])
+            self._lewis.backdoor_run_function_on_device("backdoor_set_pressure_status", [channel, ChannelStatus.DATA_OK.name])
 
     def tearDown(self):
         self._connect_emulator()
@@ -85,7 +84,7 @@ class Tpgx00Base():
         for unit in self.get_units():
             expected_unit = unit.name
             self.ca.set_pv_value("UNITS:SP", expected_unit)
-            self._lewis.assert_that_emulator_value_is("backdoor_get_unit", str(unit.value))
+            self._lewis.assert_that_emulator_value_is("backdoor_get_unit", str(expected_unit))
             self.ca.assert_that_pv_is("UNITS:SP", expected_unit)
             self.ca.assert_that_pv_is("UNITS", expected_unit)
 
@@ -108,10 +107,10 @@ class Tpgx00Base():
     @parameterized.expand(parameterized_list(CHANNELS))
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_pressure_status_changed_THEN_pressure_status_and_pressure_severity_updated(self, _, channel):
-        for status in GuageStatus:
-            self._lewis.backdoor_run_function_on_device("backdoor_set_pressure_status", [channel, status.value])
+        for status in ChannelStatus:
+            self._lewis.backdoor_run_function_on_device("backdoor_set_pressure_status", [channel, status.name])
             self._set_pressure(TEST_PRESSURES[0], channel)
-            self.ca.assert_that_pv_is(f"PRESSURE_{channel}_STAT", status.desc, timeout=15)
+            self.ca.assert_that_pv_is(f"PRESSURE_{channel}_STAT", status.value, timeout=15)
             self.ca.assert_that_pv_is(f"PRESSURE_{channel}_STAT.SEVR", status.sevr, timeout=15)
             self.ca.assert_that_pv_is(f"PRESSURE_{channel}.SEVR", status.sevr, timeout=15)
 
