@@ -27,6 +27,7 @@ MTR2_HOMR = f"{MTR2}.HOMR"
 MTR2_STOP = f"{MTR2}.STOP"
 
 POLL_RATE = 1
+CREEP_SPEED = 700
 
 IOC_MACROS = {
             "MTRCTRL": "01",
@@ -38,7 +39,9 @@ IOC_MACROS = {
             "CMOD1": "OPEN",
             "CMOD2": "CLOSED",            
             "HOME1": 3, # SNL home
-            "HOME2": 2  # builtin controller home to datum
+            "HOME2": 2,  # builtin controller home to datum
+            "CRSP1" : CREEP_SPEED,
+            "CRSP2" : CREEP_SPEED,
 }
 
 PV_TO_WAIT_FOR = "AXIS1"
@@ -94,7 +97,7 @@ class MclennanTests(unittest.TestCase):
         self.ca_motor.assert_that_pv_is_number(MTR1_RBV, test_position)
 
     def test_WHEN_velocity_changes_WHEN_sending_builtin_home_THEN_creep_speed_is_changed_then_set_back_after_home(self):
-        self._lewis.assert_that_emulator_value_is("creep_speed2", str(700))
+        self._lewis.assert_that_emulator_value_is("creep_speed2", str(CREEP_SPEED))
         vel = 0.2
         macros = IOC_MACROS
         macros['HVEL2'] = vel
@@ -104,10 +107,10 @@ class MclennanTests(unittest.TestCase):
             mres = self.ca_motor.get_pv_value(MTR2_MRES)
             self._lewis.assert_that_emulator_value_is("creep_speed2", str(int(vel/mres)))
             self.ca_motor.set_pv_value(MTR2, 1)
-            self._lewis.assert_that_emulator_value_is("creep_speed2", str(700))
+            self._lewis.assert_that_emulator_value_is("creep_speed2", str(CREEP_SPEED))
 
     def test_WHEN_velocity_changes_WHEN_sending_SNL_home_THEN_creep_speed_is_not_changed(self):
-        self._lewis.assert_that_emulator_value_is("creep_speed1", str(700))
+        self._lewis.assert_that_emulator_value_is("creep_speed1", str(CREEP_SPEED))
         vel = 0.2
         macros = IOC_MACROS
         macros['HVEL1'] = vel
@@ -115,12 +118,12 @@ class MclennanTests(unittest.TestCase):
             self.ca_motor.assert_that_pv_is_number(MTR1_HVEL, vel, timeout=30)
             self.ca_motor.set_pv_value(MTR1_HOMR, 1)
             mres = self.ca_motor.get_pv_value(MTR1_MRES)
-            self._lewis.assert_that_emulator_value_is("creep_speed1", str(700))
+            self._lewis.assert_that_emulator_value_is("creep_speed1", str(CREEP_SPEED))
             self.ca_motor.set_pv_value(MTR1, 1)
-            self._lewis.assert_that_emulator_value_is("creep_speed1", str(700))
+            self._lewis.assert_that_emulator_value_is("creep_speed1", str(CREEP_SPEED))
 
     def test_WHEN_sending_home_with_high_velocity_THEN_creep_speed_is_capped(self):
-        self._lewis.assert_that_emulator_value_is("creep_speed2", str(700))
+        self._lewis.assert_that_emulator_value_is("creep_speed2", str(CREEP_SPEED))
         vel = 100
         macros = IOC_MACROS
         macros['HVEL2'] = vel
@@ -130,4 +133,4 @@ class MclennanTests(unittest.TestCase):
             # Should be capped at the max creep speed (800)
             self._lewis.assert_that_emulator_value_is("creep_speed2", str(800))
             self.ca_motor.set_pv_value(MTR2, 1)
-            self._lewis.assert_that_emulator_value_is("creep_speed2", str(700))
+            self._lewis.assert_that_emulator_value_is("creep_speed2", str(CREEP_SPEED))
