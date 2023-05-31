@@ -12,7 +12,9 @@ IOCS = [
     {
     "name": DEVICE_PREFIX,
     "directory": get_default_ioc_dir("TPG300"),
-    "macros": {},
+    "macros": {
+        "MODEL": "300"
+    },
     "emulator": "tpgx00",
     "lewis_protocol": "tpg300",
     },

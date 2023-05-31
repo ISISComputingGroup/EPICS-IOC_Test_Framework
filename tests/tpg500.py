@@ -12,7 +12,9 @@ IOCS = [
     {
     "name": DEVICE_PREFIX,
     "directory": get_default_ioc_dir("TPG300"),
-    "macros": {},
+    "macros": {
+        "MODEL": "500"
+    },
     "emulator": "tpgx00",
     "lewis_protocol": "tpg500",
     },
@@ -38,13 +40,13 @@ class SFAssignment(Enum):
 
 
 class Units(Enum):
-    hPa = 0
+    hPascal = 0
     mbar = 1
     Torr = 2
     Pa = 3
     Micron = 4
     Volt = 5
-    Amp = 6
+    Ampere = 6
 
 
 class Tpg500Tests(Tpgx00Base, unittest.TestCase):
