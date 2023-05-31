@@ -193,7 +193,6 @@ class EmulatorLauncher(object):
 
         Raises:
             AssertionError: if emulator property is not the expected value
-            UnableToConnectToPVException: if emulator property does not exist within timeout
         """
         self.backdoor_set_on_device(variable, value)
         self.assert_that_emulator_value_is(variable, str(value))
@@ -213,11 +212,10 @@ class EmulatorLauncher(object):
                 checking equality. E.g. to cast to float pass the float class as this argument.
         Raises:
             AssertionError: if emulator property is not the expected value
-            UnableToConnectToPVException: if emulator property does not exist within timeout
         """
 
         if message is None:
-            message = "Expected PV to have value {}.".format(format_value(expected_value))
+            message = "Expected emulator to have value {}.".format(format_value(expected_value))
 
         return self.assert_that_emulator_value_causes_func_to_return_true(
             emulator_property, lambda val: cast(val) == expected_value, timeout=timeout, msg=message)
@@ -231,7 +229,7 @@ class EmulatorLauncher(object):
             emulator_property (string): emulator property to check
             func: a function that takes one argument, the emulator property value, and returns True if the value is
                 valid.
-            timeout: time to wait for the PV to satisfy the function
+            timeout: time to wait for the emulator to satisfy the function
             msg: custom message to print on failure
         Raises:
             AssertionError: If the function does not evaluate to true within the given timeout
@@ -301,7 +299,6 @@ class EmulatorLauncher(object):
              timeout: if it hasn't changed within this time raise assertion error
         Raises:
              AssertionError: if value does not become requested value
-             UnableToConnectToPVException: if pv does not exist within timeout
         """
 
         message = "Expected emulator property {} to have a value greater than or equal to {}".format(

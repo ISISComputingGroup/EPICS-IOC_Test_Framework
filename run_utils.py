@@ -1,17 +1,19 @@
 import importlib
 import os
+import glob
 from contextlib import contextmanager
 
 from utils.build_architectures import BuildArchitectures
 
-def package_contents(package_path):
+def package_contents(package_path, filter_files):
     """
     Finds all the files in a package.
 
     :param package_path: the name of the package
+    :param filter_files: glob format expression to filter files by
     :return: a set containing all the module names
     """
-    return set([os.path.splitext(module)[0] for module in os.listdir(package_path)
+    return set([os.path.splitext(module)[0] for module in glob.glob(filter_files, root_dir=package_path)
                 if module.endswith('.py') and not module.startswith("__init__")])
 
 

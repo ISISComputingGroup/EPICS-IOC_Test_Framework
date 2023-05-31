@@ -278,7 +278,7 @@ class MotionSetpointsTests(unittest.TestCase):
         axis_num = 1
         channel_access = self.channel_access_instances[axis_num]
         position_table = POSITION_TABLES[axis_num]
-        offset_coords = [position_table[0][coord+1] - position_table[1][coord+1] for coord in range(axis_num)]
+        offset_coords = [position_table[0][coord+1] - position_table[2][coord+1] for coord in range(axis_num)]
 
         for axis in range(axis_num):
             channel_access.set_pv_value("COORD{}:OFFSET:SP".format(axis), -offset_coords[axis])
