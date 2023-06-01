@@ -33,9 +33,9 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_exists("A01:RBV", timeout=30)
         self.ca.assert_that_pv_exists("A01:CAL:SEL", timeout=10)
 
-    def _reset_device_state(self):
+    def _reset_device_state(self, sensor="A01"):
         self._lewis.backdoor_set_on_device('connected', True)
-        reset_calibration_file(self.ca, prefix="A01:")
+        reset_calibration_file(self.ca, prefix=f"{sensor}:")
 
         intial_temp = 0.0
 
@@ -43,24 +43,24 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
 
         self._lewis.backdoor_set_on_device("ramping_on", False)
         self._lewis.backdoor_set_on_device("ramp_rate", 1.0)
-        self.ca.set_pv_value("A01:RAMPON:SP", 0, sleep_after_set=0)
+        self.ca.set_pv_value(f"{sensor}:RAMPON:SP", 0, sleep_after_set=0)
 
         self._set_setpoint_and_current_temperature(intial_temp)
-        self.ca.assert_that_pv_is("A01:TEMP", intial_temp)
+        self.ca.assert_that_pv_is(f"{sensor}:TEMP", intial_temp)
         # Ensure the temperature isn't being changed by a ramp any more
-        self.ca.assert_that_pv_value_is_unchanged("A01:TEMP", 5)
+        self.ca.assert_that_pv_value_is_unchanged(f"{sensor}:TEMP", 5)
 
-    def _set_setpoint_and_current_temperature(self, temperature):
+    def _set_setpoint_and_current_temperature(self, temperature, sensor="A01"):
         if IOCRegister.uses_rec_sim:
-            self.ca.set_pv_value("A01:SIM:TEMP:SP", temperature)
-            self.ca.assert_that_pv_is("A01:SIM:TEMP", temperature)
-            self.ca.assert_that_pv_is("A01:SIM:TEMP:SP", temperature)
-            self.ca.assert_that_pv_is("A01:SIM:TEMP:SP:RBV", temperature)
+            self.ca.set_pv_value(f"{sensor}:SIM:TEMP:SP", temperature)
+            self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP", temperature)
+            self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP:SP", temperature)
+            self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP:SP:RBV", temperature)
         else:
             self._lewis.backdoor_set_on_device("current_temperature", temperature)
-            self.ca.assert_that_pv_is_number("A01:TEMP", temperature, 0.1, timeout=30)
+            self.ca.assert_that_pv_is_number(f"{sensor}:TEMP", temperature, 0.1, timeout=30)
             self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
-            self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, 0.1, timeout=30)
+            self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
 
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
         expected_temperature = 10.0
