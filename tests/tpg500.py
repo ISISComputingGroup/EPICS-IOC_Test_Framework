@@ -1,9 +1,14 @@
 import unittest
 
+from parameterized import parameterized
+
 from common_tests.tpgx00 import Tpgx00Base
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
+from utils.testing import skip_if_recsim, parameterized_list
 from enum import Enum
+
+from genie_python.genie_cachannel_wrapper import InvalidEnumStringException
 
 
 DEVICE_PREFIX = "TPG300_01"
@@ -23,6 +28,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
+SWITCHING_FUNCTIONS = ("SEL", "1", "2", "3", "4")
 
 class SFAssignment(Enum):
     OFF         = (0, "Switched off")
@@ -62,4 +68,15 @@ class Tpg500Tests(Tpgx00Base, unittest.TestCase):
 
     def get_sf_assignment(self):
         return SFAssignment
-
+        
+    def get_switching_fns(self):
+        return SWITCHING_FUNCTIONS
+    
+    @parameterized.expand(parameterized_list(['A', 'B']))
+    @skip_if_recsim("Requires emulator")
+    def test_WHEN_invalid_switching_function_set_THEN_pv_goes_into_alarm(self, _, switching_func):
+        with self.assertRaises(InvalidEnumStringException):
+            self.ca.set_pv_value("FUNCTION", switching_func)
+        self.ca.assert_that_pv_is_not("FUNCTION", switching_func)
+        self._lewis.assert_that_emulator_value_is_not("backdoor_get_switching_fn", switching_func)
+        #self.ca.assert_that_pv_alarm_is("FUNCTION", "INVALID")

@@ -1,8 +1,13 @@
 import unittest
 
+from parameterized import parameterized
+
+from genie_python.genie_cachannel_wrapper import InvalidEnumStringException
+
 from common_tests.tpgx00 import Tpgx00Base
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
+from utils.testing import skip_if_recsim
 from enum import Enum
 
 
@@ -23,6 +28,7 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
+SWITCHING_FUNCTIONS = ("SEL", "1", "2", "3", "4", "A", "B")
 
 class SFAssignment(Enum):
     OFF         = (0, "No assignment")
@@ -47,6 +53,12 @@ class Units(Enum):
     Torr = 2
     Pa = 3
 
+class InvalidUnits(Enum):
+    hPascal = 0
+    Micron = 4
+    Volt = 5
+    Ampere = 6
+
 
 class Tpg300Tests(Tpgx00Base, unittest.TestCase):
     """
@@ -61,4 +73,17 @@ class Tpg300Tests(Tpgx00Base, unittest.TestCase):
 
     def get_sf_assignment(self):
         return SFAssignment
+    
+    def get_switching_fns(self):
+        return SWITCHING_FUNCTIONS
+    
+    @skip_if_recsim("Requires emulator")
+    def test_WHEN_invalid_unit_set_THEN_pv_goes_into_alarm(self):
+        for unit in InvalidUnits:
+            expected_unit = unit.name
+            with self.assertRaises(InvalidEnumStringException):
+                self.ca.set_pv_value("UNITS:SP", expected_unit)
+            self.ca.assert_that_pv_is_not("UNITS", expected_unit)
+            self._lewis.assert_that_emulator_value_is_not("backdoor_get_unit", str(expected_unit))
+            self.ca.assert_that_pv_alarm_is("UNITS:SP", "INVALID")   
 
