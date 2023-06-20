@@ -31,6 +31,13 @@ class SFStatus(Enum):
     OFF = 0
     ON  = 1
 
+@unique
+class ErrorStatus(Enum):
+    NO_ERROR      = "No error"
+    DEVICE_ERROR  = "Device error"
+    NO_HARDWARE   = "Hardware not installed"
+    INVALID_PARAM = "Invalid parameter"
+    SYNTAX_ERROR  = "Syntax error"
 
 CHANNELS = "A1", "A2", "B1", "B2"
 TEST_PRESSURES = 1.23, -10.23, 8, 1e-6, 1e+6
@@ -173,6 +180,12 @@ class Tpgx00Base():
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 1)
         self._set_pressure(501.0, switching_fn_4.desc)
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 0)
+
+    @skip_if_recsim("Requires emulator")
+    def test_WHEN_error_set_by_device_THEN_readback_correct(self):
+        for error in ErrorStatus:
+            self._lewis.backdoor_run_function_on_device("backdoor_set_error_status", [error.name])
+            self.ca.assert_that_pv_is("ERROR", error.value)
 
     def _check_alarm_status_rbvs(self, alarm):
         for channel in self.get_switching_fns():
