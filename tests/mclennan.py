@@ -19,6 +19,7 @@ MTR1_RBV = f"{MTR1}.RBV"
 MTR1_MRES = f"{MTR1}.MRES"
 MTR1_HVEL = f"{MTR1}.HVEL"
 MTR1_HOMR = f"{MTR1}.HOMR"
+MTR1_SAFE_STUP = f"{MTR1}:SAFE_STUP"
 MTR2 = "MTR0102"
 MTR2_NAME = "Test2"
 MTR2_MRES = f"{MTR2}.MRES"
@@ -134,3 +135,9 @@ class MclennanTests(unittest.TestCase):
             self._lewis.assert_that_emulator_value_is("creep_speed2", str(800))
             self.ca_motor.set_pv_value(MTR2, 1)
             self._lewis.assert_that_emulator_value_is("creep_speed2", str(CREEP_SPEED))
+
+    def test_WHEN_sending_SNL_home_THEN_prevent_status_call(self):
+        self.ca_motor.set_pv_value(MTR1_HOMR, 1)
+        # Setting STATUS to 1 and to check that the MOVN stays at 1 regardless
+        self.ca_motor.set_pv_value(MTR1_SAFE_STUP, 1)
+        self.ca_motor.assert_that_pv_is(MTR1_MOVN, 1)
