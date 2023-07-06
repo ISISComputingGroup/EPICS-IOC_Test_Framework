@@ -26,19 +26,6 @@ class ChannelStatus(Enum):
         obj.sevr = sevr
         return obj
 
-@unique
-class SFStatus(Enum):
-    OFF = 0
-    ON  = 1
-
-@unique
-class ErrorStatus(Enum):
-    NO_ERROR      = "No error"
-    DEVICE_ERROR  = "Device error"
-    NO_HARDWARE   = "Hardware not installed"
-    INVALID_PARAM = "Invalid parameter"
-    SYNTAX_ERROR  = "Syntax error"
-
 CHANNELS = "A1", "A2", "B1", "B2"
 TEST_PRESSURES = 1.23, -10.23, 8, 1e-6, 1e+6
 
@@ -88,9 +75,21 @@ class Tpgx00Base():
         self.ca.process_pv("FUNCTION:ASSIGN:SP:OUT")
     
     def _check_switching_function_thresholds(self, function, threshold_low, threshold_high, circuit_assignment):
-        self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":LOW:SP:RBV", threshold_low, 0.001, timeout=15)
-        self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":HIGH:SP:RBV", threshold_high, 0.001, timeout=15)
+        self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":LOW:SP:RBV", threshold_low, timeout=15)
+        self.ca.assert_that_pv_is_number("FUNCTION:" + function + ":HIGH:SP:RBV", threshold_high, timeout=15)
         self.ca.assert_that_pv_is("FUNCTION:" + function + ":ASSIGN:SP:RBV", circuit_assignment, timeout=15)
+
+    def _check_alarm_status_rbvs(self, alarm):
+        for channel in self.get_switching_fns():
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":RB", alarm)
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":LOW:SP:RBV", alarm)
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":HIGH:SP:RBV", alarm)
+            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":ASSIGN:SP:RBV", alarm)
+
+    def _check_alarm_status_function_statuses(self, alarm):
+        self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:RB", alarm)
+        for channel in ("1", "2", "3", "4"):
+            self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:" + channel + ":RB", alarm)
 
     def _connect_emulator(self):
         self._lewis.backdoor_run_function_on_device("connect")
@@ -146,8 +145,8 @@ class Tpgx00Base():
     # individual submodules.
     @parameterized.expand([
         ('1', 0.5E2, 1.7E-5, 0.5E2, 1.7E-5),
-        ('2', 9.95E-3, 5E-12, 9.9E-3, 1E-11),
-        ('4', 12E-215, 0.0, 1E-11, 0.0)
+        ('2', 9.95E-3, 1E+4, 1.0E-2, 9.9E+3),
+        ('4', 12E-215, 1E+215, 1E-11, 9.9E+3)
     ])
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_function_thresholds_set_THEN_thresholds_readback_correct(self, switching_func, set_threshold_low, set_threshold_hi, read_threshold_low, read_threshold_hi):
@@ -155,18 +154,6 @@ class Tpgx00Base():
             self._set_switching_function(switching_func)
             self._set_switching_function_thresholds(set_threshold_low, set_threshold_hi, circuit_assign.value)
             self._check_switching_function_thresholds(str(switching_func), read_threshold_low, read_threshold_hi, circuit_assign.desc)
-
-    def _check_switching_function_statuses(self, expected_statuses):
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:1:RB", str(SFStatus[expected_statuses[0]].value))
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:2:RB", str(SFStatus[expected_statuses[1]].value))
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:3:RB", str(SFStatus[expected_statuses[2]].value))
-        self.ca.assert_that_pv_is("FUNCTION:STATUS:4:RB", str(SFStatus[expected_statuses[3]].value))
-
-    @skip_if_recsim("Requires emulator")
-    def test_GIVEN_function_status_set_THEN_readback_correct(self):
-        function_statuses = ["OFF", "OFF", "ON", "ON", "OFF", "ON"]
-        self._lewis.backdoor_run_function_on_device("backdoor_set_switching_function_status", [function_statuses])
-        self._check_switching_function_statuses(function_statuses)
 
     @skip_if_recsim("Requires emulator")
     def test_GIVEN_thresholds_settings_and_pressure_above_THEN_check_if_violation_detected(self):
@@ -182,37 +169,9 @@ class Tpgx00Base():
         self.ca.assert_that_pv_is("FUNCTION:3:THRESHOLD:BELOW", 0)
 
     @skip_if_recsim("Requires emulator")
-    def test_WHEN_error_set_by_device_THEN_readback_correct(self):
-        for error in ErrorStatus:
-            self._lewis.backdoor_run_function_on_device("backdoor_set_error_status", [error.name])
-            self.ca.assert_that_pv_is("ERROR", error.value)
-
-    def _check_alarm_status_rbvs(self, alarm):
-        for channel in self.get_switching_fns():
-            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":RB", alarm)
-            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":LOW:SP:RBV", alarm)
-            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":HIGH:SP:RBV", alarm)
-            self.ca.assert_that_pv_alarm_is("FUNCTION:" + channel + ":ASSIGN:SP:RBV", alarm)
-
-    def _check_alarm_status_function_statuses(self, alarm):
-        self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:RB", alarm)
-        for channel in ("1", "2", "3", "4"):
-            self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:" + channel + ":RB", alarm)
-
-
-    @skip_if_recsim("Requires emulator")
     def test_WHEN_device_disconnected_THEN_rbv_values_go_into_alarm(self):
         self._check_alarm_status_rbvs(self.ca.Alarms.NONE)
         with self._disconnect_device():
             self._check_alarm_status_rbvs(self.ca.Alarms.INVALID)
 
         self._check_alarm_status_rbvs(self.ca.Alarms.NONE)
-
-    @skip_if_recsim("Requires emulator")
-    def test_WHEN_device_disconnected_THEN_function_statuses_go_into_alarm(self):
-        self._check_alarm_status_function_statuses(self.ca.Alarms.NONE)
-        with self._disconnect_device():
-            self._check_alarm_status_function_statuses(self.ca.Alarms.INVALID)
-
-        self._check_alarm_status_function_statuses(self.ca.Alarms.NONE)
-

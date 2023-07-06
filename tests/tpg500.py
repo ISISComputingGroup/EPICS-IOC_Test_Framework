@@ -72,6 +72,11 @@ class Tpg500Tests(Tpgx00Base, unittest.TestCase):
     def get_switching_fns(self):
         return SWITCHING_FUNCTIONS
     
+    def _check_alarm_status_function_statuses(self, alarm):
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:RB", "Unavailable")
+        for channel in ("1", "2", "3", "4"):
+            self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:" + channel + ":RB", alarm)
+
     @parameterized.expand(parameterized_list(['A', 'B']))
     @skip_if_recsim("Requires emulator")
     def test_WHEN_invalid_switching_function_set_THEN_pv_goes_into_alarm(self, _, switching_func):
@@ -79,4 +84,23 @@ class Tpg500Tests(Tpgx00Base, unittest.TestCase):
             self.ca.set_pv_value("FUNCTION", switching_func)
         self.ca.assert_that_pv_is_not("FUNCTION", switching_func)
         self._lewis.assert_that_emulator_value_is_not("backdoor_get_switching_fn", switching_func)
-        #self.ca.assert_that_pv_alarm_is("FUNCTION", "INVALID")
+
+    # Tests to check the various inconsistencies between the 500 manual & hardware have been handled
+    @skip_if_recsim("Requires emulator")
+    def test_WHEN_ioc_is_on_THEN_error_status_invalid(self):
+        self.ca.assert_that_pv_alarm_is("ERROR", self.ca.Alarms.INVALID)
+    
+    @parameterized.expand(parameterized_list(["1", "2", "3", "4"]))
+    def test_WHEN_ioc_is_on_THEN_each_relay_contact_status_invalid(self, _, channel):
+        self.ca.assert_that_pv_alarm_is("FUNCTION:STATUS:" + channel + ":RB", self.ca.Alarms.INVALID)
+
+    @skip_if_recsim("Requires emulator")
+    def test_WHEN_device_disconnected_THEN_function_statuses_go_into_alarm(self):
+        self._check_alarm_status_function_statuses(self.ca.Alarms.INVALID)
+        with self._disconnect_device():
+            self._check_alarm_status_function_statuses(self.ca.Alarms.INVALID)
+        
+        self._check_alarm_status_function_statuses(self.ca.Alarms.INVALID)
+
+    def test_WHEN_ioc_is_on_THEN_status_rb_reports_unavailable(self):
+        self.ca.assert_that_pv_is("FUNCTION:STATUS:RB", "Unavailable")
