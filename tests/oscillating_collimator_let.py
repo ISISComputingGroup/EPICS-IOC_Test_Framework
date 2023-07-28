@@ -1,6 +1,7 @@
 import unittest
+import time
 from common_tests.oscillating_collimators import OscillatingCollimatorBase, _custom_name_func, RADIUS, ANGLE, FREQUENCY, \
-    DISCRIMINANT, GALIL_ADDR, PREFIX
+    DISCRIMINANT, GALIL_ADDR, OSC_PREFIX, MOT_PREFIX
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from parameterized import parameterized
@@ -37,8 +38,13 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         ca_mot.assert_that_pv_exists("MOT:MTR0103", timeout=30)
         ca_mot.assert_setting_setpoint_sets_readback(DEFAULT_MOTOR_RESOLUTION,
                                                      set_point_pv="MOT:MTR0103.MRES", readback_pv="MOT:MTR0103.MRES", )
-        self.ca = ChannelAccess(device_prefix=PREFIX, default_wait_time=0)
+        self.ca = ChannelAccess(device_prefix=OSC_PREFIX, default_wait_time=0)
+        self.ca_mot = ChannelAccess(device_prefix=MOT_PREFIX, default_wait_time=0)
         self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
+
+        # Set to 0 so stability buffer contents are consistent & known for each test
+        # Takes 10 seconds for buffer to have consistent contents, so to be certain sleep for 11
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 0, sleep_after_set=11)
 
     @parameterized.expand(
         # [(angle, frequency, radius), (expected distance, expected velocity)
@@ -83,3 +89,33 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
 
         # Assert
         self.ca.assert_that_pv_is_number(DISCRIMINANT, 1.0)
+
+    def test_WHEN_laser_unstable_THEN_collimator_is_reported_moving(self):
+        # Act
+        # Check that PV was stopped, then starts moving after laser change 
+        self.ca.assert_that_pv_is("MOVING", "Not Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+        # Give laser new value 
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 1)
+
+        # Assert
+        # Check PV is now moving 
+        # Buffer contents stay consistent for 10 seconds; check for 5 to avoid race conditions
+        self.ca.assert_that_pv_is("MOVING", "Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+        
+
+    def test_WHEN_laser_stable_THEN_collimator_is_reported_not_moving(self):
+        # Act
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 1)
+
+        # Assert
+        # Check that PV was moving after laser change, then stops moving after buffer clears
+        # Takes 10 seconds for buffer to have consistent contents; check for 5 to avoid race conditions
+        self.ca.assert_that_pv_is("MOVING", "Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+        time.sleep(5)
+        # Check PV is now stopped (and stays stopped)
+        self.ca.assert_that_pv_is("MOVING", "Not Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+

@@ -100,6 +100,7 @@ pipeline {
          lock(resource: ELOCK, inversePrecedence: false) {
            timeout(time: 1800, unit: 'MINUTES') {
            bat """
+             setlocal EnableDelayedExpansion
              set \"MYJOB=${env.JOB_NAME}\"
              if exist "C:\\Instrument\\Apps\\EPICS" (
                 call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
@@ -115,11 +116,11 @@ pipeline {
                 exit /b 1
              )
              del /q C:\\Instrument\\Var\\logs\\IOCTestFramework\\*.*
-             call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests.bat"
-             set ERRCODE=%ERRORLEVEL%
+             call "C:\\Instrument\\Apps\\EPICS\\support\\IocTestFramework\\master\\run_all_tests_split.bat"
+             set ERRCODE=!ERRORLEVEL!
              call "C:\\Instrument\\Apps\\EPICS\\stop_ibex_server.bat"
              rmdir "C:\\Instrument\\Apps\\EPICS"
-             exit /b %ERRCODE%
+             exit /b !ERRCODE!
              """
            }
          }

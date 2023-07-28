@@ -40,6 +40,12 @@ python -u run_tests.py -t instron_stress_rig amint2l  # Will run the stress rig 
 The argument is the name of the module containing the tests. This is the same as the name of the file in the `tests` 
 directory, with the `.py` extension removed.
 
+If you wish to run all tests in a specific set of files, then you can use -tf for test filter which takes
+a glob format expression
+```
+python -u run_tests.py -tf "[a-c]*"  # Will run tests for all modules starting with letter a, b or c.
+```
+
 ### Running tests in classes
 
 You can run classes of tests in modules using the `-t` argument as follows:

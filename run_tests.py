@@ -299,7 +299,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
     test_names = [f"tests.{test}" for test in tests_to_run]
 
-    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
+    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch, verbosity=3)
     test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
 
     try:
@@ -338,6 +338,9 @@ if __name__ == '__main__':
     parser.add_argument('-tp', '--tests-path', default=f"{os.path.dirname(os.path.realpath(__file__))}\\tests",
                         help="""Path to find the tests in, this must be a valid python module. 
                         Default is in the tests folder of this repo""")
+    parser.add_argument('-tf', '--tests-filter-files', default="*.py",
+                        help="""glob format expression to specify files in tests path to use. 
+                        Default is *.py""")
     parser.add_argument('-f', '--failfast', action='store_true',
                         help="""Determines if the rest of tests are skipped after the first failure""")
     parser.add_argument('-a', '--ask-before-running', action='store_true',
@@ -371,7 +374,7 @@ if __name__ == '__main__':
 
     if arguments.list_devices:
         print("Available tests:")
-        print('\n'.join(sorted(package_contents(arguments.tests_path))))
+        print('\n'.join(sorted(package_contents(arguments.tests_path, arguments.tests_filter_files))))
         sys.exit(0)
 
     var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
@@ -381,7 +384,7 @@ if __name__ == '__main__':
         print("Cannot run without instrument prefix, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
-    tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
+    tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path, arguments.tests_filter_files)
     failfast = arguments.failfast
     report_coverage = arguments.report_coverage
     ask_before_running_tests = arguments.ask_before_running

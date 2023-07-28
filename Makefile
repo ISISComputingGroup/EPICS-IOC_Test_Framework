@@ -7,4 +7,4 @@
 #       instead as this overrides MAKEFLAGS already 
 #
 ioctests:
-	$(PYTHON3) -u run_tests.py
+	.\run_all_tests_split.bat
