@@ -72,33 +72,33 @@ class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermModbusNeedleValveTests, self).setUp()
         with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("FLOW_SP_MODE_SELECT:SP", "AUTO")
+            self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", "AUTO")
 
-    # READ TESTS
+    #READ TESTS
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_using_needle_valve_THEN_flow_exists(self):
-        self._lewis.backdoor_set_on_device("flow", 5.0)
-        self.ca.assert_that_pv_is_number("FLOW", 5.0, tolerance=0, timeout=15)
+        self._lewis.backdoor_set_on_device("needlevalve_flow", 5.0)
+        self.ca.assert_that_pv_is_number("A01:FLOW", 5.0, tolerance=0, timeout=15)
     
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_using_needle_valve_THEN_valve_dir_exists(self):
-        self._lewis.backdoor_set_on_device("valve_direction", 1)
-        self.ca.assert_that_pv_is("VALVE_DIR", "OPENING", timeout=15)
+        self._lewis.backdoor_set_on_device("needlevalve_direction", 1)
+        self.ca.assert_that_pv_is("A01:VALVE_DIR", "OPENING", timeout=15)
     
     # WRITE TESTS
     @parameterized.expand([
-        ("FLOW_SP_LOWLIM", 2.0),
-        ("FLOW_SP_MODE_SELECT", "MANUAL"),
-        ("NEEDLE_VALVE_STOP", "STOPPED")])
+        ("A01:FLOW_SP_LOWLIM", 2.0),
+        ("A01:FLOW_SP_MODE_SELECT", "MANUAL"),
+        ("A01:NEEDLE_VALVE_STOP", "STOPPED")])
     def test_WHEN_using_needle_valve_WHEN_SP_set_then_RBV_updates(self, pv, val):
         with ManagerMode(ChannelAccess()):
                 self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv=pv, timeout=15)
 
     # MANAGER MODE TESTS
     @parameterized.expand([
-        ("FLOW_SP_LOWLIM:SP", 2.0),
-        ("FLOW_SP_MODE_SELECT:SP", "MANUAL"),
-        ("NEEDLE_VALVE_STOP:SP", "STOPPED")])
+        ("A01:FLOW_SP_LOWLIM:SP", 2.0),
+        ("A01:FLOW_SP_MODE_SELECT:SP", "MANUAL"),
+        ("A01:NEEDLE_VALVE_STOP:SP", "STOPPED")])
     def test_WHEN_using_needle_valve_WHEN_manager_mode_on_THEN_writes_allowed(self, pv, val):
         # try set with manager mode and check that it was set.
         with ManagerMode(ChannelAccess()):
@@ -106,47 +106,47 @@ class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
         self.ca.assert_that_pv_is(pv, val, timeout=15)
 
     @parameterized.expand([
-        ("FLOW_SP_LOWLIM:SP", 2.0),
-        ("FLOW_SP_MODE_SELECT:SP", "MANUAL"),
-        ("NEEDLE_VALVE_STOP:SP", "STOPPED")])
+        ("A01:FLOW_SP_LOWLIM:SP", 2.0),
+        ("A01:FLOW_SP_MODE_SELECT:SP", "MANUAL"),
+        ("A01:NEEDLE_VALVE_STOP:SP", "STOPPED")])
     def test_WHEN_using_needle_valve_WHEN_manager_mode_off_THEN_writes_disallowed(self, pv, val):
         with self.assertRaises(WriteAccessException):
             self.ca.set_pv_value(pv, val)
 
     # SP MODE TESTS
     @parameterized.expand([
-        ("TEMP:SP.DISP", "MANUAL"),
-        ("MANUAL_FLOW:SP.DISP", "AUTO")])
+        ("A01:TEMP:SP.DISP", "MANUAL"),
+        ("A01:MANUAL_FLOW:SP.DISP", "AUTO")])
     def test_WHEN_using_needle_valve_THEN_sp_modes_disable_correct_PV(self, pv_disp, mode):
         with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("FLOW_SP_MODE_SELECT:SP", mode)
+            self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", mode)
         self.ca.assert_that_pv_is(pv_disp, "1", timeout=15)
     
     @parameterized.expand([
-        ("TEMP:SP", "TEMP:SP:RBV", 2.0, "AUTO" ),
-        ("MANUAL_FLOW:SP", "MANUAL_FLOW", 8.0, "MANUAL")])
+        ("A01:TEMP:SP", "A01:TEMP:SP:RBV", 2.0, "AUTO" ),
+        ("A01:MANUAL_FLOW:SP", "A01:MANUAL_FLOW", 8.0, "MANUAL")])
     def test_WHEN_using_needle_valve_and_correct_sp_mode_WHEN_manager_mode_on_THEN_writes_allowed(self, sp_pv, rbv_pv, val, mode):
         with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("FLOW_SP_MODE_SELECT:SP", mode)
+            self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", mode)
             self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=rbv_pv, set_point_pv=sp_pv, timeout=15)
 
     @parameterized.expand([
-        ("TEMP:SP", 2.0, "MANUAL" ),
-        ("MANUAL_FLOW:SP", 8.0, "AUTO")])
+        ("A01:TEMP:SP", 2.0, "MANUAL" ),
+        ("A01:MANUAL_FLOW:SP", 8.0, "AUTO")])
     def test_WHEN_using_needle_valve_and_incorrect_sp_mode_WHEN_manager_mode_on_THEN_writes_disallowed(self, pv, val, mode):
         with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("FLOW_SP_MODE_SELECT:SP", mode)
+            self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", mode)
             with self.assertRaises(WriteAccessException):
                     self.ca.set_pv_value(pv, val)
     
     @parameterized.expand([
-        ("TEMP:SP", 2.0, "AUTO"),
-        ("MANUAL_FLOW:SP", 8.0, "MANUAL"),
-        ("TEMP:SP", 2.0, "MANUAL"),
-        ("MANUAL_FLOW:SP", 8.0, "AUTO")])
+        ("A01:TEMP:SP", 2.0, "AUTO"),
+        ("A01:MANUAL_FLOW:SP", 8.0, "MANUAL"),
+        ("A01:TEMP:SP", 2.0, "MANUAL"),
+        ("A01:MANUAL_FLOW:SP", 8.0, "AUTO")])
     def test_WHEN_using_needle_valve_and_any_sp_mode_WHEN_manager_mode_off_THEN_writes_disallowed(self, pv, val, mode):
         with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("FLOW_SP_MODE_SELECT:SP", mode)
+            self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", mode)
         with self.assertRaises(WriteAccessException):
             self.ca.set_pv_value(pv, val)
 

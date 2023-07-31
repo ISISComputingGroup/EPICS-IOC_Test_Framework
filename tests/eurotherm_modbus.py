@@ -57,7 +57,7 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
         for state in [0, 1]:
             self.ca.set_pv_value("A01:AUTOTUNE:SP", state)
             self.ca.assert_that_pv_is("A01:AUTOTUNE", state)
-
+            
     @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     def test_WHEN_p_set_THEN_p_updates(self, _, val):
         self.ca.assert_setting_setpoint_sets_readback(value=val, readback_pv="A01:P", timeout=15)
