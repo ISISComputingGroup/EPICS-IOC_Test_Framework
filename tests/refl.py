@@ -88,6 +88,8 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
+            "MTR0208.VMAX": INITIAL_VELOCITY,
+            "MTR0208.VELO": INITIAL_VELOCITY,
             "MTR0208.ERES": 0.001,
             "MTR0208.MRES": 0.001
         },
