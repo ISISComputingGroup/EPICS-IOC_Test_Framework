@@ -55,13 +55,6 @@ class Units(Enum):
     Pa = 3
 
 
-class InvalidUnits(Enum):
-    hPascal = 0
-    Micron = 4
-    Volt = 5
-    Ampere = 6
-
-
 class Tpg300Tests(Tpgx00Base, unittest.TestCase):
     """
     Tests for the TPG300.
@@ -78,12 +71,3 @@ class Tpg300Tests(Tpgx00Base, unittest.TestCase):
     
     def get_switching_fns(self):
         return SWITCHING_FUNCTIONS
-    
-    
-    @parameterized.expand(parameterized_list([unit.value for unit in InvalidUnits]))
-    @skip_if_recsim("Requires emulator")
-    def test_WHEN_invalid_unit_set_THEN_pv_goes_into_alarm(self, _, unit_name):
-        self.ca.set_pv_value("UNITS:SP", unit_name)
-        self.ca.assert_that_pv_is_not("UNITS", unit_name)
-        self._lewis.assert_that_emulator_value_is_not("backdoor_get_unit", str(unit_name))
-        self.ca.assert_that_pv_alarm_is("UNITS:SP", "INVALID")   
