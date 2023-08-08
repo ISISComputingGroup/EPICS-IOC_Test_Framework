@@ -22,6 +22,7 @@ IOCS = [
     },
     "emulator": "tpgx00",
     "lewis_protocol": "tpg300",
+    "pv_for_existence": "UNITS",
     },
 ]
 
