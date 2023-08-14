@@ -226,3 +226,55 @@ class KepcoTests(object):
             self.ca.set_pv_value("CURRENT:SP", 0)
             self.ca.assert_that_pv_value_is_changing("CURRENT:SP:RBV", wait=5)
             self.ca.assert_that_pv_is("RAMPON", "ON")
+
+    @parameterized.expand(parameterized_list(["Full","Quarter"]))
+    def test_GIVEN_voltage_or_current_range_WHEN_set_THEN_range_is_as_expected(self,_,range):
+        self.ca.set_pv_value("VOLTAGE:RANGE:SP", range)
+        self.ca.assert_that_pv_is("VOLTAGE:RANGE", range)
+        self.ca.set_pv_value("CURRENT:RANGE:SP", range)
+        self.ca.assert_that_pv_is("CURRENT:RANGE", range)
+
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_auto_range_WHEN_set_fixed_range_THEN_auto_range_disabled(self):
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 1)
+        self.ca.set_pv_value("VOLTAGE:RANGE:SP", "Full")
+        self.ca.assert_that_pv_is("VOLTAGE:RANGE", "Full")
+        self._lewis.assert_that_emulator_value_is("auto_voltage_range", "0")
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 1)
+        self.ca.set_pv_value("CURRENT:RANGE:SP", "Full")
+        self.ca.assert_that_pv_is("CURRENT:RANGE", "Full")
+        self._lewis.assert_that_emulator_value_is("auto_current_range", "0")
+        
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_auto_range_disabled_WHEN_set_THEN_auto_range_enabled(self):
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 0)
+        self.ca.set_pv_value("VOLTAGE:RANGE:SP", "Auto")
+        self._lewis.assert_that_emulator_value_is("auto_voltage_range", "1")
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 0)
+        self.ca.set_pv_value("CURRENT:RANGE:SP", "Auto")
+        self._lewis.assert_that_emulator_value_is("auto_current_range", "1")
+
+    @parameterized.expand(parameterized_list(["Full","Quarter"]))
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_fixed_range_macro_WHEN_start_THEN_pvs_set_correctly(self,_,range):
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 1)
+        with self._ioc.start_with_macros({ "CURRENT_RANGE": range }, "CURRENT:SP"):
+            self.ca.assert_that_pv_is("CURRENT:RANGE:SP", range)
+            self.ca.assert_that_pv_is("CURRENT:RANGE", range)
+            self._lewis.assert_that_emulator_value_is("auto_current_range", "0")
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 1)
+        with self._ioc.start_with_macros({ "VOLTAGE_RANGE": range }, "VOLTAGE:SP"):
+            self.ca.assert_that_pv_is("VOLTAGE:RANGE:SP", range)
+            self.ca.assert_that_pv_is("VOLTAGE:RANGE", range)
+            self._lewis.assert_that_emulator_value_is("auto_voltage_range", "0")
+
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_auto_range_macro_WHEN_start_THEN_pvs_set_correctly(self):
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 0)
+        with self._ioc.start_with_macros({ "VOLTAGE_RANGE": "Auto" }, "VOLTAGE:SP"):
+            self.ca.assert_that_pv_is("VOLTAGE:RANGE:SP", "Auto")
+            self._lewis.assert_that_emulator_value_is("auto_voltage_range", "1")
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 0)
+        with self._ioc.start_with_macros({ "CURRENT_RANGE": "Auto" }, "CURRENT:SP"):
+            self.ca.assert_that_pv_is("CURRENT:RANGE:SP", "Auto")
+            self._lewis.assert_that_emulator_value_is("auto_current_range", "1")
