@@ -26,6 +26,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     def setUp(self):
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
+        self.ca_no_prefix = ChannelAccess()
 
     def _setup_lewis_and_channel_access(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", "EUROTHRM_01")
