@@ -5,13 +5,14 @@ import time
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim, use_scaling
 from utils.ioc_launcher import IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
 
 SENSOR_DISCONNECTED_VALUE = 1529
 NONE_TXT_CALIBRATION_MAX_TEMPERATURE = 10000.0
 NONE_TXT_CALIBRATION_MIN_TEMPERATURE = 0.0
+SCALING = "1.0"
 
 TEST_VALUES = [-50, 0.1, 50, 3000]
 
@@ -33,6 +34,10 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _get_temperature_setter_wrapper(self):
+        pass
+
+    @abc.abstractmethod
+    def get_scaling(self):
         pass
 
     def get_prefix(self):
@@ -67,6 +72,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_value_is_unchanged(f"{sensor}:TEMP", 5)
 
     def _set_setpoint_and_current_temperature(self, temperature, sensor="A01"):
+
         if IOCRegister.uses_rec_sim:
             self.ca.set_pv_value(f"{sensor}:SIM:TEMP:SP", temperature)
             self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP", temperature)
@@ -77,23 +83,27 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP", temperature, 0.1, timeout=30)
             self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
-
+    
     #def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
-    #    expected_temperature = 10.0
+    #    #scaling = float(self.get_scaling())
+    #    #print(scaling)
+    #    expected_temperature = 10.0 
     #    self._set_setpoint_and_current_temperature(expected_temperature)
     #    self.ca.assert_that_pv_is("A01:RBV", expected_temperature)
-#
+
     #def test_GIVEN_a_sp_WHEN_sp_read_rbv_temperature_THEN_rbv_value_is_same_as_sp(self):
     #    expected_temperature = 10.0
     #    self.ca.assert_setting_setpoint_sets_readback(expected_temperature, "A01:SP:RBV", "A01:SP")
-#
+
+    
     def test_WHEN_set_ramp_rate_in_K_per_min_THEN_current_temperature_reaches_set_point_in_expected_time(self):
-        start_temperature = 5.0
+        start_temperature = 5.0 
         ramp_on = 1
         ramp_rate = 60.0
-        setpoint_temperature = 25.0
+        setpoint_temperature = 25.0 
 
         self._set_setpoint_and_current_temperature(start_temperature)
+        self.ca.assert_that_pv_is("A01:TEMP:SP", start_temperature)
 
         self.ca.set_pv_value("A01:RATE:SP", ramp_rate)
         self.ca.assert_that_pv_is_number("A01:RATE", ramp_rate, 0.1)
@@ -104,14 +114,14 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         start = time.time()
         self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", setpoint_temperature, tolerance=0.1, timeout=60)
         end = time.time()
-        self.assertAlmostEquals(end-start, 60. * (setpoint_temperature-start_temperature)/ramp_rate,
+        self.ca.assertAlmostEquals(end-start, 60. * (setpoint_temperature-start_temperature)/ramp_rate,
                                 delta=0.1*(end-start))  # Lower tolerance will be too tight given scan rate
-#
-    #def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
-    #    self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
-#
-    #    self.ca.assert_that_pv_is_number("A01:RAMPON:SP.DISP", 1)
-#
+
+    def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
+        self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
+
+        self.ca.assert_that_pv_is_number("A01:RAMPON:SP.DISP", 1)
+
     #def test_GIVEN_sensor_disconnected_WHEN_sensor_reconnected_THEN_ramp_setting_is_enabled(self):
     #    self._lewis.backdoor_set_on_device("current_temperature", SENSOR_DISCONNECTED_VALUE)
 #

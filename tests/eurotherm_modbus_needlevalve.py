@@ -17,6 +17,7 @@ ADDRESS = "A01"
 ADDR_1 = "01" # Leave this value as 1 when changing the ADDRESS value above - hard coded in LEWIS emulator
 DEVICE = "EUROTHRM_01"
 NEEDLE_VALVE = "yes"
+SCALING = "0.1"
 
 EMULATOR_DEVICE = "eurotherm"
 
@@ -39,11 +40,11 @@ IOCS = [
             "ADDR_8": "",
             "ADDR_9": "",
             "ADDR_10": "",
-            "TEMP_SCALING_1": "0.01",
+            "TEMP_SCALING_1": SCALING,
             "P_SCALING_1": "1",
             "I_SCALING_1": "1",
             "D_SCALING_1": "1",
-            "OUTPUT_SCALING_1": "0.01",
+            "OUTPUT_SCALING_1": SCALING,
         },
         "emulator": EMULATOR_DEVICE,
         "lewis_protocol": "eurotherm_modbus",
@@ -61,19 +62,25 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM]
 
 class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
+    def setUp(self):
+        super(EurothermModbusNeedleValveTests, self).setUp()
+        self._lewis.backdoor_set_on_device("scaling", 1.0 / float(SCALING))
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", "AUTO")
+
     def get_device(self):
         return DEVICE
 
     def get_emulator_device(self):
         return EMULATOR_DEVICE
     
+    def get_scaling(self):
+        return SCALING
+    
     def _get_temperature_setter_wrapper(self):
         return ManagerMode(ChannelAccess())
     
-    def setUp(self):
-        super(EurothermModbusNeedleValveTests, self).setUp()
-        with ManagerMode(ChannelAccess()):
-            self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", "AUTO")
+    
 
     # READ TESTS
     #@skip_if_recsim("Backdoor not available in recsim")
