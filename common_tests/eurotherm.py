@@ -85,8 +85,6 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
     
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
-        #scaling = float(self.get_scaling())
-        #print(scaling)
         expected_temperature = 10.0 
         self._set_setpoint_and_current_temperature(expected_temperature)
         self.ca.assert_that_pv_is("A01:RBV", expected_temperature)
