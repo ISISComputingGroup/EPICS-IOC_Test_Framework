@@ -12,6 +12,7 @@ from utils.calibration_utils import reset_calibration_file, use_calibration_file
 SENSOR_DISCONNECTED_VALUE = 1529
 NONE_TXT_CALIBRATION_MAX_TEMPERATURE = 10000.0
 NONE_TXT_CALIBRATION_MIN_TEMPERATURE = 0.0
+SCALING = "1.0"
 
 TEST_VALUES = [-50, 0.1, 50, 3000]
 
@@ -23,9 +24,29 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     """
     Tests for the Eurotherm temperature controller.
     """
+    @abc.abstractmethod
+    def get_device(self):
+        pass
+
+    @abc.abstractmethod
+    def get_emulator_device(self):
+        pass
+
+    @abc.abstractmethod
+    def _get_temperature_setter_wrapper(self):
+        pass
+
+    @abc.abstractmethod
+    def get_scaling(self):
+        pass
+
+    def get_prefix(self):
+        return "{}:A01".format(self.get_device())
+
     def setUp(self):
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
+        self.ca_no_prefix = ChannelAccess()
 
     def _setup_lewis_and_channel_access(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", "EUROTHRM_01")
@@ -51,6 +72,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_value_is_unchanged(f"{sensor}:TEMP", 5)
 
     def _set_setpoint_and_current_temperature(self, temperature, sensor="A01"):
+
         if IOCRegister.uses_rec_sim:
             self.ca.set_pv_value(f"{sensor}:SIM:TEMP:SP", temperature)
             self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP", temperature)
@@ -61,9 +83,9 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP", temperature, 0.1, timeout=30)
             self._lewis.backdoor_set_on_device("ramp_setpoint_temperature", temperature)
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
-
+    
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
-        expected_temperature = 10.0
+        expected_temperature = 10.0 
         self._set_setpoint_and_current_temperature(expected_temperature)
         self.ca.assert_that_pv_is("A01:RBV", expected_temperature)
 
@@ -71,18 +93,20 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         expected_temperature = 10.0
         self.ca.assert_setting_setpoint_sets_readback(expected_temperature, "A01:SP:RBV", "A01:SP")
 
+    
     def test_WHEN_set_ramp_rate_in_K_per_min_THEN_current_temperature_reaches_set_point_in_expected_time(self):
-        start_temperature = 5.0
+        start_temperature = 5.0 
         ramp_on = 1
         ramp_rate = 60.0
-        setpoint_temperature = 25.0
+        setpoint_temperature = 25.0 
 
         self._set_setpoint_and_current_temperature(start_temperature)
 
         self.ca.set_pv_value("A01:RATE:SP", ramp_rate)
         self.ca.assert_that_pv_is_number("A01:RATE", ramp_rate, 0.1)
         self.ca.set_pv_value("A01:RAMPON:SP", ramp_on)
-        self.ca.set_pv_value("A01:TEMP:SP", setpoint_temperature)
+        with self._get_temperature_setter_wrapper():
+            self.ca.set_pv_value("A01:TEMP:SP", setpoint_temperature)
 
         start = time.time()
         self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", setpoint_temperature, tolerance=0.1, timeout=60)
@@ -134,13 +158,15 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         tolerance = 0.2
         self.ca.set_pv_value("A01:RAMPON:SP", 0)
         reset_calibration_file(self.ca, prefix="A01:")
-        self.ca.set_pv_value("A01:TEMP:SP", temperature)
+        with self._get_temperature_setter_wrapper():
+            self.ca.set_pv_value("A01:TEMP:SP", temperature)
         self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
         with use_calibration_file(self.ca, "C006.txt", prefix="A01:"):
             self.ca.assert_that_pv_is_not_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
 
             # Act
-            self.ca.set_pv_value("A01:TEMP:SP", temperature)
+            with self._get_temperature_setter_wrapper():
+                self.ca.set_pv_value("A01:TEMP:SP", temperature)
 
             # Assert
             self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=rbv_change_timeout)
@@ -227,7 +253,8 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         with self._lewis.backdoor_simulate_disconnected_device():
             self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=30)
         # Assert alarms clear on reconnection
-        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
+        with self._get_temperature_setter_wrapper():
+            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
 
     @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")
