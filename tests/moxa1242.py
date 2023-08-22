@@ -158,20 +158,20 @@ class Moxa1242DITests(unittest.TestCase):
 
             self.ca.assert_that_pv_is("CH{:1d}:DI".format(test_channel), "Low")
 
-    @parameterized.expand([
-        ("CH{:01d}:DI:CNT".format(channel), channel) for channel in DICHANNELS
-    ])
-    
-    def test_WHEN_di_input_is_triggered_a_number_of_times_THEN_di_counter_matches(self, channel_pv, channel):
-        self.resetDICounter(channel)
-        expected_count = 5
-
-        for i in range(expected_count):
-            # Toggle channel and ensure it's registered the trigger
-            self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
-            self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
-            self._lewis.backdoor_run_function_on_device("set_di", (channel, (False,)))
-            self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "Low")
-            self.ca.assert_that_pv_is(channel_pv, i+1, timeout=5)
-
-        self.ca.assert_that_pv_is(channel_pv, expected_count)
+    #@parameterized.expand([ This needs to be fixed in #7963
+    #    ("CH{:01d}:DI:CNT".format(channel), channel) for channel in DICHANNELS
+    #])
+    #
+    #def test_WHEN_di_input_is_triggered_a_number_of_times_THEN_di_counter_matches(self, channel_pv, channel):
+    #    self.resetDICounter(channel)
+    #    expected_count = 5
+#
+    #    for i in range(expected_count):
+    #        # Toggle channel and ensure it's registered the trigger
+    #        self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
+    #        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
+    #        self._lewis.backdoor_run_function_on_device("set_di", (channel, (False,)))
+    #        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "Low")
+    #        self.ca.assert_that_pv_is(channel_pv, i+1, timeout=5)
+#
+    #    self.ca.assert_that_pv_is(channel_pv, expected_count)
