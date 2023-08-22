@@ -219,6 +219,30 @@ class EmulatorLauncher(object):
 
         return self.assert_that_emulator_value_causes_func_to_return_true(
             emulator_property, lambda val: cast(val) == expected_value, timeout=timeout, msg=message)
+    
+    def assert_that_emulator_value_is_not(self, emulator_property, value, timeout=None, message=None,
+                                      cast=lambda val: val):
+        """
+        Assert that the emulator property does not have the passed value and that it does not become the passed value 
+        within the timeout.
+
+        Args:
+            emulator_property (string): emulator property to check
+            value: value to check against. Emulator backdoor always returns a string, so the value should be a string.
+            timeout (float): if it hasn't changed within this time raise assertion error
+            message (string): Extra message to print
+            cast (callable): function which casts the returned value to an appropriate type before
+                checking equality. E.g. to cast to float pass the float class as this argument.
+        Raises:
+            AssertionError: if emulator property *is* the passed value
+            UnableToConnectToPVException: if emulator property does not exist within timeout
+        """
+
+        if message is None:
+            message = "Expected PV to *not* have value {}.".format(format_value(value))
+
+        return self.assert_that_emulator_value_causes_func_to_return_false(
+            emulator_property, lambda val: cast(val) == value, timeout=timeout, msg=message)
 
     def assert_that_emulator_value_causes_func_to_return_true(
             self, emulator_property, func, timeout=None, msg=None):
@@ -258,6 +282,44 @@ class EmulatorLauncher(object):
         if err is not None:
             raise AssertionError(err)
 
+    def assert_that_emulator_value_causes_func_to_return_false(
+            self, emulator_property, func, timeout=None, msg=None):
+        """
+        Check that an emulator property does not satisfy a given function within some timeout.
+
+        Args:
+            emulator_property (string): emulator property to check
+            func: a function that takes one argument, the emulator property value, and returns True if the value is
+                valid (i.e. *not* the value we're checking).
+            timeout: time to wait for the PV to satisfy the function
+            msg: custom message to print on failure
+        Raises:
+            AssertionError: If the function does not evaluate to false within the given timeout
+        """
+
+        def wrapper(msg):
+            value = self.backdoor_get_from_device(emulator_property)
+            try:
+                return_value = func(value)
+            except Exception as e:
+                return "Exception was thrown while evaluating function '{}' on emulator property {}. " \
+                       "Exception was: {} {}".format(func.__name__,
+                                                     format_value(value), e.__class__.__name__, e.message)
+            if return_value:
+                return "{}{}{}".format(msg, os.linesep, "Final emulator property value was {}"
+                                       .format(format_value(value)))
+            else:
+                return None
+
+        if msg is None:
+            msg = "Expected function '{}' to evaluate to False when reading emulator property '{}'." \
+                .format(func.__name__, emulator_property)
+
+        err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
+
+        if err is not None:
+            raise AssertionError(err)
+        
     def _wait_for_emulator_lambda(self, wait_for_lambda, timeout):
         """
         Wait for a lambda containing a emulator property to become None; return value or timeout and return actual value.
