@@ -23,6 +23,7 @@ from utils.emulator_launcher import LewisLauncher, NullEmulatorLauncher, MultiLe
 from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
+from utils.build_architectures import BuildArchitectures
 
 
 def clean_environment():
@@ -135,7 +136,7 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         failfast: Determines if tests abort after first failure.
         report_coverage: Report test coverage of test modules versus ioc directories.
         ask_before_running_tests: ask whether to run the tests before running them
-        tests_mode: test mode to run (default: both RECSIM and DEVSIM)
+        tests_mode: test mode to run (default: all)
 
     Returns:
         boolean: True if all tests pass and false otherwise.
@@ -154,6 +155,9 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
 
     test_results = []
 
+    arch = get_build_architecture()
+    print("Running tests for arch {}".format(arch.name))
+
     for mode in modes:
         if tests_mode is not None and mode != tests_mode:
             continue
@@ -161,6 +165,11 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
+            # Skip tests that cannot be run with a 32-bit architecture
+            if arch not in module.architectures:
+                print(f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.archname(arch)} build architecture")
+                continue
+
             clean_environment()
             device_launchers, device_directories = make_device_launchers_from_module(module.file, mode)
             tested_ioc_directories.update(device_directories)
@@ -225,6 +234,18 @@ def report_test_coverage_for_devices(tested_directories):
     for test in missing_tests:
         print(test)
 
+def get_build_architecture():
+    """
+    Utility function to get the architecture of the current build 
+
+    Returns:
+        BuildArchitectures: Architecture of the current build (e.g., "x64" or "x86")
+    """
+    host_arch = os.getenv('EPICS_HOST_ARCH', '')
+    if 'x86' in host_arch:
+        return BuildArchitectures._32BIT
+    else:
+        return BuildArchitectures._64BIT
 
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """
@@ -278,7 +299,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
     test_names = [f"tests.{test}" for test in tests_to_run]
 
-    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch)
+    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch, verbosity=3)
     test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
 
     try:
@@ -317,13 +338,16 @@ if __name__ == '__main__':
     parser.add_argument('-tp', '--tests-path', default=f"{os.path.dirname(os.path.realpath(__file__))}\\tests",
                         help="""Path to find the tests in, this must be a valid python module. 
                         Default is in the tests folder of this repo""")
+    parser.add_argument('-tf', '--tests-filter-files', default="*.py",
+                        help="""glob format expression to specify files in tests path to use. 
+                        Default is *.py""")
     parser.add_argument('-f', '--failfast', action='store_true',
                         help="""Determines if the rest of tests are skipped after the first failure""")
     parser.add_argument('-a', '--ask-before-running', action='store_true',
                         help="""Pauses after starting emulator and ioc. Allows you to use booted
                         emulator/IOC or attach debugger for tests""")
-    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM'],
-                        help="""Tests mode to run e.g. DEVSIM or RECSIM (default: both).""")
+    parser.add_argument('-tm', '--tests-mode', default=None, choices=['DEVSIM', 'RECSIM', 'NOSIM'],
+                        help="""Tests mode to run e.g. DEVSIM, RECSIM or NOSIM (default: all).""", type=str.upper)
     parser.add_argument('--test_and_emulator', default=None,
                         help="""Specify a folder that holds both the tests (in a folder called tests) and a lewis 
                         emulator (in a folder called lewis_emulators).""")
@@ -350,7 +374,7 @@ if __name__ == '__main__':
 
     if arguments.list_devices:
         print("Available tests:")
-        print('\n'.join(sorted(package_contents(arguments.tests_path))))
+        print('\n'.join(sorted(package_contents(arguments.tests_path, arguments.tests_filter_files))))
         sys.exit(0)
 
     var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
@@ -360,7 +384,7 @@ if __name__ == '__main__':
         print("Cannot run without instrument prefix, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
-    tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path)
+    tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path, arguments.tests_filter_files)
     failfast = arguments.failfast
     report_coverage = arguments.report_coverage
     ask_before_running_tests = arguments.ask_before_running
@@ -370,6 +394,8 @@ if __name__ == '__main__':
         tests_mode = TestModes.RECSIM
     if arguments.tests_mode == "DEVSIM":
         tests_mode = TestModes.DEVSIM
+    if arguments.tests_mode == "NOSIM":
+        tests_mode = TestModes.NOSIM
 
     try:
         success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)

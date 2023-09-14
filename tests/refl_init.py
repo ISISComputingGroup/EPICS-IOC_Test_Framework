@@ -7,7 +7,7 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR = "127.0.0.11"
 OUT_COMP_INIT_POS = -2.0
 IN_COMP_INIT_POS = 1.0
 DET_INIT_POS = 5.0

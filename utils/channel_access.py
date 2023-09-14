@@ -5,6 +5,7 @@ import os
 import time
 import operator
 import ctypes
+import datetime
 from contextlib import contextmanager
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
@@ -237,7 +238,8 @@ class ChannelAccess(object):
             if return_value:
                 return None
             else:
-                return "{}{}{}".format(message, os.linesep, "Final PV value was {}".format(format_value(value)))
+                return "Exception date time: {}{}{}{}{}".format(datetime.datetime.now(), os.linesep,
+                                                               message, os.linesep, "Final PV value was {}".format(format_value(value)))
 
         if message is None:
             message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
@@ -479,7 +481,7 @@ class ChannelAccess(object):
         else:
             # Last try.
             if not self.ca.pv_exists(pv, timeout=1.0):
-                raise AssertionError("PV {pv} does not exist".format(pv=pv))
+                raise AssertionError("Exception date time: {time}\nPV {pv} does not exist".format(time=datetime.datetime.now(),pv=pv))
 
     def assert_that_pv_does_not_exist(self, pv, timeout=2):
         """
@@ -599,15 +601,21 @@ class ChannelAccess(object):
             pv: the pv name. Must not be the same PV which is written to in the test.
             expected_values (list): list of the expected values
         Raises:
+            AssertionError: if the lengths of the lists of expected and monitor values are not equal
             AssertionError: if the value of the pv did not satisfy the comparator
         """
         monitor = _MonitorAssertion(self, pv)
 
         yield
 
-        for i, expected_value in enumerate(expected_values):
-            if expected_value != monitor.all_values[i]:
-                raise AssertionError("Monitor got {} but expected {}".format(monitor.all_values[i], expected_value))
+        if len(expected_values) == len(monitor.all_values):
+
+            for i, expected_value in enumerate(expected_values):
+                if expected_value != monitor.all_values[i]:
+                    raise AssertionError(f"Monitor got {monitor.all_values[i]}, but expected {expected_value}")
+        else:
+            raise AssertionError(f"List of Monitor values: {monitor.all_values}, but list of Expected values:"
+                                 f" {expected_values}")
 
     @contextmanager
     def assert_that_pv_monitor_is(self, pv, expected_value):

@@ -1,5 +1,7 @@
 import unittest
 import os
+
+from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
 
 from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
@@ -14,8 +16,8 @@ galil_settings_path = os.path.realpath(
     )
 )
 
-GALIL_ADDR1 = "127.0.0.1"
-GALIL_ADDR2 = "127.0.0.2"
+GALIL_ADDR1 = "127.0.0.11"
+GALIL_ADDR2 = "127.0.0.12"
 
 ioc_name = "FINS"
 fins_settings_path = os.path.join(EPICS_TOP, "ioc", "master", ioc_name, "exampleSettings", "SANS2D_vacuum")
@@ -54,11 +56,12 @@ AXES_TO_STOP = ["APERTURE_{}".format(i) for i in range(1, 6)] + ["GUIDE_{}".form
 
 class Sans2dAperturesGuidesTests(unittest.TestCase):
     """
-    Tests for the sans2d waveguides and apertures tank motor extensions.
+    Tests for the sans2d guides and apertures tank motor extensions.
     """
 
     def setUp(self):
         self.ca = ChannelAccess()
+
 
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_move_enabled_axis_moving_WHEN_stop_all_THEN_axis_stopped(self, axis):
@@ -77,12 +80,26 @@ class Sans2dAperturesGuidesTests(unittest.TestCase):
 
     @parameterized.expand(AXES_TO_STOP)
     def test_GIVEN_move_disabled_axis_moving_WHEN_stop_all_THEN_axis_not_stopped(self, axis):
-        # Set interlock to disabled
-        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
-        self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
+        # Set interlock to enabled
+        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 64)
+        self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CAN MOVE")
         # Execute test
         for _ in range(3):
             set_axis_moving(axis)
             assert_axis_moving(axis)
+            self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0)
+            self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
             self.ca.set_pv_value("MOT:SANS2DAPWV:STOP_MOTORS:ALL", 1)
             assert_axis_moving(axis)
+            self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 64)
+            self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CAN MOVE")
+
+    @parameterized.expand(AXES_TO_STOP)
+    def test_GIVEN_move_disabled_THEN_all_axis_motion_is_inhibited(self, axis):
+
+        self.ca.set_pv_value("FINS_VAC:SIM:ADDR:1001", 0, wait=True)
+        self.ca.assert_that_pv_is("FINS_VAC:GALIL_INTERLOCK", "CANNOT MOVE")
+        for _ in range(3):
+            self.ca.assert_that_pv_is("MOT:" + axis + ":SP.DISP", "1")
+            self.ca.assert_that_pv_is("MOT:" + axis + ":MTR.DISP", "1")
+

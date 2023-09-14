@@ -1,31 +1,18 @@
 import unittest
-
+import time
+from common_tests.oscillating_collimators import OscillatingCollimatorBase, _custom_name_func, RADIUS, ANGLE, FREQUENCY, \
+    DISCRIMINANT, GALIL_ADDR, OSC_PREFIX, MOT_PREFIX
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from parameterized import parameterized
-
 import os
-
-# IP address of device
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "128.0.0.0"
 
-PREFIX = "MOT:OSCCOL"
-
-# Commonly used PVs
-ANGLE = "ANGLE:SP"
-FREQUENCY = "FREQ:SP"
-RADIUS = "RADIUS"
-VELOCITY = "VEL:SP"
-DISTANCE = "DIST:SP"
-DISCRIMINANT = "VEL:SP:DISC:CHECK"
 # The default motor resoltuion is chosen because this is reolution used when extracting the original numbers from LabView
 DEFAULT_MOTOR_RESOLUTION = 0.00250
-
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "oscillatingCollimator"))
-
 IOCS = [
     {
         "name": "GALIL_01",
@@ -38,16 +25,12 @@ IOCS = [
         },
     },
 ]
-
 TEST_MODES = [TestModes.DEVSIM]
 
 
-class OscillatingCollimatorTests(unittest.TestCase):
+class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
     """
     Tests for the LET Oscillating collimator.
-
-    The CA.Client.Exceptions these tests generate are expected because of a workaround we had to make in the DB
-    file to prevent a hang in the case of using asynFloat64 for the SP types. Issue described in ticket #2736
     """
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
@@ -55,14 +38,13 @@ class OscillatingCollimatorTests(unittest.TestCase):
         ca_mot.assert_that_pv_exists("MOT:MTR0103", timeout=30)
         ca_mot.assert_setting_setpoint_sets_readback(DEFAULT_MOTOR_RESOLUTION,
                                                      set_point_pv="MOT:MTR0103.MRES", readback_pv="MOT:MTR0103.MRES", )
-        self.ca = ChannelAccess(device_prefix=PREFIX)
+        self.ca = ChannelAccess(device_prefix=OSC_PREFIX, default_wait_time=0)
+        self.ca_mot = ChannelAccess(device_prefix=MOT_PREFIX, default_wait_time=0)
         self.ca.assert_that_pv_exists("VEL:SP", timeout=30)
 
-    def _custom_name_func(testcase_func, param_num, param):
-        return "{}_ang_{}_freq_{}_rad_{}".format(
-            testcase_func.__name__,
-            *param.args[0]
-            )
+        # Set to 0 so stability buffer contents are consistent & known for each test
+        # Takes 10 seconds for buffer to have consistent contents, so to be certain sleep for 11
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 0, sleep_after_set=11)
 
     @parameterized.expand(
         # [(angle, frequency, radius), (expected distance, expected velocity)
@@ -97,26 +79,6 @@ class OscillatingCollimatorTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("DIST:SP", expected_values[0], tolerance)
         self.ca.assert_that_pv_is_number("VEL:SP", expected_values[1], tolerance)
 
-    def test_WHEN_angle_set_negative_THEN_angle_is_zero(self):
-        self.ca.set_pv_value(ANGLE, -1.0)
-        self.ca.assert_that_pv_is_number(ANGLE, 0.0)
-
-    def test_WHEN_angle_set_greater_than_two_THEN_angle_is_two(self):
-        self.ca.set_pv_value(ANGLE, 5.0)
-        self.ca.assert_that_pv_is_number(ANGLE, 2.0)
-
-    def test_WHEN_frequency_set_negative_THEN_angle_is_zero(self):
-        self.ca.set_pv_value(FREQUENCY, -1.0)
-        self.ca.assert_that_pv_is_number(FREQUENCY, 0.0)
-
-    def test_WHEN_angle_set_greater_than_half_THEN_angle_is_half(self):
-        self.ca.set_pv_value(FREQUENCY, 1.0)
-        self.ca.assert_that_pv_is_number(FREQUENCY, 0.5)
-
-    def test_WHEN_frq_set_greater_than_two_THEN_angle_is_two(self):
-        self.ca.set_pv_value(ANGLE, 5.0)
-        self.ca.assert_that_pv_is_number(ANGLE, 2.0)
-
     def test_WHEN_input_values_cause_discriminant_to_be_negative_THEN_discriminant_pv_is_one(self):
 
         # Act
@@ -128,18 +90,32 @@ class OscillatingCollimatorTests(unittest.TestCase):
         # Assert
         self.ca.assert_that_pv_is_number(DISCRIMINANT, 1.0)
 
-    def test_WHEN_input_values_cause_discriminant_to_be_positive_THEN_discriminant_pv_is_zero(self):
-
+    def test_WHEN_laser_unstable_THEN_collimator_is_reported_moving(self):
         # Act
-        # in normal operations the radius is not dynamic so set it first so it is considered in future calcs
-        self.ca.set_pv_value(RADIUS, 1.0)
-        self.ca.set_pv_value(ANGLE, 2.0)
-        self.ca.set_pv_value(FREQUENCY, 0.5)
+        # Check that PV was stopped, then starts moving after laser change 
+        self.ca.assert_that_pv_is("MOVING", "Not Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+        # Give laser new value 
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 1)
 
         # Assert
-        self.ca.assert_that_pv_is_number(DISCRIMINANT, 0.0)
+        # Check PV is now moving 
+        # Buffer contents stay consistent for 10 seconds; check for 5 to avoid race conditions
+        self.ca.assert_that_pv_is("MOVING", "Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+        
 
-    def test_WHEN_collimator_running_THEN_thread_is_not_on_reserved_thread(self):
-        # Threads 0 and 1 are reserved for homing under IBEX
-        self.ca.assert_that_pv_is_not("THREAD", "0")
-        self.ca.assert_that_pv_is_not("THREAD", "1")
+    def test_WHEN_laser_stable_THEN_collimator_is_reported_not_moving(self):
+        # Act
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 1)
+
+        # Assert
+        # Check that PV was moving after laser change, then stops moving after buffer clears
+        # Takes 10 seconds for buffer to have consistent contents; check for 5 to avoid race conditions
+        self.ca.assert_that_pv_is("MOVING", "Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+        time.sleep(5)
+        # Check PV is now stopped (and stays stopped)
+        self.ca.assert_that_pv_is("MOVING", "Not Moving", timeout=30)
+        self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
+

@@ -8,10 +8,9 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, ProcServLauncher
 from utils.test_modes import TestModes
-from utils.testing import parameterized_list, ManagerMode, unstable_test
+from utils.testing import parameterized_list
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-
 ioc_number = 1
 DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
 
@@ -75,7 +74,9 @@ SETTING_PVS = [("CORRELATIONTYPE", "CROSS"),
                ("SAMPLE_TEMP", 298),
                ("SOLVENT_VISCOSITY", 1),
                ("SOLVENT_REFRACTIVE_INDEX", 1.33),
-               ("LASER_WAVELENGTH", 642)]
+               ("LASER_WAVELENGTH", 642),
+               ("WAIT", 1000),
+               ("MIN_TIME_LAG", 50)]
 
 
 class LSITests(unittest.TestCase):
@@ -85,7 +86,9 @@ class LSITests(unittest.TestCase):
 
     def setUp(self):
         self._ioc = IOCRegister.get_running("LSI")
-        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
+        self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
+        self.ca.set_pv_value('WAIT', 0)
+        self.ca.assert_that_pv_is("TAKING_DATA", "NO", timeout=10)        
 
     def test_GIVEN_setting_pv_WHEN_pv_written_to_THEN_new_value_read_back(self):
         pv_name = "MEASUREMENTDURATION"
@@ -157,7 +160,7 @@ class LSITests(unittest.TestCase):
     @parameterized.expand(parameterized_list(SETTING_PVS))
     def test_GIVEN_pv_name_THEN_setpoint_exists_for_that_pv(self, _, pv, value):
         self.ca.assert_setting_setpoint_sets_readback(value, pv)
-    
+
     @parameterized.expand(parameterized_list(PV_NAMES))
     def test_GIVEN_pv_name_THEN_val_field_exists_for_that_pv(self, _, pv):
         self.ca.assert_that_pv_is("{pv}.VAL".format(pv=pv), self.ca.get_pv_value(pv))
@@ -171,20 +174,74 @@ class LSITests(unittest.TestCase):
         "LAGS"
     ]))
     def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_correlation_and_lags_populated(self, _, pv):
-        self.ca.assert_that_pv_is("RUNNING", "NO", timeout=10)
-
+        self.ca.assert_setting_setpoint_sets_readback(0, "MIN_TIME_LAG")
+        self.ca.assert_that_pv_is("TAKING_DATA", "NO", timeout=10)
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
-
         array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
-
         test_data = np.linspace(0, array_size, array_size)
-
         self.ca.assert_that_pv_value_causes_func_to_return_true(pv, lambda pv_value: np.allclose(pv_value, test_data))
+
+    @parameterized.expand (parameterized_list([
+        "CORRELATION_FUNCTION",
+        "LAGS"
+    ]))
+    def test_GIVEN_start_pressed_WHEN_measurement_is_possible_THEN_lags_data_below_min_time_lag_calculated(self, _, pv):
+        # Arrange
+        pv_name = 'MIN_TIME_LAG'
+        min_time_lag = 50
+        self.ca.assert_setting_setpoint_sets_readback(min_time_lag, pv_name)
+        self.ca.assert_that_pv_is("TAKING_DATA", "NO", timeout=10)
+        # Act
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+        # Assert
+        array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
+        test_data = np.linspace(0, array_size, array_size)
+        # Scale minimum time lag from nanoseconds to seconds before comparison with test data
+        min_time_lag_seconds = min_time_lag/1e9
+        test_data = np.delete(test_data, np.argwhere(test_data < min_time_lag_seconds))
+        test_data.resize(array_size)
+
+        self.ca.assert_that_pv_value_causes_func_to_return_true(
+            pv, lambda pv_value: np.allclose(pv_value, test_data),
+            message=f"PV {pv} data not all close to test data.\n Test data: {test_data}"
+        )
 
     def test_GIVEN_start_pressed_WHEN_measurement_already_on_THEN_error_raised(self):
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
 
         error_message = "LSI --- Cannot configure: Measurement active"
-
         self.ca.assert_that_pv_is("ERRORMSG", error_message)
+    
+    def test_GIVEN_wait_at_start_AND_wait_set_WHEN_start_run_THEN_waits_happen(self):
+        # Arrange
+        self.ca.set_pv_value("WAIT_AT_START", "YES")
+        repetitions = 3
+        self.ca.set_pv_value("REPETITIONS", repetitions)
+        self.ca.set_pv_value("WAIT", 2)
+        # Act
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+        # Assert
+        for _ in range(repetitions):
+            self.ca.assert_that_pv_is("WAITING", "YES")
+            self.ca.assert_that_pv_is("WAITING", "NO")
+            self.ca.assert_that_pv_is("RUNNING", "YES")
+            self.ca.assert_that_pv_is("RUNNING", "NO")
+    
+    def test_GIVEN_wait_set_WHEN_start_run_THEN_waits_happen(self):
+        # Arrange
+        self.ca.set_pv_value("WAIT_AT_START", False)
+        repetitions = 3
+        self.ca.set_pv_value("REPETITIONS", repetitions)
+        self.ca.set_pv_value("WAIT", 2)
+        # Act
+        self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
+        # Assert
+        for _ in range(repetitions - 1):
+            self.ca.assert_that_pv_is("RUNNING", "YES")
+            self.ca.assert_that_pv_is("RUNNING", "NO")
+            self.ca.assert_that_pv_is("WAITING", "YES")
+            self.ca.assert_that_pv_is("WAITING", "NO")
+        self.ca.assert_that_pv_is("RUNNING", "YES")
+        self.ca.assert_that_pv_is("RUNNING", "NO")
+            

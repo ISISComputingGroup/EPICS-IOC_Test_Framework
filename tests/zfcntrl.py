@@ -140,6 +140,7 @@ class Statuses(object):
     PSU_ON_LIMITS = ("Power supply on limits", ChannelAccess.Alarms.MAJOR)
     PSU_WRITE_FAILED = ("Power supply write failed", ChannelAccess.Alarms.INVALID)
     INVALID_PSU_LIMITS = ("PSU high limit<low limit", ChannelAccess.Alarms.MAJOR)
+    PSU_SP_RBV_OUT_OF_LIMITS = ("PSU sp_rbv out of range", ChannelAccess.Alarms.MAJOR)
 
 
 class AtSetpointStatuses(object):
@@ -188,6 +189,10 @@ class ZeroFieldTests(unittest.TestCase):
               the required currents
             wait_for_update (bool): whether to wait for the readback and setpoint readbacks to update
         """
+        self.x_psu_ca.set_pv_value("SIM:CURRENT:SP:RBV", 0)
+        self.y_psu_ca.set_pv_value("SIM:CURRENT:SP:RBV", 0)
+        self.z_psu_ca.set_pv_value("SIM:CURRENT:SP:RBV", 0)
+
         for axis in FIELD_AXES:
             self.zfcntrl_ca.set_pv_value("OUTPUT:{}:CURR:SP".format(axis), currents[axis], sleep_after_set=0)
 
@@ -407,6 +412,7 @@ class ZeroFieldTests(unittest.TestCase):
 
         self._set_simulated_measured_fields(ZERO_FIELD, overload=False)
         self._set_user_setpoints(ZERO_FIELD)
+
         self._set_simulated_power_supply_currents(ZERO_FIELD, wait_for_update=True)
         self._set_scaling_factors(1, 1, 1, 1)
         self._set_output_limits(
@@ -530,6 +536,40 @@ class ZeroFieldTests(unittest.TestCase):
 
         # Now simulate recovery and assert error gets cleared correctly
         self._assert_status(Statuses.NO_ERROR)
+    
+    @parameterized.expand(parameterized_list([
+        (FIELD_AXES[0], 10),
+        (FIELD_AXES[0], -10),
+        (FIELD_AXES[1], 10),
+        (FIELD_AXES[1], -10),
+        (FIELD_AXES[2], 10),
+        (FIELD_AXES[2], -10)
+    ]))
+    def test_WHEN_psu_sp_rbv_is_out_of_range_THEN_status_is_psu_sp_rbv_out_of_range(self, _, axis, rbv_output):
+        ca_object = axis
+        fields = {"X": 1, "Y": 1, "Z": 1}
+        
+        self._set_autofeedback(False)
+        self._set_user_setpoints(fields)
+
+        self._set_output_limits(
+            lower_limits={k: -3 for k in FIELD_AXES},
+            upper_limits={k: 3 for k in FIELD_AXES}
+        )
+
+        if ca_object == "X":
+            ca_object = self.x_psu_ca
+        elif ca_object == "Y":
+            ca_object = self.y_psu_ca
+        elif ca_object == "Z":
+            ca_object = self.z_psu_ca
+
+        ca_object.set_pv_value("SIM:CURRENT:SP:RBV", rbv_output)
+        string_pv_assert = "OUTPUT:"+axis+":CURR:SP:RBV"
+        self.zfcntrl_ca.assert_that_pv_is(string_pv_assert, rbv_output)
+        self._set_autofeedback(True)
+        self._assert_status(Statuses.PSU_SP_RBV_OUT_OF_LIMITS)
+
 
     def test_GIVEN_measured_field_and_setpoints_are_identical_THEN_setpoints_remain_unchanged(self):
         fields = {"X": 5, "Y": 10, "Z": -5}

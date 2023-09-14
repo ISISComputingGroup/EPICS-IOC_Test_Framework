@@ -304,9 +304,13 @@ class Jsco4180Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", expected_value)
 
     def test_GIVEN_device_not_connected_WHEN_get_error_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device('connected', False)
+        self.ca.assert_that_pv_alarm_is('ERROR', ChannelAccess.Alarms.NONE, timeout=30)
 
-        self.ca.assert_that_pv_alarm_is('ERROR:SP', ChannelAccess.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is('ERROR', ChannelAccess.Alarms.INVALID, timeout=30)
+            
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is('ERROR', ChannelAccess.Alarms.NONE, timeout=30)
 
     def test_GIVEN_timed_pump_WHEN_get_program_runtime_THEN_program_runtime_increments(self):
         self.ca.set_pv_value("TIME:RUN:SP", 10000)

@@ -3,7 +3,6 @@ import time
 from utils.channel_access import ChannelAccess
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-from distutils.util import strtobool
 from parameterized import parameterized
 from utils.calibration_utils import use_calibration_file, reset_calibration_file
 
@@ -131,13 +130,20 @@ class KepcoTests(object):
         self.ca.process_pv("IDN")
         self.ca.assert_that_pv_is("IDN", expected_idn)
 
+    @parameterized.expand([
+        ("output_mode", "OUTPUTMODE"),
+        ("current", "CURRENT"),
+        ("voltage", "VOLTAGE")
+    ])
     @skip_if_recsim("In rec sim you can not diconnect the device")
-    def test_GIVEN_diconnected_WHEN_read_THEN_alarms_on_readbacks(self):
-        self._lewis.backdoor_set_on_device("connected", False)
+    def test_GIVEN_diconnected_WHEN_read_THEN_invalid_alarm(self, _, pv):
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
-        self.ca.assert_that_pv_alarm_is("OUTPUTMODE", self.ca.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is("CURRENT", self.ca.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is("VOLTAGE", self.ca.Alarms.INVALID)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
+
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
     def _test_ramp_to_target(self, start_current, target_current, ramp_rate, step_number, wait_between_changes):
         self._write_current(start_current)
@@ -204,6 +210,71 @@ class KepcoTests(object):
         time.sleep(5)
         self._lewis.assert_that_emulator_value_is("current_set_count", '1')
 
+    def test_GIVEN_auto_ramp_macro_WHEN_relevant_pv_set_THEN_ramping_set_correctly(self):
+        self.ca.set_pv_value("CURRENT:SP", 50)
+        self.ca.assert_that_pv_is("RAMPON", "OFF")
 
+        with self._ioc.start_with_macros({ "AUTO_RAMP": "ON" }, "CURRENT:SP"):
+            self.ca.set_pv_value("CURRENT:SP", 100)
+            self.ca.assert_that_pv_value_is_changing("CURRENT:SP:RBV", wait=5)
+            self.ca.assert_that_pv_is("RAMPON", "ON")
 
+            self.ca.set_pv_value("RAMPON:SP", "OFF")
+            self.ca.assert_that_pv_value_is_unchanged("CURRENT:SP:RBV", wait=5)
+            self.ca.assert_that_pv_is("RAMPON", "OFF")
 
+            self.ca.set_pv_value("CURRENT:SP", 0)
+            self.ca.assert_that_pv_value_is_changing("CURRENT:SP:RBV", wait=5)
+            self.ca.assert_that_pv_is("RAMPON", "ON")
+
+    @parameterized.expand(parameterized_list(["Full","Quarter"]))
+    def test_GIVEN_voltage_or_current_range_WHEN_set_THEN_range_is_as_expected(self,_,range):
+        self.ca.set_pv_value("VOLTAGE:RANGE:SP", range)
+        self.ca.assert_that_pv_is("VOLTAGE:RANGE", range)
+        self.ca.set_pv_value("CURRENT:RANGE:SP", range)
+        self.ca.assert_that_pv_is("CURRENT:RANGE", range)
+
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_auto_range_WHEN_set_fixed_range_THEN_auto_range_disabled(self):
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 1)
+        self.ca.set_pv_value("VOLTAGE:RANGE:SP", "Full")
+        self.ca.assert_that_pv_is("VOLTAGE:RANGE", "Full")
+        self._lewis.assert_that_emulator_value_is("auto_voltage_range", "0")
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 1)
+        self.ca.set_pv_value("CURRENT:RANGE:SP", "Full")
+        self.ca.assert_that_pv_is("CURRENT:RANGE", "Full")
+        self._lewis.assert_that_emulator_value_is("auto_current_range", "0")
+        
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_auto_range_disabled_WHEN_set_THEN_auto_range_enabled(self):
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 0)
+        self.ca.set_pv_value("VOLTAGE:RANGE:SP", "Auto")
+        self._lewis.assert_that_emulator_value_is("auto_voltage_range", "1")
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 0)
+        self.ca.set_pv_value("CURRENT:RANGE:SP", "Auto")
+        self._lewis.assert_that_emulator_value_is("auto_current_range", "1")
+
+    @parameterized.expand(parameterized_list(["Full","Quarter"]))
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_fixed_range_macro_WHEN_start_THEN_pvs_set_correctly(self,_,range):
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 1)
+        with self._ioc.start_with_macros({ "CURRENT_RANGE": range }, "CURRENT:SP"):
+            self.ca.assert_that_pv_is("CURRENT:RANGE:SP", range)
+            self.ca.assert_that_pv_is("CURRENT:RANGE", range)
+            self._lewis.assert_that_emulator_value_is("auto_current_range", "0")
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 1)
+        with self._ioc.start_with_macros({ "VOLTAGE_RANGE": range }, "VOLTAGE:SP"):
+            self.ca.assert_that_pv_is("VOLTAGE:RANGE:SP", range)
+            self.ca.assert_that_pv_is("VOLTAGE:RANGE", range)
+            self._lewis.assert_that_emulator_value_is("auto_voltage_range", "0")
+
+    @skip_if_recsim("auto range needs emulator")
+    def test_GIVEN_auto_range_macro_WHEN_start_THEN_pvs_set_correctly(self):
+        self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 0)
+        with self._ioc.start_with_macros({ "VOLTAGE_RANGE": "Auto" }, "VOLTAGE:SP"):
+            self.ca.assert_that_pv_is("VOLTAGE:RANGE:SP", "Auto")
+            self._lewis.assert_that_emulator_value_is("auto_voltage_range", "1")
+        self._lewis.backdoor_set_and_assert_set("auto_current_range", 0)
+        with self._ioc.start_with_macros({ "CURRENT_RANGE": "Auto" }, "CURRENT:SP"):
+            self.ca.assert_that_pv_is("CURRENT:RANGE:SP", "Auto")
+            self._lewis.assert_that_emulator_value_is("auto_current_range", "1")

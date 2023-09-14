@@ -1,6 +1,7 @@
+import time
 from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc
+from utils.testing import skip_if_recsim, skip_if_devsim, get_running_lewis_and_ioc, parameterized_list
 from utils.ioc_launcher import IOCRegister, MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT
 from parameterized import parameterized
 
@@ -32,11 +33,16 @@ class DanfysikBase(object):
 
         self._lewis.backdoor_run_function_on_device("reinitialise")
         self._lewis.backdoor_set_on_device("comms_initialized", True)
+        self._lewis.backdoor_set_on_device("connected", True)
 
         # Used for daisy chained Danfysiks, default is a single Danfysik so we don't need an id
         self.id_prefixes = [""]
 
         self.current_readback_factor = 1
+        self.ca.set_pv_value("VOLT.HIGH", TEST_VOLTAGES[-1])
+        self.ca.set_pv_value("VOLT.LOW", -1)
+        self.ca.set_pv_value("CURR.HIGH", TEST_CURRENTS[-1])
+        self.ca.set_pv_value("CURR.LOW", -1)
 
         self.set_autoonoff(False)
 
@@ -58,34 +64,34 @@ class DanfysikBase(object):
 
 
 class DanfysikCommon(DanfysikBase):
-    def disconnect_device(self):
-        """Helper method to put the device in a disconnected state, overloaded by child classes"""
-        self._lewis.backdoor_set_on_device('comms_initialized', False)
-        self._lewis.backdoor_set_on_device('device_available', False)
+    """
+    Common classes for danfysik tests.
+    """
 
     def set_voltage(self, voltage):
-        """Sets the voltage of the device, overloaded by child classes"""
+        """
+        Sets the voltage of the device, overloaded by child classes
+        """
         self._lewis.backdoor_set_on_device("voltage", voltage)
 
-    def _pv_alarms_when_disconnected(self, pv):
-        """Helper method to check PVs alarm when device is disconnected."""
-        for id_prefix in self.id_prefixes:
-            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID)
-        self.disconnect_device()
-        for id_prefix in self.id_prefixes:
-            self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=10)
-
     def _deactivate_interlocks(self):
-        # Most danfysiks have interlocks deactivated on startup anyway
+        """
+        Most danfysiks have interlocks deactivated on startup anyway
+        """
         pass
 
+    @parameterized.expand(parameterized_list(["VOLT", "CURR"]))
     @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_voltage_pv_checked_THEN_pv_in_alarm(self):
-        self._pv_alarms_when_disconnected("VOLT")
+    def test_GIVEN_device_not_connected_WHEN_pv_checked_THEN_pv_in_alarm(self, _, pv):
+        for id_prefix in self.id_prefixes:
+            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
 
-    @skip_if_recsim("Can not test disconnection in rec sim")
-    def test_GIVEN_device_not_connected_WHEN_current_pv_checked_THEN_pv_in_alarm(self):
-        self._pv_alarms_when_disconnected("CURR")
+        with self._lewis.backdoor_simulate_disconnected_device():
+            for id_prefix in self.id_prefixes:
+                self.ca.assert_that_pv_alarm_is("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
+
+        for id_prefix in self.id_prefixes:
+            self.ca.assert_that_pv_alarm_is_not("{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30)
 
     def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
         for id_prefix in self.id_prefixes:
@@ -232,14 +238,23 @@ class DanfysikCommon(DanfysikBase):
     ])
     @skip_if_recsim("In rec sim this test fails as there is nothing holding the device state")
     def test_WHEN_IOC_is_restarted_THEN_current_and_powered_are_not_changed(self, _, power_state, current):
+        self.set_autoonoff(False)
         self.ca.set_pv_value("POWER:SP", int(power_state))
         self.ca.assert_that_pv_is("POWER", "On" if power_state else "Off")
         self.ca.set_pv_value("CURR:SP", current)
         self.ca.assert_that_pv_is("CURR", current)
+        
+        # check emulator is in correct state before ioc restart
+        self.assertEqual(str(float(current)), self._lewis.backdoor_get_from_device("absolute_current"))
+        self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))
+        
+        # currently using 30 second autosave for autoonoff etc. adding this wait makes sure we have autosaved
+        # the above autoonoff setting as this gets modified in other tests and we may potentially pick up their autosaved
+        # value instead. If this wait fixes things, we need to look at the logic more for a better fix
+        time.sleep(35)
 
-        self._ioc.start_ioc()
+        self._ioc.start_ioc(True)
 
-        self._ioc.log_file_manager.wait_for_console(MAX_TIME_TO_WAIT_FOR_IOC_TO_START, DEFAULT_IOC_START_TEXT)
         self.ca.assert_that_pv_exists("DISABLE", 60)
 
         self.ca.assert_that_pv_is("CURR", current)
@@ -247,3 +262,41 @@ class DanfysikCommon(DanfysikBase):
 
         self.assertEqual(str(float(current)), self._lewis.backdoor_get_from_device("absolute_current"))
         self.assertEqual(str(power_state), self._lewis.backdoor_get_from_device("power"))
+
+    @parameterized.expand([
+        ("_within_limits", TEST_CURRENTS[1], TEST_CURRENTS[0],  0, "No"),
+        ("_outside_limits", TEST_CURRENTS[0], TEST_CURRENTS[1],  2, "CURR LIMIT"),
+    ])
+    @skip_if_recsim("Cannot catch errors in RECSIM")
+    def test_WHEN_current_set_AND_limits_set_THEN_limit_correct(self, _, limit, setpoint, summary, limit_enum):
+        self.ca.set_pv_value(f"CURR.HIGH", limit)
+        self.ca.set_pv_value(f"CURR.LOW", 0)
+        self.ca.set_pv_value(f"CURR:SP", setpoint)
+        self.ca.assert_that_pv_is_number(f"CURR", setpoint, tolerance=0.5)
+        self.ca.assert_that_pv_is("LIMIT", summary)
+        self.ca.assert_that_pv_is("LIMIT:ENUM", limit_enum)
+        
+    @parameterized.expand([
+        ("_within_limits", TEST_VOLTAGES[1], TEST_VOLTAGES[0], 0, "No"),
+        ("_outside_limits", TEST_VOLTAGES[0], TEST_VOLTAGES[1], 1, "VOLT LIMIT"),
+    ])
+    @skip_if_recsim("Cannot catch errors in RECSIM")
+    def test_WHEN_voltage_set_AND_limits_set_THEN_limit_correct(self, _, limit, setpoint, summary, limit_enum):
+        self.ca.set_pv_value("VOLT.HIGH", limit)
+        self.ca.set_pv_value("VOLT.LOW", -1)
+        self.set_voltage(setpoint)
+        self.ca.assert_that_pv_is_number("VOLT", setpoint, tolerance=0.5)
+        self.ca.assert_that_pv_is("LIMIT", summary)
+        self.ca.assert_that_pv_is("LIMIT:ENUM", limit_enum)
+    
+    @skip_if_recsim("Cannot catch errors in RECSIM")
+    def test_WHEN_both_outside_limits_THEN_both_limit(self):
+        self.ca.set_pv_value("CURR.HIGH", TEST_CURRENTS[0])
+        self.ca.set_pv_value("CURR.LOW", 0)
+        self.ca.set_pv_value("VOLT.HIGH", TEST_VOLTAGES[0])
+        self.ca.set_pv_value("VOLT.LOW", 0)
+        self.ca.set_pv_value("CURR:SP", TEST_CURRENTS[1])
+        self.set_voltage(TEST_VOLTAGES[1])
+        self.ca.assert_that_pv_is("LIMIT", 3)
+        self.ca.assert_that_pv_is("LIMIT:ENUM", "BOTH LIMITS")
+

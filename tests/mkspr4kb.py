@@ -151,6 +151,7 @@ class MKS_PR4000B_Tests(unittest.TestCase):
 
         # Units should also be copied to value's EGU field
         self.ca.assert_that_pv_is("{}:VAL.EGU".format(chan), units)
+        self.ca.assert_that_pv_is("{}:VAL:SP.EGU".format(chan), units)
         self.ca.assert_that_pv_is("{}:VAL:SP:RBV.EGU".format(chan), units)
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))

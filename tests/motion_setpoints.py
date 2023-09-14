@@ -8,7 +8,7 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
 
-GALIL_ADDR = "127.0.0.1"
+GALIL_ADDR = "127.0.0.11"
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motionSetPoints", "master", "settings"))
@@ -39,11 +39,19 @@ DEVICE_PREFIX_DP = "LKUPDP"
 
 MOTOR_PREFIX = "MOT"
 
+## where "Dup" is added to a position name, this is to create a
+## new position with coordinates that is a duplicate of an existing position
+## and thus check this is handled correctly during testing
+
+## data below must match test data defined in files in `test_path`  
+
 POSITION_IN = "In"
 POSITION_OUT = "Out"
 MOTOR_POSITION_IN = 3
 MOTOR_POSITION_OUT = 1
 POSITIONS_1D = [(POSITION_IN, MOTOR_POSITION_IN),
+                (POSITION_IN+"Dup", MOTOR_POSITION_IN),
+                (POSITION_OUT+"Dup", MOTOR_POSITION_OUT),
                 (POSITION_OUT, MOTOR_POSITION_OUT)]
 
 POSITION_SAMPLE1 = "Sample1"
@@ -54,13 +62,17 @@ MOTOR_POSITION_SAMPLE2_COORD0 = 1
 MOTOR_POSITION_SAMPLE2_COORD1 = 0
 POSITIONS_2D = [
     (POSITION_SAMPLE1, MOTOR_POSITION_SAMPLE1_COORD0, MOTOR_POSITION_SAMPLE1_COORD1),
+    (POSITION_SAMPLE2+"Dup1", MOTOR_POSITION_SAMPLE2_COORD0, MOTOR_POSITION_SAMPLE2_COORD1),
     (POSITION_SAMPLE2, MOTOR_POSITION_SAMPLE2_COORD0, MOTOR_POSITION_SAMPLE2_COORD1),
+    (POSITION_SAMPLE2+"Dup2", MOTOR_POSITION_SAMPLE2_COORD0, MOTOR_POSITION_SAMPLE2_COORD1),
     ("Sample3", 0, -4),
     ("Sample4", 1, -4)
 ]
 
 POSITIONS_10D = [("Sample1", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-                 ("Sample2", 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)]
+                 ("Sample2", 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+                 ("Sample2Dup1", 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+                 ("Sample3", 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)]
 POSITION_TABLES = {1: POSITIONS_1D, 2: POSITIONS_2D, 10: POSITIONS_10D}
 
 
@@ -89,9 +101,8 @@ def modify_file_and_assert_test(channel_access, lookup_file, old_text, new_text,
     try:
         channel_access.set_pv_value("RESET", 1)
         test()
-
     finally:
-        with open(lookup_file, "r+") as f:
+        with open(lookup_file, "w") as f:
             f.write(original_lookup_text)
 
 
@@ -194,7 +205,13 @@ class MotionSetpointsTests(unittest.TestCase):
     )
     def test_GIVEN_XD_WHEN_move_to_out_position_THEN_in_position_light_goes_off_then_on(self, _, axis_num):
         first_position = POSITION_TABLES[axis_num][0][0]
-        second_position = POSITION_TABLES[axis_num][1][0]
+        # make sure second position is not a duplicate position of first
+        if POSITION_TABLES[axis_num][0][1] != POSITION_TABLES[axis_num][1][1]:
+            second_index = 1
+        else:
+            second_index = 2
+        second_position = POSITION_TABLES[axis_num][second_index][0]
+
         channel_access = self.channel_access_instances[axis_num]
         channel_access.set_pv_value("POSN:SP", first_position)
         channel_access.assert_that_pv_is("POSN", first_position)
@@ -205,14 +222,14 @@ class MotionSetpointsTests(unittest.TestCase):
         channel_access.assert_that_pv_is("STATIONARY".format(axis), 0)
         channel_access.assert_that_pv_is("POSITIONED", 0)
         channel_access.assert_that_pv_is("INPOS0", 0)
-        channel_access.assert_that_pv_is("INPOS1", 0)
+        channel_access.assert_that_pv_is(f"INPOS{second_index}", 0)
 
         channel_access.assert_that_pv_is("POSITIONED", 1, timeout=10)
         for axis in range(axis_num):
             channel_access.assert_that_pv_is("STATIONARY{}".format(axis), 1)
         channel_access.assert_that_pv_is("STATIONARY".format(axis), 1)
         channel_access.assert_that_pv_is("INPOS0", 0)
-        channel_access.assert_that_pv_is("INPOS1", 1)
+        channel_access.assert_that_pv_is(f"INPOS{second_index}", 1)
 
     @parameterized.expand(
         parameterized_list([1, 2, 10])
@@ -245,7 +262,7 @@ class MotionSetpointsTests(unittest.TestCase):
         channel_access.assert_that_pv_is("INPOS1", 0)
 
     def test_GIVEN_1D_WHEN_set_large_offset_THEN_current_position_set_correctly(self):
-        offset = POSITIONS_1D[1][1] - POSITIONS_1D[0][1]
+        offset = POSITIONS_1D[2][1] - POSITIONS_1D[0][1]
         self.ca1D.set_pv_value("COORD0:OFFSET:SP", -offset)
 
         self.ca1D.set_pv_value("POSN:SP", POSITION_OUT)
@@ -261,7 +278,7 @@ class MotionSetpointsTests(unittest.TestCase):
         axis_num = 1
         channel_access = self.channel_access_instances[axis_num]
         position_table = POSITION_TABLES[axis_num]
-        offset_coords = [position_table[0][coord+1] - position_table[1][coord+1] for coord in range(axis_num)]
+        offset_coords = [position_table[0][coord+1] - position_table[2][coord+1] for coord in range(axis_num)]
 
         for axis in range(axis_num):
             channel_access.set_pv_value("COORD{}:OFFSET:SP".format(axis), -offset_coords[axis])
@@ -273,9 +290,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
     def test_GIVEN_file_WHEN_duplicate_name_value_THEN_load_no_positions(self):
         self.caDN.assert_that_pv_is("POSN:NUM", 0)
-
-    def test_GIVEN_file_WHEN_duplicate_position_value_THEN_load_no_positions(self):
-        self.caDP.assert_that_pv_is("POSN:NUM", 0)
+        self.caDN.assert_that_pv_is("ERRORMSG", "Duplicate name: \"Sample1\".")   
 
     @parameterized.expand(
         parameterized_list([1, 2, 10])
@@ -301,7 +316,7 @@ class MotionSetpointsTests(unittest.TestCase):
         for axis in range(axis_num):
             motor_pv = get_motor_pv_from_axis_num(axis)
             self.motor_ca.set_pv_value(motor_pv, position_to_test[axis+1] - 0.2)
-            self.motor_ca.assert_that_pv_is(motor_pv + ".RBV", position_to_test[axis+1] - 0.2)
+            self.motor_ca.assert_that_pv_is_number(motor_pv + ".RBV", position_to_test[axis+1] - 0.2, tolerance=.00001)
         channel_access.assert_that_pv_is("POSN", position_to_test[0])
         channel_access.assert_that_pv_is("IPOSN", 1)
         channel_access.assert_that_pv_is("POSITIONED", 1)
@@ -381,6 +396,7 @@ class MotionSetpointsTests(unittest.TestCase):
             self.ca10D.assert_that_pv_is("COORD{}:RBV.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:NO_OFF.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:OFFSET.EGU".format(motor_num), motor_pv)
+            self.ca10D.assert_that_pv_is("COORD{}:OFFSET:SP.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:RBV:OFF.EGU".format(motor_num), motor_pv)
             self.ca10D.assert_that_pv_is("COORD{}:SET:RBV.EGU".format(motor_num), motor_pv)
 
@@ -450,3 +466,10 @@ class MotionSetpointsTests(unittest.TestCase):
             new_position = 5 + coord
             self.ca2D.assert_setting_setpoint_sets_readback(new_position, f"COORD{coord}:RBV", f"COORD{coord}:SP")
             self.motor_ca.assert_that_pv_is(f"MTR010{coord+1}.RBV", new_position)
+
+    def test_GIVEN_files_WHEN_file_names_checked_THEN_current_names_correct(self):
+        self.ca1D.assert_that_pv_is("FILENAME", "lookup1D.txt")
+        self.ca2D.assert_that_pv_is("FILENAME", "lookup2D.txt")
+        self.ca10D.assert_that_pv_is("FILENAME", "lookup10D.txt")
+        self.caDN.assert_that_pv_is("FILENAME", "duplicate_names.txt")
+        self.caDP.assert_that_pv_is("FILENAME", "duplicate_positions.txt")

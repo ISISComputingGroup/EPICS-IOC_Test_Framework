@@ -9,7 +9,7 @@ from common_tests.jaws_manager_utils import JawsManagerBase, MOD_GAP
 # IP address of device
 from utils.test_modes import TestModes
 
-GALIL_ADDR = "128.0.0.0"
+GALIL_ADDR = "127.0.0.11"
 
 test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
                                           "support", "motorExtensions", "master", "settings", "nimrod_jaws"))

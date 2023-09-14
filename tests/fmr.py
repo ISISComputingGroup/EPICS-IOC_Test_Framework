@@ -11,6 +11,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("FMR"),
+        "pv_for_existence": "FMR:ACTIVITY",
         "macros": {"LVDCOM_OPTIONS": 1},
     },
 ]

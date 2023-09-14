@@ -94,6 +94,7 @@ misc.xml
 modules.xml
 workspace.xml
 IOCTestFramework.iml
+_trial_temp/
 
 /test-reports/
 /test-logs/

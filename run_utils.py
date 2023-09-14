@@ -1,16 +1,19 @@
 import importlib
 import os
+import glob
 from contextlib import contextmanager
 
+from utils.build_architectures import BuildArchitectures
 
-def package_contents(package_path):
+def package_contents(package_path, filter_files):
     """
     Finds all the files in a package.
 
     :param package_path: the name of the package
+    :param filter_files: glob format expression to filter files by
     :return: a set containing all the module names
     """
-    return set([os.path.splitext(module)[0] for module in os.listdir(package_path)
+    return set([os.path.splitext(module)[0] for module in glob.glob(filter_files, root_dir=package_path)
                 if module.endswith('.py') and not module.startswith("__init__")])
 
 
@@ -49,6 +52,7 @@ class ModuleTests(object):
         self.tests = None
         self.__file = self.__get_file_reference()
         self.__modes = self.__get_modes()
+        self.__architectures = self.__get_architectures()
 
     @property
     def name(self):
@@ -65,6 +69,11 @@ class ModuleTests(object):
         """ Returns a reference to the module file. """
         return self.__file
 
+    @property
+    def architectures(self):
+        """ Returns the architectures the test can be run in. """
+        return self.__architectures
+
     def __get_file_reference(self):
         module = load_module("tests.{}".format(self.__name))
         return module
@@ -73,6 +82,11 @@ class ModuleTests(object):
         if not self.__file:
             self.__get_file_reference()
         return check_test_modes(self.__file)
+    
+    def __get_architectures(self):
+        if not self.__file:
+            self.__get_file_reference()
+        return check_build_architectures(self.__file)
 
 
 def load_module(name):
@@ -99,4 +113,19 @@ def check_test_modes(module):
 
     return modes
 
+
+def check_build_architectures(module):
+    """
+    Checks for which build architectures the test can run in.
+    If not specified, default to both 64 and 32 bit allowed.
+
+    :param module: Module to check which architectures the test can run in
+    :return: set: Architectures the test can be run in
+    """
+    try:
+        architectures = set(module.BUILD_ARCHITECTURES)
+    except AttributeError:
+        architectures = set([BuildArchitectures._64BIT, BuildArchitectures._32BIT])
+
+    return architectures
 

@@ -22,7 +22,6 @@ IOCS = [
     },
 ]
 
-
 TEST_MODES = [TestModes.DEVSIM]
 
 
@@ -115,7 +114,7 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=SCAN_FREQUENCY)
         self._assert_pvs_disabled(self.PVS_ENABLED_OUTSIDE_MEASUREMENT, False)
 
-    @parameterized.expand(parameterized_list([2, 5, 10, 20]))
+    @parameterized.expand(parameterized_list([3, 5, 10, 20]))
     def test_WHEN_automeasure_frequency_set_THEN_measurement_repeats(self, _, automeasure_interval):
         measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
@@ -124,7 +123,7 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
         self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2*automeasure_interval)
 
-    @parameterized.expand(parameterized_list([2, 5, 10, 20]))
+    @parameterized.expand(parameterized_list([3, 5, 10, 20]))
     def test_WHEN_automeasure_frequency_set_then_unset_THEN_measurement_stops(self, _, automeasure_interval):
         measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
@@ -134,10 +133,17 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
         self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*automeasure_interval)
 
-    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self._lewis.backdoor_set_on_device('connected', False)
-        self.ca.assert_that_pv_alarm_is('MEASUREMENT', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('TEMPERATURE:SP:RBV', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('TEMPERATURE', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('DENSITY', ChannelAccess.Alarms.INVALID)
-        self.ca.assert_that_pv_alarm_is('CONDITION', ChannelAccess.Alarms.INVALID)
+    @parameterized.expand([
+        ("measurement", "MEASUREMENT"),
+        ("temp_sp_rbv", "TEMPERATURE:SP:RBV"),
+        ("temperature", "TEMPERATURE"),
+        ("density", "DENSITY"),
+        ("condition", "CONDITION")
+    ])
+    def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self, _, pv):
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
+
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
+        # Assert alarms clear on reconnection
+        self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)

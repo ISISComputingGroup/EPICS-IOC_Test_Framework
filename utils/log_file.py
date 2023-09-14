@@ -1,26 +1,29 @@
 import os
 from time import sleep
 import threading
+from utils.test_modes import TestModes
 
 # Directory for log files
 LOG_FILES_DIRECTORY = os.path.join("logs", "IOCTestFramework")
 
 
-def log_filename(test_name, what, device, uses_rec_sim, var_dir):
+def log_filename(test_name, what, device, test_mode, var_dir):
     """
     Log file name with path. Ensure path exists.
 
     :param test_name: name of test module being run
     :param what: what is being logged for, e.g. lewis
     :param device: device the log is for
-    :param uses_rec_sim: whether rec sim is used
+    :param test_mode: testing mode
     :param var_dir: location of directory to write log file
     :return: path
     """
-    if uses_rec_sim:
+    if test_mode == TestModes.RECSIM:
         sim_type = "recsim"
-    else:
+    elif test_mode == TestModes.DEVSIM:
         sim_type = "devsim"
+    else:
+        sim_type = "nosim"
     full_dir = os.path.join(var_dir, LOG_FILES_DIRECTORY)
     if not os.path.exists(full_dir):
         os.makedirs(full_dir)
@@ -35,8 +38,8 @@ class LogFileManager(object):
     """
 
     def __init__(self, filename):
-        self.log_file = open(filename, "w+")
-        self.reading_from = 0
+        self.log_file_w = open(filename, "w", 1)
+        self.log_file_r = open(filename, "r")
 
     def read_log(self):
         """
@@ -45,9 +48,15 @@ class LogFileManager(object):
         Returns:
             new_messages (list): list of any new messages that have been received
         """
-        self.log_file.seek(self.reading_from)
-        new_messages = list(self.log_file)
-        self.reading_from = self.log_file.tell()
+        new_messages = []
+        while True:
+            where = self.log_file_r.tell()
+            mess = self.log_file_r.readline()
+            if not mess:
+                self.log_file_r.seek(where)
+                break
+            new_messages.append(mess)
+            
         return new_messages
 
     def wait_for_console(self, timeout, ioc_started_text):
@@ -77,4 +86,5 @@ class LogFileManager(object):
         """
         Returns: close the log file
         """
-        self.log_file.close()
+        self.log_file_r.close()
+        self.log_file_w.close()
