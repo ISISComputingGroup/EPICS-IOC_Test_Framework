@@ -236,8 +236,6 @@ class MercuryFLOWSPCTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance = 0.01)  # final value
         sleep(1.5)  # wait for possible ramp
         self.ca.assert_that_pv_is_number("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance = 0.01)  # final value
-        print(expected_pressure)
-        print(self.ca.get_pv_value("{}:PRESSURE:SP".format(pressure_card_pv_prefix)))
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_auto_flow_set_on_and_pressure_would_be_high_THEN_pressure_set_to_maximum_pressure(self):
