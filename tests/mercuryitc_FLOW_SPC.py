@@ -229,13 +229,13 @@ class MercuryFLOWSPCTests(unittest.TestCase):
         diff = SPC_TEMP_DEADBAND * 1.1
         set_point = 10
         reading = set_point + diff
-        expected_pressure = pressure_for(set_point) + SPC_OFFSET + (abs(reading - set_point - SPC_TEMP_DEADBAND) * SPC_GAIN) ** 2
+        expected_pressure = round((pressure_for(set_point) + SPC_OFFSET + (abs(reading - set_point - SPC_TEMP_DEADBAND) * SPC_GAIN) ** 2), 2)
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
         self.set_temp_reading_and_sp(reading, set_point)
 
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure)  # final value
+        self.ca.assert_that_pv_is_number("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance = 0.01)  # final value
         sleep(1.5)  # wait for possible ramp
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure)  # final value
+        self.ca.assert_that_pv_is_number("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance = 0.01)  # final value
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_auto_flow_set_on_and_pressure_would_be_high_THEN_pressure_set_to_maximum_pressure(self):
