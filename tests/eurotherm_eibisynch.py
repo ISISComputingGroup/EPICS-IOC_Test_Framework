@@ -1,4 +1,5 @@
 import unittest
+import contextlib
 
 from parameterized import parameterized
 
@@ -11,6 +12,7 @@ from utils.calibration_utils import use_calibration_file
 
 DEVICE = "EUROTHRM_01"
 EMULATOR = "eurotherm"
+SCALING = "1.0"
 
 IOCS = [
     {
@@ -39,6 +41,23 @@ TEST_MODES = [TestModes.DEVSIM]
 
 
 class EurothermTests(EurothermBaseTests, unittest.TestCase):
+    def setUp(self):
+        super(EurothermTests, self).setUp()
+        self._lewis.backdoor_set_on_device("scaling", 1.0 / float(SCALING))
+    
+    def get_device(self):
+        return DEVICE
+
+    def get_emulator_device(self):
+        return EMULATOR
+    
+    def get_scaling(self):
+        return SCALING
+
+    def _get_temperature_setter_wrapper(self):
+        return contextlib.nullcontext()
+
+
     @parameterized.expand([
         ("over_range_calc_pv_is_over_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE + 5.0, 1.0),
         ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
