@@ -48,6 +48,14 @@ def get_beamline(macros):
     theta = add_component(ThetaComponent("ThetaComp", PositionAndAngle(0.0, 2 * SPACING, 90)))
     theta_ang = add_parameter(AxisParameter("Theta", theta, ChangeAxis.ANGLE), modes=[nr, polarised, testing])
 
+    # Component for providing read-only displacement parameters
+    offset_only_comp = add_component(TiltingComponent("disp_comp", PositionAndAngle(0.0, 2.5*SPACING, 90)))
+    add_parameter(AxisParameter("DISP_POS", offset_only_comp, ChangeAxis.DISPLACEMENT_POSITION), modes=[nr, polarised, disabled])
+    add_parameter(AxisParameter("DISP_ANG", offset_only_comp, ChangeAxis.DISPLACEMENT_ANGLE), modes=[nr, polarised, disabled])
+
+    add_driver(IocDriver(offset_only_comp, ChangeAxis.DISPLACEMENT_POSITION, MotorPVWrapper("MOT:MTR0201"), synchronised=False))
+    add_driver(IocDriver(offset_only_comp, ChangeAxis.DISPLACEMENT_ANGLE, MotorPVWrapper("MOT:MTR0202"), synchronised=False))
+
     # S3
     s3_comp = add_component(Component("s3", PositionAndAngle(0.0, 3 * SPACING, 90)))
     add_parameter(AxisParameter("S3", s3_comp, ChangeAxis.POSITION), modes=[nr, polarised, testing])

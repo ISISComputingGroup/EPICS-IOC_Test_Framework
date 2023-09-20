@@ -88,6 +88,10 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
+            "MTR0201.VMAX": FAST_VELOCITY,
+            "MTR0201.VELO": FAST_VELOCITY,
+            "MTR0202.VMAX": FAST_VELOCITY,
+            "MTR0202.VELO": FAST_VELOCITY,
             "MTR0208.VMAX": INITIAL_VELOCITY,
             "MTR0208.VELO": INITIAL_VELOCITY,
             "MTR0208.ERES": 0.001,
@@ -873,7 +877,7 @@ class ReflTests(unittest.TestCase):
             self.ca.set_pv_value("PARAM:S1:DEFINE_POS_SET_AND_NO_ACTION", position)
             self.ca_galil.assert_that_pv_is_not("MTR0101", position)
             self.ca.set_pv_value("PARAM:S1:DEFINE_POS_ACTION", 1)
-        
+
         self.ca_galil.assert_that_pv_is("MTR0101", position)
 
     def test_GIVEN_slit_locked_WHEN_value_set_THEN_value_did_not_change(self):
@@ -897,8 +901,30 @@ class ReflTests(unittest.TestCase):
             self.ca.assert_that_pv_is_not("PARAM:S1:SP_NO_ACTION", value)
 
             self.ca.set_pv_value("BL:MOVE", 1)
-            
+
             self.ca.assert_that_pv_is_not("PARAM:S1:SP:RBV", value)
             self.ca.assert_that_pv_is_not("PARAM:S1", value)
 
             self.ca.set_pv_value("PARAM:S1:LOCKED", 0)
+
+    def test_GIVEN_displacement_parameter_WHEN_sm_angle_changed_THEN_parameters_reflect_displacement_of_component(self):
+        self.ca.assert_that_pv_is("PARAM:DISP_POS", 0)
+        self.ca.assert_that_pv_is("PARAM:DISP_ANG", 0)
+
+        self.ca.set_pv_value("BL:MODE:SP", "POLARISED")
+        self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 22.5)
+        self.ca.set_pv_value("BL:MOVE", 1)
+
+        self.ca.assert_that_pv_is_number("PARAM:DISP_POS", 1, tolerance=MOTOR_TOLERANCE)  # should equal distance to SM
+        self.ca.assert_that_pv_is("PARAM:DISP_ANG", 45)  # should equal 2 * SMANGLE
+
+    def test_WHEN_trying_to_set_displacement_parameter_THEN_direct_write_is_not_allowed(self):
+        initial_pos = 0
+        pos_to_set = 1
+        disp_pos_sp_pv = "PARAM:DISP_POS:SP"
+        disp_ang_sp_pv = "PARAM:DISP_ANG:SP"
+        self.ca.assert_that_pv_is(disp_pos_sp_pv, initial_pos)
+        self.ca.assert_that_pv_is(disp_ang_sp_pv, initial_pos)
+
+        self.assertRaises(WriteAccessException, self.ca.set_pv_value, disp_pos_sp_pv, pos_to_set)
+        self.assertRaises(WriteAccessException, self.ca.set_pv_value, disp_pos_sp_pv, pos_to_set)
