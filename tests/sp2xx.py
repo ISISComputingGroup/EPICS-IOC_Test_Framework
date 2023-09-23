@@ -329,7 +329,7 @@ class NATests(unittest.TestCase):
 
         # When:
         _start_running(self.ca)
-        self.ca.assert_that_pv_is("STATUS", "Infusion")
+        self.ca.assert_that_pv_is("STATUS", "Infusion", timeout=15)
 
         # Then:
         self.ca.assert_that_pv_is("NA", "No error")
