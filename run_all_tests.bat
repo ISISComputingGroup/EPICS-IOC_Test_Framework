@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
 REM Run all known tests using the IOC Testing Framework
 
@@ -28,13 +28,23 @@ if "%COMPUTERNAME%" == "yyyNDHSPARE70" (
 )
 
 REM Command line arguments always passed to the test script
-SET ARGS=-rc
+set "ARGS="
+REM only pass -rc if no other args, otherwise if we are running only one test
+REM it tells us about all the tests we missed running 
+if "%*" == "" SET "ARGS=%ARGS% -rc"
 REM we use the python3 executable rather than python as this allows us to
 REM configure the applicatrion verifier for python3.exe and we don't get
 REM a lot of logs every time tests spawn python.exe for e.g. emulators
+:loop
 if not "%DEBUGGERCMD%" == "" (
     "%DEBUGGERCMD%" %DEBUGGERARGS% "c:\instrument\Apps\python3\python3.exe" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %*
 ) else (
     "%PYTHON3%" -u "%EPICS_KIT_ROOT%\support\IocTestFramework\master\run_tests.py" %ARGS% %* 
 )
-IF %ERRORLEVEL% NEQ 0 EXIT /b %errorlevel%
+set errcode=!ERRORLEVEL!
+IF %errcode% NEQ 0 (
+    @echo ERROR: tests exited with status %errcode%
+    EXIT /b %errcode%
+)
+REM if we wish to continually run tests until failure uncomment this
+REM goto loop
