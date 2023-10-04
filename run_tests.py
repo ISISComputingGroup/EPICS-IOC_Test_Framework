@@ -404,5 +404,6 @@ if __name__ == '__main__':
         traceback.print_exc()
         print("---\n---\n---\n")
         success = False
-
+    if not success:
+        print("\nERROR: Some tests FAILED")
     sys.exit(0 if success else 1)
