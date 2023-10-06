@@ -16,6 +16,7 @@ import time
 
 GALIL_ADDR1 = "127.0.0.11"
 GALIL_ADDR2 = "127.0.0.12"
+GALIL_ADDR3 = "127.0.0.13"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
@@ -24,8 +25,9 @@ SOFT_LIMIT_LO = -10000
 
 ioc_number = 1
 DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
-GALIL_PREFIX = "GALIL_01"
-GALIL_PREFIX_JAWS = "GALIL_02"
+GALIL1_PREFIX = "GALIL_01"
+GALIL2_PREFIX_JAWS = "GALIL_02"
+GALIL3_PREFIX = "GALIL_03"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 test_var_path = os.path.join(test_config_path, "var")
 
@@ -47,7 +49,7 @@ IOCS = [
     },
     {
         "ioc_launcher_class": ProcServLauncher,
-        "name": GALIL_PREFIX,
+        "name": GALIL1_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "MTR0101",
@@ -78,7 +80,7 @@ IOCS = [
     },
     {
         "ioc_launcher_class": ProcServLauncher,
-        "name": GALIL_PREFIX_JAWS,
+        "name": GALIL2_PREFIX_JAWS,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL", iocnum=2),
         "pv_for_existence": "MTR0201",
@@ -96,6 +98,25 @@ IOCS = [
             "MTR0208.VELO": INITIAL_VELOCITY,
             "MTR0208.ERES": 0.001,
             "MTR0208.MRES": 0.001
+        },
+        "delay_after_startup": 5
+    },
+    {
+        "ioc_launcher_class": ProcServLauncher,
+        "name": GALIL3_PREFIX,
+        "custom_prefix": "MOT",
+        "directory": get_default_ioc_dir("GALIL", iocnum=3),
+        "pv_for_existence": "MTR0301",
+        "macros": {
+            "GALILADDR": GALIL_ADDR3,
+            "MTRCTRL": "3",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
+        },
+        "inits": {
+            "MTR0301.VMAX": FAST_VELOCITY,
+            "MTR0301.VELO": FAST_VELOCITY,
+            "MTR0302.VMAX": FAST_VELOCITY,
+            "MTR0302.VELO": FAST_VELOCITY,
         },
         "delay_after_startup": 5
     },

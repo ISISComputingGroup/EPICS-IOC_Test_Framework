@@ -53,8 +53,8 @@ def get_beamline(macros):
     add_parameter(AxisParameter("DISP_POS", offset_only_comp, ChangeAxis.DISPLACEMENT_POSITION), modes=[nr, polarised, disabled])
     add_parameter(AxisParameter("DISP_ANG", offset_only_comp, ChangeAxis.DISPLACEMENT_ANGLE), modes=[nr, polarised, disabled])
 
-    add_driver(IocDriver(offset_only_comp, ChangeAxis.DISPLACEMENT_POSITION, MotorPVWrapper("MOT:MTR0201"), synchronised=False))
-    add_driver(IocDriver(offset_only_comp, ChangeAxis.DISPLACEMENT_ANGLE, MotorPVWrapper("MOT:MTR0202"), synchronised=False))
+    add_driver(IocDriver(offset_only_comp, ChangeAxis.DISPLACEMENT_POSITION, MotorPVWrapper("MOT:MTR0301"), synchronised=False))
+    add_driver(IocDriver(offset_only_comp, ChangeAxis.DISPLACEMENT_ANGLE, MotorPVWrapper("MOT:MTR0302"), synchronised=False))
 
     # S3
     s3_comp = add_component(Component("s3", PositionAndAngle(0.0, 3 * SPACING, 90)))
