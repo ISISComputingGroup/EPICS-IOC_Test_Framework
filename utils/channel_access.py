@@ -96,12 +96,14 @@ class ChannelAccess(object):
         except Exception as e:
             print("Unable to disable CA errors: ", e)
 
-        self.prefix = os.environ["testing_prefix"]
+        self.host_prefix = os.environ["testing_prefix"]
         self._default_timeout = default_timeout
-        if not self.prefix.endswith(':'):
-            self.prefix += ':'
+        if not self.host_prefix.endswith(":"):
+            self.host_prefix += ":"
+
+        self.prefix = self.host_prefix
         if device_prefix is not None:
-            self.prefix += "{}:".format(device_prefix)
+            self.prefix += f"{device_prefix}:"
 
     def set_pv_value(self, pv, value, wait=False, sleep_after_set=None):
         """
