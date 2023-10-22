@@ -74,6 +74,10 @@ Running tests with `-f` argument will cause tests to run normally _until_ the fi
 
 > `python -u run_tests.py -f` will cause all IOC tests to run, up until the first one fails. 
 
+### Running tests continually until they fail
+
+Running tests with `-rf` argument will cause the testsuite to be rerun until their is a failure. To make understanding log files easier you may want to also specify `-f` so that any output in ioc/lewis logs refers to the test that has just failed.
+
 ### Running tests in a given path
 
 By default the framework searches for tests inside `.\tests\`. If you wish to specify tests in another directory you can use the `-tp` flag.

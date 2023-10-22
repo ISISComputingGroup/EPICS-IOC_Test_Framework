@@ -324,6 +324,8 @@ if __name__ == '__main__':
                         help="List available devices for testing.", action="store_true")
     parser.add_argument('-rc', '--report-coverage',
                         help='Report devices that have not been tested.', action="store_true")
+    parser.add_argument('-rf', '--repeat-until-fail',
+                        help='Keep rerunning tests until a failure occurs', action="store_true")
     parser.add_argument('-pf', '--prefix', default=os.environ.get("MYPVPREFIX", None),
                         help='The instrument prefix; e.g. TE:NDW1373')
     parser.add_argument('--var-dir', default=None,
@@ -397,13 +399,21 @@ if __name__ == '__main__':
     if arguments.tests_mode == "NOSIM":
         tests_mode = TestModes.NOSIM
 
-    try:
-        success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
-    except Exception as e:
-        print("---\n---\n---\nAn Error occurred loading the tests: ")
-        traceback.print_exc()
-        print("---\n---\n---\n")
-        success = False
-    if not success:
-        print("\nERROR: Some tests FAILED")
+    done = False
+    success = False
+    count = 0
+    while not done:
+        if arguments.repeat_until_fail:
+            count += 1
+            print(f"\n** Running tests until they fail, iteration {count} **\n")
+        try:
+            success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
+        except Exception as e:
+            print("---\n---\n---\nAn Error occurred loading the tests: ")
+            traceback.print_exc()
+            print("---\n---\n---\n")
+            sys.exit(1)
+        if not success:
+            print("\nERROR: Some tests FAILED")
+        done = (not arguments.repeat_until_fail) or (arguments.repeat_until_fail and not success)
     sys.exit(0 if success else 1)

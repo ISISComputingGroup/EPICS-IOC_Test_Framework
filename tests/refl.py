@@ -16,6 +16,7 @@ import time
 
 GALIL_ADDR1 = "127.0.0.11"
 GALIL_ADDR2 = "127.0.0.12"
+GALIL_ADDR3 = "127.0.0.13"
 INITIAL_VELOCITY = 0.5
 MEDIUM_VELOCITY = 2
 FAST_VELOCITY = 100
@@ -24,8 +25,9 @@ SOFT_LIMIT_LO = -10000
 
 ioc_number = 1
 DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
-GALIL_PREFIX = "GALIL_01"
-GALIL_PREFIX_JAWS = "GALIL_02"
+GALIL1_PREFIX = "GALIL_01"
+GALIL2_PREFIX_JAWS = "GALIL_02"
+GALIL3_PREFIX = "GALIL_03"
 test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl"))
 test_var_path = os.path.join(test_config_path, "var")
 
@@ -47,7 +49,7 @@ IOCS = [
     },
     {
         "ioc_launcher_class": ProcServLauncher,
-        "name": GALIL_PREFIX,
+        "name": GALIL1_PREFIX,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL"),
         "pv_for_existence": "MTR0101",
@@ -78,7 +80,7 @@ IOCS = [
     },
     {
         "ioc_launcher_class": ProcServLauncher,
-        "name": GALIL_PREFIX_JAWS,
+        "name": GALIL2_PREFIX_JAWS,
         "custom_prefix": "MOT",
         "directory": get_default_ioc_dir("GALIL", iocnum=2),
         "pv_for_existence": "MTR0201",
@@ -88,10 +90,33 @@ IOCS = [
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
         "inits": {
+            "MTR0201.VMAX": FAST_VELOCITY,
+            "MTR0201.VELO": FAST_VELOCITY,
+            "MTR0202.VMAX": FAST_VELOCITY,
+            "MTR0202.VELO": FAST_VELOCITY,
             "MTR0208.VMAX": INITIAL_VELOCITY,
             "MTR0208.VELO": INITIAL_VELOCITY,
             "MTR0208.ERES": 0.001,
             "MTR0208.MRES": 0.001
+        },
+        "delay_after_startup": 5
+    },
+    {
+        "ioc_launcher_class": ProcServLauncher,
+        "name": GALIL3_PREFIX,
+        "custom_prefix": "MOT",
+        "directory": get_default_ioc_dir("GALIL", iocnum=3),
+        "pv_for_existence": "MTR0301",
+        "macros": {
+            "GALILADDR": GALIL_ADDR3,
+            "MTRCTRL": "3",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
+        },
+        "inits": {
+            "MTR0301.VMAX": FAST_VELOCITY,
+            "MTR0301.VELO": FAST_VELOCITY,
+            "MTR0302.VMAX": FAST_VELOCITY,
+            "MTR0302.VELO": FAST_VELOCITY,
         },
         "delay_after_startup": 5
     },
@@ -873,7 +898,7 @@ class ReflTests(unittest.TestCase):
             self.ca.set_pv_value("PARAM:S1:DEFINE_POS_SET_AND_NO_ACTION", position)
             self.ca_galil.assert_that_pv_is_not("MTR0101", position)
             self.ca.set_pv_value("PARAM:S1:DEFINE_POS_ACTION", 1)
-        
+
         self.ca_galil.assert_that_pv_is("MTR0101", position)
 
     def test_GIVEN_slit_locked_WHEN_value_set_THEN_value_did_not_change(self):
@@ -897,8 +922,30 @@ class ReflTests(unittest.TestCase):
             self.ca.assert_that_pv_is_not("PARAM:S1:SP_NO_ACTION", value)
 
             self.ca.set_pv_value("BL:MOVE", 1)
-            
+
             self.ca.assert_that_pv_is_not("PARAM:S1:SP:RBV", value)
             self.ca.assert_that_pv_is_not("PARAM:S1", value)
 
             self.ca.set_pv_value("PARAM:S1:LOCKED", 0)
+
+    def test_GIVEN_displacement_parameter_WHEN_sm_angle_changed_THEN_parameters_reflect_displacement_of_component(self):
+        self.ca.assert_that_pv_is("PARAM:DISP_POS", 0)
+        self.ca.assert_that_pv_is("PARAM:DISP_ANG", 0)
+
+        self.ca.set_pv_value("BL:MODE:SP", "POLARISED")
+        self.ca.set_pv_value("PARAM:SMANGLE:SP_NO_ACTION", 22.5)
+        self.ca.set_pv_value("BL:MOVE", 1)
+
+        self.ca.assert_that_pv_is_number("PARAM:DISP_POS", 1, tolerance=MOTOR_TOLERANCE)  # should equal distance to SM
+        self.ca.assert_that_pv_is("PARAM:DISP_ANG", 45)  # should equal 2 * SMANGLE
+
+    def test_WHEN_trying_to_set_displacement_parameter_THEN_direct_write_is_not_allowed(self):
+        initial_pos = 0
+        pos_to_set = 1
+        disp_pos_sp_pv = "PARAM:DISP_POS:SP"
+        disp_ang_sp_pv = "PARAM:DISP_ANG:SP"
+        self.ca.assert_that_pv_is(disp_pos_sp_pv, initial_pos)
+        self.ca.assert_that_pv_is(disp_ang_sp_pv, initial_pos)
+
+        self.assertRaises(WriteAccessException, self.ca.set_pv_value, disp_pos_sp_pv, pos_to_set)
+        self.assertRaises(WriteAccessException, self.ca.set_pv_value, disp_pos_sp_pv, pos_to_set)
