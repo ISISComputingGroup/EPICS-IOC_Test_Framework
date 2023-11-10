@@ -113,12 +113,12 @@ class MotionSetpointsTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.ca1D = ChannelAccess(device_prefix=DEVICE_PREFIX_1D)
-        cls.ca2D = ChannelAccess(device_prefix=DEVICE_PREFIX_2D)
+        cls.ca1D = ChannelAccess(device_prefix=DEVICE_PREFIX_1D, default_wait_time=0)
+        cls.ca2D = ChannelAccess(device_prefix=DEVICE_PREFIX_2D, default_wait_time=0)
         cls.ca10D = ChannelAccess(device_prefix=DEVICE_PREFIX_10D)
-        cls.caDN = ChannelAccess(device_prefix=DEVICE_PREFIX_DN)
-        cls.caDP = ChannelAccess(device_prefix=DEVICE_PREFIX_DP)
-        cls.motor_ca = ChannelAccess(device_prefix=MOTOR_PREFIX)
+        cls.caDN = ChannelAccess(device_prefix=DEVICE_PREFIX_DN, default_wait_time=0)
+        cls.caDP = ChannelAccess(device_prefix=DEVICE_PREFIX_DP, default_wait_time=0)
+        cls.motor_ca = ChannelAccess(device_prefix=MOTOR_PREFIX, default_wait_time=0)
 
         cls.channel_access_instances = {1: cls.ca1D, 2: cls.ca2D, 10: cls.ca10D}
 
@@ -468,8 +468,9 @@ class MotionSetpointsTests(unittest.TestCase):
             self.motor_ca.assert_that_pv_is(f"MTR010{coord+1}.RBV", new_position)
 
     def test_GIVEN_files_WHEN_file_names_checked_THEN_current_names_correct(self):
-        self.ca1D.assert_that_pv_is("FILENAME", "lookup1D.txt")
-        self.ca2D.assert_that_pv_is("FILENAME", "lookup2D.txt")
-        self.ca10D.assert_that_pv_is("FILENAME", "lookup10D.txt")
-        self.caDN.assert_that_pv_is("FILENAME", "duplicate_names.txt")
-        self.caDP.assert_that_pv_is("FILENAME", "duplicate_positions.txt")
+        # Motion setpoints changes path separators to / so replace them before asserting
+        self.ca1D.assert_that_pv_is("FILENAME", str(os.path.join(test_path, "lookup1D.txt")).replace(os.sep, '/'))
+        self.ca2D.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"lookup2D.txt")).replace(os.sep, '/'))
+        self.ca10D.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"lookup10D.txt")).replace(os.sep, '/'))
+        self.caDN.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"duplicate_names.txt")).replace(os.sep, '/'))
+        self.caDP.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"duplicate_positions.txt")).replace(os.sep, '/'))
