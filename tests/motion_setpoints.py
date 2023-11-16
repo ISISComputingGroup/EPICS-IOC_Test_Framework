@@ -2,6 +2,7 @@ import unittest
 from parameterized import parameterized
 from operator import add
 import os
+import posixpath
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -468,9 +469,12 @@ class MotionSetpointsTests(unittest.TestCase):
             self.motor_ca.assert_that_pv_is(f"MTR010{coord+1}.RBV", new_position)
 
     def test_GIVEN_files_WHEN_file_names_checked_THEN_current_names_correct(self):
-        # Motion setpoints changes path separators to / so replace them before asserting
-        self.ca1D.assert_that_pv_is("FILENAME", str(os.path.join(test_path, "lookup1D.txt")).replace(os.sep, '/'))
-        self.ca2D.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"lookup2D.txt")).replace(os.sep, '/'))
-        self.ca10D.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"lookup10D.txt")).replace(os.sep, '/'))
-        self.caDN.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"duplicate_names.txt")).replace(os.sep, '/'))
-        self.caDP.assert_that_pv_is("FILENAME", str(os.path.join(test_path,"duplicate_positions.txt")).replace(os.sep, '/'))
+        # Motion setpoints changes path separators to / so use posixpath for asserting
+        # can't use test_path as it calls realpath and we have directory junctions on test servers
+        lookup_path = posixpath.join(os.getenv("EPICS_KIT_ROOT").replace(os.sep, '/'),
+                                   "support", "motionSetPoints", "master", "settings")
+        self.ca1D.assert_that_pv_is("FILENAME", str(posixpath.join(lookup_path, "lookup1D.txt")))
+        self.ca2D.assert_that_pv_is("FILENAME", str(posixpath.join(lookup_path,"lookup2D.txt")))
+        self.ca10D.assert_that_pv_is("FILENAME", str(posixpath.join(lookup_path,"lookup10D.txt")))
+        self.caDN.assert_that_pv_is("FILENAME", str(posixpath.join(lookup_path,"duplicate_names.txt")))
+        self.caDP.assert_that_pv_is("FILENAME", str(posixpath.join(lookup_path,"duplicate_positions.txt")))
