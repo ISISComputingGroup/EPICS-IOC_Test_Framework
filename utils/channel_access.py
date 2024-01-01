@@ -105,16 +105,24 @@ class ChannelAccess(object):
         if device_prefix is not None:
             self.prefix += f"{device_prefix}:"
 
-    def set_pv_value(self, pv, value, wait=False, sleep_after_set=None):
+    def set_pv_value(self, pv, value, prefix=None, wait=False, sleep_after_set=None):
         """
         Sets the specified PV to the supplied value.
 
         Args:
             pv: the EPICS PV name
             value: the value to set
+            prefix: the preix to use (default: "<instrument>:<ioc>:")
             wait: wait for completion callback (default: False)
             sleep_after_set: before a sleep after setting pv value
         """
+        if prefix is None:
+            prefix = self.prefix
+       
+        # Take note of original prefix in case it is temporarily modified by paramter
+        original_prefix = self.prefix
+        self.prefix = prefix
+
         if sleep_after_set is None:
             sleep_after_set = self.default_wait_time
         # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try to jump the gun
@@ -125,6 +133,9 @@ class ChannelAccess(object):
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
         self.ca.set_pv_value(self.create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
+
+        # Reset original prefix in case it was temporarily changed
+        self.prefix = original_prefix
 
         # Give lewis time to process - avoid sleep(0) in case it might do am implicit thread yield
         if sleep_after_set > 0.0:
