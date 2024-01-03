@@ -203,7 +203,15 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=5)
 
         for tank_axis in BAFFLES_AND_DETECTORS_Z_AXES:
-            if self.ca.get_pv_value("{}:MTR.MOVN".format(tank_axis)):
-                self.ca.assert_that_pv_is("{}:MTR.SPMG".format(tank_axis), "Move")
+            movn = self.ca.get_pv_value("{}:MTR.MOVN".format(tank_axis))
+            spmg = self.ca.get_pv_value("{}:MTR.SPMG".format(tank_axis))
+            # we have a potential race condition in that motor may stop after we have read movn
+            # but before we read spmg. So re-read movn if mismatch. Because of sleep_after_set
+            # we should only need to worry about a motor stopping and not one starting
+            if movn and spmg == "Pause":
+                print("Re-reading MOVN to workaround race condition")
+                movn = self.ca.get_pv_value("{}:MTR.MOVN".format(tank_axis))
+            if movn:
+                self.assertEquals(spmg, "Move")
             else:
-                self.ca.assert_that_pv_is("{}:MTR.SPMG".format(tank_axis), "Pause")
+                self.assertEquals(spmg, "Pause")
