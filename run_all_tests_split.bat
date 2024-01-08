@@ -14,5 +14,7 @@ for %%i in ( "a-h" "i" "j-m" "n" "o-z" ) do (
         set final_errcode=!errorlevel!
     )
 )
-
+IF !final_errcode! NEQ 0 (
+    @echo ERROR: overall test status !final_errcode! from earlier failure
+)
 exit /b !final_errcode!
