@@ -308,7 +308,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
                 prompt_user_to_run_tests(test_names)
             result = runner.run(test_suite).wasSuccessful()
     except Exception:
-        msg = "Error while attempting to load test suite: {}".format(traceback.format_exc())
+        msg = "ERROR: while attempting to load test suite: {}".format(traceback.format_exc())
         result = runner.run(ReportFailLoadTestsuiteTestCase(module_name, msg)).wasSuccessful()
     return result
 
@@ -409,7 +409,7 @@ if __name__ == '__main__':
         try:
             success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
         except Exception as e:
-            print("---\n---\n---\nAn Error occurred loading the tests: ")
+            print("---\n---\n---\nERROR: when loading the tests: ")
             traceback.print_exc()
             print("---\n---\n---\n")
             sys.exit(1)
