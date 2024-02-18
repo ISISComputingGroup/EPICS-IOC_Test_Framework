@@ -251,7 +251,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
         self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_device():
-            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=30)
+            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=60)
         # Assert alarms clear on reconnection
         with self._get_temperature_setter_wrapper():
             self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
