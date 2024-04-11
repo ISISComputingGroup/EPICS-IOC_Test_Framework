@@ -370,8 +370,8 @@ class ProcServLauncher(BaseLauncher):
 
         """
         super(ProcServLauncher, self).open()
-
-        print(f"IOC started, connecting to procserv at telnet port {self.procserv_port}")
+        pids = ",".join([str(s) for s in self._find_processes()])
+        print(f"IOC started, connecting to procserv pids {pids} at telnet port {self.procserv_port}")
 
         timeout = 20
 
@@ -481,19 +481,24 @@ class ProcServLauncher(BaseLauncher):
             self._telnet.close()
 
         at_least_one_killed = False
-        for process in psutil.process_iter(attrs=['pid', 'name']):
-            if process.info['name'] == 'procServ.exe' and self.process_arguments_match_this_ioc(process.cmdline()):
-                # Command line arguments match, kill procServ instance
-                pid = process.pid
+        for pid in self._find_processes():
+            os.kill(pid, SIGTERM)
+            time.sleep(10)
+            if psutil.pid_exists(pid):
+                print("Process is still running try killing again!")
                 os.kill(pid, SIGTERM)
-                time.sleep(10)
-                if psutil.pid_exists(pid):
-                    print("Process is still running try killing again!")
-                    os.kill(pid, SIGTERM)
-                at_least_one_killed = True
+            at_least_one_killed = True
 
         if not at_least_one_killed:
             print("No process with name procServ.exe found that matched command line {}".format(self.command_line))
+
+    def _find_processes(self):
+        pid_list = []
+        for process in psutil.process_iter(attrs=['pid', 'name']):
+            if process.info['name'] == 'procServ.exe' and self.process_arguments_match_this_ioc(process.cmdline()):
+                # Command line arguments match
+                pid_list.append(process.pid)
+        return pid_list
 
     def process_arguments_match_this_ioc(self, process_arguments):
         """
