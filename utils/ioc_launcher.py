@@ -482,12 +482,15 @@ class ProcServLauncher(BaseLauncher):
 
         at_least_one_killed = False
         for pid in self._find_processes():
-            os.kill(pid, SIGTERM)
-            time.sleep(10)
+            # check pid still exists otherwise os.kill() throws an OSError
+            # we get two cygwin processes ids and killing one may remove both processes
             if psutil.pid_exists(pid):
-                print("Process is still running try killing again!")
                 os.kill(pid, SIGTERM)
-            at_least_one_killed = True
+                time.sleep(10)
+                if psutil.pid_exists(pid):
+                    print("Process is still running try killing again!")
+                    os.kill(pid, SIGTERM)
+                at_least_one_killed = True
 
         if not at_least_one_killed:
             print("No process with name procServ.exe found that matched command line {}".format(self.command_line))
