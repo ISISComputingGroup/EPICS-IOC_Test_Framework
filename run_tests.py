@@ -24,7 +24,7 @@ from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 from utils.build_architectures import BuildArchitectures
-
+from genie_python.utilities import cleanup_subprocs_on_process_exit
 
 def clean_environment():
     """
@@ -399,9 +399,13 @@ if __name__ == '__main__':
     if arguments.tests_mode == "NOSIM":
         tests_mode = TestModes.NOSIM
 
+    # make sure we close any subprocesses we create when we exit
+    job_handle = cleanup_subprocs_on_process_exit()
+
     done = False
     success = False
     count = 0
+
     while not done:
         if arguments.repeat_until_fail:
             count += 1
