@@ -159,21 +159,16 @@ class MclennanTests(unittest.TestCase):
         macros = IOC_MACROS
         macros["MOTOR_ASG"] = "WASL0" 
         with self._ioc.start_with_macros(macros, pv_to_wait_for=PV_TO_WAIT_FOR):
-            try:
+            with self.assertRaises(WriteAccessException, msg="HVEL should not be able to be set based on the default ASG level (WASL0)"):
                 self.ca_motor.set_pv_value(MTR1_HVEL, 0.1) # testing HVEL because it is part of the group of PVs that the ASG and ASLs control
-            except WriteAccessException as Exception:
-                # this is the error we want to occur
-                pass
                 
     def test_WHEN_MOTOR_ASG_is_NOT_SET_THEN_prevent_HVEL_setting(self):
         # when MOTOR_ASG macro does not exist the db record should default to using WASL0
         macros = IOC_MACROS
+        del macros["MOTOR_ASG"]
         with self._ioc.start_with_macros(macros, pv_to_wait_for=PV_TO_WAIT_FOR):
-            try:
+            with self.assertRaises(WriteAccessException, msg="HVEL should not be able to be set based on the default ASG level (WASL0)"):
                 self.ca_motor.set_pv_value(MTR1_HVEL, 0.1)
-            except WriteAccessException as Exception:
-                # this is the error we want to occur here
-                pass
 
     def test_WHEN_MOTOR_ASG_is_DEFAULT_THEN_allow_HVEL_setting(self):
         macros = IOC_MACROS
