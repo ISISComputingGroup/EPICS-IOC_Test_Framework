@@ -26,7 +26,11 @@ def device_collection_launcher(devices):
     Context manager that launches a list of devices
     :param devices: list of context managers representing the devices to launch (see device_launcher above)
     """
-    with ExitStack() as stack:
-        for device in devices:
-            stack.enter_context(device)
-        yield
+    try:
+        with ExitStack() as stack:
+            for device in devices:
+                stack.enter_context(device)
+            yield
+    except GeneratorExit:
+        print("Cleaning up... please wait")
+        raise
