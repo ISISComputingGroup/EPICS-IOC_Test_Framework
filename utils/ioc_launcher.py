@@ -516,6 +516,8 @@ class ProcServLauncher(BaseLauncher):
                     os.kill(pid, SIGTERM)
                 except ProcessLookupError:
                     # Process might have already been terminated
+                    # we get two cygwin processes ids and killing one
+                    # may have removed both processes
                     pass
 
             time.sleep(1)
