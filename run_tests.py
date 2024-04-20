@@ -212,20 +212,21 @@ def prompt_user_to_run_tests(test_names, device_launchers):
         None
 
     """
-    print(
-        "Run tests? [Y/N] OR press Q to cleanup and exit: {}".format(test_names))
+    valid_answers = ["Y", "N"]
+    print("Run tests? [{}]: {}".format('/'.join(valid_answers), test_names))
     while True:
-        answer = six.moves.input()
-        if answer == "" or answer.upper()[0] not in ["N", "Y", "Q"]:
-            print("Answer must be Y or N")
-        elif answer.upper()[0] == "N":
-            print("Not running tests, emulator and IOC only. Ctrl+c to quit.")
-        elif answer.upper()[0] == "Y":
+        answer = six.moves.input().upper()
+        if answer == "" or answer[0] not in valid_answers:
+            print("Valid answers are: {}".format(" or ".join(valid_answers)))
+        elif answer[0] == "N":
+            print("Not running tests, emulator and IOC only. Press Q to cleanup and exit.")
+            valid_answers = ["Q"]
+        elif answer[0] == "Y":
             return
-        elif answer.upper()[0] == "Q":
+        elif answer[0] == "Q":
             print("Cleaning up...")
             device_launchers.__exit__(None, None, None)
-            sys.exit(0)
+            sys.exit(0) # raises SystemExit exception to call other cleanups
 
 
 def report_test_coverage_for_devices(tested_directories):
@@ -333,6 +334,7 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
         with modified_environment(**settings), device_launchers:
             if ask_before_running_tests:
                 prompt_user_to_run_tests(test_names, device_launchers)
+            print("Press Ctrl-C to terminate tests, but be patient for IOC cleanups to run")
             result = runner.run(test_suite).wasSuccessful()
     except Exception:
         msg = "ERROR: while attempting to load test suite: {}".format(

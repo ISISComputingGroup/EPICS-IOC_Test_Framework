@@ -498,7 +498,7 @@ class ProcServLauncher(BaseLauncher):
         """
         Shuts telnet connection and kills IOC. Identifies the spawned procServ processes and kills them
         """
-        print("Terminating IOC ({})".format(self._device))
+        print("\nTerminating IOC ({})".format(self._device))
 
         if self._telnet is not None:
             self._telnet.close()
@@ -630,7 +630,7 @@ class IocLauncher(BaseLauncher):
         """
         Closes the IOC.
         """
-        print("Terminating IOC ({})".format(self._device))
+        print("\nTerminating IOC ({})".format(self._device))
 
         if self._process is not None:
             #  use write not communicate so that we don't wait for exit before continuing
@@ -701,7 +701,7 @@ class PythonIOCLauncher(IocLauncher):
         """
         Closes the IOC.
         """
-        print("Terminating python IOC ({})".format(self._device))
+        print("\nTerminating python IOC ({})".format(self._device))
 
         if self._process is not None:
             # just kill a process if this is the only way to stop it
