@@ -219,14 +219,14 @@ def prompt_user_to_run_tests(test_names, device_launchers):
         if answer == "" or answer[0] not in valid_answers:
             print("Valid answers are: {}".format(" or ".join(valid_answers)))
         elif answer[0] == "N":
-            print("Not running tests, emulator and IOC only. Press Q to cleanup and exit.")
+            print(
+                "Not running tests, emulator and IOC only. Press Q to cleanup and exit.")
             valid_answers = ["Q"]
         elif answer[0] == "Y":
             return
         elif answer[0] == "Q":
             print("Cleaning up...")
-            device_launchers.__exit__(None, None, None)
-            sys.exit(0) # raises SystemExit exception to call other cleanups
+            sys.exit(0)  # raises SystemExit exception to call other cleanups
 
 
 def report_test_coverage_for_devices(tested_directories):
@@ -334,7 +334,8 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
         with modified_environment(**settings), device_launchers:
             if ask_before_running_tests:
                 prompt_user_to_run_tests(test_names, device_launchers)
-            print("Press Ctrl-C to terminate tests, but be patient for IOC cleanups to run")
+            print(
+                "Press Ctrl-C to terminate tests, but be patient for IOC cleanups to run")
             result = runner.run(test_suite).wasSuccessful()
     except Exception:
         msg = "ERROR: while attempting to load test suite: {}".format(
