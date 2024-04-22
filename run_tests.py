@@ -332,11 +332,16 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
     try:
         with modified_environment(**settings), device_launchers:
-            if ask_before_running_tests:
-                prompt_user_to_run_tests(test_names, device_launchers)
-            print(
-                "Press Ctrl-C to terminate tests, but be patient for IOC cleanups to run")
-            result = runner.run(test_suite).wasSuccessful()
+            try:
+                if ask_before_running_tests:
+                    prompt_user_to_run_tests(test_names, device_launchers)
+                    print(
+                        "Press Ctrl-C to terminate tests, but be patient for IOC cleanups to run")
+
+                result = runner.run(test_suite).wasSuccessful()
+            except KeyboardInterrupt:
+                print("\nCleaning up...")
+                sys.exit(0)
     except Exception:
         msg = "ERROR: while attempting to load test suite: {}".format(
             traceback.format_exc())
