@@ -747,6 +747,11 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         except KeyError:
             self.wait = False
 
+        try:
+            self._cwd_emulator_path = options["emulator_cwd_emulator_path"]
+        except KeyError:
+            self._cwd_emulator_path = False
+
         self._process = None
         self._log_file = None
 
@@ -756,7 +761,12 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         self._call_command_line(self.command_line.format(port=self._port))
 
     def _call_command_line(self, command_line):
+        if self._cwd_emulator_path:
+            cwd = self._emulator_path
+        else:
+            cwd = None
         self._process = subprocess.Popen(command_line,
+                                         cwd=cwd,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._log_file,
                                          stderr=subprocess.STDOUT)
