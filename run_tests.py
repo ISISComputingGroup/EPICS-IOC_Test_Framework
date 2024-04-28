@@ -441,7 +441,7 @@ if __name__ == '__main__':
         tests_mode = TestModes.NOSIM
 
     # make sure we close any subprocesses we create when we exit
-    job_handle = cleanup_subprocs_on_process_exit()
+    cleanup_subprocs_on_process_exit()
 
     done = False
     success = False
