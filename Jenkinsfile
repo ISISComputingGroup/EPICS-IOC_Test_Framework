@@ -83,11 +83,11 @@ pipeline {
             move C:\\Instrument\\Apps\\EPICS C:\\Instrument\\Apps\\EPICS-%MYJOB%
             set MOVEERR=%ERRORLEVEL%
             IF %INSTERR% NEQ 0 (
-                @echo ERROR unable to install ibex
+                @echo ERROR: unable to install ibex
                 exit /b %INSTERR%
             )
             IF %MOVEERR% NEQ 0 (
-                @echo ERROR unable to rename directory
+                @echo ERROR: unable to rename directory
                 exit /b %MOVEERR%
             )
             """
@@ -108,11 +108,11 @@ pipeline {
              )
              mklink /J C:\\Instrument\\Apps\\EPICS C:\\Instrument\\Apps\\EPICS-%MYJOB%
              IF %errorlevel% NEQ 0 (
-                @echo ERROR unable to make directory junction
+                @echo ERROR: unable to make directory junction
                 exit /b %errorlevel%
              )
              if not exist "C:\\Instrument\\Apps\\EPICS\\config_env.bat" (
-                @echo ERROR Unable to find config_env.bat in linked directory
+                @echo ERROR: Unable to find config_env.bat in linked directory
                 exit /b 1
              )
              del /q C:\\Instrument\\Var\\logs\\IOCTestFramework\\*.*
