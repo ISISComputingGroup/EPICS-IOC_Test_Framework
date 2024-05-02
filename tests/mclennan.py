@@ -181,7 +181,9 @@ class MclennanTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list([MTR1_HOMR, MTR1_HOMF]))
     def test_WHEN_sending_home_THEN_backup_all_is_sent(self, _, home_mode):
-        macros = IOC_MACROS
-        with self._ioc.start_with_macros(macros, pv_to_wait_for=PV_TO_WAIT_FOR):
-            self.ca_motor.set_pv_value(home_mode, 1)
-            self._lewis.assert_that_emulator_value_is("has_sent_BA", str(True))
+        # if BA has been sent before the test, reset it
+        self._lewis.backdoor_set_on_device("has_sent_BA", False)
+        self.ca_motor.set_pv_value(home_mode, 1)
+        self._lewis.assert_that_emulator_value_is("has_sent_BA", str(True))
+        # reset the BA flag just in case other tests forget to do so
+        self._lewis.backdoor_set_on_device("has_sent_BA", False)
