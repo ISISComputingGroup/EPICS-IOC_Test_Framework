@@ -198,6 +198,9 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
     if report_coverage:
         report_test_coverage_for_devices(tested_ioc_directories)
 
+    if len(test_results) == 0:
+        print("No tests found that matched criteria/mode specified")
+
     return all(test_result is True for test_result in test_results)
 
 
