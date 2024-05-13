@@ -6,6 +6,7 @@ import contextlib
 import abc
 import os
 import subprocess
+import psutil
 
 import sys
 from datetime import datetime
@@ -509,7 +510,7 @@ class LewisLauncher(EmulatorLauncher):
         self._logFile.flush()
         print("Started Lewis with '{0}'\n".format(
             " ".join(lewis_command_line)))
-        self._process = subprocess.Popen(lewis_command_line,
+        self._process = psutil.Popen(lewis_command_line,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._logFile,
                                          stderr=subprocess.STDOUT)
@@ -587,7 +588,7 @@ class LewisLauncher(EmulatorLauncher):
             time_stamp, " ".join(lewis_command_line)))
         self._logFile.flush()
         try:
-            p = subprocess.Popen(
+            p = psutil.Popen(
                 lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             for i in range(1, 40):
                 code = p.poll()
@@ -765,7 +766,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             cwd = self._emulator_path
         else:
             cwd = None
-        self._process = subprocess.Popen(command_line,
+        self._process = psutil.Popen(command_line,
                                          cwd=cwd,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._log_file,
@@ -775,8 +776,17 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             self._process.wait()
 
     def _close(self):
+        print("Closing commandline emulator.")
+        children = self._process.children(recursive=True)
+        for child in children:
+            if child is not None:
+                if child.is_running():
+                    child.terminate()
+                child.wait()
         if self._process is not None:
-            self._process.terminate()
+            if self._process.is_running():
+                self._process.terminate()
+            self._process.wait()
         if self._log_file is not None:
             self._log_file.close()
 
