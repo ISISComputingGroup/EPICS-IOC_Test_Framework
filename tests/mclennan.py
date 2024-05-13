@@ -20,6 +20,7 @@ MTR1_RBV = f"{MTR1}.RBV"
 MTR1_MRES = f"{MTR1}.MRES"
 MTR1_HVEL = f"{MTR1}.HVEL"
 MTR1_HOMR = f"{MTR1}.HOMR"
+MTR1_HOMF = f"{MTR1}.HOMF"
 MTR1_SAFE_STUP = f"{MTR1}:SAFE_STUP.PROC"
 MTR2 = "MTR0102"
 MTR2_NAME = "Test2"
@@ -157,11 +158,12 @@ class MclennanTests(unittest.TestCase):
 
     def test_WHEN_MOTOR_ASG_is_WASL0_THEN_prevent_HVEL_setting(self):
         macros = IOC_MACROS
-        macros["MOTOR_ASG"] = "WASL0" 
+        macros["MOTOR_ASG"] = "WASL0"
         with self._ioc.start_with_macros(macros, pv_to_wait_for=PV_TO_WAIT_FOR):
             with self.assertRaises(WriteAccessException, msg="HVEL should not be able to be set based on the default ASG level (WASL0)"):
-                self.ca_motor.set_pv_value(MTR1_HVEL, 0.1) # testing HVEL because it is part of the group of PVs that the ASG and ASLs control
-                
+                # testing HVEL because it is part of the group of PVs that the ASG and ASLs control
+                self.ca_motor.set_pv_value(MTR1_HVEL, 0.1)
+
     def test_WHEN_MOTOR_ASG_is_NOT_SET_THEN_prevent_HVEL_setting(self):
         # when MOTOR_ASG macro does not exist the db record should default to using WASL0
         macros = IOC_MACROS
@@ -172,8 +174,16 @@ class MclennanTests(unittest.TestCase):
 
     def test_WHEN_MOTOR_ASG_is_DEFAULT_THEN_allow_HVEL_setting(self):
         macros = IOC_MACROS
-        macros["MOTOR_ASG"] = "DEFAULT" # set in globals.txt WASL0/DEFAULT
+        macros["MOTOR_ASG"] = "DEFAULT"  # set in globals.txt WASL0/DEFAULT
         with self._ioc.start_with_macros(macros, pv_to_wait_for=PV_TO_WAIT_FOR):
             self.ca_motor.set_pv_value(MTR1_HVEL, 0.1)
-            # don't want try and except here as they SHOULD have write access
+        # don't want try and except here as they SHOULD have write access
 
+    @parameterized.expand(parameterized_list([MTR1_HOMR, MTR1_HOMF]))
+    def test_WHEN_sending_home_THEN_backup_all_is_sent(self, _, home_mode):
+        # if BA has been sent before the test, reset it
+        self._lewis.backdoor_set_on_device("has_sent_BA", False)
+        self.ca_motor.set_pv_value(home_mode, 1)
+        self._lewis.assert_that_emulator_value_is("has_sent_BA", str(True))
+        # reset the BA flag just in case other tests forget to do so
+        self._lewis.backdoor_set_on_device("has_sent_BA", False)
