@@ -1,8 +1,9 @@
 import os
 import unittest
-import psutil
+
 from time import sleep
 from hamcrest import assert_that, is_, equal_to, has_length
+
 from ..emulator_launcher import CommandLineEmulatorLauncher
 
 
