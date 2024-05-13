@@ -776,6 +776,11 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             self._process.wait()
 
     def _close(self):
+        print("Closing commandline emulator.")
+        children = self._process.children(recursive=True)
+        for child in children:
+            if child is not None:
+                child.terminate()
         if self._process is not None:
             self._process.terminate()
         if self._log_file is not None:
