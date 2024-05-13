@@ -780,9 +780,13 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         children = self._process.children(recursive=True)
         for child in children:
             if child is not None:
-                child.terminate()
+                if child.is_running():
+                    child.terminate()
+                child.wait()
         if self._process is not None:
-            self._process.terminate()
+            if self._process.is_running():
+                self._process.terminate()
+            self._process.wait()
         if self._log_file is not None:
             self._log_file.close()
 
