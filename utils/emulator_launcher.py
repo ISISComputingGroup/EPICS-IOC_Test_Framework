@@ -510,7 +510,7 @@ class LewisLauncher(EmulatorLauncher):
         self._logFile.flush()
         print("Started Lewis with '{0}'\n".format(
             " ".join(lewis_command_line)))
-        self._process = psutil.Popen(lewis_command_line,
+        self._process = subprocess.Popen(lewis_command_line,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._logFile,
                                          stderr=subprocess.STDOUT)
@@ -588,7 +588,7 @@ class LewisLauncher(EmulatorLauncher):
             time_stamp, " ".join(lewis_command_line)))
         self._logFile.flush()
         try:
-            p = psutil.Popen(
+            p = subprocess.Popen(
                 lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             for i in range(1, 40):
                 code = p.poll()
