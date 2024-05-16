@@ -184,7 +184,7 @@ class BaseLauncher(object):
         ca = self._get_channel_access()
 
         with check_existence_pv(ca, self._device, self._pv_for_existence):
-            print("Starting IOC ({})".format(self._device))
+            print(f"Starting IOC ({self._device}), IOC log file is {self.log_file_name}")
 
             settings = self.get_environment_vars()
 

@@ -504,7 +504,7 @@ class LewisLauncher(EmulatorLauncher):
 
         # Set lewis speed
         lewis_command_line.extend(["-e", str(self._speed), self._device])
-        print("Started Lewis Emulator ({0})\n".format(self._device))
+        print(f"Started Lewis Emulator ({self._device}), Lewis log file is {self._log_filename()}\n")
         self._logFile.write("Started Lewis with '{0}'\n".format(
             " ".join(lewis_command_line)))
         self._logFile.flush()
