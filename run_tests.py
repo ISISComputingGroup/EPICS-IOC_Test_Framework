@@ -10,7 +10,6 @@ import unittest
 from typing import List, Any
 import importlib
 
-import six
 import xmlrunner
 import glob
 
@@ -218,7 +217,7 @@ def prompt_user_to_run_tests(test_names, device_launchers):
     valid_answers = ["Y", "N"]
     print("Run tests? [{}]: {}".format('/'.join(valid_answers), test_names))
     while True:
-        answer = six.moves.input().upper()
+        answer = input().upper()
         if answer == "" or answer[0] not in valid_answers:
             print("Valid answers are: {}".format(" or ".join(valid_answers)))
         elif answer[0] == "N":
@@ -354,10 +353,6 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
 
 if __name__ == '__main__':
-    if six.PY2:
-        print("IOC system tests should now be run under python 3. Aborting.")
-        sys.exit(-1)
-
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',

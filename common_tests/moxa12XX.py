@@ -1,4 +1,3 @@
-import six
 
 from abc import ABCMeta, abstractmethod
 
@@ -7,8 +6,7 @@ from utils.testing import get_running_lewis_and_ioc
 from itertools import product
 
 
-@six.add_metaclass(ABCMeta)
-class Moxa12XXBase(object):
+class Moxa12XXBase(object, metaclass=ABCMeta):
     """
     Tests for a moxa ioLogik e1240. (8x DC Voltage/Current measurements)
     """

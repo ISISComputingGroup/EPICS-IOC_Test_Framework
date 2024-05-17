@@ -1,7 +1,6 @@
 import abc
 import math
 import time
-import six
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
@@ -21,8 +20,7 @@ LOTS_OF_CYCLES = 999999
 CHANNELS = {"Position": 1, "Stress": 2, "Strain": 3}
 
 
-@six.add_metaclass(abc.ABCMeta)
-class InstronBase(object):
+class InstronBase(object, metaclass=abc.ABCMeta):
     """
     Tests for the Instron IOC.
     """
