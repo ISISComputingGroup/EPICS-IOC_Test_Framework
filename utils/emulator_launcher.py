@@ -777,16 +777,27 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
 
     def _close(self):
         print("Closing commandline emulator.")
+        # We need to catch psutil.NoSuchProcess as it is possible:
+        # * the main process may exit after the children have terminated
+        #   and before terminate() can be called by us on it
+        # * terminating one child may lead to another exiting before
+        #   we call terminate() ourselves on it
         children = self._process.children(recursive=True)
         for child in children:
             if child is not None:
-                if child.is_running():
-                    child.terminate()
-                child.wait()
+                try:
+                    if child.is_running():
+                        child.terminate()
+                    child.wait()
+                except psutil.NoSuchProcess:
+                    pass
         if self._process is not None:
-            if self._process.is_running():
-                self._process.terminate()
-            self._process.wait()
+            try:
+                if self._process.is_running():
+                    self._process.terminate()
+                self._process.wait()
+            except psutil.NoSuchProcess:
+                pass
         if self._log_file is not None:
             self._log_file.close()
 
