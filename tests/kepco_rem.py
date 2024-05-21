@@ -14,7 +14,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KEPCO"),
-        "macros": {"CURRENT_MAX": MAX_CURRENT},
+        "macros": {"CURRENT_MAX": MAX_CURRENT, "REMOTE_ON_SET" : "YES"},
         "emulator": emulator_name,
         "ioc_launcher_class": ProcServLauncher,
     },
