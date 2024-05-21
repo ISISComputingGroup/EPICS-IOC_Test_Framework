@@ -6,6 +6,7 @@ import contextlib
 import abc
 import os
 import subprocess
+import psutil
 
 import sys
 from datetime import datetime
@@ -503,7 +504,7 @@ class LewisLauncher(EmulatorLauncher):
 
         # Set lewis speed
         lewis_command_line.extend(["-e", str(self._speed), self._device])
-        print("Started Lewis Emulator ({0})\n".format(self._device))
+        print(f"Started Lewis Emulator ({self._device}), Lewis log file is {self._log_filename()}\n")
         self._logFile.write("Started Lewis with '{0}'\n".format(
             " ".join(lewis_command_line)))
         self._logFile.flush()
@@ -765,7 +766,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             cwd = self._emulator_path
         else:
             cwd = None
-        self._process = subprocess.Popen(command_line,
+        self._process = psutil.Popen(command_line,
                                          cwd=cwd,
                                          creationflags=subprocess.CREATE_NEW_CONSOLE,
                                          stdout=self._log_file,
@@ -775,8 +776,28 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             self._process.wait()
 
     def _close(self):
+        print("Closing commandline emulator.")
+        # We need to catch psutil.NoSuchProcess as it is possible:
+        # * the main process may exit after the children have terminated
+        #   and before terminate() can be called by us on it
+        # * terminating one child may lead to another exiting before
+        #   we call terminate() ourselves on it
+        children = self._process.children(recursive=True)
+        for child in children:
+            if child is not None:
+                try:
+                    if child.is_running():
+                        child.terminate()
+                    child.wait()
+                except psutil.NoSuchProcess:
+                    pass
         if self._process is not None:
-            self._process.terminate()
+            try:
+                if self._process.is_running():
+                    self._process.terminate()
+                self._process.wait()
+            except psutil.NoSuchProcess:
+                pass
         if self._log_file is not None:
             self._log_file.close()
 
