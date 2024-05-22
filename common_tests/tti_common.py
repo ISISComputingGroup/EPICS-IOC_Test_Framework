@@ -1,13 +1,11 @@
 import abc
 
-import six
 from parameterized import parameterized
 
 from utils.testing import skip_if_recsim
 
 
-@six.add_metaclass(abc.ABCMeta)
-class TtiCommon(object):
+class TtiCommon(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_off_state_name(self):

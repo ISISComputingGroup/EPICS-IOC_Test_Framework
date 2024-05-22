@@ -10,8 +10,6 @@ import psutil
 from time import sleep
 from abc import ABCMeta
 
-import six
-
 from utils.channel_access import ChannelAccess
 from utils.free_ports import get_free_ports
 from utils.log_file import log_filename, LogFileManager
@@ -119,8 +117,7 @@ class IOCRegister(object):
         cls.RunningIOCs[name] = ioc
 
 
-@six.add_metaclass(ABCMeta)
-class BaseLauncher(object):
+class BaseLauncher(object, metaclass=ABCMeta):
     """
     Launcher base, this is the base class for a launcher of application under test.
     """

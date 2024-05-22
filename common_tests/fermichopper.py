@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from time import sleep
 
 import itertools
-import six
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
@@ -26,8 +25,7 @@ class ErrorStrings(object):
     CONTROLLER_OVERSPEED = "Controller reports speed limit exceeded"
 
 
-@six.add_metaclass(ABCMeta)
-class FermichopperBase(object):
+class FermichopperBase(object, metaclass=ABCMeta):
     """
     Tests for the Fermi Chopper IOC.
     """

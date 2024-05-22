@@ -12,7 +12,6 @@ import sys
 from datetime import datetime
 from time import sleep, time
 from functools import partial
-import six
 from dataclasses import dataclass
 from typing import List, Any, Dict
 
@@ -66,8 +65,7 @@ class EmulatorRegister(object):
         del cls.RunningEmulators[name]
 
 
-@six.add_metaclass(abc.ABCMeta)
-class EmulatorLauncher(object):
+class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
     def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         """

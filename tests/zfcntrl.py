@@ -5,8 +5,6 @@ import operator
 import unittest
 from time import sleep
 
-import six
-
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
@@ -457,7 +455,7 @@ class ZeroFieldTests(unittest.TestCase):
     def test_GIVEN_manual_mode_and_just_outside_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
         fields = {"X": 55, "Y": 66, "Z": 77}
         self._set_simulated_measured_fields(fields, overload=True)
-        self._set_user_setpoints({k: v + 1.01 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
+        self._set_user_setpoints({k: v + 1.01 * STABILITY_TOLERANCE for k, v in fields.items()})
 
         self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
@@ -465,7 +463,7 @@ class ZeroFieldTests(unittest.TestCase):
     def test_GIVEN_manual_mode_and_just_within_tolerance_WHEN_magnetometer_is_overloaded_THEN_status_overloaded_and_setpoint_field_is_na(self):
         fields = {"X": 55, "Y": 66, "Z": 77}
         self._set_simulated_measured_fields(fields, overload=True)
-        self._set_user_setpoints({k: v + 0.99 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
+        self._set_user_setpoints({k: v + 0.99 * STABILITY_TOLERANCE for k, v in fields.items()})
 
         self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.MAGNETOMETER_OVERLOAD)
@@ -523,7 +521,7 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_simulated_measured_fields(fields, overload=False)
 
         # For this test we need changing fields so that we can detect that the writes failed
-        self._set_user_setpoints({k: v + 10 * STABILITY_TOLERANCE for k, v in six.iteritems(fields)})
+        self._set_user_setpoints({k: v + 10 * STABILITY_TOLERANCE for k, v in fields.items()})
         # ... and we also need large limits so that we see that the writes failed as opposed to a limits error
         self._set_output_limits(
             lower_limits={k: -999999 for k in FIELD_AXES},
@@ -609,7 +607,7 @@ class ZeroFieldTests(unittest.TestCase):
         fields = {"X": 5, "Y": 0, "Z": -5}
 
         adjustment_amount = 10 * STABILITY_TOLERANCE  # To ensure that it is not considered stable to start with
-        measured_fields = {k: measured_field_modifier(v, adjustment_amount) for k, v in six.iteritems(fields)}
+        measured_fields = {k: measured_field_modifier(v, adjustment_amount) for k, v in fields.items()}
 
         self._set_scaling_factors(scaling_factor, scaling_factor, scaling_factor, fiddle=1)
         self._set_simulated_measured_fields(measured_fields, overload=False)
