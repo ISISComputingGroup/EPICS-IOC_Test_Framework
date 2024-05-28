@@ -255,6 +255,10 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         # Assert alarms clear on reconnection
         with self._get_temperature_setter_wrapper():
             self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
+    
+    def test_WHEN_eurotherm_missing_THEN_updates_of_PVs_stop(self):
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_value_is_unchanged("A01:RBV", 20)
 
     @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")
