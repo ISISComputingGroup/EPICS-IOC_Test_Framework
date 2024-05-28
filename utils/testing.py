@@ -2,8 +2,6 @@ import functools
 import unittest
 from time import sleep
 
-import six
-
 from utils.ioc_launcher import IOCRegister, IocLauncher
 from utils.emulator_launcher import EmulatorRegister, LewisLauncher
 
@@ -141,7 +139,7 @@ def skip_if_condition(condition, reason):
         reason (str): The reason for skipping the test
     """
     def decorator(func):
-        @six.wraps(func)
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if condition():
                 raise unittest.SkipTest(reason)
@@ -173,7 +171,7 @@ def add_method(method):
         method (func): The method to add to the class decorated. Should be callable.
     """
 
-    @six.wraps(method)
+    @functools.wraps(method)
     def wrapper(class_to_decorate):
         setattr(class_to_decorate, method.__name__, method)
         return class_to_decorate
@@ -218,7 +216,7 @@ def unstable_test(max_retries=2, error_class=AssertionError, wait_between_runs=0
         wait_between_runs: number of seconds to wait between each failed attempt at running the test
     """
     def decorator(func):
-        @six.wraps(func)
+        @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)  # Initial attempt to run the test "normally"

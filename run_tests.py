@@ -10,7 +10,6 @@ import unittest
 from typing import List, Any
 import importlib
 
-import six
 import xmlrunner
 import glob
 
@@ -24,7 +23,7 @@ from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
 from utils.free_ports import get_free_ports
 from utils.test_modes import TestModes
 from utils.build_architectures import BuildArchitectures
-
+from genie_python.utilities import cleanup_subprocs_on_process_exit
 
 def clean_environment():
     """
@@ -50,7 +49,8 @@ def check_and_do_pre_ioc_launch_hook(ioc):
     if callable(pre_ioc_launch_hook):
         pre_ioc_launch_hook()
     else:
-        raise ValueError("Pre IOC launch hook not callable, so nothing has been done for it.")
+        raise ValueError(
+            "Pre IOC launch hook not callable, so nothing has been done for it.")
 
 
 def make_device_launchers_from_module(test_module, mode):
@@ -68,18 +68,22 @@ def make_device_launchers_from_module(test_module, mode):
     try:
         iocs = test_module.IOCS
     except AttributeError:
-        raise AttributeError("Expected module '{}' to contain an IOCS attribute".format(test_module.__name__))
+        raise AttributeError(
+            "Expected module '{}' to contain an IOCS attribute".format(test_module.__name__))
 
     if len(iocs) < 1:
         raise ValueError("Need at least one IOC to launch")
 
     for ioc in iocs:
         if "name" not in ioc:
-            raise ValueError("IOC entry must have a 'name' attribute which should give the IOC name")
+            raise ValueError(
+                "IOC entry must have a 'name' attribute which should give the IOC name")
         if "directory" not in ioc:
-            raise ValueError("IOC entry must have a 'directory' attribute which should give the path to the IOC")
+            raise ValueError(
+                "IOC entry must have a 'directory' attribute which should give the path to the IOC")
 
-    print("Testing module {} in {} mode.".format(test_module.__name__, TestModes.name(mode)))
+    print("Testing module {} in {} mode.".format(
+        test_module.__name__, TestModes.name(mode)))
 
     device_launchers = []
     device_directories = set()
@@ -97,32 +101,39 @@ def make_device_launchers_from_module(test_module, mode):
         macros['LOG_PORT'] = free_port[1]
 
         ioc_launcher_class = ioc.get("ioc_launcher_class", IocLauncher)
-        ioc_launcher = ioc_launcher_class(test_module.__name__, ioc, mode, var_dir)
+        ioc_launcher = ioc_launcher_class(
+            test_module.__name__, ioc, mode, var_dir)
 
         if "emulator" in ioc and mode != TestModes.RECSIM:
-            emulator_launcher_class = ioc.get("emulator_launcher_class", LewisLauncher)
+            emulator_launcher_class = ioc.get(
+                "emulator_launcher_class", LewisLauncher)
             emulator_launcher = emulator_launcher_class(test_module.__name__, ioc["emulator"], emulator_path, var_dir,
                                                         emmulator_port, ioc)
         elif "emulator" in ioc:
             emulator_launcher = NullEmulatorLauncher(test_module.__name__, ioc["emulator"], emulator_path, var_dir,
                                                      None, ioc)
         elif "emulators" in ioc and mode != TestModes.RECSIM:
-            emulator_launcher_class = ioc.get("emulators_launcher_class", MultiLewisLauncher)
-            test_emulator_data: List[TestEmulatorData] = ioc.get("emulators", [])
+            emulator_launcher_class = ioc.get(
+                "emulators_launcher_class", MultiLewisLauncher)
+            test_emulator_data: List[TestEmulatorData] = ioc.get(
+                "emulators", [])
             emulator_list: List[Emulator] = []
             for test_emulator in test_emulator_data:
                 emulator_list.append(
                     Emulator(
                         test_emulator.launcher_address, test_emulator.emulator,
-                        os.path.join(var_dir, f"{test_emulator.emulator}_{test_emulator.launcher_address}"),
+                        os.path.join(
+                            var_dir, f"{test_emulator.emulator}_{test_emulator.launcher_address}"),
                         test_emulator.emulator_port, ioc
                     )
                 )
-            emulator_launcher = emulator_launcher_class(test_module.__name__, emulator_list)
+            emulator_launcher = emulator_launcher_class(
+                test_module.__name__, emulator_list)
         else:
             emulator_launcher = None
 
-        device_launchers.append(device_launcher(ioc_launcher, emulator_launcher))
+        device_launchers.append(device_launcher(
+            ioc_launcher, emulator_launcher))
 
     return device_launchers, device_directories
 
@@ -142,15 +153,18 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         boolean: True if all tests pass and false otherwise.
     """
 
-    modules_to_be_loaded = sorted({test.split(".")[0].strip() for test in test_names})
-    modules_to_be_tested = [ModuleTests(module) for module in modules_to_be_loaded]
+    modules_to_be_loaded = sorted(
+        {test.split(".")[0].strip() for test in test_names})
+    modules_to_be_tested = [ModuleTests(module)
+                            for module in modules_to_be_loaded]
 
     modes = set()
     tested_ioc_directories = set()
 
     for module in modules_to_be_tested:
         # Add tests that are either the module or a subset of the module i.e. module.TestClass
-        module.tests = [test for test in test_names if test == module.name or test.startswith(module.name + ".")]
+        module.tests = [test for test in test_names if test ==
+                        module.name or test.startswith(module.name + ".")]
         modes.update(module.modes)
 
     test_results = []
@@ -162,16 +176,19 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
         if tests_mode is not None and mode != tests_mode:
             continue
 
-        modules_to_be_tested_in_current_mode = [module for module in modules_to_be_tested if mode in module.modes]
+        modules_to_be_tested_in_current_mode = [
+            module for module in modules_to_be_tested if mode in module.modes]
 
         for module in modules_to_be_tested_in_current_mode:
             # Skip tests that cannot be run with a 32-bit architecture
             if arch not in module.architectures:
-                print(f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.archname(arch)} build architecture")
+                print(
+                    f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.archname(arch)} build architecture")
                 continue
 
             clean_environment()
-            device_launchers, device_directories = make_device_launchers_from_module(module.file, mode)
+            device_launchers, device_directories = make_device_launchers_from_module(
+                module.file, mode)
             tested_ioc_directories.update(device_directories)
             test_results.append(
                 run_tests(arguments.prefix, module.name, module.tests, device_collection_launcher(device_launchers),
@@ -180,10 +197,13 @@ def load_and_run_tests(test_names, failfast, report_coverage, ask_before_running
     if report_coverage:
         report_test_coverage_for_devices(tested_ioc_directories)
 
+    if len(test_results) == 0:
+        print("No tests found that matched criteria/mode specified")
+
     return all(test_result is True for test_result in test_results)
 
 
-def prompt_user_to_run_tests(test_names):
+def prompt_user_to_run_tests(test_names, device_launchers):
     """
     Utility function to ask the user whether to begin the tests
 
@@ -194,15 +214,21 @@ def prompt_user_to_run_tests(test_names):
         None
 
     """
-    print("Run tests? [Y/N]: {}".format(test_names))
+    valid_answers = ["Y", "N"]
+    print("Run tests? [{}]: {}".format('/'.join(valid_answers), test_names))
     while True:
-        answer = six.moves.input()
-        if answer == "" or answer.upper()[0] not in ["N", "Y"]:
-            print("Answer must be Y or N")
-        elif answer.upper()[0] == "N":
-            print("Not running tests, emulator and IOC only. Ctrl+c to quit.")
-        elif answer.upper()[0] == "Y":
+        answer = input().upper()
+        if answer == "" or answer[0] not in valid_answers:
+            print("Valid answers are: {}".format(" or ".join(valid_answers)))
+        elif answer[0] == "N":
+            print(
+                "Not running tests, emulator and IOC only. Press Q to cleanup and exit.")
+            valid_answers = ["Q"]
+        elif answer[0] == "Y":
             return
+        elif answer[0] == "Q":
+            print("Cleaning up...")
+            sys.exit(0)  # raises SystemExit exception to call other cleanups
 
 
 def report_test_coverage_for_devices(tested_directories):
@@ -225,7 +251,8 @@ def report_test_coverage_for_devices(tested_directories):
     tested_iocs = []
     for dir in tested_directories:
         # Get the 3rd folder up from the ioc boot directory (should be device name) in lowercase
-        tested_iocs.append(os.path.normpath(dir).split(os.path.sep)[-3].lower())
+        tested_iocs.append(os.path.normpath(
+            dir).split(os.path.sep)[-3].lower())
 
     tested_iocs = set(tested_iocs)
     missing_tests = sorted(iocs.difference(tested_iocs))
@@ -233,6 +260,7 @@ def report_test_coverage_for_devices(tested_directories):
     print("\nThe following IOCs have not been tested:\n")
     for test in missing_tests:
         print(test)
+
 
 def get_build_architecture():
     """
@@ -247,6 +275,7 @@ def get_build_architecture():
     else:
         return BuildArchitectures._64BIT
 
+
 class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """
     Class to allow reporting of an error to run any tests.
@@ -260,7 +289,7 @@ class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
     """
 
     def __init__(self, failing_module_name, msg):
-        # strictly we should use and pass (*args, **kwargs) but we only call 
+        # strictly we should use and pass (*args, **kwargs) but we only call
         # this directly ourselves and not from a test suite.
         # We create a function based on fail_with_msg() to get a better test summary.
         func_name = "{}_module_failed_to_load".format(failing_module_name)
@@ -299,25 +328,31 @@ def run_tests(prefix, module_name, tests_to_run, device_launchers, failfast_swit
 
     test_names = [f"tests.{test}" for test in tests_to_run]
 
-    runner = xmlrunner.XMLTestRunner(output='test-reports', stream=sys.stdout, failfast=failfast_switch, verbosity=3)
+    runner = xmlrunner.XMLTestRunner(
+        output='test-reports', stream=sys.stdout, failfast=failfast_switch, verbosity=3)
     test_suite = unittest.TestLoader().loadTestsFromNames(test_names)
 
     try:
         with modified_environment(**settings), device_launchers:
-            if ask_before_running_tests:
-                prompt_user_to_run_tests(test_names)
-            result = runner.run(test_suite).wasSuccessful()
+            try:
+                if ask_before_running_tests:
+                    prompt_user_to_run_tests(test_names, device_launchers)
+
+                print(
+                    "Press Ctrl-C to terminate tests, but be patient for IOC cleanups to run")
+                result = runner.run(test_suite).wasSuccessful()
+            except KeyboardInterrupt:
+                print("\nCleaning up...")
+                sys.exit(0)
     except Exception:
-        msg = "Error while attempting to load test suite: {}".format(traceback.format_exc())
-        result = runner.run(ReportFailLoadTestsuiteTestCase(module_name, msg)).wasSuccessful()
+        msg = "ERROR: while attempting to load test suite: {}".format(
+            traceback.format_exc())
+        result = runner.run(ReportFailLoadTestsuiteTestCase(
+            module_name, msg)).wasSuccessful()
     return result
 
 
 if __name__ == '__main__':
-    if six.PY2:
-        print("IOC system tests should now be run under python 3. Aborting.")
-        sys.exit(-1)
-
     parser = argparse.ArgumentParser(
         description='Test an IOC under emulation by running tests against it')
     parser.add_argument('-l', '--list-devices',
@@ -357,7 +392,8 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
 
     if arguments.test_and_emulator:
-        arguments.tests_path = os.path.join(arguments.test_and_emulator, "tests")
+        arguments.tests_path = os.path.join(
+            arguments.test_and_emulator, "tests")
         emulator_path = arguments.test_and_emulator
     else:
         emulator_path = DEVICE_EMULATOR_PATH
@@ -376,17 +412,20 @@ if __name__ == '__main__':
 
     if arguments.list_devices:
         print("Available tests:")
-        print('\n'.join(sorted(package_contents(arguments.tests_path, arguments.tests_filter_files))))
+        print('\n'.join(sorted(package_contents(
+            arguments.tests_path, arguments.tests_filter_files))))
         sys.exit(0)
 
-    var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv("ICPVARDIR", os.curdir)
+    var_dir = arguments.var_dir if arguments.var_dir is not None else os.getenv(
+        "ICPVARDIR", os.curdir)
     var_dir = var_dir.replace('/', '\\')
 
     if arguments.prefix is None:
         print("Cannot run without instrument prefix, you may need to run this using an EPICS terminal")
         sys.exit(-1)
 
-    tests = arguments.tests if arguments.tests is not None else package_contents(arguments.tests_path, arguments.tests_filter_files)
+    tests = arguments.tests if arguments.tests is not None else package_contents(
+        arguments.tests_path, arguments.tests_filter_files)
     failfast = arguments.failfast
     report_coverage = arguments.report_coverage
     ask_before_running_tests = arguments.ask_before_running
@@ -399,21 +438,28 @@ if __name__ == '__main__':
     if arguments.tests_mode == "NOSIM":
         tests_mode = TestModes.NOSIM
 
+    # make sure we close any subprocesses we create when we exit
+    cleanup_subprocs_on_process_exit()
+
     done = False
     success = False
     count = 0
+
     while not done:
         if arguments.repeat_until_fail:
             count += 1
-            print(f"\n** Running tests until they fail, iteration {count} **\n")
+            print(
+                f"\n** Running tests until they fail, iteration {count} **\n")
         try:
-            success = load_and_run_tests(tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
+            success = load_and_run_tests(
+                tests, failfast, report_coverage, ask_before_running_tests, tests_mode)
         except Exception as e:
-            print("---\n---\n---\nAn Error occurred loading the tests: ")
+            print("---\n---\n---\nERROR: when loading the tests: ")
             traceback.print_exc()
             print("---\n---\n---\n")
             sys.exit(1)
         if not success:
             print("\nERROR: Some tests FAILED")
-        done = (not arguments.repeat_until_fail) or (arguments.repeat_until_fail and not success)
+        done = (not arguments.repeat_until_fail) or (
+            arguments.repeat_until_fail and not success)
     sys.exit(0 if success else 1)

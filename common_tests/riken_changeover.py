@@ -1,4 +1,3 @@
-import six
 from abc import ABCMeta, abstractmethod
 from utils.channel_access import ChannelAccess
 
@@ -8,8 +7,7 @@ except ImportError:
     from contextlib2 import ExitStack  # PY2
 
 
-@six.add_metaclass(ABCMeta)
-class RikenChangeover(object):
+class RikenChangeover(object, metaclass=ABCMeta):
     """
     Tests for a riken changeover.
 

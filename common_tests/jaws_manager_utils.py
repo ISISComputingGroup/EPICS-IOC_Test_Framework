@@ -1,6 +1,5 @@
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
-import six
 import abc
 
 UNDERLYING_GAP_SP = "MOT:JAWS{}:{}GAP:SP"
@@ -8,8 +7,7 @@ UNDERLYING_CENT_SP = "MOT:JAWS{}:{}CENT:SP"
 MOD_GAP = "JAWMAN:MOD:{}GAP:SP"
 
 
-@six.add_metaclass(abc.ABCMeta)
-class JawsManagerBase(object):
+class JawsManagerBase(object, metaclass=abc.ABCMeta):
     """
     Base classes for all jaws manager tests.
     """

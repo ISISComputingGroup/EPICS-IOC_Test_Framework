@@ -1,5 +1,4 @@
 import unittest
-import six
 
 from abc import ABCMeta, abstractmethod
 
@@ -43,8 +42,7 @@ def get_common_channel_access():
     return ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
 
 
-@six.add_metaclass(ABCMeta)
-class EdwardsTICBase(object):
+class EdwardsTICBase(object, metaclass=ABCMeta):
     @abstractmethod
     def get_base_PV(self):
         """
@@ -160,8 +158,7 @@ class EdwardsTICBase(object):
         # Assert alarms clear on reconnection
         self._check_alert_and_priority_PVs(ChannelAccess.Alarms.NONE)
 
-@six.add_metaclass(ABCMeta)
-class GaugeTestBase(EdwardsTICBase):
+class GaugeTestBase(EdwardsTICBase, metaclass=ABCMeta):
 
     @abstractmethod
     def get_gauge_number(self):
