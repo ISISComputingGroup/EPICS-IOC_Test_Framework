@@ -345,7 +345,7 @@ class ZeroFieldTests(unittest.TestCase):
         device being in local mode, for example. Note that this does not mark readbacks as invalid (for that, use
         _simulate_invalid_power_supply instead).
         """
-        pvs = ["CURRENT:SP.DISP", "VOLTAGE:SP.DISP", "OUTPUTMODE:SP.DISP", "OUTPUTSTATUS:SP.DISP"]
+        pvs = ["CURRENT:SP.DISP", "_CURRENT:SP.DISP", "VOLTAGE:SP.DISP", "OUTPUTMODE:SP.DISP", "OUTPUTSTATUS:SP.DISP"]
 
         for ca, pv in itertools.product((self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs):
             ca.set_pv_value(pv, 1, sleep_after_set=0)
