@@ -32,6 +32,7 @@ IOCS = [
         "pv_for_existence": "CR0:BOARD_ID",
         "macros": {
             "DEFAULTCFG": "ioctestdefaults",
+            "CARDS0": "6",
         },
         "environment_vars": {
             "DEFAULTCFG": "ioctestdefaults",
@@ -97,3 +98,9 @@ class CAENv895Tests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("SIM:CR0:C0:OUT:WIDTH:0_TO_7", width_0_to_7)
         self.ca.assert_that_pv_is("SIM:CR0:C0:OUT:WIDTH:8_TO_15", width_8_to_15)
+
+    def test_GIVEN_card_macro_set_WHEN_ioc_started_THEN_correct_number_of_card_pvs_loaded(self):
+        self.ca.assert_that_pv_is("CR0:CARDS", 6)
+        #The 6th card should exist, but the 7th shouldn't
+        self.ca.assert_that_pv_exists("CR0:C6:ENABLE")
+        self.ca.assert_that_pv_does_not_exist("CR0:C7:ENABLE")
