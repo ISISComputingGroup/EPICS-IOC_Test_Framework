@@ -25,6 +25,9 @@ def pre_ioc_launch_hook():
     defaults_contents_with_pv_prefix = defaults_contents.replace("{pv_prefix}", g.my_pv_prefix)
     write_defaults_to_autosave_configuration(defaults_contents_with_pv_prefix)
 
+NUM_CARDS_CRATE0 = 6
+NUM_CARDS_CRATE1 = 10
+
 IOCS = [
     {
         "name": DEVICE_PREFIX,
@@ -32,6 +35,8 @@ IOCS = [
         "pv_for_existence": "CR0:BOARD_ID",
         "macros": {
             "DEFAULTCFG": "ioctestdefaults",
+            "CARDS0": NUM_CARDS_CRATE0,
+            "CARDS1": NUM_CARDS_CRATE1,
         },
         "environment_vars": {
             "DEFAULTCFG": "ioctestdefaults",
@@ -97,3 +102,20 @@ class CAENv895Tests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("SIM:CR0:C0:OUT:WIDTH:0_TO_7", width_0_to_7)
         self.ca.assert_that_pv_is("SIM:CR0:C0:OUT:WIDTH:8_TO_15", width_8_to_15)
+
+    def test_GIVEN_card_macro_set_WHEN_ioc_started_THEN_correct_number_of_card_pvs_loaded(self):
+        # Crate 0 macro requests 6 cards
+        self.ca.assert_that_pv_is("CR0:CARDS", NUM_CARDS_CRATE0)
+        # The 6th card should exist, but the 7th shouldn't
+        self.ca.assert_that_pv_exists("CR0:C6:ENABLE")
+        self.ca.assert_that_pv_does_not_exist("CR0:C7:ENABLE")
+
+        # Crate 1 macro requests 10 cards
+        self.ca.assert_that_pv_is("CR1:CARDS", NUM_CARDS_CRATE1)
+        # The 6th card should exist, but the 7th shouldn't
+        self.ca.assert_that_pv_exists("CR1:C10:ENABLE")
+        self.ca.assert_that_pv_does_not_exist("CR1:C11:ENABLE")
+
+        # Crate 2 has no card macro so should not be loaded
+        self.ca.assert_that_pv_does_not_exist("CR2:CARDS")
+        
