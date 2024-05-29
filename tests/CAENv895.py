@@ -115,3 +115,4 @@ class CAENv895Tests(unittest.TestCase):
 
         # Crate 2 has no card macro so should not be loaded
         self.ca.assert_that_pv_does_not_exist("CR2:CARDS")
+        
