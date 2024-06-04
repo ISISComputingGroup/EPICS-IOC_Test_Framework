@@ -9,6 +9,7 @@ from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if
 from utils.ioc_launcher import IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
 
+SENSORS = ["A01", "A02", "A03"]
 SENSOR_DISCONNECTED_VALUE = 1529
 NONE_TXT_CALIBRATION_MAX_TEMPERATURE = 10000.0
 NONE_TXT_CALIBRATION_MIN_TEMPERATURE = 0.0
@@ -301,3 +302,10 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     def test_WHEN_low_limit_set_via_backdoor_THEN_low_lim_updates(self, _, val):
         self._lewis.backdoor_set_on_device("low_lim", val)
         self.ca.assert_that_pv_is_number("A01:LOWLIM", val, tolerance=0.05, timeout=15)
+
+    def test_WHEN_addr_disconnected_THEN_other_sensors_continue_reading(self, sensor_1, sensor_2, sensor_3):
+        sensor_1 = SENSORS[0]
+        sensor_2 = SENSORS[1]
+        sensor_3 = SENSORS[2]
+
+        self._lewis.backdoor_set_on_device(sensor_1, "")
