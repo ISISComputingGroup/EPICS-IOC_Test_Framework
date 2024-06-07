@@ -367,7 +367,7 @@ class ProcServLauncher(BaseLauncher):
                 '--timefmt="%Y-%m-%d %H:%M:%S"',
                 '--restrict', '--ignore="^D^C"', '--autorestart', '--wait',
                 '--name={}'.format(self._device.upper()),
-                '--pidfile="/cygdrive/c/windows/temp/EPICS_{}.pid"'.format(
+                '--pidfile="/cygdrive/c/instrument/var/run/EPICS_{}.pid"'.format(
                     self._device),
                 '--logport={:d}'.format(
                     self.logport), '--chdir="{}"'.format(cygwin_dir),
