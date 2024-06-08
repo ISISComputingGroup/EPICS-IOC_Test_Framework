@@ -4,6 +4,7 @@ from utils.test_modes import TestModes
 from utils.ioc_launcher import EPICS_TOP
 from utils.emulator_launcher import DAQMxEmulatorLauncher
 from common_tests.DAQmx import DAQmxTests, DEVICE_PREFIX, ICPCONFIGNAME
+from utils.build_architectures import BuildArchitectures
 
 import os
 
@@ -25,7 +26,7 @@ IOCS = [
 
 
 TEST_MODES = [TestModes.DEVSIM]
-
+BUILD_ARCHITECTURES = [BuildArchitectures._64BIT]
 
 class DAQmxMonsterTests(DAQmxTests, unittest.TestCase):
     """
