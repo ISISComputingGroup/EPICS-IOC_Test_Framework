@@ -35,7 +35,7 @@ IOCS = [
         "emulator": EMULATOR,
     },
 ]
-
+ADDRESS_KEYS = [1111,2222,3333,4444,5555,6666]
 
 TEST_MODES = [TestModes.DEVSIM]
 
@@ -43,7 +43,8 @@ TEST_MODES = [TestModes.DEVSIM]
 class EurothermTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermTests, self).setUp()
-        self._lewis.backdoor_set_on_device("scaling", 1.0 / float(SCALING))
+        for address in ADDRESS_KEYS:
+            self._lewis.backdoor_run_function_on_device("set_scaling", [f"{address}", f"{1.0 / float(SCALING)}", ])
     
     def get_device(self):
         return DEVICE
@@ -106,11 +107,11 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
 
-    def test_GIVEN_simulated_delay_WHEN_temperature_read_from_multiple_sensors_THEN_all_reads_correct(self):
-        self._lewis.backdoor_set_on_device("delay_time", 300 / 1000)
+    def test_GIVEN_simulated_delay_WHEN_temperature_read_from_multiple_sensors_THEN_all_reads_correct(self, addr=1111):
+        self._lewis.backdoor_set_on_device(f"delay_time", 300 / 1000)
 
         for temp in range(1, 10):
-            self._lewis.backdoor_set_on_device("current_temperature", float(temp))
+            self._lewis.backdoor_run_function_on_device(f"set_current_temperature", [f"{addr}", f"{temp}"])
             for id in range(1,7):
                 sensor = f"A{id:02}"
                 self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp))
