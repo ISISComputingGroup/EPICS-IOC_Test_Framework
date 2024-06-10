@@ -82,7 +82,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         else:
             self._lewis.backdoor_run_function_on_device(f"set_current_temperature", [f"{1111}", f"{temperature}"])
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP", temperature, 0.1, timeout=30)
-            self._lewis.backdoor_run_function_on_device(f"set_setpoint_temperature", [f"{1111}", f"{temperature}"])
+            self._lewis.backdoor_run_function_on_device(f"set_ramp_setpoint_temperature", [f"{1111}", f"{temperature}"])
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
     
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
