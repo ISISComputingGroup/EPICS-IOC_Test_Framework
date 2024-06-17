@@ -3,7 +3,7 @@ import unittest
 from parameterized import parameterized
 
 from common_tests.tpgx00 import Tpgx00Base
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from utils.test_modes import TestModes
 from utils.testing import skip_if_recsim, parameterized_list
 from enum import Enum
@@ -23,6 +23,7 @@ IOCS = [
     "emulator": "tpgx00",
     "lewis_protocol": "tpg500",
     "pv_for_existence": "UNITS",
+    "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
