@@ -1,5 +1,7 @@
+import time
 import unittest
 import itertools
+import time
 
 from parameterized import parameterized
 from utils.testing import parameterized_list
@@ -314,9 +316,11 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
                       "Y": 2.2,
                       "Z": 3.3}
 
-        with self._ioc.start_with_macros({"FORCE_SCAN": "NO"}, pv_to_wait_for="DISABLE"):
+        with self._ioc.start_with_macros({"FORCED_SCAN": "NO"}, pv_to_wait_for="DISABLE"):
 
             self.write_simulated_field_values(test_field)
+
+            time.sleep(1)
 
             for component in AXES.keys():
                 self.ca.assert_that_pv_is_not_number("DAQ:{}".format(component), test_field[component])
@@ -336,7 +340,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
                       "Y": 2.2,
                       "Z": 3.3}
 
-        with self._ioc.start_with_macros({"FORCE_SCAN": "YES"}, pv_to_wait_for="DISABLE"):
+        with self._ioc.start_with_macros({"FORCED_SCAN": "YES"}, pv_to_wait_for="DISABLE"):
             # WHEN
 
             self.write_simulated_field_values(test_field)
