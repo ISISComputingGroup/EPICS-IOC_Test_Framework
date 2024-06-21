@@ -1,5 +1,7 @@
+import time
 import unittest
 import itertools
+import time
 
 from parameterized import parameterized
 from utils.testing import parameterized_list
@@ -9,6 +11,7 @@ from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher, IOCRegiste
 import numpy as np
 
 DEVICE_PREFIX = "ZFMAGFLD_01"
+DEVICE_PREFIX_2 = "ZFMAGFLD_02"
 
 TEST_MODES = [TestModes.RECSIM]
 
@@ -307,25 +310,46 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         self.ca.assert_that_pv_is_number("FIELDSTRENGTH", expected_magnitude, tolerance=0.1*expected_magnitude, timeout=30)
 
-    def test_WHEN_takedata_alias_processed_THEN_all_magnetometer_axes_read_and_processed(self):
+    def test_GIVEN_no_forced_scans_WHEN_takedata_alias_processed_THEN_all_magnetometer_axes_read_and_processed(self):
         # GIVEN
         test_field = {"X": 1.1,
                       "Y": 2.2,
                       "Z": 3.3}
 
-        self.write_simulated_field_values(test_field)
+        with self._ioc.start_with_macros({"FORCED_SCAN": "NO"}, pv_to_wait_for="DISABLE"):
 
-        for component in AXES.keys():
-            self.ca.assert_that_pv_is_not_number("DAQ:{}".format(component), test_field[component])
+            self.write_simulated_field_values(test_field)
 
-        # WHEN
-        self.ca.process_pv("TAKEDATA")
+            time.sleep(1)
 
-        # THEN
-        for component in AXES.keys():
-            self.ca.assert_that_pv_is_number("DAQ:{}".format(component),
-                                             test_field[component],
-                                             tolerance=0.1*test_field[component])
+            for component in AXES.keys():
+                self.ca.assert_that_pv_is_not_number("DAQ:{}".format(component), test_field[component])
+
+            # WHEN
+            self.ca.process_pv("TAKEDATA")
+
+            # THEN
+            for component in AXES.keys():
+                self.ca.assert_that_pv_is_number("DAQ:{}".format(component),
+                                                 test_field[component],
+                                                 tolerance=0.1*test_field[component])
+
+    def test_GIVEN_forced_scans_WHEN_fields_change_THEN_all_magnetometer_axes_read_and_processed_automatically(self):
+        # GIVEN
+        test_field = {"X": 1.1,
+                      "Y": 2.2,
+                      "Z": 3.3}
+
+        with self._ioc.start_with_macros({"FORCED_SCAN": "YES"}, pv_to_wait_for="DISABLE"):
+            # WHEN
+
+            self.write_simulated_field_values(test_field)
+
+            # THEN
+            for component in AXES.keys():
+                self.ca.assert_that_pv_is_number("DAQ:{}".format(component),
+                                                 test_field[component],
+                                                 tolerance=0.1*test_field[component])
 
     @parameterized.expand(parameterized_list(FIELD_STRENGTHS))
     def test_GIVEN_magnetometer_scaling_factor_WHEN_data_read_THEN_inputs_scaled_by_factor(self, _, factor):
@@ -445,3 +469,4 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             # Check the final value is correct
             self.ca.process_pv("TAKEDATA")
             self.ca.assert_that_pv_is_number(pv, field_number)
+
