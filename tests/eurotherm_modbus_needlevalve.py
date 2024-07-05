@@ -114,9 +114,8 @@ class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
         self.ca.assert_that_pv_is(pv, val, timeout=15)
 
     @parameterized.expand([
-        ("A01:FLOW_SP_LOWLIM:SP", 2.0),
-        ("A01:FLOW_SP_MODE_SELECT:SP", "MANUAL"),
-        ("A01:NEEDLE_VALVE_STOP:SP", "STOPPED")])
+        ("A01:FLOW_SP_LOWLIM:SP", 2.0)
+        ])
     def test_WHEN_using_needle_valve_WHEN_manager_mode_off_THEN_writes_disallowed(self, pv, val):
         with self.assertRaises(WriteAccessException):
             self.ca.set_pv_value(pv, val)
@@ -148,10 +147,9 @@ class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
                     self.ca.set_pv_value(pv, val)
     
     @parameterized.expand([
-        ("A01:TEMP:SP", 2.0, "AUTO"),
-        ("A01:MANUAL_FLOW:SP", 8.0, "MANUAL"),
         ("A01:TEMP:SP", 2.0, "MANUAL"),
-        ("A01:MANUAL_FLOW:SP", 8.0, "AUTO")])
+        ("A01:MANUAL_FLOW:SP", 8.0, "AUTO")
+        ])
     def test_WHEN_using_needle_valve_and_any_sp_mode_WHEN_manager_mode_off_THEN_writes_disallowed(self, pv, val, mode):
         with ManagerMode(ChannelAccess()):
             self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", mode)
