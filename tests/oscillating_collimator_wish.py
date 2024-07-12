@@ -36,7 +36,6 @@ IOCS = [
 ]
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
-@unittest.skip("Skipped as tests were failing - see https://github.com/ISISComputingGroup/IBEX/issues/7202")
 class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
     """
     Tests for the WISH Oscillating collimator.
