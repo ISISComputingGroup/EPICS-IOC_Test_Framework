@@ -1,15 +1,14 @@
+import itertools
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from time import sleep
 
-import itertools
-
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import (
+    assert_log_messages,
     get_running_lewis_and_ioc,
     skip_if_recsim,
-    assert_log_messages,
     unstable_test,
 )
 

@@ -1,13 +1,12 @@
-import unittest
 import os
+import unittest
 
-from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
 
-from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
-from utils.test_modes import TestModes
+from utils.axis import assert_axis_moving, assert_axis_not_moving, set_axis_moving, stop_axis_moving
 from utils.channel_access import ChannelAccess
-from utils.axis import set_axis_moving, assert_axis_not_moving, assert_axis_moving, stop_axis_moving
+from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
+from utils.test_modes import TestModes
 
 galil_settings_path = os.path.realpath(
     os.path.join(

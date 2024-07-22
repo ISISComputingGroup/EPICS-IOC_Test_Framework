@@ -1,13 +1,13 @@
-import unittest
-
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.testing import skip_if_recsim, parameterized_list
-from parameterized import parameterized
 import itertools
+import unittest
 from time import sleep
 
-from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, POWER_STATES
+from parameterized import parameterized
+
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, POWER_STATES, DanfysikCommon
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list, skip_if_recsim
 
 MAX_RAW_SETPOINT = 1000000
 MIN_RAW_SETPOINT = MAX_RAW_SETPOINT * (-1)

@@ -3,33 +3,31 @@ Run the tests.
 """
 
 import argparse
+import glob
+import importlib
 import os
 import sys
 import traceback
 import unittest
-from typing import List, Any
-import importlib
+from typing import List
 
 import xmlrunner
-import glob
-
-from run_utils import package_contents, modified_environment
-from run_utils import ModuleTests
-
-from utils.device_launcher import device_launcher, device_collection_launcher
-from utils.emulator_launcher import (
-    LewisLauncher,
-    NullEmulatorLauncher,
-    MultiLewisLauncher,
-    Emulator,
-    TestEmulatorData,
-    DEVICE_EMULATOR_PATH,
-)
-from utils.ioc_launcher import IocLauncher, EPICS_TOP, IOCS_DIR
-from utils.free_ports import get_free_ports
-from utils.test_modes import TestModes
-from utils.build_architectures import BuildArchitectures
 from genie_python.utilities import cleanup_subprocs_on_process_exit
+
+from run_utils import ModuleTests, modified_environment, package_contents
+from utils.build_architectures import BuildArchitectures
+from utils.device_launcher import device_collection_launcher, device_launcher
+from utils.emulator_launcher import (
+    DEVICE_EMULATOR_PATH,
+    Emulator,
+    LewisLauncher,
+    MultiLewisLauncher,
+    NullEmulatorLauncher,
+    TestEmulatorData,
+)
+from utils.free_ports import get_free_ports
+from utils.ioc_launcher import IOCS_DIR, IocLauncher
+from utils.test_modes import TestModes
 
 
 def clean_environment():
@@ -525,7 +523,7 @@ if __name__ == "__main__":
             success = load_and_run_tests(
                 tests, failfast, report_coverage, ask_before_running_tests, tests_mode
             )
-        except Exception as e:
+        except Exception:
             print("---\n---\n---\nERROR: when loading the tests: ")
             traceback.print_exc()
             print("---\n---\n---\n")

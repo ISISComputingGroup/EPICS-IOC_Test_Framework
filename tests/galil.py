@@ -1,11 +1,10 @@
-import unittest
-import time
 import os
+import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import skip_if_nosim, skip_always
+from utils.testing import skip_if_nosim
 
 test_config_path = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "galil")

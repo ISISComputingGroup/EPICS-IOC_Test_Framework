@@ -1,14 +1,12 @@
-import unittest
-import contextlib
 import abc
+import contextlib
 import itertools
 from enum import Enum, unique
 
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-from itertools import product
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 
 @unique

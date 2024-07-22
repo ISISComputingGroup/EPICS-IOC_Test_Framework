@@ -1,9 +1,9 @@
 import unittest
 
+from utils.build_architectures import BuildArchitectures
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.build_architectures import BuildArchitectures
 from utils.testing import skip_if_devsim
 
 DEVICE_PREFIX = "MK3CHOPR_01"

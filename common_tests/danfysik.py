@@ -1,18 +1,18 @@
 import time
-from utils.test_modes import TestModes
+
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
-from utils.testing import (
-    skip_if_recsim,
-    skip_if_devsim,
-    get_running_lewis_and_ioc,
-    parameterized_list,
-)
 from utils.ioc_launcher import (
     IOCRegister,
-    MAX_TIME_TO_WAIT_FOR_IOC_TO_START,
-    DEFAULT_IOC_START_TEXT,
 )
-from parameterized import parameterized
+from utils.test_modes import TestModes
+from utils.testing import (
+    get_running_lewis_and_ioc,
+    parameterized_list,
+    skip_if_devsim,
+    skip_if_recsim,
+)
 
 # Device prefix
 DEVICE_PREFIX = "DFKPS_01"
@@ -314,10 +314,10 @@ class DanfysikCommon(DanfysikBase):
     def test_WHEN_current_set_AND_limits_set_THEN_limit_correct(
         self, _, limit, setpoint, summary, limit_enum
     ):
-        self.ca.set_pv_value(f"CURR.HIGH", limit)
-        self.ca.set_pv_value(f"CURR.LOW", 0)
-        self.ca.set_pv_value(f"CURR:SP", setpoint)
-        self.ca.assert_that_pv_is_number(f"CURR", setpoint, tolerance=0.5)
+        self.ca.set_pv_value("CURR.HIGH", limit)
+        self.ca.set_pv_value("CURR.LOW", 0)
+        self.ca.set_pv_value("CURR:SP", setpoint)
+        self.ca.assert_that_pv_is_number("CURR", setpoint, tolerance=0.5)
         self.ca.assert_that_pv_is("LIMIT", summary)
         self.ca.assert_that_pv_is("LIMIT:ENUM", limit_enum)
 

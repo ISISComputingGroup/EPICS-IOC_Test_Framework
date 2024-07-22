@@ -1,9 +1,9 @@
 import unittest
 
 from common_tests.instron_base import InstronBase
+from utils.build_architectures import BuildArchitectures
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.build_architectures import BuildArchitectures
 
 # Device prefix
 from utils.testing import skip_if_recsim

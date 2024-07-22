@@ -1,4 +1,5 @@
 import itertools
+import os
 import unittest
 
 from parameterized import parameterized
@@ -6,9 +7,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list, ManagerMode
-import os
-
+from utils.testing import ManagerMode, get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 # These definitions should match self.channels in the emulator
 TEMP_CARDS = ["MB0.T0", "DB2.T1"]

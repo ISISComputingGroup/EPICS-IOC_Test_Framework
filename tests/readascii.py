@@ -1,14 +1,14 @@
 import os
-import unittest
 import shutil
 import time
+import unittest
 from contextlib import contextmanager
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import EPICS_TOP
-from utils.test_modes import TestModes
-from utils.ioc_launcher import IOCRegister
 from parameterized import parameterized
+
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP, IOCRegister
+from utils.test_modes import TestModes
 
 DEFAULT_SETTINGS_DIR = os.path.join(
     "C:/", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings"

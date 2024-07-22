@@ -2,9 +2,8 @@ import functools
 import unittest
 from time import sleep
 
-from utils.ioc_launcher import IOCRegister, IocLauncher
-from utils.emulator_launcher import EmulatorRegister, LewisLauncher
-
+from utils.emulator_launcher import EmulatorRegister
+from utils.ioc_launcher import IOCRegister
 from utils.test_modes import TestModes
 
 

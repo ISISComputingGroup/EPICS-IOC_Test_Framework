@@ -1,15 +1,13 @@
 import unittest
-
-from parameterized import parameterized
-
-from common_tests.tpgx00 import Tpgx00Base
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.test_modes import TestModes
-from utils.testing import skip_if_recsim, parameterized_list
 from enum import Enum
 
 from genie_python.genie_cachannel_wrapper import InvalidEnumStringException
+from parameterized import parameterized
 
+from common_tests.tpgx00 import Tpgx00Base
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list, skip_if_recsim
 
 DEVICE_PREFIX = "TPG300_01"
 

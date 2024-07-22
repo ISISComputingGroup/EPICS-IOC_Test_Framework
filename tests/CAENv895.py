@@ -6,10 +6,8 @@ import unittest
 from genie_python import genie as g
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
-
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.ioc_launcher import IOCRegister
 
 AUTOSAVE_DIR = os.path.join("C:/", "Instrument", "var", "autosave", "CAENV895_01_DEVSIM")
 

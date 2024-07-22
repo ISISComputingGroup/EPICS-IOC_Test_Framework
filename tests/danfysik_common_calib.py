@@ -1,10 +1,8 @@
 import unittest
 
-from utils.test_modes import TestModes
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, DanfysikBase
 from utils.ioc_launcher import get_default_ioc_dir
-
-from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
-
+from utils.test_modes import TestModes
 
 # Arbitrary - normal danfysik full scale is 1000000, set it a little bit lower so we can tell the limit is working.
 MAX_RAW_SETPOINT = 987654

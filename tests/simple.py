@@ -1,16 +1,16 @@
-import unittest
+import itertools
 import os
 import subprocess
+import unittest
 
-import itertools
+from genie_python.channel_access_exceptions import ReadAccessException
+from genie_python.genie_cachannel_wrapper import CaChannelException, CaChannelWrapper
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import ProcServLauncher, IOCRegister, DEFAULT_IOC_START_TEXT
-from utils.testing import parameterized_list, unstable_test
+from utils.ioc_launcher import DEFAULT_IOC_START_TEXT, IOCRegister, ProcServLauncher
 from utils.test_modes import TestModes
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper, CaChannelException
-from genie_python.channel_access_exceptions import ReadAccessException
+from utils.testing import parameterized_list, unstable_test
 
 DEVICE_PREFIX = "SIMPLE"
 

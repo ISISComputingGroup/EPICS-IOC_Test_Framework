@@ -2,25 +2,24 @@
 Lewis emulator interface classes.
 """
 
-import contextlib
-
 import abc
+import contextlib
 import os
 import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import datetime
+from functools import partial
+from time import sleep, time
+from typing import Any, Dict, List
+
 import psutil
 
-import sys
-from datetime import datetime
-from time import sleep, time
-from functools import partial
-from dataclasses import dataclass
-from typing import List, Any, Dict
-
+from utils.emulator_exceptions import UnableToConnectToEmulatorException
+from utils.formatters import format_value
 from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP, IOCRegister
 from utils.log_file import log_filename
-from utils.formatters import format_value
-from utils.emulator_exceptions import UnableToConnectToEmulatorException
 from utils.test_modes import TestModes
 
 DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")

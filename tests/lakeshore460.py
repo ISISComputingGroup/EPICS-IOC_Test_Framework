@@ -1,9 +1,11 @@
 import unittest
+
 from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
-from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
 from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 vectors = {1: "XYZ", 2: "XY", 3: "XZ", 4: "YZ", 5: "X-Y"}
 channels = ["X", "Y", "Z", "V"]

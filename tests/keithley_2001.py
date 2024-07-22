@@ -1,13 +1,13 @@
-from hamcrest import assert_that, is_, greater_than, equal_to
-from parameterized import parameterized
 import unittest
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-from utils.test_modes import TestModes
-from utils.build_architectures import BuildArchitectures
-from utils.testing import get_running_lewis_and_ioc, add_method, parameterized_list, skip_if_recsim
+from hamcrest import assert_that, equal_to, greater_than, is_
+from parameterized import parameterized
 
+from utils.build_architectures import BuildArchitectures
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import add_method, get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 DEVICE_PREFIX = "KHLY2001_01"
 

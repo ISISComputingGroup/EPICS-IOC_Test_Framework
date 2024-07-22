@@ -1,10 +1,9 @@
+import os
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-import os
+from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "SPINFLIPPER_01"
 EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))

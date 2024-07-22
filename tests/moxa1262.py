@@ -1,9 +1,8 @@
 import unittest
 
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
-
 from common_tests.moxa12XX import Moxa12XXBase
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 
 # Device prefix
 CHANNEL_FORMAT = "CHANNEL{:1d}"

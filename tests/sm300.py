@@ -1,6 +1,5 @@
 import ast
 import unittest
-from unittest import skipIf
 
 from hamcrest import *
 

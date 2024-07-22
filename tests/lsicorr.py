@@ -1,12 +1,11 @@
 import os
 import unittest
-import time
-import numpy as np
 
+import numpy as np
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP, ProcServLauncher
+from utils.ioc_launcher import EPICS_TOP, IOCRegister, ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
 

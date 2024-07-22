@@ -1,6 +1,6 @@
 import os
 from time import sleep
-import threading
+
 from utils.test_modes import TestModes
 
 # Directory for log files

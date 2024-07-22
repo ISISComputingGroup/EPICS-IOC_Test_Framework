@@ -1,13 +1,12 @@
-import unittest
 import os
+import unittest
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
 from parameterized import parameterized
 
-from utils.test_modes import TestModes
 from utils.build_architectures import BuildArchitectures
-from utils.testing import parameterized_list
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP, IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 
 IOCS = [
     {

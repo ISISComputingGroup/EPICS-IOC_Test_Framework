@@ -2,22 +2,22 @@
 Code that launches an IOC/application under test
 """
 
-import subprocess
 import os
+import subprocess
+import telnetlib
 import time
+from abc import ABCMeta
 from contextlib import contextmanager
+from datetime import date
+from signal import SIGTERM
+from time import sleep
 
 import psutil
-from time import sleep
-from abc import ABCMeta
 
 from utils.channel_access import ChannelAccess
 from utils.free_ports import get_free_ports
-from utils.log_file import log_filename, LogFileManager
+from utils.log_file import LogFileManager, log_filename
 from utils.test_modes import TestModes
-from datetime import date
-import telnetlib
-from signal import SIGTERM
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("EPICS_KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))

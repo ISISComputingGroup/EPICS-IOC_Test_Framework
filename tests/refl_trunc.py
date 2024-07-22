@@ -1,13 +1,12 @@
 import os
-from time import sleep
 import unittest
 
 from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, ProcServLauncher
+from utils.ioc_launcher import IOCRegister, ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import assert_log_messages, parameterized_list
-
 
 GALIL_ADDR1 = "127.0.0.11"
 GALIL_ADDR2 = "127.0.0.12"

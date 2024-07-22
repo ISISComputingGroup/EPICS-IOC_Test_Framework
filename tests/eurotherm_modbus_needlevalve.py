@@ -1,15 +1,13 @@
 import unittest
 
+from genie_python.genie_cachannel_wrapper import WriteAccessException
 from parameterized import parameterized
 
-from utils.channel_access import ChannelAccess
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.testing import skip_if_recsim
-from utils.testing import ManagerMode, parameterized_list
 from common_tests.eurotherm import EurothermBaseTests
-
-from genie_python.genie_cachannel_wrapper import WriteAccessException
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import ManagerMode, parameterized_list, skip_if_recsim
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "A01"

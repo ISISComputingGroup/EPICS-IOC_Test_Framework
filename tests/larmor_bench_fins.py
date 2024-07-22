@@ -1,11 +1,10 @@
-import unittest
 import os
+import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
+from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import IOCRegister
-
 
 DEVICE_PREFIX = "FINS_01"
 ioc_name = "FINS"

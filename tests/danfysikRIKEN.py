@@ -1,6 +1,6 @@
+from tests.danfysik8500 import DEVICE_PREFIX, EMULATOR_NAME, Danfysik8500Tests
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from tests.danfysik8500 import Danfysik8500Tests, DEVICE_PREFIX, EMULATOR_NAME
 
 MAX_RAW_SETPOINT = 1000000
 MIN_RAW_SETPOINT = MAX_RAW_SETPOINT * (-1)

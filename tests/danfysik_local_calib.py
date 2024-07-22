@@ -1,12 +1,11 @@
 import os
 import unittest
 
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
-
-from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
 from genie_python import genie as g
 
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, DanfysikBase
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 
 IOCS = [
     {

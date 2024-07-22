@@ -2,7 +2,7 @@ import os
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, EPICS_TOP
+from utils.ioc_launcher import EPICS_TOP, IOCRegister
 from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "SAMPOS"

@@ -1,9 +1,10 @@
 import unittest
-from utils.test_modes import TestModes
+
+from common_tests.fermichopper import ErrorStrings, FermichopperBase
 from utils.build_architectures import BuildArchitectures
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import skip_if_recsim, assert_log_messages
-from common_tests.fermichopper import FermichopperBase, ErrorStrings
+from utils.test_modes import TestModes
+from utils.testing import assert_log_messages, skip_if_recsim
 
 DEVICE_PREFIX = "FERMCHOP_01"
 

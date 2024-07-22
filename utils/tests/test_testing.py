@@ -1,6 +1,8 @@
 import unittest
-from hamcrest import assert_that, is_, equal_to
-from ..testing import parameterized_list, add_method
+
+from hamcrest import assert_that, equal_to, is_
+
+from ..testing import add_method, parameterized_list
 
 
 class ParameterizedListTests(unittest.TestCase):

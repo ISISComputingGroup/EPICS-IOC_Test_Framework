@@ -1,6 +1,7 @@
+import abc
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
-import abc
 
 UNDERLYING_GAP_SP = "MOT:JAWS{}:{}GAP:SP"
 UNDERLYING_CENT_SP = "MOT:JAWS{}:{}CENT:SP"

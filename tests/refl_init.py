@@ -4,7 +4,7 @@ import unittest
 from contextlib import contextmanager
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, ProcServLauncher
+from utils.ioc_launcher import IOCRegister, ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 
 GALIL_ADDR = "127.0.0.11"

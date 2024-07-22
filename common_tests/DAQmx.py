@@ -1,8 +1,7 @@
 from time import sleep
 
 from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc, assert_log_messages
-
+from utils.testing import assert_log_messages, get_running_lewis_and_ioc
 
 # Device prefix
 DEVICE_PREFIX = "DAQMXTEST"

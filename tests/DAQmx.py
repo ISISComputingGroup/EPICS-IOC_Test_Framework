@@ -1,13 +1,11 @@
+import os
 import unittest
 
-from utils.emulator_launcher import DAQMxEmulatorLauncher
-from utils.test_modes import TestModes
-from utils.ioc_launcher import EPICS_TOP
-from common_tests.DAQmx import DAQmxTests, DEVICE_PREFIX, ICPCONFIGNAME
+from common_tests.DAQmx import DEVICE_PREFIX, ICPCONFIGNAME, DAQmxTests
 from utils.build_architectures import BuildArchitectures
-
-import os
-
+from utils.emulator_launcher import DAQMxEmulatorLauncher
+from utils.ioc_launcher import EPICS_TOP
+from utils.test_modes import TestModes
 
 IOCS = [
     {

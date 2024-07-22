@@ -1,17 +1,16 @@
-import unittest
 import contextlib
+import unittest
 
 from parameterized import parameterized
 
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
 from common_tests.eurotherm import (
-    EurothermBaseTests,
-    NONE_TXT_CALIBRATION_MIN_TEMPERATURE,
     NONE_TXT_CALIBRATION_MAX_TEMPERATURE,
+    NONE_TXT_CALIBRATION_MIN_TEMPERATURE,
+    EurothermBaseTests,
 )
 from utils.calibration_utils import use_calibration_file
-
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
 
 DEVICE = "EUROTHRM_01"
 EMULATOR = "eurotherm"

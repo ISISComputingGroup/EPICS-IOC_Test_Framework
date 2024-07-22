@@ -3,10 +3,9 @@ import os
 import unittest
 
 from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.ioc_launcher import EPICS_TOP
-
 
 AMPS_TO_GAUSS = 10
 

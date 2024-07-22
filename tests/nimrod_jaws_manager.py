@@ -1,13 +1,14 @@
+import os
 import unittest
 
-from utils.ioc_launcher import get_default_ioc_dir
-import os
 from parameterized.parameterized import parameterized
-from utils.testing import parameterized_list, unstable_test
-from common_tests.jaws_manager_utils import JawsManagerBase, MOD_GAP
+
+from common_tests.jaws_manager_utils import MOD_GAP, JawsManagerBase
+from utils.ioc_launcher import get_default_ioc_dir
 
 # IP address of device
 from utils.test_modes import TestModes
+from utils.testing import parameterized_list, unstable_test
 
 GALIL_ADDR = "127.0.0.11"
 

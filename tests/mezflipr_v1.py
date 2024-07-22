@@ -1,15 +1,13 @@
 import os
 import unittest
 
-import sys
-
 from parameterized import parameterized
 
-from utils.emulator_launcher import CommandLineEmulatorLauncher, DEFAULT_PY_PATH
-from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, EPICS_TOP
-from utils.testing import skip_if_recsim, get_running_lewis_and_ioc, parameterized_list
+from utils.emulator_launcher import DEFAULT_PY_PATH, CommandLineEmulatorLauncher
+from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # Device prefix
 DEVICE_PREFIX = "MEZFLIPR_01"

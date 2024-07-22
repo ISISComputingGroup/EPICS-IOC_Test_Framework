@@ -1,17 +1,17 @@
+import os
 import unittest
-from time import sleep
 
 from parameterized import parameterized
-import os
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import (
-    get_default_ioc_dir,
-    MAX_TIME_TO_WAIT_FOR_IOC_TO_START,
     DEFAULT_IOC_START_TEXT,
+    MAX_TIME_TO_WAIT_FOR_IOC_TO_START,
+    ProcServLauncher,
+    get_default_ioc_dir,
 )
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.ioc_launcher import ProcServLauncher
+from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "LINMOT_01"
 DEVICE_NAME = "linmot"

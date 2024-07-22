@@ -1,19 +1,19 @@
-import unittest
 import os
+import unittest
 
 from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
 
+from utils.axis import assert_axis_not_moving
+from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.channel_access import ChannelAccess
-from utils.axis import assert_axis_not_moving
-from utils.testing import parameterized_list, ManagerMode
+from utils.testing import ManagerMode, parameterized_list
 
 try:
     from contextlib import nullcontext
 except ImportError:
-    from contextlib2 import nullcontext
+    pass
 
 test_path = os.path.realpath(
     os.path.join(

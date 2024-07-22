@@ -1,15 +1,15 @@
 import contextlib
+import os
 import shutil
 import unittest
-import os
 
 from lxml import etree
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
-from parameterized import parameterized
 
 MTR_01 = "GALIL_01"
 

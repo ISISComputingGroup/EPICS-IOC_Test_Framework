@@ -1,9 +1,8 @@
 import unittest
 
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED, DanfysikCommon
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-
-from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED
 from utils.testing import skip_if_recsim
 
 MAX_RAW_SETPOINT = 1000000

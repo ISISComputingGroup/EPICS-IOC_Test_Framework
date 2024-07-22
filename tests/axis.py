@@ -4,7 +4,6 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 
-
 GALIL_ADDR = "127.0.0.11"
 
 GALIL_PREFIX = "GALIL_01"

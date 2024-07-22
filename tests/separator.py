@@ -1,8 +1,9 @@
-from parameterized import parameterized
-import unittest
-from time import sleep, perf_counter
 import threading
+import unittest
+from time import perf_counter, sleep
+
 from numpy import dot
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir

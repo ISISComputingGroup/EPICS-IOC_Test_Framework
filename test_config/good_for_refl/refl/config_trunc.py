@@ -6,6 +6,7 @@ Valid configuration script for a reflectometry beamline
 
 import random
 import string
+
 from ReflectometryServer import *
 
 random.seed(1)

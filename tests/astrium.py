@@ -1,11 +1,12 @@
 import unittest
+
 from parameterized import parameterized
 
-from utils.test_modes import TestModes
 from utils.build_architectures import BuildArchitectures
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import skip_if_recsim, skip_if_devsim, parameterized_list
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list, skip_if_devsim, skip_if_recsim
 
 # Device prefix
 DEVICE_PREFIX = "ASTRIUM_01"

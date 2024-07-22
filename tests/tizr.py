@@ -1,15 +1,15 @@
-import unittest
-
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP, ProcServLauncher
-from utils.test_modes import TestModes
-from utils.testing import parameterized_list
 import os
-from genie_python import genie as g
-from parameterized import parameterized
 import time
+import unittest
 from contextlib import contextmanager
 
+from genie_python import genie as g
+from parameterized import parameterized
+
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP, IOCRegister, ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list
 
 IOC_PREFIX = "TIZR_01"
 DEVICE_PREFIX = g.my_pv_prefix

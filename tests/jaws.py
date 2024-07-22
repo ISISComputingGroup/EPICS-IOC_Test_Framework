@@ -1,12 +1,13 @@
-import unittest
 import os
+import unittest
+from collections import OrderedDict
+
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
-from parameterized import parameterized
-from collections import OrderedDict
 
 MTR_01 = "GALIL_01"
 

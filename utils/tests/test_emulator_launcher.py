@@ -1,8 +1,8 @@
 import os
 import unittest
-
 from time import sleep
-from hamcrest import assert_that, is_, equal_to, has_length
+
+from hamcrest import assert_that, equal_to, has_length, is_
 
 from ..emulator_launcher import CommandLineEmulatorLauncher
 

@@ -1,11 +1,10 @@
 import unittest
 
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
-
 from genie_python.genie_cachannel_wrapper import WriteAccessException
 
-from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, DanfysikBase
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 
 IOCS = [
     {

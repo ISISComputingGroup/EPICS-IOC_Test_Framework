@@ -1,16 +1,18 @@
+import os
 import unittest
+
+from parameterized import parameterized
+
 from common_tests.oscillating_collimators import (
-    OscillatingCollimatorBase,
-    _custom_name_func,
     ANGLE,
     FREQUENCY,
     GALIL_ADDR,
     OSC_PREFIX,
+    OscillatingCollimatorBase,
+    _custom_name_func,
 )
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
-from parameterized import parameterized
-import os
 from utils.test_modes import TestModes
 
 test_path = os.path.realpath(

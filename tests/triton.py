@@ -1,5 +1,5 @@
-import unittest
 import itertools
+import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir

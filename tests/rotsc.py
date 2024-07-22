@@ -1,15 +1,15 @@
 import unittest
 
 from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import (
     IOCRegister,
-    skip_if_recsim,
     get_running_lewis_and_ioc,
-    assert_log_messages,
     parameterized_list,
+    skip_if_recsim,
 )
 
 DEVICE_PREFIX = "ROTSC_01"

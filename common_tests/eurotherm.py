@@ -4,10 +4,10 @@ import time
 
 from parameterized import parameterized
 
-from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
-from utils.ioc_launcher import IOCRegister, EPICS_TOP
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP, IOCRegister
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 SENSOR_DISCONNECTED_VALUE = 1529
 NONE_TXT_CALIBRATION_MAX_TEMPERATURE = 10000.0

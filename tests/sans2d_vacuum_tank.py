@@ -1,16 +1,13 @@
-import time
-import unittest
 import os
+import unittest
 
 from genie_python.channel_access_exceptions import WriteAccessException
 from parameterized import parameterized
 
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
-from utils.test_modes import TestModes
-from utils.channel_access import ChannelAccess
-from utils.testing import ManagerMode
 from utils.axis import set_axis_moving
-
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP, IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 from utils.testing import parameterized_list
 
 test_path = os.path.realpath(

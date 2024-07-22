@@ -1,15 +1,16 @@
-import unittest
-
-from utils.ioc_launcher import get_default_ioc_dir
-from genie_python.genie_cachannel_wrapper import WriteAccessException
 import os
+import unittest
+from time import sleep
+
+from genie_python.genie_cachannel_wrapper import WriteAccessException
 from parameterized.parameterized import parameterized
-from utils.testing import parameterized_list, ManagerMode, unstable_test
-from common_tests.jaws_manager_utils import JawsManagerBase, UNDERLYING_GAP_SP
+
+from common_tests.jaws_manager_utils import UNDERLYING_GAP_SP, JawsManagerBase
+from utils.ioc_launcher import get_default_ioc_dir
 
 # IP address of device
 from utils.test_modes import TestModes
-from time import sleep
+from utils.testing import ManagerMode, parameterized_list, unstable_test
 
 GALIL_ADDR = "127.0.0.11"
 

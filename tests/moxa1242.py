@@ -1,13 +1,13 @@
 import unittest
 from itertools import product
 
-from common_tests.moxa12XX import Moxa12XXBase
-
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
-from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc
 from parameterized import parameterized
+
+from common_tests.moxa12XX import Moxa12XXBase
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc
 
 # Device prefix
 DEVICE_PREFIX = "MOXA12XX_01"
@@ -115,7 +115,7 @@ class Moxa1242AITestsFromBase(Moxa12XXBase, unittest.TestCase):
             )
 
             self.ca.assert_that_pv_is_number(
-                "CH{:01d}:AI:RBV".format(channel, PV=self.get_PV_name()),
+                "CH{:01d}:AI:RBV".format(channel, ),
                 test_value,
                 tolerance=0.1 * abs(test_value),
             )

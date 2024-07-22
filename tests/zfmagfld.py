@@ -1,14 +1,14 @@
-import time
-import unittest
 import itertools
 import time
+import unittest
 
-from parameterized import parameterized
-from utils.testing import parameterized_list
-from utils.test_modes import TestModes
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher, IOCRegister
 import numpy as np
+from parameterized import parameterized
+
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import IOCRegister, ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list
 
 DEVICE_PREFIX = "ZFMAGFLD_01"
 DEVICE_PREFIX_2 = "ZFMAGFLD_02"

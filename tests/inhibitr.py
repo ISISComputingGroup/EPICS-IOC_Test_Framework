@@ -1,11 +1,12 @@
+import os
 import unittest
 
+from genie_python import genie as g
+
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister, EPICS_TOP
+from utils.ioc_launcher import EPICS_TOP, IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import unstable_test
-import os
-from genie_python import genie as g
 
 test_config_path = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "inhibitr")

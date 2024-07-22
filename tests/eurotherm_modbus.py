@@ -1,11 +1,11 @@
-import unittest
 import contextlib
+import unittest
 
 from parameterized import parameterized
 
+from common_tests.eurotherm import PID_TEST_VALUES, EurothermBaseTests
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from common_tests.eurotherm import EurothermBaseTests, PID_TEST_VALUES
 from utils.testing import parameterized_list
 
 DEVICE = "EUROTHRM_01"

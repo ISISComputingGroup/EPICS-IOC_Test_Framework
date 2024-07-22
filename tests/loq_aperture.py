@@ -1,14 +1,15 @@
-import unittest
 import os
+import unittest
+from collections import OrderedDict
+
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
-from parameterized import parameterized
-from collections import OrderedDict
-from utils.testing import unstable_test
 
 # Internal Address of device (must be 2 characters)
 from utils.test_modes import TestModes
+from utils.testing import unstable_test
 
 GALIL_ADDR = "127.0.0.11"
 

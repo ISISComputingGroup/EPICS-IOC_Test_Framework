@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
+from itertools import product
 
 from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
-from itertools import product
 
 
 class Moxa12XXBase(object, metaclass=ABCMeta):

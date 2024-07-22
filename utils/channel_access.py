@@ -2,15 +2,15 @@
 Testing using channel access.
 """
 
-import os
-import time
-import operator
 import ctypes
 import datetime
+import operator
+import os
+import time
 from contextlib import contextmanager
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
-
 from functools import partial
+
+from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 from utils.formatters import format_value
 

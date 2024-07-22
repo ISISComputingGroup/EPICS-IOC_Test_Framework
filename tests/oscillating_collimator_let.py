@@ -1,22 +1,23 @@
-import unittest
+import os
 import time
+import unittest
+
+from parameterized import parameterized
+
 from common_tests.oscillating_collimators import (
+    ANGLE,
+    DISCRIMINANT,
+    FREQUENCY,
+    GALIL_ADDR,
+    MOT_PREFIX,
+    OSC_PREFIX,
+    RADIUS,
     OscillatingCollimatorBase,
     _custom_name_func,
-    RADIUS,
-    ANGLE,
-    FREQUENCY,
-    DISCRIMINANT,
-    GALIL_ADDR,
-    OSC_PREFIX,
-    MOT_PREFIX,
 )
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
-from parameterized import parameterized
-import os
 from utils.test_modes import TestModes
-
 
 # The default motor resoltuion is chosen because this is reolution used when extracting the original numbers from LabView
 DEFAULT_MOTOR_RESOLUTION = 0.00250

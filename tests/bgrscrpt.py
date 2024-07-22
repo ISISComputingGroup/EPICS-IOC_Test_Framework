@@ -1,9 +1,8 @@
-import unittest
 import os
+import unittest
 
 from utils.ioc_launcher import IOCRegister, ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
-
 
 DEVICE_PREFIX = "BGRSCRPT_01"
 IOC_DIR = get_default_ioc_dir("BGRSCRPT")

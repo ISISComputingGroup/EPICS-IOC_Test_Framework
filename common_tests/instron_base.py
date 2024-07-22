@@ -4,7 +4,7 @@ import time
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
-from utils.testing import skip_if_recsim, get_running_lewis_and_ioc, unstable_test
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
 
 RAMP_WAVEFORM_TYPES = [
     "Ramp",

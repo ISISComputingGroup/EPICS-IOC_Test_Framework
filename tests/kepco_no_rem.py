@@ -1,23 +1,20 @@
+import time
 import unittest
-
-from common_tests.kepco import (
-    KepcoTests,
-    DEVICE_PREFIX,
-    emulator_name,
-    IDN_NO_REM,
-    IDN_REM,
-    MAX_CURRENT,
-)
-
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.test_modes import TestModes
-from utils.testing import skip_if_recsim, parameterized_list
+from distutils.util import strtobool
 
 from parameterized import parameterized
 
-from distutils.util import strtobool
-import time
-
+from common_tests.kepco import (
+    DEVICE_PREFIX,
+    IDN_NO_REM,
+    IDN_REM,
+    MAX_CURRENT,
+    KepcoTests,
+    emulator_name,
+)
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list, skip_if_recsim
 
 IOCS = [
     {

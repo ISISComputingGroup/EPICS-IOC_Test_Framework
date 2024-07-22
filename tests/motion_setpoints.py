@@ -1,8 +1,9 @@
-import unittest
-from parameterized import parameterized
-from operator import add
 import os
 import posixpath
+import unittest
+from operator import add
+
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
@@ -227,7 +228,7 @@ class MotionSetpointsTests(unittest.TestCase):
 
         for axis in range(axis_num):
             channel_access.assert_that_pv_is("STATIONARY{}".format(axis), 0)
-        channel_access.assert_that_pv_is("STATIONARY".format(axis), 0)
+        channel_access.assert_that_pv_is("STATIONARY".format(), 0)
         channel_access.assert_that_pv_is("POSITIONED", 0)
         channel_access.assert_that_pv_is("INPOS0", 0)
         channel_access.assert_that_pv_is(f"INPOS{second_index}", 0)
@@ -235,7 +236,7 @@ class MotionSetpointsTests(unittest.TestCase):
         channel_access.assert_that_pv_is("POSITIONED", 1, timeout=10)
         for axis in range(axis_num):
             channel_access.assert_that_pv_is("STATIONARY{}".format(axis), 1)
-        channel_access.assert_that_pv_is("STATIONARY".format(axis), 1)
+        channel_access.assert_that_pv_is("STATIONARY".format(), 1)
         channel_access.assert_that_pv_is("INPOS0", 0)
         channel_access.assert_that_pv_is(f"INPOS{second_index}", 1)
 

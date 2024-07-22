@@ -1,7 +1,6 @@
 import os
-from collections import OrderedDict
-
 import unittest
+from collections import OrderedDict
 
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes

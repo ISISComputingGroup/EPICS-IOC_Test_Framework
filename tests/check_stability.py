@@ -1,6 +1,6 @@
 import operator
-import unittest
 import os
+import unittest
 
 from parameterized import parameterized
 
