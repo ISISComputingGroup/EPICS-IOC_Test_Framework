@@ -13,6 +13,7 @@ class DAQmxTests(object):
     """
     General tests for the DAQmx.
     """
+
     def setUp(self):
         self.emulator, self._ioc = get_running_lewis_and_ioc(DEVICE_PREFIX, DEVICE_PREFIX)
 
@@ -33,5 +34,3 @@ class DAQmxTests(object):
         self.emulator.reconnect_device()
         self.ca.assert_that_pv_alarm_is_not("DATA", ChannelAccess.Alarms.INVALID, timeout=5)
         self.ca.assert_that_pv_value_is_changing("DATA", 1)
-
-

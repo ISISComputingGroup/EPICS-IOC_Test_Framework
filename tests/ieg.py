@@ -15,10 +15,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("IEG"),
-        "macros": {
-            "CALIBRATION_A": str(CALIBRATION_A), 
-            "CALIBRATION_B": str(CALIBRATION_B)
-        },
+        "macros": {"CALIBRATION_A": str(CALIBRATION_A), "CALIBRATION_B": str(CALIBRATION_B)},
         "emulator": "ieg",
     },
 ]
@@ -32,25 +29,28 @@ class IegTests(unittest.TestCase):
     Tests for the IEG IOC.
     """
 
-    operation_modes = [(1, "Pump, Purge & Fill"),
-                       (2, "Pump"),
-                       (3, "Gas Flow"),
-                       (4, "Gas - Single Shot"),
-                       ]
+    operation_modes = [
+        (1, "Pump, Purge & Fill"),
+        (2, "Pump"),
+        (3, "Gas Flow"),
+        (4, "Gas - Single Shot"),
+    ]
 
-    error_codes = [(0, "No error"),
-                   (2, "Samp vol: leak detected"),
-                   (3, "Samp vol: no vacuum"),
-                   (4, "Buff vol: did not fill"),
-                   (5, "Samp vol: fill iterations"),
-                   (6, "Samp vol: pump timeout"),
-                   (7, "Samp vol: fill timeout"),
-                   (8, "Buff or samp vol leak"),
-                   (9, "Shot didn't raise press."),
-                   (10, "Manual stop"),
-                   (11, "Vacuum tank interlock"),
-                   (12, "Samp vol: leak detected"),
-                   (13, "Sensor broken/disconnect")]
+    error_codes = [
+        (0, "No error"),
+        (2, "Samp vol: leak detected"),
+        (3, "Samp vol: no vacuum"),
+        (4, "Buff vol: did not fill"),
+        (5, "Samp vol: fill iterations"),
+        (6, "Samp vol: pump timeout"),
+        (7, "Samp vol: fill timeout"),
+        (8, "Buff or samp vol leak"),
+        (9, "Shot didn't raise press."),
+        (10, "Manual stop"),
+        (11, "Vacuum tank interlock"),
+        (12, "Samp vol: leak detected"),
+        (13, "Sensor broken/disconnect"),
+    ]
 
     test_device_ids = [0, 123, 255]
     test_pressures = [0, 10, 1024]
@@ -74,12 +74,18 @@ class IegTests(unittest.TestCase):
 
     def test_WHEN_mode_setpoint_is_set_THEN_readback_updates(self):
         for set_val, return_val in self.operation_modes:
-            self.ca.assert_setting_setpoint_sets_readback(set_val, set_point_pv="MODE:SP", readback_pv="MODE", expected_value=return_val)
+            self.ca.assert_setting_setpoint_sets_readback(
+                set_val, set_point_pv="MODE:SP", readback_pv="MODE", expected_value=return_val
+            )
 
     @skip_if_recsim("Not implemented in recsim")
-    def test_GIVEN_device_not_in_dormant_state_WHEN_kill_command_is_sent_THEN_device_goes_to_dormant_state(self):
+    def test_GIVEN_device_not_in_dormant_state_WHEN_kill_command_is_sent_THEN_device_goes_to_dormant_state(
+        self,
+    ):
         set_val, return_val = self.operation_modes[0]
-        self.ca.assert_setting_setpoint_sets_readback(set_val, set_point_pv="MODE:SP", readback_pv="MODE", expected_value=return_val)
+        self.ca.assert_setting_setpoint_sets_readback(
+            set_val, set_point_pv="MODE:SP", readback_pv="MODE", expected_value=return_val
+        )
 
         self.ca.set_pv_value("ABORT", 1)
         self.ca.assert_that_pv_is("MODE", "Dormant")
@@ -109,7 +115,9 @@ class IegTests(unittest.TestCase):
         for error_num, error in self.error_codes:
             self._lewis.backdoor_set_on_device("error", error_num)
             self.ca.assert_that_pv_is("ERROR", error)
-            self.ca.assert_that_pv_alarm_is("ERROR", self.ca.Alarms.MAJOR if error_num else self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is(
+                "ERROR", self.ca.Alarms.MAJOR if error_num else self.ca.Alarms.NONE
+            )
 
     @skip_if_recsim("Uses lewis backdoor command")
     def test_WHEN_pressure_is_changed_on_device_THEN_raw_pressure_pv_updates(self):
@@ -119,15 +127,20 @@ class IegTests(unittest.TestCase):
             self.ca.assert_that_pv_alarm_is("PRESSURE:RAW", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses lewis backdoor command")
-    def test_WHEN_pressure_and_upper_limit_are_changed_on_device_THEN_pressure_high_pv_updates(self):
+    def test_WHEN_pressure_and_upper_limit_are_changed_on_device_THEN_pressure_high_pv_updates(
+        self,
+    ):
         for pressure in self.test_pressures:
             self._lewis.backdoor_set_on_device("sample_pressure", pressure)
             for upper_limit in [pressure - 1, pressure + 1]:
                 self._lewis.backdoor_set_on_device("sample_pressure_high_limit", upper_limit)
-                self.ca.assert_that_pv_is("PRESSURE:HIGH",
-                                          "Out of range" if pressure > upper_limit else "In range")
-                self.ca.assert_that_pv_alarm_is("PRESSURE:HIGH",
-                                                self.ca.Alarms.MINOR if pressure > upper_limit else self.ca.Alarms.NONE)
+                self.ca.assert_that_pv_is(
+                    "PRESSURE:HIGH", "Out of range" if pressure > upper_limit else "In range"
+                )
+                self.ca.assert_that_pv_alarm_is(
+                    "PRESSURE:HIGH",
+                    self.ca.Alarms.MINOR if pressure > upper_limit else self.ca.Alarms.NONE,
+                )
 
     @skip_if_recsim("Uses lewis backdoor command")
     def test_WHEN_pressure_and_lower_limit_are_changed_on_device_THEN_pressure_low_pv_updates(self):
@@ -135,22 +148,29 @@ class IegTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("sample_pressure", pressure)
             for lower_limit in [pressure - 1, pressure + 1]:
                 self._lewis.backdoor_set_on_device("sample_pressure_low_limit", lower_limit)
-                self.ca.assert_that_pv_is("PRESSURE:LOW",
-                                          "Out of range" if pressure < lower_limit else "In range")
-                self.ca.assert_that_pv_alarm_is("PRESSURE:LOW",
-                                                self.ca.Alarms.MINOR if pressure < lower_limit else self.ca.Alarms.NONE)
+                self.ca.assert_that_pv_is(
+                    "PRESSURE:LOW", "Out of range" if pressure < lower_limit else "In range"
+                )
+                self.ca.assert_that_pv_alarm_is(
+                    "PRESSURE:LOW",
+                    self.ca.Alarms.MINOR if pressure < lower_limit else self.ca.Alarms.NONE,
+                )
 
     @skip_if_recsim("Uses lewis backdoor command")
-    def test_WHEN_buffer_pressure_high_is_changed_on_device_THEN_buffer_pressure_high_pv_updates(self):
+    def test_WHEN_buffer_pressure_high_is_changed_on_device_THEN_buffer_pressure_high_pv_updates(
+        self,
+    ):
         for value in [True, False]:
             self._lewis.backdoor_set_on_device("buffer_pressure_high", value)
 
             # Intentionally this way round - the manual
             # says that 0 means 'above high threshold' and 1 is 'below high threshold'
-            self.ca.assert_that_pv_is("PRESSURE:BUFFER:HIGH",
-                                      "Out of range" if value else "In range")
-            self.ca.assert_that_pv_alarm_is("PRESSURE:BUFFER:HIGH",
-                                            self.ca.Alarms.MINOR if value else self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_is(
+                "PRESSURE:BUFFER:HIGH", "Out of range" if value else "In range"
+            )
+            self.ca.assert_that_pv_alarm_is(
+                "PRESSURE:BUFFER:HIGH", self.ca.Alarms.MINOR if value else self.ca.Alarms.NONE
+            )
 
     @skip_if_recsim("Uses lewis backdoor command")
     def test_WHEN_pressure_is_over_350_THEN_displayed_as_greater_than_350_mBar(self):
@@ -172,4 +192,7 @@ class IegTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("sample_pressure", raw_pressure)
             # PRESSURE is restricted to use [0-350]. PRESSURE:CALC is unrestricted
             self.ca.assert_that_pv_is_number("PRESSURE:CALC", actual_pressure, tolerance=0.05)
-            self.ca.assert_that_pv_alarm_is("PRESSURE", self.ca.Alarms.NONE if .0 < actual_pressure < 350 else self.ca.Alarms.MAJOR)
+            self.ca.assert_that_pv_alarm_is(
+                "PRESSURE",
+                self.ca.Alarms.NONE if 0.0 < actual_pressure < 350 else self.ca.Alarms.MAJOR,
+            )

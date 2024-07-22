@@ -25,6 +25,7 @@ class Ag53220ATests(unittest.TestCase):
     """
     Tests for the Ag53220A IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Ag53220A", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)

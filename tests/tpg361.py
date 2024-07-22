@@ -14,9 +14,7 @@ IOCS = [
         "directory": get_default_ioc_dir("TPG36X"),
         "emulator": "tpgx6x",
         "lewis_protocol": "tpg361",
-        "macros": {
-            "IS361": "Y"
-        }
+        "macros": {"IS361": "Y"},
     },
 ]
 
@@ -25,7 +23,6 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class Tpg361Tests(TpgBase, unittest.TestCase):
-
     def get_prefix(self):
         return DEVICE_PREFIX
 

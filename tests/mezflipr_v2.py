@@ -18,9 +18,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MEZFLIPR"),
         "emulator": EMULATOR_NAME,
-        "macros": {
-            "PROTOCOL_VERSION": "2"
-        }
+        "macros": {"PROTOCOL_VERSION": "2"},
     },
 ]
 
@@ -32,7 +30,6 @@ flipper = "FLIPPER"
 
 
 class MezfliprTests(unittest.TestCase):
-
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
 
@@ -45,21 +42,26 @@ class MezfliprTests(unittest.TestCase):
     def test_GIVEN_power_is_set_THEN_can_be_read_back(self, _, state):
         self.ca.assert_setting_setpoint_sets_readback(state, readback_pv="{}:POWER".format(flipper))
 
-    @parameterized.expand(parameterized_list([0., 0.12, 5000.5]))
+    @parameterized.expand(parameterized_list([0.0, 0.12, 5000.5]))
     def test_GIVEN_compensation_is_set_THEN_compensation_can_be_read_back(self, _, compensation):
-        self.ca.assert_setting_setpoint_sets_readback(compensation, readback_pv="{}:COMPENSATION".format(flipper))
+        self.ca.assert_setting_setpoint_sets_readback(
+            compensation, readback_pv="{}:COMPENSATION".format(flipper)
+        )
 
     def _assert_mode(self, mode):
         self.ca.assert_that_pv_is("{}:MODE".format(flipper), mode)
         self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
 
     def _assert_params(self, param):
-        self.ca.assert_that_pv_value_causes_func_to_return_true("{}:PARAMS".format(flipper),
-                                                                lambda val: val is not None and val.rstrip() == param)
+        self.ca.assert_that_pv_value_causes_func_to_return_true(
+            "{}:PARAMS".format(flipper), lambda val: val is not None and val.rstrip() == param
+        )
         self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
 
     @skip_if_recsim("State of device not simulated in recsim")
-    def test_WHEN_constant_current_mode_set_THEN_parameters_reflected_and_mode_is_constant_current(self):
+    def test_WHEN_constant_current_mode_set_THEN_parameters_reflected_and_mode_is_constant_current(
+        self,
+    ):
         param = 25
         self.ca.set_pv_value("{}:CURRENT:SP".format(flipper), param)
 

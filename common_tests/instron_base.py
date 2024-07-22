@@ -6,8 +6,14 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister
 from utils.testing import skip_if_recsim, get_running_lewis_and_ioc, unstable_test
 
-RAMP_WAVEFORM_TYPES = ["Ramp", "Dual ramp", "Trapezium", "Absolute ramp", "Absolute hold ramp",
-                       "Absolute rate ramp"]
+RAMP_WAVEFORM_TYPES = [
+    "Ramp",
+    "Dual ramp",
+    "Trapezium",
+    "Absolute ramp",
+    "Absolute hold ramp",
+    "Absolute rate ramp",
+]
 
 POS_STRESS_STRAIN = ["POS", "STRESS", "STRAIN"]
 NUMBER_OF_CHANNELS = len(POS_STRESS_STRAIN)
@@ -24,6 +30,7 @@ class InstronBase(object, metaclass=abc.ABCMeta):
     """
     Tests for the Instron IOC.
     """
+
     @abc.abstractmethod
     def get_prefix(self):
         pass
@@ -60,8 +67,9 @@ class InstronBase(object, metaclass=abc.ABCMeta):
             self._lewis.backdoor_set_on_device("status", 7680)
 
             for index, chan_type2 in enumerate((3, 2, 4)):
-                self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1),
-                                              "channel_type", str(chan_type2)])
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", str(index + 1), "channel_type", str(chan_type2)]
+                )
 
             self.ca.assert_that_pv_is("CHANNEL:SP.ZRST", "Position")
 
@@ -79,7 +87,9 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
             # Ensure that all the scales are sensible values (i.e. not zero)
             for index, channel in enumerate(POS_STRESS_STRAIN, 1):
-                self._lewis.backdoor_command(["device", "set_channel_param", str(index), "scale", "10"])
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", str(index), "scale", "10"]
+                )
                 self.ca.assert_that_pv_is_number(channel + ":SCALE", 10, tolerance=0.001)
 
             # Always set the waveform generator to run for lots of cycles so it only stops if we want it to
@@ -116,18 +126,20 @@ class InstronBase(object, metaclass=abc.ABCMeta):
             ([1, 0, 1, 1], "Oil pressure too low"),
             ([1, 1, 0, 0], "Manifold/pump blocked"),
             ([1, 1, 0, 1], "Oil level going too low"),
-            ([1, 1, 1, 0], "Manifold low pressure")
+            ([1, 1, 1, 0], "Manifold low pressure"),
         ]
 
         for code, error in code_and_errors:
-            code_val = code[0] * 2 ** 12
-            code_val += code[1] * 2 ** 11
-            code_val += code[2] * 2 ** 10
-            code_val += code[3] * 2 ** 9
+            code_val = code[0] * 2**12
+            code_val += code[1] * 2**11
+            code_val += code[2] * 2**10
+            code_val += code[3] * 2**9
 
             self._lewis.backdoor_set_on_device("status", code_val)
 
-            self.ca.assert_that_pv_is("STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val))
+            self.ca.assert_that_pv_is(
+                "STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val)
+            )
             self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.Alarms.MAJOR)
 
     def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
@@ -158,7 +170,9 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_is_within_range("ARBITRARY", min_value=0, max_value=65535)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_arbitrary_command_Q300_is_sent_THEN_the_response_is_a_number_between_1_and_3(self):
+    def test_WHEN_arbitrary_command_Q300_is_sent_THEN_the_response_is_a_number_between_1_and_3(
+        self,
+    ):
         self.ca.set_pv_value("ARBITRARY:SP", "Q300")
         # Assert that the response to Q300 is between 1 and 3
         self.ca.assert_that_pv_is_within_range("ARBITRARY", min_value=1, max_value=3)
@@ -171,45 +185,63 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_is_one_of("CHANNEL:SP", CHANNELS.keys())
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(
+        self,
+    ):
         for channel in CHANNELS.keys():
             # change channel function contains the relevant assertions.
             self._change_channel(channel)
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
-            self):
+        self,
+    ):
         for chan, val in [("POS", 123), ("STRESS", 456), ("STRAIN", 789)]:
             pv_name = chan + ":STEP:TIME"
             self.ca.assert_setting_setpoint_sets_readback(val, pv_name)
 
     def test_WHEN_the_step_time_for_various_channels_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(
-            self):
+        self,
+    ):
         for chan, val in [("POS", 111.111), ("STRESS", 222.222), ("STRAIN", 333.333)]:
             pv_name = chan + ":STEP:TIME"
             self.ca.assert_setting_setpoint_sets_readback(val, pv_name)
 
-    def test_WHEN_the_ramp_waveform_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    def test_WHEN_the_ramp_waveform_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(
+        self,
+    ):
         pv_name = "{0}:RAMP:WFTYP"
         for chan in POS_STRESS_STRAIN:
             for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
-                self.ca.assert_setting_setpoint_sets_readback(set_value, pv_name.format(chan), expected_value=return_value)
+                self.ca.assert_setting_setpoint_sets_readback(
+                    set_value, pv_name.format(chan), expected_value=return_value
+                )
 
-    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_an_integer_THEN_the_readback_contains_the_value_that_was_just_set(
+        self,
+    ):
         for chan in POS_STRESS_STRAIN:
             for val in [0, 10, 1000, 1000000]:
                 pv_name = chan + ":RAW:SP"
                 pv_name_rbv = pv_name + ":RBV"
-                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_rbv, set_point_pv=pv_name)
+                self.ca.assert_setting_setpoint_sets_readback(
+                    val, readback_pv=pv_name_rbv, set_point_pv=pv_name
+                )
 
-    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    def test_WHEN_the_ramp_amplitude_for_a_channel_is_set_as_a_float_THEN_the_readback_contains_the_value_that_was_just_set(
+        self,
+    ):
         for chan in POS_STRESS_STRAIN:
             for val in [1.0, 5.5, 1.000001, 9.999999, 10000.1]:
                 pv_name = chan + ":RAW:SP"
                 pv_name_rbv = pv_name + ":RBV"
-                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_rbv, set_point_pv=pv_name)
+                self.ca.assert_setting_setpoint_sets_readback(
+                    val, readback_pv=pv_name_rbv, set_point_pv=pv_name
+                )
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_the_setpoint_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(self):
+    def test_WHEN_the_setpoint_for_a_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(
+        self,
+    ):
         def _set_and_check(chan, value):
             self.ca.set_pv_value(chan + ":SP", value)
             self.ca.assert_that_pv_is_number(chan + ":SP", value, tolerance=0.001)
@@ -227,10 +259,20 @@ class InstronBase(object, metaclass=abc.ABCMeta):
                 pv_name = chan + ":TOLERANCE"
                 pv_name_high = chan + ":SP:RBV.HIGH"
                 pv_name_low = chan + ":SP:RBV.LOW"
-                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_high, set_point_pv=pv_name,
-                                                              expected_value=val+sp_val, expected_alarm=None)
-                self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=pv_name_low, set_point_pv=pv_name,
-                                                              expected_value=sp_val - val, expected_alarm=None)
+                self.ca.assert_setting_setpoint_sets_readback(
+                    val,
+                    readback_pv=pv_name_high,
+                    set_point_pv=pv_name,
+                    expected_value=val + sp_val,
+                    expected_alarm=None,
+                )
+                self.ca.assert_setting_setpoint_sets_readback(
+                    val,
+                    readback_pv=pv_name_low,
+                    set_point_pv=pv_name,
+                    expected_value=sp_val - val,
+                    expected_alarm=None,
+                )
 
     @skip_if_recsim("Alarms not properly emulated in recsim")
     def test_GIVEN_a_big_tolerance_WHEN_the_setpoint_is_set_THEN_the_setpoint_has_no_alarms(self):
@@ -245,7 +287,8 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
     @skip_if_recsim("Alarms not properly emulated in recsim")
     def test_GIVEN_a_tolerance_of_minus_one_WHEN_the_setpoint_is_set_THEN_the_setpoint_readback_has_alarms(
-            self):
+        self,
+    ):
         def _set_and_check(chan, value):
             self.ca.set_pv_value(chan + ":SP", value)
             self.ca.set_pv_value(chan + ":TOLERANCE", -1)
@@ -256,33 +299,46 @@ class InstronBase(object, metaclass=abc.ABCMeta):
                 _set_and_check(chan, i)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_ioc_gets_a_raw_position_reading_from_the_device_THEN_it_is_converted_correctly(self):
-
+    def test_WHEN_ioc_gets_a_raw_position_reading_from_the_device_THEN_it_is_converted_correctly(
+        self,
+    ):
         for chan_scale in [0.1, 10.0]:
-            self._lewis.backdoor_command(["device", "set_channel_param", "1", "scale", str(chan_scale)])
+            self._lewis.backdoor_command(
+                ["device", "set_channel_param", "1", "scale", str(chan_scale)]
+            )
             self.ca.assert_that_pv_is("POS:SCALE", chan_scale)
 
             for raw_value in [0, 123]:
-                self._lewis.backdoor_command(["device", "set_channel_param", "1", "value", str(raw_value)])
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", "1", "value", str(raw_value)]
+                )
                 self.ca.assert_that_pv_is_number("POS:RAW", raw_value, tolerance=0.01)
-                self.ca.assert_that_pv_is_number("POS", raw_value * chan_scale * 1000,
-                                                 tolerance=(0.01 * chan_scale * 1000))
+                self.ca.assert_that_pv_is_number(
+                    "POS", raw_value * chan_scale * 1000, tolerance=(0.01 * chan_scale * 1000)
+                )
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_ioc_gets_a_raw_stress_reading_from_the_device_THEN_it_is_converted_correctly(self):
-
+    def test_WHEN_ioc_gets_a_raw_stress_reading_from_the_device_THEN_it_is_converted_correctly(
+        self,
+    ):
         for chan_area in [0.1, 10.0]:
-            self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", str(chan_area)])
+            self._lewis.backdoor_command(
+                ["device", "set_channel_param", "2", "area", str(chan_area)]
+            )
             self.ca.assert_that_pv_is("STRESS:AREA", chan_area)
 
             for chan_scale in [0.1, 10.0]:
-                self._lewis.backdoor_command(["device", "set_channel_param", "2", "scale", str(chan_scale)])
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", "2", "scale", str(chan_scale)]
+                )
                 self.ca.assert_that_pv_is("STRESS:SCALE", chan_scale)
 
                 for raw_value in [0, 123]:
-                    self._lewis.backdoor_command(["device", "set_channel_param", "2", "value", str(raw_value)])
+                    self._lewis.backdoor_command(
+                        ["device", "set_channel_param", "2", "value", str(raw_value)]
+                    )
                     self.ca.assert_that_pv_is("STRESS:RAW", raw_value)
-                    self.ca.assert_that_pv_is("STRESS", raw_value * chan_scale * (1.0/chan_area))
+                    self.ca.assert_that_pv_is("STRESS", raw_value * chan_scale * (1.0 / chan_area))
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_strain_length_updates_on_device_THEN_pv_updates(self):
@@ -291,21 +347,31 @@ class InstronBase(object, metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_is("STRAIN:LENGTH", value)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_ioc_gets_a_raw_strain_reading_from_the_device_THEN_it_is_converted_correctly(self):
+    def test_WHEN_ioc_gets_a_raw_strain_reading_from_the_device_THEN_it_is_converted_correctly(
+        self,
+    ):
         for chan_scale in [0.1, 10.0]:
-            self._lewis.backdoor_command(["device", "set_channel_param", "3", "scale", str(chan_scale)])
+            self._lewis.backdoor_command(
+                ["device", "set_channel_param", "3", "scale", str(chan_scale)]
+            )
 
             for chan_length in [0.1, 10.0]:
-                self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", str(chan_length)])
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", "3", "length", str(chan_length)]
+                )
 
                 for raw_value in [0, 0.001]:
-                    self._lewis.backdoor_command(["device", "set_channel_param", "3", "value", str(raw_value)])
+                    self._lewis.backdoor_command(
+                        ["device", "set_channel_param", "3", "value", str(raw_value)]
+                    )
 
                     self.ca.assert_that_pv_is("STRAIN:SCALE", chan_scale)
                     self.ca.assert_that_pv_is("STRAIN:LENGTH", chan_length)
                     self.ca.assert_that_pv_is("STRAIN:RAW", raw_value)
 
-                    self.ca.assert_that_pv_is("STRAIN", (raw_value * chan_scale * 100000 * (1/chan_length)))
+                    self.ca.assert_that_pv_is(
+                        "STRAIN", (raw_value * chan_scale * 100000 * (1 / chan_length))
+                    )
 
     def test_WHEN_the_area_setpoint_is_set_THEN_the_area_readback_updates(self):
         def _set_and_check(value):
@@ -319,7 +385,9 @@ class InstronBase(object, metaclass=abc.ABCMeta):
     def test_WHEN_the_area_setpoint_is_set_THEN_the_diameter_readback_updates(self):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:AREA:SP", value)
-            self.ca.assert_that_pv_is_number("STRESS:DIAMETER", (2*math.sqrt(value/math.pi)), tolerance=0.01)
+            self.ca.assert_that_pv_is_number(
+                "STRESS:DIAMETER", (2 * math.sqrt(value / math.pi)), tolerance=0.01
+            )
             self.ca.assert_that_pv_alarm_is("STRESS:DIAMETER", ChannelAccess.Alarms.NONE)
 
         for val in [0.234, 789]:
@@ -337,7 +405,9 @@ class InstronBase(object, metaclass=abc.ABCMeta):
     def test_WHEN_the_diameter_setpoint_is_set_THEN_the_area_readback_updates(self):
         def _set_and_check(value):
             self.ca.set_pv_value("STRESS:DIAMETER:SP", value)
-            self.ca.assert_that_pv_is_number("STRESS:AREA", ((value/2.0)**2 * math.pi), tolerance=0.0005)
+            self.ca.assert_that_pv_is_number(
+                "STRESS:AREA", ((value / 2.0) ** 2 * math.pi), tolerance=0.0005
+            )
             self.ca.assert_that_pv_alarm_is("STRESS:AREA", ChannelAccess.Alarms.NONE)
 
         for val in [0.234, 789]:
@@ -351,94 +421,119 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
             for val in [1.23, 123.45]:
                 self.ca.set_pv_value("POS:SP", val)
-                self.ca.assert_that_pv_is_number("POS:RAW:SP", val * (1.0/1000.0) * (1/scale), tolerance=0.0000000001)
+                self.ca.assert_that_pv_is_number(
+                    "POS:RAW:SP", val * (1.0 / 1000.0) * (1 / scale), tolerance=0.0000000001
+                )
                 self.ca.assert_that_pv_alarm_is("POS:RAW:SP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_a_stress_setpoint_is_set_THEN_it_is_converted_correctly(self):
-
         for area in [789, 543.21]:
             self._lewis.backdoor_command(["device", "set_channel_param", "2", "area", str(area)])
             self.ca.assert_that_pv_is("STRESS:AREA", area)
 
             for chan_scale in [2.34, 456.78]:
-                self._lewis.backdoor_command(["device", "set_channel_param", "2", "scale", str(chan_scale)])
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", "2", "scale", str(chan_scale)]
+                )
                 self.ca.assert_that_pv_is("STRESS:SCALE", chan_scale)
 
                 for val in [1.23, 123.45]:
                     self.ca.set_pv_value("STRESS:SP", val)
-                    self.ca.assert_that_pv_is_number("STRESS:RAW:SP", val * (1 / chan_scale) * area,
-                                                     tolerance=0.0000000001)
+                    self.ca.assert_that_pv_is_number(
+                        "STRESS:RAW:SP", val * (1 / chan_scale) * area, tolerance=0.0000000001
+                    )
                     self.ca.assert_that_pv_alarm_is("STRESS:RAW:SP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_a_strain_setpoint_is_set_THEN_it_is_converted_correctly(self):
-
         for length in [789, 543.21]:
-            self._lewis.backdoor_command(["device", "set_channel_param", "3", "length", str(length)])
+            self._lewis.backdoor_command(
+                ["device", "set_channel_param", "3", "length", str(length)]
+            )
             self.ca.assert_that_pv_is("STRAIN:LENGTH", length)
 
             for chan_scale in [2.34, 456.78]:
-                self._lewis.backdoor_command(["device", "set_channel_param", "3", "scale", str(chan_scale)])
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", "3", "scale", str(chan_scale)]
+                )
                 self.ca.assert_that_pv_is("STRAIN:SCALE", chan_scale)
 
                 for val in [1.23, 123.45]:
                     self.ca.set_pv_value("STRAIN:SP", val)
-                    self.ca.assert_that_pv_is_number("STRAIN:RAW:SP", val * (1 / chan_scale) * length * (1.0/100000.0),
-                                                     tolerance=0.0000000001)
+                    self.ca.assert_that_pv_is_number(
+                        "STRAIN:RAW:SP",
+                        val * (1 / chan_scale) * length * (1.0 / 100000.0),
+                        tolerance=0.0000000001,
+                    )
                     self.ca.assert_that_pv_alarm_is("STRAIN:RAW:SP", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_the_channel_type_updates_on_the_device_THEN_the_pv_updates(self):
-
         for chan_name, chan_num in [("POS", 1), ("STRESS", 2), ("STRAIN", 3)]:
             for value_1, value_2, return_value_1, return_value_2 in [
-                    (0, 1, "Standard transducer", "Unrecognized"),
-                    (1, 10, "User transducer", "Ext. waveform generator")]:
-
-                self._lewis.backdoor_command(["device", "set_channel_param",
-                                              str(chan_num), "transducer_type", str(value_1)])
-                self._lewis.backdoor_command(["device", "set_channel_param",
-                                              str(chan_num), "channel_type", str(value_2)])
-                self.ca.assert_that_pv_is(""+chan_name+":TYPE:STANDARD",return_value_1 )
-                self.ca.assert_that_pv_is(""+chan_name+":TYPE", return_value_2)
+                (0, 1, "Standard transducer", "Unrecognized"),
+                (1, 10, "User transducer", "Ext. waveform generator"),
+            ]:
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", str(chan_num), "transducer_type", str(value_1)]
+                )
+                self._lewis.backdoor_command(
+                    ["device", "set_channel_param", str(chan_num), "channel_type", str(value_2)]
+                )
+                self.ca.assert_that_pv_is("" + chan_name + ":TYPE:STANDARD", return_value_1)
+                self.ca.assert_that_pv_is("" + chan_name + ":TYPE", return_value_2)
 
     def test_WHEN_waveform_type_abs_set_on_axes_THEN_all_axes_are_set(self):
         def _set_and_check(set_value, return_value):
             self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value)
             for chan in POS_STRESS_STRAIN:
                 self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), return_value)
-                self.ca.assert_that_pv_alarm_is("{0}:RAMP:WFTYP".format(chan), ChannelAccess.Alarms.NONE)
+                self.ca.assert_that_pv_alarm_is(
+                    "{0}:RAMP:WFTYP".format(chan), ChannelAccess.Alarms.NONE
+                )
 
         for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
             _set_and_check(set_value, return_value)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
+    def test_WHEN_channel_fails_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(
+        self,
+    ):
+        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(
+            zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))
+        ):
+            self._lewis.backdoor_command(
+                ["device", "set_channel_param", str(index + 1), "channel_type", str(type)]
+            )
 
-        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (1, 1, 1), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
-
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
-
-            self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "FAIL")
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name),
-                                      "{0} - disabled".format(channel_as_name))
+            self.ca.assert_that_pv_is("" + chan_name + ":TYPE:CHECK", "FAIL")
+            self.ca.assert_that_pv_is(
+                "CHANNEL:SP.{}ST".format(index_as_name), "{0} - disabled".format(channel_as_name)
+            )
 
             self.ca.set_pv_value("CHANNEL:SP", index)
 
             self.ca.assert_that_pv_alarm_is("CHANNEL:SP", ChannelAccess.Alarms.INVALID)
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(self):
+    def test_WHEN_channel_succeeds_check_THEN_channel_mbbi_record_is_invalid_and_has_tag_disabled(
+        self,
+    ):
         self.ca.set_pv_value("CHANNEL:SP", 3)
-        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))):
+        for index, (chan_name, type, index_as_name, channel_as_name) in enumerate(
+            zip(POS_STRESS_STRAIN, (3, 2, 4), ("ZR", "ON", "TW"), ("Position", "Stress", "Strain"))
+        ):
+            self._lewis.backdoor_command(
+                ["device", "set_channel_param", str(index + 1), "channel_type", str(type)]
+            )
 
-            self._lewis.backdoor_command(["device", "set_channel_param", str(index + 1), "channel_type", str(type)])
-
-            self.ca.assert_that_pv_is(""+chan_name+":TYPE:CHECK", "PASS", timeout=30)
+            self.ca.assert_that_pv_is("" + chan_name + ":TYPE:CHECK", "PASS", timeout=30)
 
             self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.Alarms.NONE)
+            self.ca.assert_that_pv_is(
+                "CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.Alarms.NONE
+            )
 
             self.ca.set_pv_value("CHANNEL:SP", index)
             self.ca.assert_that_pv_alarm_is("CHANNEL:SP", ChannelAccess.Alarms.NONE)
@@ -453,9 +548,14 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
     def check_running_state(self, status, running, continuing, timeout=None):
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), status, timeout)
-        self.ca.assert_that_pv_is(self.wave_prefixed("RUNNING"), "Running" if running else "Not running", timeout)
-        self.ca.assert_that_pv_is(self.wave_prefixed("CONTINUING"), "Continuing" if continuing else "Not continuing",
-                                  timeout)
+        self.ca.assert_that_pv_is(
+            self.wave_prefixed("RUNNING"), "Running" if running else "Not running", timeout
+        )
+        self.ca.assert_that_pv_is(
+            self.wave_prefixed("CONTINUING"),
+            "Continuing" if continuing else "Not continuing",
+            timeout,
+        )
 
     @skip_if_recsim("No backdoor in LewisNone")
     def test_GIVEN_the_waveform_generator_is_stopped_WHEN_it_is_started_THEN_it_is_running(self):
@@ -490,7 +590,9 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         self.check_running_state(status="Aborted", running=False, continuing=False)
 
     @skip_if_recsim("No backdoor in LewisNone")
-    def test_GIVEN_the_waveform_generator_is_running_WHEN_it_is_stopped_THEN_it_is_finishing_and_then_stops_within_5_seconds(self):
+    def test_GIVEN_the_waveform_generator_is_running_WHEN_it_is_stopped_THEN_it_is_finishing_and_then_stops_within_5_seconds(
+        self,
+    ):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
         self.check_running_state(status="Running", running=True, continuing=True)
         self.ca.set_pv_value(self.wave_prefixed("STOP"), 1)
@@ -498,7 +600,9 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         self.check_running_state(status="Stopped", running=False, continuing=False, timeout=5)
 
     @skip_if_recsim("No backdoor in LewisNone")
-    def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_started_THEN_it_is_running_and_keeps_running(self):
+    def test_GIVEN_the_waveform_generator_is_aborted_WHEN_it_is_started_THEN_it_is_running_and_keeps_running(
+        self,
+    ):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_ABORTED])
         self.check_running_state(status="Aborted", running=False, continuing=False)
         self.ca.set_pv_value(self.wave_prefixed("START"), 1)
@@ -524,12 +628,27 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         self.check_running_state(status="Aborted", running=False, continuing=False)
 
     def test_WHEN_waveform_type_is_set_THEN_the_device_reports_it_has_changed(self):
-        for index, wave_type in enumerate(["Sine", "Triangle", "Square", "Haversine",
-                     "Havetriangle", "Haversquare", "Sensor", "Aux", "Sawtooth"]):
-            self.ca.assert_setting_setpoint_sets_readback(index, self.wave_prefixed("TYPE"), expected_value=wave_type)
+        for index, wave_type in enumerate(
+            [
+                "Sine",
+                "Triangle",
+                "Square",
+                "Haversine",
+                "Havetriangle",
+                "Haversquare",
+                "Sensor",
+                "Aux",
+                "Sawtooth",
+            ]
+        ):
+            self.ca.assert_setting_setpoint_sets_readback(
+                index, self.wave_prefixed("TYPE"), expected_value=wave_type
+            )
 
     @skip_if_recsim("Recsim record does not handle multiple channels ")
-    def test_GIVEN_multiple_channels_WHEN_waveform_frequency_is_set_THEN_the_device_is_updated_to_that_value(self):
+    def test_GIVEN_multiple_channels_WHEN_waveform_frequency_is_set_THEN_the_device_is_updated_to_that_value(
+        self,
+    ):
         expected_values = [123.456, 789.012, 345.678]
         assert len(expected_values) == NUMBER_OF_CHANNELS
 
@@ -542,33 +661,51 @@ class InstronBase(object, metaclass=abc.ABCMeta):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.assert_that_pv_is(self.wave_prefixed("FREQ"), expected_values[device_channel])
 
-    @unstable_test(error_class=(AssertionError, ZeroDivisionError), max_retries=3, wait_between_runs=10)
+    @unstable_test(
+        error_class=(AssertionError, ZeroDivisionError), max_retries=3, wait_between_runs=10
+    )
     @skip_if_recsim("Conversion factors initialized to 0")
-    def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(self):
+    def test_GIVEN_multiple_channels_WHEN_waveform_amplitude_is_set_THEN_the_device_is_updated_to_that_value_with_channel_conversion_factor_applied(
+        self,
+    ):
         input_values = [123.4, 567.8, 91.2]
         conversion_factors = [
-            float(self.ca.get_pv_value("POS:SCALE"))*1000,
-            float(self.ca.get_pv_value("STRESS:SCALE"))/float(self.ca.get_pv_value("STRESS:AREA")),
-            float(self.ca.get_pv_value("STRAIN:SCALE"))*100000*float(self.ca.get_pv_value("STRAIN:LENGTH"))
+            float(self.ca.get_pv_value("POS:SCALE")) * 1000,
+            float(self.ca.get_pv_value("STRESS:SCALE"))
+            / float(self.ca.get_pv_value("STRESS:AREA")),
+            float(self.ca.get_pv_value("STRAIN:SCALE"))
+            * 100000
+            * float(self.ca.get_pv_value("STRAIN:LENGTH")),
         ]
 
         for i in range(len(conversion_factors)):
             self.assertNotEqual(0, conversion_factors[i], "Factor {} was zero".format(i))
 
-        expected_values = [input_values[i]/conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)]
-        assert len(expected_values) == len(conversion_factors) == len(input_values) == NUMBER_OF_CHANNELS
+        expected_values = [
+            input_values[i] / conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)
+        ]
+        assert (
+            len(expected_values)
+            == len(conversion_factors)
+            == len(input_values)
+            == NUMBER_OF_CHANNELS
+        )
 
         # Do this as two separate loops so that we can verify that all 3 channel values are stored independently
         for device_channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.set_pv_value(self.wave_prefixed("AMP:SP"), input_values[device_channel])
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP"), expected_values[device_channel])
-            self.ca.assert_that_pv_is(self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel])
+            self.ca.assert_that_pv_is(
+                self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel]
+            )
 
         for device_channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP"), expected_values[device_channel])
-            self.ca.assert_that_pv_is(self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel])
+            self.ca.assert_that_pv_is(
+                self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel]
+            )
 
     @skip_if_recsim("RECSIM does not capture dynamic behaviour")
     def test_WHEN_the_quarter_counter_is_off_THEN_the_number_of_counts_is_and_remains_zero(self):
@@ -582,41 +719,53 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_is(self.quart_prefixed("STATUS"), "Armed")
 
     @skip_if_recsim("Counting part of dynamic device behaviour")
-    def test_WHEN_the_waveform_generator_is_started_THEN_the_quarter_counter_starts_counting_and_keeps_increasing(self):
+    def test_WHEN_the_waveform_generator_is_started_THEN_the_quarter_counter_starts_counting_and_keeps_increasing(
+        self,
+    ):
         self.ca.set_pv_value(self.wave_prefixed("START"), 1)
         self.ca.assert_that_pv_value_is_increasing("QUART", 5)
 
     @skip_if_recsim("Status more complicated than RECSIM can handle")
-    def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(self):
+    def test_WHEN_the_quarter_counter_is_armed_THEN_the_number_of_quarts_never_exceeds_the_requested_maximum(
+        self,
+    ):
         cycles = 5
         self.ca.set_pv_value(self.quart_prefixed("CYCLE:SP"), cycles)
-        self.ca.assert_that_pv_is(self.quart_prefixed("SP"), cycles*4)
+        self.ca.assert_that_pv_is(self.quart_prefixed("SP"), cycles * 4)
         self.ca.set_pv_value(self.wave_prefixed("START"), 1)
         while self.ca.get_pv_value(self.quart_prefixed("STATUS")) == "Armed":
-            self.assertLessEqual(float(self.ca.get_pv_value("QUART")/4.0), cycles)
+            self.assertLessEqual(float(self.ca.get_pv_value("QUART") / 4.0), cycles)
         self.ca.assert_that_pv_is(self.quart_prefixed("STATUS"), "Tripped")
 
-    def test_GIVEN_the_waveform_generator_is_stopped_WHEN_instructed_to_hold_THEN_status_is_stopped(self):
+    def test_GIVEN_the_waveform_generator_is_stopped_WHEN_instructed_to_hold_THEN_status_is_stopped(
+        self,
+    ):
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), "Stopped")
         self.ca.set_pv_value(self.wave_prefixed("HOLD"), 1)
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), "Stopped")
 
     @skip_if_recsim("No backdoor in LewisNone")
-    def test_GIVEN_the_waveform_generator_is_running_WHEN_instructed_to_hold_THEN_status_is_holding(self):
+    def test_GIVEN_the_waveform_generator_is_running_WHEN_instructed_to_hold_THEN_status_is_holding(
+        self,
+    ):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_RUNNING])
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), "Running")
         self.ca.set_pv_value(self.wave_prefixed("HOLD"), 1)
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), "Holding")
 
     @skip_if_recsim("No backdoor in LewisNone")
-    def test_GIVEN_the_waveform_generator_is_holding_WHEN_instructed_to_hold_THEN_status_is_holding(self):
+    def test_GIVEN_the_waveform_generator_is_holding_WHEN_instructed_to_hold_THEN_status_is_holding(
+        self,
+    ):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_HOLDING])
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), "Holding")
         self.ca.set_pv_value(self.wave_prefixed("HOLD"), 1)
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), "Holding")
 
     @skip_if_recsim("No backdoor in LewisNone")
-    def test_GIVEN_the_waveform_generator_is_finishing_WHEN_instructed_to_hold_THEN_status_is_finishing(self):
+    def test_GIVEN_the_waveform_generator_is_finishing_WHEN_instructed_to_hold_THEN_status_is_finishing(
+        self,
+    ):
         self._lewis.backdoor_command(["device", "set_waveform_state", WAVEFORM_FINISHING])
         self.ca.assert_that_pv_is(self.wave_prefixed("STATUS"), "Finishing")
         self.ca.set_pv_value(self.wave_prefixed("HOLD"), 1)
@@ -642,12 +791,19 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
     def test_WHEN_the_max_cyles_is_set_THEN_the_readback_matches_setpoint(self):
         value = 7
-        self.ca.assert_setting_setpoint_sets_readback(value=value, set_point_pv=self.quart_prefixed("CYCLE:SP"),
-                                                      readback_pv=self.quart_prefixed("CYCLE:SP:RBV"))
+        self.ca.assert_setting_setpoint_sets_readback(
+            value=value,
+            set_point_pv=self.quart_prefixed("CYCLE:SP"),
+            readback_pv=self.quart_prefixed("CYCLE:SP:RBV"),
+        )
 
     @skip_if_recsim("not implemented in recsim")
     def test_WHEN_channel_told_to_go_THEN_it_goes(self):
-        for pv, chan, i in [("POS", "Position", 1), ("STRESS", "Stress", 2), ("STRAIN", "Strain", 3)]:
+        for pv, chan, i in [
+            ("POS", "Position", 1),
+            ("STRESS", "Stress", 2),
+            ("STRAIN", "Strain", 3),
+        ]:
             self._lewis.backdoor_command(["device", "set_control_mode", "1"])
             self._change_channel(chan)
             setpoint = 99999

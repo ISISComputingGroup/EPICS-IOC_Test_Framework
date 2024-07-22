@@ -15,7 +15,7 @@ IOCS = [
         "directory": get_default_ioc_dir("LINKAM95"),
         "macros": {},
         "emulator": EMULATOR_NAME,
-        "lewis_package": None
+        "lewis_package": None,
     },
 ]
 
@@ -26,12 +26,14 @@ class Linkam95Tests(unittest.TestCase):
     """
     Tests for the Linkam95 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
-    def test_GIVEN_a_valid_temperature_to_set_WHEN_set_THEN_display_temperature_is_valid_temperature(self):
-
+    def test_GIVEN_a_valid_temperature_to_set_WHEN_set_THEN_display_temperature_is_valid_temperature(
+        self,
+    ):
         expected_temp = 10
 
         self._lewis.backdoor_set_on_device("temperature", expected_temp)

@@ -38,6 +38,7 @@ class OerconeTests(unittest.TestCase):
     """
     Tests for the Oercone IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
@@ -61,6 +62,3 @@ class OerconeTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(Units))
     def test_WHEN_units_setpoint_set_THEN_read_back_is_correct(self, _, units):
         self.ca.assert_setting_setpoint_sets_readback(units.name, "UNITS")
-
-
-

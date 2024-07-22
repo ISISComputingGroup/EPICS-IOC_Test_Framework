@@ -28,8 +28,12 @@ def log_filename(test_name, what, device, test_mode, var_dir):
     if not os.path.exists(full_dir):
         os.makedirs(full_dir)
 
-    return os.path.join(full_dir, "log_{test_name}_{sim_type}_{device}_{what}.log".format(
-        test_name=test_name.replace('.','_'), sim_type=sim_type, device=device, what=what))
+    return os.path.join(
+        full_dir,
+        "log_{test_name}_{sim_type}_{device}_{what}.log".format(
+            test_name=test_name.replace(".", "_"), sim_type=sim_type, device=device, what=what
+        ),
+    )
 
 
 class LogFileManager(object):
@@ -56,7 +60,7 @@ class LogFileManager(object):
                 self.log_file_r.seek(where)
                 break
             new_messages.append(mess)
-            
+
         return new_messages
 
     def wait_for_console(self, timeout, ioc_started_text):
@@ -79,8 +83,11 @@ class LogFileManager(object):
 
             sleep(1)
         else:
-            raise AssertionError("IOC appears not to have started after {} seconds. Looking for '{}'"
-                                 .format(timeout, ioc_started_text))
+            raise AssertionError(
+                "IOC appears not to have started after {} seconds. Looking for '{}'".format(
+                    timeout, ioc_started_text
+                )
+            )
 
     def close(self):
         """

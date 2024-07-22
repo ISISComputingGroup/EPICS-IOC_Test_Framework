@@ -12,7 +12,10 @@ MTR_01 = "GALIL_01"
 MTR_02 = "GALIL_02"
 
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_full_split"))
+    os.path.join(
+        os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_full_split"
+    )
+)
 
 IOCS = [
     {
@@ -48,7 +51,11 @@ class SplitJawsTests(JawsTestsBase, unittest.TestCase):
         self.MTR_SOUTH = "MOT:MTR0102"
         self.MTR_WEST = "MOT:MTR0202"
         self.MTR_EAST = "MOT:MTR0201"
-        self.UNDERLYING_MTRS = OrderedDict([("N", self.MTR_NORTH),
-                                            ("S", self.MTR_SOUTH),
-                                            ("E", self.MTR_EAST),
-                                            ("W", self.MTR_WEST)])
+        self.UNDERLYING_MTRS = OrderedDict(
+            [
+                ("N", self.MTR_NORTH),
+                ("S", self.MTR_SOUTH),
+                ("E", self.MTR_EAST),
+                ("W", self.MTR_WEST),
+            ]
+        )

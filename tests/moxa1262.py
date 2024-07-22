@@ -37,7 +37,9 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM, ]
+TEST_MODES = [
+    TestModes.DEVSIM,
+]
 
 NUMBER_OF_CHANNELS = 8
 REGISTERS_PER_CHANNEL = 2

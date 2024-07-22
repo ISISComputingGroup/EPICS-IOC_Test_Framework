@@ -12,9 +12,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MK3CHOPR"),
-        "macros": {
-            "NUM_CHANNELS": 1
-        },
+        "macros": {"NUM_CHANNELS": 1},
     },
 ]
 
@@ -23,8 +21,8 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 # VISA not yet available on 32 bit
 BUILD_ARCHITECTURES = [BuildArchitectures._64BIT]
 
-class Mk3chopperTests(unittest.TestCase):
 
+class Mk3chopperTests(unittest.TestCase):
     # Remote access modes
     LOCAL = "LOCAL"
     REMOTE = "REMOTE"

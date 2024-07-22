@@ -119,27 +119,31 @@ class DMA4500MTests(unittest.TestCase):
         measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
         self._enable_automeasure(automeasure_interval)
-        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2*automeasure_interval)
-        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
-        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2*automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2 * automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2 * measurement_time)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2 * automeasure_interval)
 
     @parameterized.expand(parameterized_list([3, 5, 10, 20]))
-    def test_WHEN_automeasure_frequency_set_then_unset_THEN_measurement_stops(self, _, automeasure_interval):
+    def test_WHEN_automeasure_frequency_set_then_unset_THEN_measurement_stops(
+        self, _, automeasure_interval
+    ):
         measurement_time = 5
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
         self._enable_automeasure(automeasure_interval)
-        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2*automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "measuring", timeout=2 * automeasure_interval)
         self._disable_automeasure()
-        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*measurement_time)
-        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2*automeasure_interval)
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2 * measurement_time)
+        self.ca.assert_that_pv_is("MEASUREMENT", "done", timeout=2 * automeasure_interval)
 
-    @parameterized.expand([
-        ("measurement", "MEASUREMENT"),
-        ("temp_sp_rbv", "TEMPERATURE:SP:RBV"),
-        ("temperature", "TEMPERATURE"),
-        ("density", "DENSITY"),
-        ("condition", "CONDITION")
-    ])
+    @parameterized.expand(
+        [
+            ("measurement", "MEASUREMENT"),
+            ("temp_sp_rbv", "TEMPERATURE:SP:RBV"),
+            ("temperature", "TEMPERATURE"),
+            ("density", "DENSITY"),
+            ("condition", "CONDITION"),
+        ]
+    )
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
 

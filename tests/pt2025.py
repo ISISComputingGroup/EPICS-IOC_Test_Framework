@@ -24,10 +24,12 @@ DATA_UNLOCKED = ["W12.1243470T", "V12.1242321T", "V12.1242341T"]
 
 TEST_MODES = [TestModes.DEVSIM]
 
+
 class Pt2025Tests(unittest.TestCase):
     """
     Tests for the Pt2025 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("pt2025", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)

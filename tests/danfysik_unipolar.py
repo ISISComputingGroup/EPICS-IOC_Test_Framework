@@ -23,7 +23,7 @@ IOCS = [
             "FACTOR_WRITE_I": "1",
             "DISABLE_AUTOONOFF": "1",
             "POLARITY": "UNIPOLAR",
-            "MAX_RAW_SETPOINT": MAX_RAW_SETPOINT
+            "MAX_RAW_SETPOINT": MAX_RAW_SETPOINT,
         },
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8000",
@@ -38,7 +38,10 @@ class DanfysikUnipolarTest(DanfysikBase, unittest.TestCase):
     """
     Tests for unipolar danfysik. Separate test class as macros cannot be set at runtime.
     """
-    def test_GIVEN_polarity_is_unipolar_WHEN_setting_negative_current_THEN_current_is_set_to_zero(self):
+
+    def test_GIVEN_polarity_is_unipolar_WHEN_setting_negative_current_THEN_current_is_set_to_zero(
+        self,
+    ):
         # set to non-zero value initially to test minimum value is actually set
         initial_curr = 10
         self.ca.set_pv_value("CURR:SP", initial_curr)
@@ -49,4 +52,3 @@ class DanfysikUnipolarTest(DanfysikBase, unittest.TestCase):
 
         self.ca.assert_that_pv_is("RAW:SP", 0)
         self.ca.assert_that_pv_is("RAW", MIN_RAW_SETPOINT)
-

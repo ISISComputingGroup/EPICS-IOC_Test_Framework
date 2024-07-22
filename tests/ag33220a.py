@@ -30,7 +30,7 @@ class Ag33220aTests(unittest.TestCase):
         self.reset_values()
 
     def reset_values(self):
-        self._lewis.backdoor_set_on_device('connected', True)
+        self._lewis.backdoor_set_on_device("connected", True)
         self.ca.set_pv_value("AMPLITUDE:SP", 0.1)
         self.ca.set_pv_value("FREQUENCY:SP", 1000)
         self.ca.set_pv_value("OFFSET:SP", 0)
@@ -52,14 +52,14 @@ class Ag33220aTests(unittest.TestCase):
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_frequency_is_set_higher_than_allowed_THEN_it_is_limited(self):
-        self.ca.set_pv_value("FREQUENCY:SP", 1*10**8)
-        self.ca.assert_that_pv_is("FREQUENCY", 2*10**7)
+        self.ca.set_pv_value("FREQUENCY:SP", 1 * 10**8)
+        self.ca.assert_that_pv_is("FREQUENCY", 2 * 10**7)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_a_change_in_function_over_the_maximum_THEN_the_frequency_is_changed(self):
         self.ca.set_pv_value("FREQUENCY:SP", 1e8)
         self.ca.set_pv_value("FUNCTION:SP", 2)
-        self.ca.assert_that_pv_is("FREQUENCY", 2*10**5)
+        self.ca.assert_that_pv_is("FREQUENCY", 2 * 10**5)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_volt_high_is_set_lower_than_volt_low_THEN_volt_low_is_reduced(self):
@@ -84,7 +84,9 @@ class Ag33220aTests(unittest.TestCase):
         self.ca.assert_that_pv_is("IDN", "Agilent Technologies,33220A")
 
     @skip_if_recsim("In rec sim this test fails")
-    def test_WHEN_offset_set_to_2_and_half_and_amplitude_to_5_THEN_volt_high_is_5_and_volt_low_is_0(self):
+    def test_WHEN_offset_set_to_2_and_half_and_amplitude_to_5_THEN_volt_high_is_5_and_volt_low_is_0(
+        self,
+    ):
         self.ca.set_pv_value("OFFSET:SP", 2.5)
         self.ca.set_pv_value("AMPLITUDE:SP", 5)
         self.ca.assert_that_pv_is("VOLT:HIGH", 5)
@@ -128,9 +130,8 @@ class Ag33220aTests(unittest.TestCase):
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self.ca.assert_that_pv_alarm_is('FREQUENCY', ChannelAccess.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is("FREQUENCY", ChannelAccess.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_device():
-            self.ca.assert_that_pv_alarm_is('FREQUENCY', ChannelAccess.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is("FREQUENCY", ChannelAccess.Alarms.INVALID)
         # Assert alarms clear on reconnection
-        self.ca.assert_that_pv_alarm_is('FREQUENCY', ChannelAccess.Alarms.NONE)
-        
+        self.ca.assert_that_pv_alarm_is("FREQUENCY", ChannelAccess.Alarms.NONE)

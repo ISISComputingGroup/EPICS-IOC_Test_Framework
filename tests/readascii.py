@@ -10,22 +10,25 @@ from utils.test_modes import TestModes
 from utils.ioc_launcher import IOCRegister
 from parameterized import parameterized
 
-DEFAULT_SETTINGS_DIR = \
-    os.path.join("C:/", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings")
+DEFAULT_SETTINGS_DIR = os.path.join(
+    "C:/", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings"
+)
 DEFAULT_SETTINGS_FILE = "Default.txt"
 
 TEMP_TEST_SETTINGS_DIR = os.path.join("C:/", "Instrument", "var", "tmp", "readascii_test")
 TEMP_SETTINGS_FILE_NAME = "test_temp.txt"
 
 # Tolerance for floating-point readback values
-TOLERANCE = 10 ** -5
+TOLERANCE = 10**-5
 
 DEVICE_PREFIX = "READASCIITEST"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": os.path.join(EPICS_TOP, "support", "ReadASCII", "master", "iocBoot", "iocReadASCIITest"),
+        "directory": os.path.join(
+            EPICS_TOP, "support", "ReadASCII", "master", "iocBoot", "iocReadASCIITest"
+        ),
         "pv_for_existence": "DIRBASE",
     },
 ]
@@ -118,7 +121,9 @@ class ReadasciiTests(unittest.TestCase):
         self.ca.process_pv("LUTON")
 
         for i in range(len(pv_names)):
-            self.ca.assert_that_pv_is_number(str(pv_names[i]), float(pv_values[i]), tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number(
+                str(pv_names[i]), float(pv_values[i]), tolerance=TOLERANCE
+            )
 
     def setUp(self):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
@@ -129,12 +134,15 @@ class ReadasciiTests(unittest.TestCase):
     def _set_ramp_status(self, status):
         self.ca.set_pv_value("RAMPON", status)
 
-    @parameterized.expand([
-        ("new MH header name", "MH"),
-        ("old MH header name", "heater"),
-    ])
+    @parameterized.expand(
+        [
+            ("new MH header name", "MH"),
+            ("old MH header name", "heater"),
+        ]
+    )
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(
-            self, _, MH_name):
+        self, _, MH_name
+    ):
         headers = ["SP", "P", "I", "D", MH_name]
         rows = [
             (50, 1, 2, 3, 4),
@@ -147,7 +155,8 @@ class ReadasciiTests(unittest.TestCase):
                 self._set_and_check(*row)
 
     def test_GIVEN_the_test_file_has_non_integer_pid_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(
-            self):
+        self,
+    ):
         headers = ["SP", "P", "I", "D", "MH"]
         rows = [
             (50, 1.23, 2.7, 3.8, 4.1),
@@ -160,7 +169,8 @@ class ReadasciiTests(unittest.TestCase):
                 self._set_and_check(*row)
 
     def test_WHEN_a_setpoint_lower_than_the_minimum_bound_of_the_file_is_set_THEN_the_pid_settings_are_updated_to_be_the_minimum(
-            self):
+        self,
+    ):
         headers = ["SP", "P", "I", "D", "MH"]
         rows = [
             (50, 1, 2, 3, 4),
@@ -173,7 +183,8 @@ class ReadasciiTests(unittest.TestCase):
             self._set_and_check(20, 1, 2, 3, 4)
 
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_the_file_is_changed_on_disk_THEN_the_pid_lookup_uses_the_new_values(
-            self):
+        self,
+    ):
         headers = ["SP", "P", "I", "D", "MH"]
         rows = [
             (50, 1, 2, 3, 4),
@@ -195,12 +206,16 @@ class ReadasciiTests(unittest.TestCase):
     def test_GIVEN_ramping_is_off_WHEN_setting_setpoint_THEN_it_is_sent_to_device_immediately(self):
         self._set_ramp_status(False)
         for val in TEST_VALUES:
-            self.ca.assert_setting_setpoint_sets_readback(val, set_point_pv="VAL:SP", readback_pv="OUT_SP")
+            self.ca.assert_setting_setpoint_sets_readback(
+                val, set_point_pv="VAL:SP", readback_pv="OUT_SP"
+            )
 
     def test_GIVEN_ramping_is_on_WHEN_setting_setpoint_THEN_setpoint_sent_to_the_device_ramps(self):
         # This ensures that other tests don't mess with this one
         headers = ["SP", "P", "I", "D", "MH"]
-        rows = [(0, 0, 0, 0, 0), ]
+        rows = [
+            (0, 0, 0, 0, 0),
+        ]
         with self._generate_temporary_test_file(headers, rows), self._use_test_file():
             pass
 
@@ -292,7 +307,9 @@ class ReadasciiTests(unittest.TestCase):
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:3] + (11,) + row[4:])
 
-    def test_GIVEN_the_test_file_incorrectly_formatted_THEN_interpret_existing_data_without_failing(self):
+    def test_GIVEN_the_test_file_incorrectly_formatted_THEN_interpret_existing_data_without_failing(
+        self,
+    ):
         headers = ["SP", "P", "I", "D", "MH"]
         # we are missing value for MH between 100-150 so it should instead parse data below (12)
         # for value above 150 it should then give 0 as there is no record to parse
@@ -325,7 +342,7 @@ class ReadasciiTests(unittest.TestCase):
         check_pvs = ["OUT_P", "OUT_I", "OUT_MAX", "OUT_D"]
         with self._generate_temporary_test_file(headers, rows), self._use_test_file():
             for row in rows:
-                self._set_and_check_flexible(row[0], check_pvs, row[1:3]+row[4:])
+                self._set_and_check_flexible(row[0], check_pvs, row[1:3] + row[4:])
 
     def test_GIVEN_data_file_name_changed_THEN_new_file_used(self):
         headers = ["SP", "P", "I", "D", "MH"]
@@ -351,7 +368,9 @@ class ReadasciiTests(unittest.TestCase):
 
         check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
         # we use file2 this time and expect new values
-        with self._generate_temporary_test_file(headers, rows, "file2"), self._use_test_file("file2"):
+        with self._generate_temporary_test_file(headers, rows, "file2"), self._use_test_file(
+            "file2"
+        ):
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:])
 
@@ -359,7 +378,9 @@ class ReadasciiTests(unittest.TestCase):
         # this should put file pv on alarm since we set a non-existing file
         self.ca.assert_setting_setpoint_sets_readback(TEMP_TEST_SETTINGS_DIR, "DIRBASE")
         self.ca.set_pv_value("RAMP_FILE", "FakeFile")
-        self.ca.assert_setting_setpoint_sets_readback("FakeFile", "RAMP_FILE", None, None, "INVALID")
+        self.ca.assert_setting_setpoint_sets_readback(
+            "FakeFile", "RAMP_FILE", None, None, "INVALID"
+        )
 
         headers = ["SP", "P", "I", "D", "MH"]
         # we are expecting all the values to be normal when using real file
@@ -370,18 +391,23 @@ class ReadasciiTests(unittest.TestCase):
         ]
 
         check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
-        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file("RealFile"):
+        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file(
+            "RealFile"
+        ):
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:])
-    
+
     def test_GIVEN_no_file_is_set_THEN_file_not_default_PV_is_false(self):
         self.ca.set_pv_value("RAMP_FILE", DEFAULT_SETTINGS_FILE)
         self.ca.assert_that_pv_is("RAMP_FILE_NOT_DEFAULT", 0)
 
     def test_GIVEN_file_is_set_THEN__file_not_default_PV_is_true(self):
         headers = ["SP", "P", "I", "D", "MH"]
-        rows = [(0, 0, 0, 0, 0), ]
+        rows = [
+            (0, 0, 0, 0, 0),
+        ]
 
-        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file("RealFile"):
+        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file(
+            "RealFile"
+        ):
             self.ca.assert_that_pv_is("RAMP_FILE_NOT_DEFAULT", 1)
-

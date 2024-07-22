@@ -7,7 +7,9 @@ from utils.testing import unstable_test
 import os
 from genie_python import genie as g
 
-test_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "inhibitr"))
+test_config_path = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "inhibitr")
+)
 
 
 IOC_PREFIX = "INHIBITR_01"
@@ -45,7 +47,7 @@ class InhibitrTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running(IOC_PREFIX)
         self.ca = ChannelAccess(default_timeout=20)
         self.values = ["SIMPLE:VALUE1:SP", "SIMPLE:VALUE2:SP"]
-        
+
         for pv in self.values:
             self.ca.assert_that_pv_exists(pv)
 

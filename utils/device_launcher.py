@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+
 try:
     from contextlib import ExitStack  # PY3
 except ImportError:

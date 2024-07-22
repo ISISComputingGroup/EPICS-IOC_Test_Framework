@@ -46,8 +46,16 @@ UNDERLYING_MTR_EAST = "MOT:MTR0104"
 UNDERLYING_MTR_NORTH = "MOT:MTR0101"
 UNDERLYING_MTR_SOUTH = "MOT:MTR0102"
 
-all_motors = [MOTOR_W, MOTOR_E, MOTOR_N, MOTOR_S,
-              UNDERLYING_MTR_WEST, UNDERLYING_MTR_EAST, UNDERLYING_MTR_NORTH, UNDERLYING_MTR_SOUTH]
+all_motors = [
+    MOTOR_W,
+    MOTOR_E,
+    MOTOR_N,
+    MOTOR_S,
+    UNDERLYING_MTR_WEST,
+    UNDERLYING_MTR_EAST,
+    UNDERLYING_MTR_NORTH,
+    UNDERLYING_MTR_SOUTH,
+]
 
 MIN_POSITION = 2
 MID_POSITION = 5.4
@@ -82,6 +90,7 @@ class GemJawsTests(unittest.TestCase):
     """
     Tests for the gem beamscraper jaws
     """
+
     def setUp(self):
         self._ioc = IOCRegister.get_running("gem_jaws")
         self.ca = ChannelAccess(default_timeout=30)
@@ -90,21 +99,29 @@ class GemJawsTests(unittest.TestCase):
 
     def _test_readback(self, underlying_motor, calibrated_axis, to_read_func, x):
         self.ca.set_pv_value(underlying_motor, x, wait=True)
-        self.ca.assert_that_pv_is_number(underlying_motor + ".DMOV", 1)  # Wait for axis to finish moving
+        self.ca.assert_that_pv_is_number(
+            underlying_motor + ".DMOV", 1
+        )  # Wait for axis to finish moving
         self.ca.assert_that_pv_is_number(calibrated_axis + ".RBV", to_read_func(x), TOLERANCE)
 
     def _test_set_point(self, underlying_motor, calibrated_axis, to_write_func, x):
         self.ca.set_pv_value(calibrated_axis, x, wait=True)
-        self.ca.assert_that_pv_is_number(underlying_motor + ".DMOV", 1)  # Wait for axis to finish moving
+        self.ca.assert_that_pv_is_number(
+            underlying_motor + ".DMOV", 1
+        )  # Wait for axis to finish moving
         self.ca.assert_that_pv_is_number(underlying_motor + ".VAL", to_write_func(x), TOLERANCE)
 
-    def test_WHEN_underlying_quadratic_motor_set_to_a_position_THEN_calibrated_axis_as_expected(self):
+    def test_WHEN_underlying_quadratic_motor_set_to_a_position_THEN_calibrated_axis_as_expected(
+        self,
+    ):
         motors = {MOTOR_E: UNDERLYING_MTR_EAST, MOTOR_W: UNDERLYING_MTR_WEST}
         for mot, underlying in motors.items():
             for position in TEST_POSITIONS:
                 self._test_readback(underlying, mot, calc_expected_quad_read, position)
 
-    def test_WHEN_calibrated_quadratic_motor_set_to_a_position_THEN_underlying_motor_as_expected(self):
+    def test_WHEN_calibrated_quadratic_motor_set_to_a_position_THEN_underlying_motor_as_expected(
+        self,
+    ):
         motors = {MOTOR_E: UNDERLYING_MTR_EAST, MOTOR_W: UNDERLYING_MTR_WEST}
         for mot, underlying in motors.items():
             for position in TEST_POSITIONS:
@@ -126,12 +143,14 @@ class GemJawsTests(unittest.TestCase):
         for lim in [".LLM", ".HLM"]:
             underlying_limit = self.ca.get_pv_value(UNDERLYING_MTR_WEST + lim)
 
-            self.ca.assert_that_pv_is_number(MOTOR_W + lim, calc_expected_quad_read(underlying_limit),
-                                             TOLERANCE)
+            self.ca.assert_that_pv_is_number(
+                MOTOR_W + lim, calc_expected_quad_read(underlying_limit), TOLERANCE
+            )
 
     def test_GIVEN_linear_calibrated_motor_limits_set_THEN_underlying_motor_limits_set(self):
         for lim in [".LLM", ".HLM"]:
             underlying_limit = self.ca.get_pv_value(UNDERLYING_MTR_NORTH + lim)
 
-            self.ca.assert_that_pv_is_number(MOTOR_N + lim, calc_expected_linear_read(underlying_limit),
-                                             TOLERANCE)
+            self.ca.assert_that_pv_is_number(
+                MOTOR_N + lim, calc_expected_linear_read(underlying_limit), TOLERANCE
+            )

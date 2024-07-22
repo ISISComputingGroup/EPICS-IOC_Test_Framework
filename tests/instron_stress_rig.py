@@ -29,7 +29,6 @@ class InstronTests(InstronBase, unittest.TestCase):
         return DEVICE_PREFIX
 
     def _switch_to_position_channel_and_change_setpoint(self):
-
         # It has to be big or the set point will be reached before the test completes
         _big_set_point = 999999999999
 
@@ -62,7 +61,6 @@ class InstronTests(InstronBase, unittest.TestCase):
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_arbitrary_command_C4_is_sent_THEN_Q4_gives_back_the_value_that_was_just_set(self):
-
         def _set_and_check(value):
             # Put the record into a non-alarm state. This is needed so that we can wait until the record is in alarm
             # later, when we do a command which (expectedly) puts the record into a timeout alarm.

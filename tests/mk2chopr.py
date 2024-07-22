@@ -26,6 +26,7 @@ class Mk2ChoprTests(unittest.TestCase):
     """
     Tests for the Mk2Chopr IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Mk2Chopr", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)

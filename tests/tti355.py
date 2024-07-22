@@ -38,6 +38,7 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
     """
     Tests for the Tti355 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
@@ -49,19 +50,29 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
     def get_off_state_name(self):
         return "OFF"
 
-    @parameterized.expand([
-        ("lt_low_limit", VOLT_LOW_LIMIT-1.0, "low_limit", VOLT_LOW_LIMIT),
-        ("gt_high_limit", VOLT_HIGH_LIMIT+1, "high_limit", VOLT_HIGH_LIMIT)])
+    @parameterized.expand(
+        [
+            ("lt_low_limit", VOLT_LOW_LIMIT - 1.0, "low_limit", VOLT_LOW_LIMIT),
+            ("gt_high_limit", VOLT_HIGH_LIMIT + 1, "high_limit", VOLT_HIGH_LIMIT),
+        ]
+    )
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
-    def test_WHEN_voltage_setpoint_is_set_outside_max_limits_THEN_setpoint_within(self, case, case_value, limit, limit_value):
+    def test_WHEN_voltage_setpoint_is_set_outside_max_limits_THEN_setpoint_within(
+        self, case, case_value, limit, limit_value
+    ):
         self.ca.set_pv_value("VOLTAGE:SP", case_value)
         self.ca.assert_that_pv_is("VOLTAGE:SP", limit_value)
 
-    @parameterized.expand([
-        ("lt_low_limit", CURR_LOW_LIMIT-1, "low_limit", CURR_LOW_LIMIT),
-        ("gt_high_limit", CURR_HIGH_LIMIT+1, "high_limit", CURR_HIGH_LIMIT)])
+    @parameterized.expand(
+        [
+            ("lt_low_limit", CURR_LOW_LIMIT - 1, "low_limit", CURR_LOW_LIMIT),
+            ("gt_high_limit", CURR_HIGH_LIMIT + 1, "high_limit", CURR_HIGH_LIMIT),
+        ]
+    )
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
-    def test_WHEN_voltage_setpoint_is_set_outside_max_limits_THEN_setpoint_within(self, case, case_value, limit, limit_value):
+    def test_WHEN_voltage_setpoint_is_set_outside_max_limits_THEN_setpoint_within(
+        self, case, case_value, limit, limit_value
+    ):
         self.ca.set_pv_value("CURRENT:SP", case_value)
         self.ca.assert_that_pv_is("CURRENT:SP", limit_value)
 

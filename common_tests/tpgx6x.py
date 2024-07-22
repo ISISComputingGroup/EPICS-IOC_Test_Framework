@@ -37,7 +37,6 @@ class ErrorStrings(object):
 
 
 class TpgBase(object, metaclass=abc.ABCMeta):
-
     @abc.abstractmethod
     def get_prefix(self):
         pass

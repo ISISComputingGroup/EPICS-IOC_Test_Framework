@@ -16,7 +16,7 @@ IOCS = [
         "name": IOC_PREFIX,
         "directory": get_default_ioc_dir(IOC_NAME),
         "macros": {},
-        "emulator": "smrtmon"
+        "emulator": "smrtmon",
     },
 ]
 # All of these have their own PVs plus PVNAME:OPLM and PVNAME:LIMS
@@ -34,7 +34,7 @@ MAGNET_STATUS = {
     1: "Room Temp",
     2: "Cooling Down",
     3: "Operating Temp",
-    4: "Fault Occurred"
+    4: "Fault Occurred",
 }
 
 
@@ -69,14 +69,15 @@ class SmrtmonTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(SET_LIMS, [num, lims_value])
         self.ca.assert_that_pv_is(pv, lims_value)
 
-    @parameterized.expand(enumerate(DEVICE_PVS + DEVICE_OPLM_PVS + DEVICE_LIMS_PVS + [MAGNET_STATUS_PV_NAME]))
+    @parameterized.expand(
+        enumerate(DEVICE_PVS + DEVICE_OPLM_PVS + DEVICE_LIMS_PVS + [MAGNET_STATUS_PV_NAME])
+    )
     def test_WHEN_disconnected_THEN_in_alarm(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_device():
             self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.INVALID)
         # Assert alarms clear on reconnection
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.NONE)
-
 
     @parameterized.expand(enumerate(DEVICE_PVS))
     def test_GIVEN_oplm_WHEN_stat_greater_than_oplm_THEN_minor_alarm(self, num, pv):
@@ -101,7 +102,9 @@ class SmrtmonTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is(pv, ChannelAccess.Alarms.MAJOR)
 
     @parameterized.expand(MAGNET_STATUS.items())
-    def test_GIVEN_when_magnet_status_pv_changed_THEN_magnet_power_is_calculated_correctly(self, num, _):
+    def test_GIVEN_when_magnet_status_pv_changed_THEN_magnet_power_is_calculated_correctly(
+        self, num, _
+    ):
         self._lewis.backdoor_run_function_on_device(SET_STAT, [10, num])
         self.ca.assert_that_pv_is(MAGNET_POWER_ON_CALC, 1 if num > 0 else 0)
 

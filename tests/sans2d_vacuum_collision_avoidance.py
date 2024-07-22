@@ -16,7 +16,14 @@ except ImportError:
     from contextlib2 import nullcontext
 
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
+    os.path.join(
+        os.getenv("EPICS_KIT_ROOT"),
+        "support",
+        "motorExtensions",
+        "master",
+        "settings",
+        "sans2d_vacuum_tank",
+    )
 )
 
 GALIL_ADDR1 = "127.0.0.11"
@@ -34,7 +41,7 @@ IOCS = [
             "GALILADDR": GALIL_ADDR1,
             "MTRCTRL": "03",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
-        }
+        },
     },
     {
         "name": "GALILMUL_02",
@@ -47,24 +54,20 @@ IOCS = [
             "MTRCTRL2": "05",
             "GALILADDR2": GALIL_ADDR3,
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
-        }
+        },
     },
     {
         "name": "INSTETC",
         "directory": get_default_ioc_dir("INSTETC"),
         "custom_prefix": "CS",
         "pv_for_existence": "MANAGER",
-    }
+    },
 ]
 
 
 TEST_MODES = [TestModes.RECSIM]
 
-ERRORS = {
-    "FDFB": "FDFB Collision",
-    "FBRB": "FBRB Collision",
-    "RBRD": "RBRD Collision"
-}
+ERRORS = {"FDFB": "FDFB Collision", "FBRB": "FBRB Collision", "RBRD": "RBRD Collision"}
 
 
 class AxisPair(object):
@@ -82,16 +85,33 @@ class AxisPair(object):
 
 
 AXIS_PAIRS = [
-    AxisPair(front_axis="FRONTDETZ", rear_axis="FRONTBAFFLEZ",
-             name="FDFB", interval_setpoint_name="FDSPFBSP", minimum_interval=1050),
-    AxisPair(front_axis="FRONTBAFFLEZ", rear_axis="REARBAFFLEZ",
-             name="FBRB", interval_setpoint_name="FBSPRBSP", minimum_interval=210),
-    AxisPair(front_axis="REARBAFFLEZ", rear_axis="REARDETZ",
-             name="RBRD", interval_setpoint_name="RBSPRDSP", minimum_interval=350),
+    AxisPair(
+        front_axis="FRONTDETZ",
+        rear_axis="FRONTBAFFLEZ",
+        name="FDFB",
+        interval_setpoint_name="FDSPFBSP",
+        minimum_interval=1050,
+    ),
+    AxisPair(
+        front_axis="FRONTBAFFLEZ",
+        rear_axis="REARBAFFLEZ",
+        name="FBRB",
+        interval_setpoint_name="FBSPRBSP",
+        minimum_interval=210,
+    ),
+    AxisPair(
+        front_axis="REARBAFFLEZ",
+        rear_axis="REARDETZ",
+        name="RBRD",
+        interval_setpoint_name="RBSPRDSP",
+        minimum_interval=350,
+    ),
 ]
 
 BAFFLES_AND_DETECTORS_Z_AXES = set(
-    [interval.front_axis for interval in AXIS_PAIRS] + [interval.rear_axis for interval in AXIS_PAIRS])
+    [interval.front_axis for interval in AXIS_PAIRS]
+    + [interval.rear_axis for interval in AXIS_PAIRS]
+)
 
 MAJOR_ALARM_INTERVAL_THRESHOLD = 50
 MINOR_ALARM_INTERVAL_THRESHOLD = 100
@@ -123,17 +143,24 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
     def test_GIVEN_setpoint_for_each_axis_THEN_axis_not_moved(self, _, axis_pair):
         front_axis_new_position = 0
-        self.ca.set_pv_value(axis_pair.front_axis_sp,
-                             self.ca.get_pv_value(axis_pair.front_axis_sp) + front_axis_new_position)
+        self.ca.set_pv_value(
+            axis_pair.front_axis_sp,
+            self.ca.get_pv_value(axis_pair.front_axis_sp) + front_axis_new_position,
+        )
         assert_axis_not_moving(axis_pair.front_axis)
-        self.ca.set_pv_value(axis_pair.rear_axis_sp,
-                             (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) + 50)
+        self.ca.set_pv_value(
+            axis_pair.rear_axis_sp,
+            (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) + 50,
+        )
         assert_axis_not_moving(axis_pair.front_axis)
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
     def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_warning_message_is_available(
-            self, _, axis_pair):
-        front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval) + 50
+        self, _, axis_pair
+    ):
+        front_axis_new_position = (
+            self.ca.get_pv_value(axis_pair.rear_axis) - axis_pair.minimum_interval
+        ) + 50
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position)
 
         error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
@@ -141,8 +168,11 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
     def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_warning_message_is_not_available(
-            self, _, axis_pair):
-        front_axis_new_position = (self.ca.get_pv_value(axis_pair.rear_axis_sp) - axis_pair.minimum_interval) - 51
+        self, _, axis_pair
+    ):
+        front_axis_new_position = (
+            self.ca.get_pv_value(axis_pair.rear_axis_sp) - axis_pair.minimum_interval
+        ) - 51
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=1)
 
         error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
@@ -153,7 +183,9 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value("FRONTDETZ:SP", 100)
         end_values = {"FRONTDETZ": 100}
         for axis_pair in AXIS_PAIRS:
-            rear_axis_pos = (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) + 50
+            rear_axis_pos = (
+                self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval
+            ) + 50
             end_values[axis_pair.rear_axis] = rear_axis_pos
             self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos)
 
@@ -163,7 +195,9 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
     def test_GIVEN_positions_invalid_WHEN_move_all_THEN_axes_movement_is_inhibited(self):
         for axis_pair in AXIS_PAIRS:
-            rear_axis_pos = (self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval) - 50
+            rear_axis_pos = (
+                self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval
+            ) - 50
             self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos)
 
         with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
@@ -186,7 +220,9 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1)
 
         for axis_position in positions:
-            with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
+            with self.assertRaises(
+                WriteAccessException, msg="DISP should be set on inhibited axis"
+            ):
                 self.ca.set_pv_value(axis_position + ":SP", positions[axis_position])
 
     @parameterized.expand(parameterized_list(BAFFLES_AND_DETECTORS_Z_AXES))
@@ -197,8 +233,10 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value("FRONTDETZ:SP", FRONTDET_INITIAL_POS)
 
         for axis_pair in AXIS_PAIRS:
-            self.ca.set_pv_value(axis_pair.rear_axis_sp, self.ca.get_pv_value(axis_pair.front_axis_sp)
-                                 + axis_pair.minimum_interval + 500)
+            self.ca.set_pv_value(
+                axis_pair.rear_axis_sp,
+                self.ca.get_pv_value(axis_pair.front_axis_sp) + axis_pair.minimum_interval + 500,
+            )
 
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=5)
 

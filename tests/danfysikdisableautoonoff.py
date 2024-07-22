@@ -25,14 +25,18 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM]
 
+
 class DanfysikDisableautonoffTest(DanfysikBase, unittest.TestCase):
     """
     Test for disabling danfysik automatic PSU on/off capability. In a seperate file to the other tests
     due to inability to change macro DISABLE_AUTOONOFF at runtime and the fact that most tests require DISABLE_AUTOONOFF
     to be 0. Tests inherited from DanfysikBase.
     """
+
     def test_WHEN_disableautonoff_true_THEN_autoonoff_cannot_be_set(self):
         self.ca.assert_that_pv_is("AUTOONOFF", "Disabled")
-        with self.assertRaises(WriteAccessException, msg="Genie python should notify of DISP being set"):
+        with self.assertRaises(
+            WriteAccessException, msg="Genie python should notify of DISP being set"
+        ):
             self.ca.set_pv_value("AUTOONOFF", "Enabled")
         self.ca.assert_that_pv_is("AUTOONOFF", "Disabled")

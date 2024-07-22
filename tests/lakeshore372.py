@@ -51,6 +51,7 @@ class Lakeshore372Tests(unittest.TestCase):
     """
     Tests for the lakeshore 372 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
@@ -59,20 +60,35 @@ class Lakeshore372Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
 
     def _assert_readback_alarm_states(self, alarm):
-        for readback_pv in ["TEMP", "TEMP:SP:RBV", "P", "I", "D", "HEATER:POWER", "RESISTANCE", "HEATER:RANGE"]:
+        for readback_pv in [
+            "TEMP",
+            "TEMP:SP:RBV",
+            "P",
+            "I",
+            "D",
+            "HEATER:POWER",
+            "RESISTANCE",
+            "HEATER:RANGE",
+        ]:
             self.ca.assert_that_pv_alarm_is(readback_pv, alarm)
 
     @parameterized.expand(parameterized_list(TEST_TEMPERATURES))
     def test_WHEN_temp_setpoint_is_set_THEN_actual_temperature_updates(self, _, temperature):
-        self.ca.assert_setting_setpoint_sets_readback(temperature, set_point_pv="TEMP:SP", readback_pv="TEMP")
+        self.ca.assert_setting_setpoint_sets_readback(
+            temperature, set_point_pv="TEMP:SP", readback_pv="TEMP"
+        )
 
     @parameterized.expand(parameterized_list(TEST_TEMPERATURES))
     def test_WHEN_temp_setpoint_is_set_THEN_setpoint_readback_updates(self, _, temperature):
-        self.ca.assert_setting_setpoint_sets_readback(temperature, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV")
+        self.ca.assert_setting_setpoint_sets_readback(
+            temperature, set_point_pv="TEMP:SP", readback_pv="TEMP:SP:RBV"
+        )
 
     @parameterized.expand(parameterized_list(HEATER_RANGES))
     def test_WHEN_heater_range_is_set_THEN_heater_range_readback_updates(self, _, rng):
-        self.ca.assert_setting_setpoint_sets_readback(rng, set_point_pv="HEATER:RANGE:SP", readback_pv="HEATER:RANGE")
+        self.ca.assert_setting_setpoint_sets_readback(
+            rng, set_point_pv="HEATER:RANGE:SP", readback_pv="HEATER:RANGE"
+        )
 
     @parameterized.expand(parameterized_list(TEST_HEATER_POWER_PERCENTAGES))
     @skip_if_recsim("Uses lewis backdoor")

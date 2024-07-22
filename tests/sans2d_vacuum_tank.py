@@ -14,7 +14,14 @@ from utils.axis import set_axis_moving
 from utils.testing import parameterized_list
 
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "sans2d_vacuum_tank")
+    os.path.join(
+        os.getenv("EPICS_KIT_ROOT"),
+        "support",
+        "motorExtensions",
+        "master",
+        "settings",
+        "sans2d_vacuum_tank",
+    )
 )
 
 GALIL_ADDR1 = "127.0.0.11"
@@ -30,9 +37,9 @@ IOCS = [
         "pv_for_existence": "HEARTBEAT",
         "macros": {
             "FINSCONFIGDIR": (
-                os.path.join(EPICS_TOP, "ioc", "master", "FINS", "exampleSettings", "SANS2D_vacuum")).replace("\\",
-                                                                                                              "/"),
-            "PLCIP": "127.0.0.1"
+                os.path.join(EPICS_TOP, "ioc", "master", "FINS", "exampleSettings", "SANS2D_vacuum")
+            ).replace("\\", "/"),
+            "PLCIP": "127.0.0.1",
         },
     },
     {
@@ -44,7 +51,7 @@ IOCS = [
             "GALILADDR": GALIL_ADDR1,
             "MTRCTRL": "03",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
-        }
+        },
     },
     {
         "name": "GALILMUL_02",
@@ -57,7 +64,7 @@ IOCS = [
             "MTRCTRL2": "05",
             "GALILADDR2": GALIL_ADDR3,
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
-        }
+        },
     },
 ]
 
@@ -68,12 +75,35 @@ PAUSE, MOVE, GO = 1, 2, 3
 TEST_MODES = [TestModes.RECSIM]
 
 AXES_TO_STOP = [
-    "FRONTDETZ", "FRONTDETX", "FRONTDETROT", "REARDETZ", "REARDETX", "REARBAFFLEZ", "FRONTBAFFLEZ",
-    "BEAMSTOPX", "BEAMSTOP2Y", "BEAMSTOP1Y", "BEAMSTOP3Y", "FRONTBEAMSTOP",
-    "JAWRIGHT", "JAWLEFT", "JAWUP", "JAWDOWN", "FRONTSTRIP", "REARSTRIP"
+    "FRONTDETZ",
+    "FRONTDETX",
+    "FRONTDETROT",
+    "REARDETZ",
+    "REARDETX",
+    "REARBAFFLEZ",
+    "FRONTBAFFLEZ",
+    "BEAMSTOPX",
+    "BEAMSTOP2Y",
+    "BEAMSTOP1Y",
+    "BEAMSTOP3Y",
+    "FRONTBEAMSTOP",
+    "JAWRIGHT",
+    "JAWLEFT",
+    "JAWUP",
+    "JAWDOWN",
+    "FRONTSTRIP",
+    "REARSTRIP",
 ]
 
-AXES_FOR_CA = ["FRONTDETZ", "FRONTDETX", "FRONTDETROT", "REARDETZ", "REARDETX", "REARBAFFLEZ", "FRONTBAFFLEZ"]
+AXES_FOR_CA = [
+    "FRONTDETZ",
+    "FRONTDETX",
+    "FRONTDETROT",
+    "REARDETZ",
+    "REARDETX",
+    "REARBAFFLEZ",
+    "FRONTBAFFLEZ",
+]
 
 
 class Sans2dVacTankTests(unittest.TestCase):
@@ -93,17 +123,27 @@ class Sans2dVacTankTests(unittest.TestCase):
     def reset_axes_to_non_inhibit(self, axis_one, axis_two):
         axis_one_val = self.ca.get_pv_value("{}:SP".format(axis_one))
         axis_two_val = self.ca.get_pv_value("{}:SP".format(axis_two))
-        axis_one_inhibiting = axis_one_val < self.lower_inhibit_bound or axis_one_val > self.upper_inhibit_bound
-        axis_two_inhibiting = axis_two_val < self.lower_inhibit_bound or axis_two_val > self.upper_inhibit_bound
+        axis_one_inhibiting = (
+            axis_one_val < self.lower_inhibit_bound or axis_one_val > self.upper_inhibit_bound
+        )
+        axis_two_inhibiting = (
+            axis_two_val < self.lower_inhibit_bound or axis_two_val > self.upper_inhibit_bound
+        )
         if axis_one_inhibiting and axis_two_inhibiting:
-            self.fail("Both {} and {} are inhibiting each other, cannot reliably run test".format(axis_one, axis_two))
+            self.fail(
+                "Both {} and {} are inhibiting each other, cannot reliably run test".format(
+                    axis_one, axis_two
+                )
+            )
         elif axis_one_inhibiting:
             self.reset_axis_to_non_inhibit(axis_one)
         elif axis_two_inhibiting:
             self.reset_axis_to_non_inhibit(axis_two)
 
     @parameterized.expand([("FRONTBEAMSTOP", "FRONTDETROT"), ("FRONTDETROT", "FRONTBEAMSTOP")])
-    def test_GIVEN_axes_in_range_WHEN_axis_goes_out_of_range_THEN_other_axis_inhibited(self, inhibiting_axis, inhibited_axis):
+    def test_GIVEN_axes_in_range_WHEN_axis_goes_out_of_range_THEN_other_axis_inhibited(
+        self, inhibiting_axis, inhibited_axis
+    ):
         # Arrange
         self.reset_axes_to_non_inhibit(inhibited_axis, inhibiting_axis)
         try:
@@ -111,7 +151,9 @@ class Sans2dVacTankTests(unittest.TestCase):
             self.ca.set_pv_value("{}:SP".format(inhibiting_axis), -3)
             self.ca.assert_that_pv_is_number("{}:SP".format(inhibiting_axis), -3)
             start_position = self.ca.get_pv_value(inhibited_axis)
-            with self.assertRaises(WriteAccessException, msg="DISP should be set on inhibited axis"):
+            with self.assertRaises(
+                WriteAccessException, msg="DISP should be set on inhibited axis"
+            ):
                 set_axis_moving(inhibited_axis)
             # Assert
             self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_{}".format(inhibited_axis), 1)
@@ -120,7 +162,6 @@ class Sans2dVacTankTests(unittest.TestCase):
         finally:
             # Rearrange
             self.reset_axes_to_non_inhibit(inhibited_axis, inhibiting_axis)
-
 
 
 class Sans2dVacuumTankTest(unittest.TestCase):
@@ -143,4 +184,3 @@ class Sans2dVacuumTankTest(unittest.TestCase):
         self.ca.set_pv_value("SIM:TANK:STATUS", status_rval)
         self.ca.assert_that_pv_is("TANK:STATUS", status_val)
         self.ca.assert_that_pv_alarm_is("TANK:STATUS", "NO_ALARM")
-

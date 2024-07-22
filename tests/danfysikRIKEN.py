@@ -13,7 +13,7 @@ IOCS = [
         "directory": get_default_ioc_dir("DFKPS"),
         "macros": {
             "DEV_TYPE": "8500",
-            "PROTO_OVERRIDE": "RIKEN",       # use modified protocol file for RB2 PSU
+            "PROTO_OVERRIDE": "RIKEN",  # use modified protocol file for RB2 PSU
             "CALIBRATED": "0",
             "FACTOR_READ_I": "1",
             "FACTOR_READ_V": "1",
@@ -24,7 +24,7 @@ IOCS = [
             "POLARITY": "BIPOLAR",
         },
         "emulator": EMULATOR_NAME,
-        "lewis_protocol": "RIKEN",       # use modified protocol file for RB2 PSU
+        "lewis_protocol": "RIKEN",  # use modified protocol file for RB2 PSU
         "ioc_launcher_class": ProcServLauncher,
     },
 ]
@@ -40,6 +40,7 @@ class DanfysikRIKENTests(Danfysik8500Tests):
     """
     Tests for danfysik-like PSU on RIKEN (RB2). Tests inherited from Danfysik8500.
     """
+
     pass
 
 

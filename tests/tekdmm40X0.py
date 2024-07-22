@@ -33,5 +33,3 @@ class tekdmm40X0Tests(unittest.TestCase):
 
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
-
-        

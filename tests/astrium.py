@@ -11,10 +11,7 @@ from utils.testing import skip_if_recsim, skip_if_devsim, parameterized_list
 DEVICE_PREFIX = "ASTRIUM_01"
 
 IOCS = [
-    {
-        "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("ASTRIUM")
-    },
+    {"name": DEVICE_PREFIX, "directory": get_default_ioc_dir("ASTRIUM")},
 ]
 
 
@@ -49,7 +46,9 @@ class AstriumTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(VALID_PHASE_DELAYS))
     @skip_if_recsim("Behaviour of phase readback not implemented in recsim")
-    def test_that_WHEN_setting_the_phase_setpoint_and_then_speed_THEN_phases_to_the_correct_place(self, _, value):
+    def test_that_WHEN_setting_the_phase_setpoint_and_then_speed_THEN_phases_to_the_correct_place(
+        self, _, value
+    ):
         """
         This test simulates the bug in https://github.com/ISISComputingGroup/IBEX/issues/4123
         """

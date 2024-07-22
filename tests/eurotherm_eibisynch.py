@@ -5,8 +5,11 @@ from parameterized import parameterized
 
 from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from common_tests.eurotherm import (EurothermBaseTests, NONE_TXT_CALIBRATION_MIN_TEMPERATURE,
-                                    NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
+from common_tests.eurotherm import (
+    EurothermBaseTests,
+    NONE_TXT_CALIBRATION_MIN_TEMPERATURE,
+    NONE_TXT_CALIBRATION_MAX_TEMPERATURE,
+)
 from utils.calibration_utils import use_calibration_file
 
 
@@ -30,7 +33,7 @@ IOCS = [
             "ADDR_7": "",
             "ADDR_8": "",
             "ADDR_9": "",
-            "ADDR_10": ""
+            "ADDR_10": "",
         },
         "emulator": EMULATOR,
     },
@@ -44,27 +47,29 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermTests, self).setUp()
         self._lewis.backdoor_set_on_device("scaling", 1.0 / float(SCALING))
-    
+
     def get_device(self):
         return DEVICE
 
     def get_emulator_device(self):
         return EMULATOR
-    
+
     def get_scaling(self):
         return SCALING
 
     def _get_temperature_setter_wrapper(self):
         return contextlib.nullcontext()
 
-
-    @parameterized.expand([
-        ("over_range_calc_pv_is_over_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE + 5.0, 1.0),
-        ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
-        ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE, 0.0)
-    ])
+    @parameterized.expand(
+        [
+            ("over_range_calc_pv_is_over_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE + 5.0, 1.0),
+            ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE - 200, 0.0),
+            ("over_range_calc_pv_is_within_range", NONE_TXT_CALIBRATION_MAX_TEMPERATURE, 0.0),
+        ]
+    )
     def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
-            self, _, temperature, expected_value_of_over_range_calc_pv):
+        self, _, temperature, expected_value_of_over_range_calc_pv
+    ):
         """
         Note: this test can only run on BISYNCH eurotherms, modbus max temperature is 6553.5 but ramp file goes up
         to 10,000 and this test attempts to check this behaviour
@@ -84,7 +89,8 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
 
     def test_GIVEN_None_txt_calibration_file_WHEN_changed_to_C006_txt_calibration_file_THEN_the_calibration_limits_change(
-            self):
+        self,
+    ):
         """
         Note: this test can only run on BISYNCH eurotherms, modbus max temperature is 6553.5 but ramp file goes up
         to 10,000 and this test attempts to check this behaviour
@@ -97,32 +103,37 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
             self.ca.assert_that_pv_exists("A01:CAL:RANGE")
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", NONE_TXT_CALIBRATION_MAX_TEMPERATURE)
-            self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE)
+            self.ca.assert_that_pv_is(
+                "A01:TEMP:RANGE:UNDER.B", NONE_TXT_CALIBRATION_MIN_TEMPERATURE
+            )
 
         # Act:
         with use_calibration_file(self.ca, "C006.txt", prefix="A01:"):
-
             # Assert
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
 
-    def test_GIVEN_simulated_delay_WHEN_temperature_read_from_multiple_sensors_THEN_all_reads_correct(self):
+    def test_GIVEN_simulated_delay_WHEN_temperature_read_from_multiple_sensors_THEN_all_reads_correct(
+        self,
+    ):
         self._lewis.backdoor_set_on_device("delay_time", 300 / 1000)
 
         for temp in range(1, 10):
             self._lewis.backdoor_set_on_device("current_temperature", float(temp))
-            for id in range(1,7):
+            for id in range(1, 7):
                 sensor = f"A{id:02}"
                 self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp))
 
         self._lewis.backdoor_set_on_device("delay_time", None)
 
-    def test_GIVEN_simulated_delay_WHEN_temperature_set_on_multiple_sensors_THEN_all_reads_correct(self):
+    def test_GIVEN_simulated_delay_WHEN_temperature_set_on_multiple_sensors_THEN_all_reads_correct(
+        self,
+    ):
         self._lewis.backdoor_set_on_device("delay_time", 300 / 1000)
-        for id in range(1,7):
+        for id in range(1, 7):
             sensor = f"A{id:02}"
             self._reset_device_state(sensor=sensor)
-        for id in range(1,7):
+        for id in range(1, 7):
             sensor = f"A{id:02}"
             for temp in range(1, 5):
                 self._set_setpoint_and_current_temperature(float(temp), sensor=sensor)

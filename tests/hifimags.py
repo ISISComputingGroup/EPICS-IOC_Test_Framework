@@ -19,12 +19,12 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM]
 
-PSUS = ["X","Y","Z","M"]
+PSUS = ["X", "Y", "Z", "M"]
 
 STATUSES = ["Unit Test"]
 READYS = ["Ready", "Not Ready"]
-GAUSS = [0,10,-10,50.4,2164.5657,0,-0.57,-36425.434]
-AMPSANDVOLTS = [0,1,-1,0.435,1.1,0,-0.3687,-0.97]
+GAUSS = [0, 10, -10, 50.4, 2164.5657, 0, -0.57, -36425.434]
+AMPSANDVOLTS = [0, 1, -1, 0.435, 1.1, 0, -0.3687, -0.97]
 TIMES = ["11:24:32"]
 ABORTS = ["Aborting X"]
 QUENCHES = ["Quenched", ""]
@@ -34,20 +34,20 @@ SWTICHINGMID = [523.8]
 LEADS = ["Leads at B", "Leads to 0"]
 PERSISTS = ["Non Persisting", "Persisting"]
 OPMODES = ["Idle", "High Field", "Low Field", "Z Switching"]
-HALLS = [0,12.456,-0.45,20113.89]
+HALLS = [0, 12.456, -0.45, 20113.89]
 COMP_TEXTS = ["Compressor Error", ""]
 ERRORS = ["No Error", "Error"]
 ONOFF = ["Off", "On"]
-TEMPERATURES = [0,5.681,856.187,191.3]
+TEMPERATURES = [0, 5.681, 856.187, 191.3]
 TEMPERATURE_SENSORS = ["STAGE1", "SHIELD", "SWITCH", "STAGE2A", "STAGE2B", "INRABAS"]
 READ_PVS = [
-    {"PV": "STAT", "EXTRA_READ_PV":"STAT:RBV", "values":STATUSES, "init_value": ""},
-    {"PV": "READY", "EXTRA_READ_PV":"READY:RBV", "values":READYS, "init_value":""},
-    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "values":GAUSS, "init_value":-4},
-    {"PV": "OUTPUT:CURR", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value":-0.4},
-    {"PV": "OUTPUT:VOLT", "EXTRA_READ_PV": "", "values":AMPSANDVOLTS, "init_value": -0.4},
-    {"PV": "TARGET:TIME", "EXTRA_READ_PV": "", "values":TIMES, "init_value":""},
-    {"PV": "QUENCH", "EXTRA_READ_PV": "", "values":QUENCHES, "init_value":""},
+    {"PV": "STAT", "EXTRA_READ_PV": "STAT:RBV", "values": STATUSES, "init_value": ""},
+    {"PV": "READY", "EXTRA_READ_PV": "READY:RBV", "values": READYS, "init_value": ""},
+    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "OUT:RBV", "values": GAUSS, "init_value": -4},
+    {"PV": "OUTPUT:CURR", "EXTRA_READ_PV": "", "values": AMPSANDVOLTS, "init_value": -0.4},
+    {"PV": "OUTPUT:VOLT", "EXTRA_READ_PV": "", "values": AMPSANDVOLTS, "init_value": -0.4},
+    {"PV": "TARGET:TIME", "EXTRA_READ_PV": "", "values": TIMES, "init_value": ""},
+    {"PV": "QUENCH", "EXTRA_READ_PV": "", "values": QUENCHES, "init_value": ""},
 ]
 WRITE_PVS = [
     {"MAG": "X", "PV": "TARGET", "EXTRA_READ_PV": "", "values": GAUSS, "init_value": -4},
@@ -60,17 +60,32 @@ WRITE_SWITCH_PVS = [
     {"PV": "FIELD:MID", "EXTRA_READ_PV": "", "values": SWTICHINGMID, "init_value": ""},
 ]
 MAIN_PVS = [
-    {"PV": "STAT", "EXTRA_READ_PV":"MAIN:STAT:RBV", "values":STATUSES, "init_value": ""},
+    {"PV": "STAT", "EXTRA_READ_PV": "MAIN:STAT:RBV", "values": STATUSES, "init_value": ""},
     {"PV": "READY", "EXTRA_READ_PV": "MAIN:READY:RBV", "values": READYS, "init_value": ""},
-    {"PV": "OUTPUT:FIELD:GAUSS", "EXTRA_READ_PV": "MAIN:OUT:RBV", "values":GAUSS, "init_value":-4},
-    {"PV": "TARGET:TIME", "EXTRA_READ_PV": "MAIN:MINTO:RBV", "values":TIMES, "init_value":""},
-    {"PV": "OUTPUT:FIELD:PERSIST:GAUSS", "EXTRA_READ_PV": "", "values":GAUSS, "init_value":""},
+    {
+        "PV": "OUTPUT:FIELD:GAUSS",
+        "EXTRA_READ_PV": "MAIN:OUT:RBV",
+        "values": GAUSS,
+        "init_value": -4,
+    },
+    {"PV": "TARGET:TIME", "EXTRA_READ_PV": "MAIN:MINTO:RBV", "values": TIMES, "init_value": ""},
+    {"PV": "OUTPUT:FIELD:PERSIST:GAUSS", "EXTRA_READ_PV": "", "values": GAUSS, "init_value": ""},
 ]
 SYS_READ_PVS = [
     {"PV": "HALL:SENS1", "EXTRA_READ_PV": "HALL:SENS1:RBV", "values": HALLS, "init_value": -1},
     {"PV": "HALL:SENS2", "EXTRA_READ_PV": "HALL:SENS2:RBV", "values": HALLS, "init_value": -1},
-    {"PV": "COMP:R:ERROR:TEXT:RBV", "EXTRA_READ_PV": "", "values": COMP_TEXTS, "init_value": "Testing"},
-    {"PV": "COMP:L:ERROR:TEXT:RBV", "EXTRA_READ_PV": "", "values": COMP_TEXTS, "init_value": "Testing"},
+    {
+        "PV": "COMP:R:ERROR:TEXT:RBV",
+        "EXTRA_READ_PV": "",
+        "values": COMP_TEXTS,
+        "init_value": "Testing",
+    },
+    {
+        "PV": "COMP:L:ERROR:TEXT:RBV",
+        "EXTRA_READ_PV": "",
+        "values": COMP_TEXTS,
+        "init_value": "Testing",
+    },
     {"PV": "COMP:R:ERROR:STAT:RBV", "EXTRA_READ_PV": "", "values": ERRORS, "init_value": "Error"},
     {"PV": "COMP:L:ERROR:STAT:RBV", "EXTRA_READ_PV": "", "values": ERRORS, "init_value": "Error"},
     {"PV": "COMP:R:ON:RBV", "EXTRA_READ_PV": "", "values": ONOFF, "init_value": "On"},
@@ -80,10 +95,12 @@ SYS_WRITE_PVS = [
     {"PV": "OPMODE", "EXTRA_READ_PV": "OPMODE:RBV", "values": OPMODES, "init_value": "High Field"},
 ]
 
+
 class HifimagsTests(unittest.TestCase):
     """
     Tests for the Hifimags IOC.
     """
+
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
 
@@ -91,7 +108,6 @@ class HifimagsTests(unittest.TestCase):
         for PSU in PSUS:
             self.ca.set_pv_value(PSU + ":ZERO", 0.2)
             self.ca.set_pv_value(PSU + ":ZEROFIELD", 0.3)
-
 
     def override_disables(self):
         for PSU in PSUS:
@@ -167,7 +183,9 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.set_pv_value("Z:SWITCH:SET:SP", 1)
                 self.ca.assert_that_pv_is("SIM:" + "Z:" + PV["PV"], sim_value)
 
-    def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(self):
+    def test_GIVEN_error_active_WHEN_using_backwards_compatibility_THEN_the_correct_status_is_reported(
+        self,
+    ):
         # Errors for Main PSU different, so use M rather than X
         sim_value = "There is a simulated error"
         self.ca.set_pv_value("SIM:M:STAT", sim_value)
@@ -224,7 +242,9 @@ class HifimagsTests(unittest.TestCase):
                 self.ca.set_pv_value("SIM:TEMP:" + SENSOR, sim_value)
                 self.ca.assert_that_pv_is("TEMP:" + SENSOR, sim_value)
 
-    def test_GIVEN_all_magnets_on_WHEN_magnets_off_is_requested_THEN_all_magnets_are_ready_at_zero(self):
+    def test_GIVEN_all_magnets_on_WHEN_magnets_off_is_requested_THEN_all_magnets_are_ready_at_zero(
+        self,
+    ):
         self.override_disables()
         for PSU in PSUS:
             self.set_target(PSU, 1)

@@ -72,7 +72,9 @@ class KepcoTests(object):
     def _set_IDN(self, expected_idn_no_firmware, expected_firmware):
         self._lewis.backdoor_set_on_device("idn_no_firmware", expected_idn_no_firmware)
         self._lewis.backdoor_set_on_device("firmware", expected_firmware)
-        expected_idn = "{}{}".format(expected_idn_no_firmware, str(expected_firmware))[:39]  # EPICS limited to 40 chars
+        expected_idn = "{}{}".format(expected_idn_no_firmware, str(expected_firmware))[
+            :39
+        ]  # EPICS limited to 40 chars
         self._ioc.set_simulated_value("SIM:IDN", expected_idn)
         self._ioc.set_simulated_value("SIM:FIRMWARE", str(expected_firmware))
         # Both firmware and IDN are passive so must be updated
@@ -106,7 +108,9 @@ class KepcoTests(object):
         self.ca.assert_that_pv_is("VOLTAGE:SP:RBV", current_voltage + 5)
 
     @parameterized.expand(parameterized_list([-5.1, 7.8]))
-    def test_GIVEN_setpoint_current_set_WHEN_read_THEN_setpoint_current_is_as_expected(self, _, expected_current):
+    def test_GIVEN_setpoint_current_set_WHEN_read_THEN_setpoint_current_is_as_expected(
+        self, _, expected_current
+    ):
         self.ca.set_pv_value("CURRENT:SP", expected_current)
         # Check SP RBV matches new current
         self.ca.assert_that_pv_is("CURRENT:SP:RBV", expected_current)
@@ -130,11 +134,9 @@ class KepcoTests(object):
         self.ca.process_pv("IDN")
         self.ca.assert_that_pv_is("IDN", expected_idn)
 
-    @parameterized.expand([
-        ("output_mode", "OUTPUTMODE"),
-        ("current", "CURRENT"),
-        ("voltage", "VOLTAGE")
-    ])
+    @parameterized.expand(
+        [("output_mode", "OUTPUTMODE"), ("current", "CURRENT"), ("voltage", "VOLTAGE")]
+    )
     @skip_if_recsim("In rec sim you can not diconnect the device")
     def test_GIVEN_diconnected_WHEN_read_THEN_invalid_alarm(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
@@ -145,7 +147,9 @@ class KepcoTests(object):
         # Assert alarms clear on reconnection
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
 
-    def _test_ramp_to_target(self, start_current, target_current, ramp_rate, step_number, wait_between_changes):
+    def _test_ramp_to_target(
+        self, start_current, target_current, ramp_rate, step_number, wait_between_changes
+    ):
         self._write_current(start_current)
         self.ca.set_pv_value("CURRENT:SP", start_current)
         self.ca.assert_that_pv_is("CURRENT:SP:RBV", start_current)
@@ -168,33 +172,49 @@ class KepcoTests(object):
     def test_GIVEN_rampon_WHEN_target_set_THEN_current_ramps_to_target(self):
         self._test_ramp_to_target(1, 2, 2, 20, 7)
 
-    def test_GIVEN_rampon_WHEN_target_set_with_different_step_rate_THEN_current_ramps_to_target_more_finely(self):
+    def test_GIVEN_rampon_WHEN_target_set_with_different_step_rate_THEN_current_ramps_to_target_more_finely(
+        self,
+    ):
         self._test_ramp_to_target(4, 3, 2, 60, 2)
 
     @parameterized.expand(parameterized_list(IDN_LIST))
-    def test_GIVEN_idn_set_AND_firmware_set_THEN_firmware_pv_correct(self, _, idn_no_firmware, firmware):
+    def test_GIVEN_idn_set_AND_firmware_set_THEN_firmware_pv_correct(
+        self, _, idn_no_firmware, firmware
+    ):
         self._set_IDN(idn_no_firmware, firmware)
         self.ca.process_pv("FIRMWARE")
         self.ca.assert_that_pv_is("FIRMWARE", firmware)
 
-    @parameterized.expand(parameterized_list([
-        ("default_calib.dat", 100, 100),
-        ("field_double_amps.dat", 100, 50),
-    ]))
+    @parameterized.expand(
+        parameterized_list(
+            [
+                ("default_calib.dat", 100, 100),
+                ("field_double_amps.dat", 100, 50),
+            ]
+        )
+    )
     @skip_if_recsim("Calibration lookup does not work in recsim")
-    def test_GIVEN_calibration_WHEN_field_set_THEN_current_as_expected(self, _, calibration_file, field, expected_current):
+    def test_GIVEN_calibration_WHEN_field_set_THEN_current_as_expected(
+        self, _, calibration_file, field, expected_current
+    ):
         with use_calibration_file(self.ca, calibration_file, "default_calib.dat"):
             self.ca.set_pv_value("FIELD:SP", field)
             self.ca.assert_that_pv_is("FIELD:SP:RBV", field)
             self.ca.assert_that_pv_is("CURRENT:SP", expected_current)
             self.ca.assert_that_pv_is("CURRENT:SP:RBV", expected_current)
 
-    @parameterized.expand(parameterized_list([
-        ("default_calib.dat", 100, 100),
-        ("field_double_amps.dat", 100, 200),
-    ]))
+    @parameterized.expand(
+        parameterized_list(
+            [
+                ("default_calib.dat", 100, 100),
+                ("field_double_amps.dat", 100, 200),
+            ]
+        )
+    )
     @skip_if_recsim("Calibration lookup does not work in recsim")
-    def test_GIVEN_calibration_WHEN_current_set_THEN_field_as_expected(self, _, calibration_file, current, expected_field):
+    def test_GIVEN_calibration_WHEN_current_set_THEN_field_as_expected(
+        self, _, calibration_file, current, expected_field
+    ):
         with use_calibration_file(self.ca, calibration_file, "default_calib.dat"):
             self._write_current(current)
             self.ca.assert_that_pv_is("CURRENT", current)
@@ -204,17 +224,17 @@ class KepcoTests(object):
     def test_WHEN_sending_setpoint_THEN_only_one_setpoint_sent(self):
         self._lewis.backdoor_set_and_assert_set("current_set_count", 0)
         self.ca.set_pv_value("CURRENT:SP", 100)
-        self._lewis.assert_that_emulator_value_is("current_set_count", '1')
+        self._lewis.assert_that_emulator_value_is("current_set_count", "1")
 
         # Wait a short time and make sure count is not being incremented again later.
         time.sleep(5)
-        self._lewis.assert_that_emulator_value_is("current_set_count", '1')
+        self._lewis.assert_that_emulator_value_is("current_set_count", "1")
 
     def test_GIVEN_auto_ramp_macro_WHEN_relevant_pv_set_THEN_ramping_set_correctly(self):
         self.ca.set_pv_value("CURRENT:SP", 50)
         self.ca.assert_that_pv_is("RAMPON", "OFF")
 
-        with self._ioc.start_with_macros({ "AUTO_RAMP": "ON" }, "CURRENT:SP"):
+        with self._ioc.start_with_macros({"AUTO_RAMP": "ON"}, "CURRENT:SP"):
             self.ca.set_pv_value("CURRENT:SP", 100)
             self.ca.assert_that_pv_value_is_changing("CURRENT:SP:RBV", wait=5)
             self.ca.assert_that_pv_is("RAMPON", "ON")
@@ -227,8 +247,8 @@ class KepcoTests(object):
             self.ca.assert_that_pv_value_is_changing("CURRENT:SP:RBV", wait=5)
             self.ca.assert_that_pv_is("RAMPON", "ON")
 
-    @parameterized.expand(parameterized_list(["Full","Quarter"]))
-    def test_GIVEN_voltage_or_current_range_WHEN_set_THEN_range_is_as_expected(self,_,range):
+    @parameterized.expand(parameterized_list(["Full", "Quarter"]))
+    def test_GIVEN_voltage_or_current_range_WHEN_set_THEN_range_is_as_expected(self, _, range):
         self.ca.set_pv_value("VOLTAGE:RANGE:SP", range)
         self.ca.assert_that_pv_is("VOLTAGE:RANGE", range)
         self.ca.set_pv_value("CURRENT:RANGE:SP", range)
@@ -244,7 +264,7 @@ class KepcoTests(object):
         self.ca.set_pv_value("CURRENT:RANGE:SP", "Full")
         self.ca.assert_that_pv_is("CURRENT:RANGE", "Full")
         self._lewis.assert_that_emulator_value_is("auto_current_range", "0")
-        
+
     @skip_if_recsim("auto range needs emulator")
     def test_GIVEN_auto_range_disabled_WHEN_set_THEN_auto_range_enabled(self):
         self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 0)
@@ -254,16 +274,16 @@ class KepcoTests(object):
         self.ca.set_pv_value("CURRENT:RANGE:SP", "Auto")
         self._lewis.assert_that_emulator_value_is("auto_current_range", "1")
 
-    @parameterized.expand(parameterized_list(["Full","Quarter"]))
+    @parameterized.expand(parameterized_list(["Full", "Quarter"]))
     @skip_if_recsim("auto range needs emulator")
-    def test_GIVEN_fixed_range_macro_WHEN_start_THEN_pvs_set_correctly(self,_,range):
+    def test_GIVEN_fixed_range_macro_WHEN_start_THEN_pvs_set_correctly(self, _, range):
         self._lewis.backdoor_set_and_assert_set("auto_current_range", 1)
-        with self._ioc.start_with_macros({ "CURRENT_RANGE": range }, "CURRENT:SP"):
+        with self._ioc.start_with_macros({"CURRENT_RANGE": range}, "CURRENT:SP"):
             self.ca.assert_that_pv_is("CURRENT:RANGE:SP", range)
             self.ca.assert_that_pv_is("CURRENT:RANGE", range)
             self._lewis.assert_that_emulator_value_is("auto_current_range", "0")
         self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 1)
-        with self._ioc.start_with_macros({ "VOLTAGE_RANGE": range }, "VOLTAGE:SP"):
+        with self._ioc.start_with_macros({"VOLTAGE_RANGE": range}, "VOLTAGE:SP"):
             self.ca.assert_that_pv_is("VOLTAGE:RANGE:SP", range)
             self.ca.assert_that_pv_is("VOLTAGE:RANGE", range)
             self._lewis.assert_that_emulator_value_is("auto_voltage_range", "0")
@@ -271,10 +291,10 @@ class KepcoTests(object):
     @skip_if_recsim("auto range needs emulator")
     def test_GIVEN_auto_range_macro_WHEN_start_THEN_pvs_set_correctly(self):
         self._lewis.backdoor_set_and_assert_set("auto_voltage_range", 0)
-        with self._ioc.start_with_macros({ "VOLTAGE_RANGE": "Auto" }, "VOLTAGE:SP"):
+        with self._ioc.start_with_macros({"VOLTAGE_RANGE": "Auto"}, "VOLTAGE:SP"):
             self.ca.assert_that_pv_is("VOLTAGE:RANGE:SP", "Auto")
             self._lewis.assert_that_emulator_value_is("auto_voltage_range", "1")
         self._lewis.backdoor_set_and_assert_set("auto_current_range", 0)
-        with self._ioc.start_with_macros({ "CURRENT_RANGE": "Auto" }, "CURRENT:SP"):
+        with self._ioc.start_with_macros({"CURRENT_RANGE": "Auto"}, "CURRENT:SP"):
             self.ca.assert_that_pv_is("CURRENT:RANGE:SP", "Auto")
             self._lewis.assert_that_emulator_value_is("auto_current_range", "1")

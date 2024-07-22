@@ -18,7 +18,8 @@ TEST_POSITIONS = [-5, 0, 10, 10e-1]
 
 # Tests will fail if JAWS support module is not up to date and built
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_full"))
+    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_full")
+)
 
 IOCS = [
     {
@@ -56,7 +57,6 @@ class JawsTestsBase(object):
         self.ca.set_pv_value("MOT:JAWS1:VGAP:SP", 0)
         self.ca.set_pv_value("MOT:JAWS1:HCENT:SP", 0)
         self.ca.set_pv_value("MOT:JAWS1:VCENT:SP", 0)
-
 
     @parameterized.expand(parameterized_list(DIRECTIONS))
     def test_GIVEN_ioc_started_THEN_underlying_mtr_fields_can_be_read(self, _, direction):
@@ -195,8 +195,7 @@ class JawsTestsBase(object):
         self.ca.assert_that_pv_is("MOT:JAWS1:VCENT", 4)
         self.ca.assert_that_pv_is("MOT:JAWS1:VCENT:SP", 4)
 
-    @parameterized.expand([("lock", "Unlocked"),
-                           ("able", "Enable")])
+    @parameterized.expand([("lock", "Unlocked"), ("able", "Enable")])
     def test_GIVEN_all_jaws_have_state_set_THEN_overall_state_is_set(self, key, expected):
         enabled_val = 0
         for mtr in self.UNDERLYING_MTRS.values():
@@ -208,8 +207,7 @@ class JawsTestsBase(object):
 
         self.assertEqual(expected, actual)
 
-    @parameterized.expand([("lock", "Locked"),
-                           ("able", "Disable")])
+    @parameterized.expand([("lock", "Locked"), ("able", "Disable")])
     def test_GIVEN_no_jaws_have_state_set_THEN_overall_state_is_not_set(self, key, expected):
         disabled_val = 1
         for mtr in self.UNDERLYING_MTRS.values():
@@ -221,8 +219,7 @@ class JawsTestsBase(object):
 
         self.assertEqual(expected, actual)
 
-    @parameterized.expand([("lock", "Unknown"),
-                           ("able", "Unknown")])
+    @parameterized.expand([("lock", "Unknown"), ("able", "Unknown")])
     def test_GIVEN_some_jaws_have_state_set_THEN_overall_state_is_unknown(self, key, expected):
         disabled_val = 0
         enabled_val = 1
@@ -254,9 +251,10 @@ class JawsTestsBase(object):
             self.ca.assert_that_pv_is_number(motor_adel_pv, test_value)
             self.ca.assert_that_pv_is_number(jaw_adel_pv, test_value)
 
-    @parameterized.expand([("V", "N"),
-                           ("H", "E")])
-    def test_GIVEN_underlying_mtr_adel_THEN_jaws_centre_and_gap_adel_mirrored(self, axis, underlying_mtr_direction):
+    @parameterized.expand([("V", "N"), ("H", "E")])
+    def test_GIVEN_underlying_mtr_adel_THEN_jaws_centre_and_gap_adel_mirrored(
+        self, axis, underlying_mtr_direction
+    ):
         underlying_mtr = self.UNDERLYING_MTRS[underlying_mtr_direction]
         motor_pv = "{}.ADEL".format(underlying_mtr)
 
@@ -266,7 +264,9 @@ class JawsTestsBase(object):
 
             self.ca.assert_that_pv_is_number(motor_pv, test_value)
 
-            self.ca.assert_that_pv_is_number("{}:{}CENT.ADEL".format(JAWS_BASE_PV, axis), test_value)
+            self.ca.assert_that_pv_is_number(
+                "{}:{}CENT.ADEL".format(JAWS_BASE_PV, axis), test_value
+            )
             self.ca.assert_that_pv_is_number("{}:{}GAP.ADEL".format(JAWS_BASE_PV, axis), test_value)
 
 
@@ -280,7 +280,11 @@ class JawsTests(JawsTestsBase, unittest.TestCase):
         self.MTR_SOUTH = "MOT:MTR0102"
         self.MTR_WEST = "MOT:MTR0103"
         self.MTR_EAST = "MOT:MTR0104"
-        self.UNDERLYING_MTRS = OrderedDict([("N", self.MTR_NORTH),
-                                            ("S", self.MTR_SOUTH),
-                                            ("E", self.MTR_EAST),
-                                            ("W", self.MTR_WEST)])
+        self.UNDERLYING_MTRS = OrderedDict(
+            [
+                ("N", self.MTR_NORTH),
+                ("S", self.MTR_SOUTH),
+                ("E", self.MTR_EAST),
+                ("W", self.MTR_WEST),
+            ]
+        )

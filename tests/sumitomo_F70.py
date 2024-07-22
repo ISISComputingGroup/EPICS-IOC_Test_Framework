@@ -19,13 +19,15 @@ IOCS = [
 
 TEST_MODES = [TestModes.RECSIM]
 
+
 class SumitomoF70Tests(unittest.TestCase):
     """
     Tests for the SMToF70 IOC.
     """
+
     def setUp(self):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=5)
-        
+
     def test_WHEN_setup_THEN_values_correct(self):
         self.ca.set_pv_value("SIM:OpHours", 10.0)
         self.ca.set_pv_value("SIM:HeReturnPress", 12.0)

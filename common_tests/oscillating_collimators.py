@@ -11,10 +11,7 @@ OSC_PREFIX = MOT_PREFIX + ":OSCCOL"
 
 
 def _custom_name_func(testcase_func, param_num, param):
-    return "{}_ang_{}_freq_{}_rad_{}".format(
-        testcase_func.__name__,
-        *param.args[0]
-    )
+    return "{}_ang_{}_freq_{}_rad_{}".format(testcase_func.__name__, *param.args[0])
 
 
 class OscillatingCollimatorBase(object):
@@ -27,7 +24,6 @@ class OscillatingCollimatorBase(object):
         self.ca.assert_that_pv_is_number(ANGLE, 2.0)
 
     def test_WHEN_input_values_cause_discriminant_to_be_positive_THEN_discriminant_pv_is_zero(self):
-
         # Act
         # in normal operations the radius is not dynamic so set it first so it is considered in future calcs
         self.ca.set_pv_value(RADIUS, 1.0)

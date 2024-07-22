@@ -20,13 +20,14 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM ]
+TEST_MODES = [TestModes.DEVSIM]
 
 
 class Dh2000Tests(unittest.TestCase):
     """
     Tests for the Dh2000 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("dh2000", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
@@ -38,12 +39,16 @@ class Dh2000Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("SHUTTER:A", "Closed")
         self.ca.assert_that_pv_is("INTERLOCK", "OK")
 
-    @parameterized.expand([
-        ("shutter_open_interlock_off", True, False),
-        ("shutter_closed_interlock_off", False, False),
-        ("shutter_closed_interlock_on", False, True)
-    ])
-    def test_GIVEN_device_in_a_state_WHEN_status_requested_THEN_shutter_and_interlock_status_returned(self, _, shutter_is_open, interlock_is_triggered):
+    @parameterized.expand(
+        [
+            ("shutter_open_interlock_off", True, False),
+            ("shutter_closed_interlock_off", False, False),
+            ("shutter_closed_interlock_on", False, True),
+        ]
+    )
+    def test_GIVEN_device_in_a_state_WHEN_status_requested_THEN_shutter_and_interlock_status_returned(
+        self, _, shutter_is_open, interlock_is_triggered
+    ):
         # GIVEN
         self._lewis.backdoor_set_on_device("shutter_is_open", shutter_is_open)
         self._lewis.backdoor_set_on_device("interlock_is_triggered", interlock_is_triggered)
@@ -78,7 +83,9 @@ class Dh2000Tests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("SHUTTER:A", "Closed")
 
-    def test_GIVEN_shutter_closed_and_interlock_not_triggered_WHEN_shutter_open_requested_THEN_shutter_opens(self):
+    def test_GIVEN_shutter_closed_and_interlock_not_triggered_WHEN_shutter_open_requested_THEN_shutter_opens(
+        self,
+    ):
         # GIVEN
         self.ca.assert_that_pv_is("INTERLOCK", "OK")
         self.ca.assert_that_pv_is("SHUTTER:A", "Closed")
@@ -89,7 +96,9 @@ class Dh2000Tests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("SHUTTER:A", "Open")
 
-    def test_GIVEN_shutter_closed_and_interlock_triggered_WHEN_shutter_open_requested_THEN_shutter_does_not_open(self):
+    def test_GIVEN_shutter_closed_and_interlock_triggered_WHEN_shutter_open_requested_THEN_shutter_does_not_open(
+        self,
+    ):
         # GIVEN
         self._lewis.backdoor_set_on_device("interlock_is_triggered", True)
         self.ca.assert_that_pv_is("INTERLOCK", "TRIGGERED")

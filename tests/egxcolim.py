@@ -39,4 +39,6 @@ class EgxcolimTests(unittest.TestCase):
     def test_WHEN_setpoint_is_set_THEN_readback_updates(self):
         for direction in self.directions:
             for axis in self.axes:
-                self.ca.assert_setting_setpoint_sets_readback(123, "{direction}:{axis}".format(direction=direction, axis=axis))
+                self.ca.assert_setting_setpoint_sets_readback(
+                    123, "{direction}:{axis}".format(direction=direction, axis=axis)
+                )
