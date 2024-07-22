@@ -105,7 +105,9 @@ class Moxa1240TestsFromBase(Moxa12XXBase, unittest.TestCase):
             )
 
             self.ca.assert_that_pv_is_number(
-                "CH{:01d}:AI:RBV".format(channel, ),
+                "CH{:01d}:AI:RBV".format(
+                    channel,
+                ),
                 test_value,
                 tolerance=0.1 * abs(test_value),
             )
