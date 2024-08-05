@@ -1,11 +1,11 @@
 import unittest
 
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
-
-from parameterized import parameterized
 
 chopper_name = "C01"
 
@@ -16,9 +16,7 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("FZJDDFCH"),
-        "macros": {
-            "ADDR": chopper_name
-        },
+        "macros": {"ADDR": chopper_name},
         "emulator": "fzj_dd_fermi_chopper",
     },
 ]
@@ -40,35 +38,80 @@ SIMULATED_VALUES = {
     "phase": ("phase", "SIM:PHAS"),
     "phase_status_is_ok": ("phase_status_is_ok", "SIM:PHAS:STAT", OK_NOK[True], OK_NOK[False]),
     "magnetic_bearing_is_on": ("magnetic_bearing_is_on", "SIM:MB", ON_OFF[True], ON_OFF[False]),
-    "magnetic_bearing_status_is_ok": ("magnetic_bearing_status_is_ok", "SIM:MB:STAT", OK_NOK[True], OK_NOK[False]),
+    "magnetic_bearing_status_is_ok": (
+        "magnetic_bearing_status_is_ok",
+        "SIM:MB:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
     "drive_is_on": ("drive_is_on", "SIM:DRIVE", ON_OFF[True], ON_OFF[False]),
-    "drive_mode_is_start": ("drive_mode_is_start", "SIM:DRIVE:MODE", START_STOP[True], START_STOP[False]),
+    "drive_mode_is_start": (
+        "drive_mode_is_start",
+        "SIM:DRIVE:MODE",
+        START_STOP[True],
+        START_STOP[False],
+    ),
     "drive_l1_current": ("drive_l1_current", "SIM:DRIVE:L1:CURR"),
     "drive_l2_current": ("drive_l2_current", "SIM:DRIVE:L2:CURR"),
     "drive_l3_current": ("drive_l3_current", "SIM:DRIVE:L3:CURR"),
-    "drive_direction_is_cw": ("drive_direction_is_cw", "SIM:DRIVE:DIR", CW_CCW[True], CW_CCW[False]),
+    "drive_direction_is_cw": (
+        "drive_direction_is_cw",
+        "SIM:DRIVE:DIR",
+        CW_CCW[True],
+        CW_CCW[False],
+    ),
     "drive_temperature": ("drive_temperature", "SIM:DRIVE:TEMP"),
     "phase_outage": ("phase_outage", "SIM:PHAS:OUTAGE"),
     "logging_is_on": ("logging_is_on", "SIM:LOGGING", ON_OFF[True], ON_OFF[False]),
     "dsp_status_is_ok": ("dsp_status_is_ok", "SIM:DSP:STAT", OK_NOK[True], OK_NOK[False]),
-    "interlock_er_status_is_ok": ("interlock_er_status_is_ok", "SIM:INTERLOCK:ER:STAT", OK_NOK[True], OK_NOK[False]),
-    "interlock_vacuum_status_is_ok": ("interlock_vacuum_status_is_ok", "SIM:INTERLOCK:VAC:STAT", OK_NOK[True], 
-                                      OK_NOK[False]),
-    "interlock_frequency_monitoring_status_is_ok":
-        ("interlock_frequency_monitoring_status_is_ok", "SIM:INTERLOCK:FREQMON:STAT", OK_NOK[True], OK_NOK[False]),
-    "interlock_magnetic_bearing_amplifier_temperature_status_is_ok":
-        ("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:MB:AMP:TEMP:STAT", OK_NOK[True], 
-         OK_NOK[False]),
-    "interlock_magnetic_bearing_amplifier_current_status_is_ok":
-        ("interlock_magnetic_bearing_amplifier_current_status_is_ok", "SIM:INTERLOCK:MB:AMP:CURR:STAT", OK_NOK[True], 
-         OK_NOK[False]),
-    "interlock_drive_amplifier_temperature_status_is_ok":
-        ("interlock_drive_amplifier_temperature_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:TEMP:STAT", OK_NOK[True], 
-         OK_NOK[False]),
-    "interlock_drive_amplifier_current_status_is_ok":
-        ("interlock_drive_amplifier_current_status_is_ok", "SIM:INTERLOCK:DRIVE:AMP:CURR:STAT", OK_NOK[True], 
-         OK_NOK[False]),
-    "interlock_ups_status_is_ok": ("interlock_ups_status_is_ok", "SIM:INTERLOCK:UPS:STAT", OK_NOK[True], OK_NOK[False])
+    "interlock_er_status_is_ok": (
+        "interlock_er_status_is_ok",
+        "SIM:INTERLOCK:ER:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
+    "interlock_vacuum_status_is_ok": (
+        "interlock_vacuum_status_is_ok",
+        "SIM:INTERLOCK:VAC:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
+    "interlock_frequency_monitoring_status_is_ok": (
+        "interlock_frequency_monitoring_status_is_ok",
+        "SIM:INTERLOCK:FREQMON:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
+    "interlock_magnetic_bearing_amplifier_temperature_status_is_ok": (
+        "interlock_magnetic_bearing_amplifier_temperature_status_is_ok",
+        "SIM:INTERLOCK:MB:AMP:TEMP:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
+    "interlock_magnetic_bearing_amplifier_current_status_is_ok": (
+        "interlock_magnetic_bearing_amplifier_current_status_is_ok",
+        "SIM:INTERLOCK:MB:AMP:CURR:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
+    "interlock_drive_amplifier_temperature_status_is_ok": (
+        "interlock_drive_amplifier_temperature_status_is_ok",
+        "SIM:INTERLOCK:DRIVE:AMP:TEMP:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
+    "interlock_drive_amplifier_current_status_is_ok": (
+        "interlock_drive_amplifier_current_status_is_ok",
+        "SIM:INTERLOCK:DRIVE:AMP:CURR:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
+    "interlock_ups_status_is_ok": (
+        "interlock_ups_status_is_ok",
+        "SIM:INTERLOCK:UPS:STAT",
+        OK_NOK[True],
+        OK_NOK[False],
+    ),
 }
 
 
@@ -78,7 +121,6 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
     """
 
     def setUp(self):
-
         """
         Initializes emulator:
             - runs emulator and IOC
@@ -96,9 +138,8 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("chopper_name", chopper_name)
             self._lewis.backdoor_command(["device", "reset"])
 
-#   Command definitions:
+    #   Command definitions:
     def _set_simulated_value(self, parameter, value):
-
         """
         Sets PV value and backdoor parameter based on lookup from dictionary
 
@@ -242,37 +283,55 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is("INTERLOCK:VAC:STAT", expected_value)
             self.ca.assert_that_pv_alarm_is("INTERLOCK:VAC:STAT", self.ca.Alarms.NONE)
 
-    def test_GIVEN_interlock_frequency_monitoring_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+    def test_GIVEN_interlock_frequency_monitoring_status_WHEN_read_all_status_THEN_status_is_as_expected(
+        self,
+    ):
         for boolean_value, expected_value in OK_NOK.items():
             self._set_simulated_value("interlock_frequency_monitoring_status_is_ok", boolean_value)
 
             self.ca.assert_that_pv_is("INTERLOCK:FREQMON:STAT", expected_value)
             self.ca.assert_that_pv_alarm_is("INTERLOCK:FREQMON:STAT", self.ca.Alarms.NONE)
 
-    def test_GIVEN_interlock_magnetic_bearing_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+    def test_GIVEN_interlock_magnetic_bearing_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(
+        self,
+    ):
         for boolean_value, expected_value in OK_NOK.items():
-            self._set_simulated_value("interlock_magnetic_bearing_amplifier_temperature_status_is_ok", boolean_value)
+            self._set_simulated_value(
+                "interlock_magnetic_bearing_amplifier_temperature_status_is_ok", boolean_value
+            )
 
             self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:TEMP:STAT", expected_value)
             self.ca.assert_that_pv_alarm_is("INTERLOCK:MB:AMP:TEMP:STAT", self.ca.Alarms.NONE)
 
-    def test_GIVEN_interlock_magnetic_bearing_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+    def test_GIVEN_interlock_magnetic_bearing_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(
+        self,
+    ):
         for boolean_value, expected_value in OK_NOK.items():
-            self._set_simulated_value("interlock_magnetic_bearing_amplifier_current_status_is_ok", boolean_value)
+            self._set_simulated_value(
+                "interlock_magnetic_bearing_amplifier_current_status_is_ok", boolean_value
+            )
 
             self.ca.assert_that_pv_is("INTERLOCK:MB:AMP:CURR:STAT", expected_value)
             self.ca.assert_that_pv_alarm_is("INTERLOCK:MB:AMP:CURR:STAT", self.ca.Alarms.NONE)
 
-    def test_GIVEN_interlock_drive_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+    def test_GIVEN_interlock_drive_amplifier_temperature_status_WHEN_read_all_status_THEN_status_is_as_expected(
+        self,
+    ):
         for boolean_value, expected_value in OK_NOK.items():
-            self._set_simulated_value("interlock_drive_amplifier_temperature_status_is_ok", boolean_value)
+            self._set_simulated_value(
+                "interlock_drive_amplifier_temperature_status_is_ok", boolean_value
+            )
 
             self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", expected_value)
             self.ca.assert_that_pv_alarm_is("INTERLOCK:DRIVE:AMP:TEMP:STAT", self.ca.Alarms.NONE)
 
-    def test_GIVEN_interlock_drive_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(self):
+    def test_GIVEN_interlock_drive_amplifier_current_status_WHEN_read_all_status_THEN_status_is_as_expected(
+        self,
+    ):
         for boolean_value, expected_value in OK_NOK.items():
-            self._set_simulated_value("interlock_drive_amplifier_current_status_is_ok", boolean_value)
+            self._set_simulated_value(
+                "interlock_drive_amplifier_current_status_is_ok", boolean_value
+            )
 
             self.ca.assert_that_pv_is("INTERLOCK:DRIVE:AMP:CURR:STAT", expected_value)
             self.ca.assert_that_pv_alarm_is("INTERLOCK:DRIVE:AMP:CURR:STAT", self.ca.Alarms.NONE)
@@ -288,8 +347,9 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
 
     # Frequency
 
-    def test_GIVEN_drive_mode_is_start_WHEN_frequency_setpoint_is_set_THEN_frequency_reaches_setpoint(self):
-
+    def test_GIVEN_drive_mode_is_start_WHEN_frequency_setpoint_is_set_THEN_frequency_reaches_setpoint(
+        self,
+    ):
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
 
         frequency = 600
@@ -299,7 +359,6 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("FREQ", self.ca.Alarms.NONE)
 
     def test_GIVEN_drive_mode_is_stop_WHEN_frequency_setpoint_is_set_THEN_frequency_is_zero(self):
-
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
 
         frequency = 600
@@ -308,8 +367,9 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("FREQ", 0, timeout=30)
         self.ca.assert_that_pv_alarm_is("FREQ", self.ca.Alarms.NONE)
 
-    def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_start_THEN_frequency_reaches_setpoint(self):
-
+    def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_start_THEN_frequency_reaches_setpoint(
+        self,
+    ):
         frequency = 600
         self.ca.set_pv_value("FREQ:SP", str(frequency))
 
@@ -319,7 +379,6 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("FREQ", self.ca.Alarms.NONE)
 
     def test_GIVEN_frequency_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_frequency_is_zero(self):
-
         frequency = 600
         self.ca.set_pv_value("FREQ:SP", str(frequency))
 
@@ -365,7 +424,6 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
     #  Phase
 
     def test_GIVEN_drive_mode_is_start_WHEN_phase_setpoint_is_set_THEN_phase_reaches_setpoint(self):
-
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[True])
 
         phase = 65.7
@@ -375,7 +433,6 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("PHAS", self.ca.Alarms.NONE)
 
     def test_GIVEN_drive_mode_is_stop_WHEN_phase_setpoint_is_set_THEN_phase_is_zero(self):
-
         self.ca.set_pv_value("DRIVE:MODE:SP", START_STOP[False])
 
         phase = 65.7
@@ -385,7 +442,6 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("PHAS", self.ca.Alarms.NONE)
 
     def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_start_THEN_phase_reaches_setpoint(self):
-
         phase = 65.7
         self.ca.set_pv_value("PHAS:SP", phase)
 
@@ -395,7 +451,6 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("PHAS", self.ca.Alarms.NONE)
 
     def test_GIVEN_phase_setpoint_is_set_WHEN_drive_mode_is_stop_THEN_phase_is_zero(self):
-
         phase = 65.7
         self.ca.set_pv_value("PHAS:SP", phase)
 
@@ -501,38 +556,40 @@ class FzjDigitalDriveFermiChopperTests(unittest.TestCase):
 
             self.ca.assert_that_pv_is("DRIVE:MODE:SP:ERROR", "")
 
-    @parameterized.expand([
-        ("frequency_setpoint", "FREQ:SP:RBV"),
-        ("frequency", "FREQ"),
-        ("phase_setpoint", "PHAS:SP:RBV"),
-        ("phase", "PHAS"),
-        ("phase_status", "PHAS:STAT"),
-        ("mag_bear", "MB"),
-        ("mag_bear_status", "MB:STAT"),
-        ("drive", "DRIVE"),
-        ("drive_mode", "DRIVE:MODE"),
-        ("drive_l1_current", "DRIVE:L1:CURR"),
-        ("drive_l2_current", "DRIVE:L2:CURR"),
-        ("drive_l3_current", "DRIVE:L3:CURR"),
-        ("drive_direction", "DRIVE:DIR"),
-        ("drive_temp", "DRIVE:TEMP"),
-        ("phase_outage", "PHAS:OUTAGE"),
-        ("logging", "LOGGING"),
-        ("dsp_monitoring_status", "DSP:STAT"),
-        ("interlock_er_status", "INTERLOCK:ER:STAT"),
-        ("interlock_vacuum_status", "INTERLOCK:VAC:STAT"),
-        ("interlock_freq_monitoring_status", "INTERLOCK:FREQMON:STAT"),
-        ("interlock_mag_bear_amp_temp_status", "INTERLOCK:MB:AMP:TEMP:STAT"),
-        ("interlock_mag_bear_amp_curr_status", "INTERLOCK:MB:AMP:CURR:STAT"),
-        ("interlock_drive_amp_temp_status", "INTERLOCK:DRIVE:AMP:TEMP:STAT"),
-        ("interlock_drive_amp_curr_status", "INTERLOCK:DRIVE:AMP:CURR:STAT"),
-        ("interlock_ups_status", "INTERLOCK:UPS:STAT")
-    ])
+    @parameterized.expand(
+        [
+            ("frequency_setpoint", "FREQ:SP:RBV"),
+            ("frequency", "FREQ"),
+            ("phase_setpoint", "PHAS:SP:RBV"),
+            ("phase", "PHAS"),
+            ("phase_status", "PHAS:STAT"),
+            ("mag_bear", "MB"),
+            ("mag_bear_status", "MB:STAT"),
+            ("drive", "DRIVE"),
+            ("drive_mode", "DRIVE:MODE"),
+            ("drive_l1_current", "DRIVE:L1:CURR"),
+            ("drive_l2_current", "DRIVE:L2:CURR"),
+            ("drive_l3_current", "DRIVE:L3:CURR"),
+            ("drive_direction", "DRIVE:DIR"),
+            ("drive_temp", "DRIVE:TEMP"),
+            ("phase_outage", "PHAS:OUTAGE"),
+            ("logging", "LOGGING"),
+            ("dsp_monitoring_status", "DSP:STAT"),
+            ("interlock_er_status", "INTERLOCK:ER:STAT"),
+            ("interlock_vacuum_status", "INTERLOCK:VAC:STAT"),
+            ("interlock_freq_monitoring_status", "INTERLOCK:FREQMON:STAT"),
+            ("interlock_mag_bear_amp_temp_status", "INTERLOCK:MB:AMP:TEMP:STAT"),
+            ("interlock_mag_bear_amp_curr_status", "INTERLOCK:MB:AMP:CURR:STAT"),
+            ("interlock_drive_amp_temp_status", "INTERLOCK:DRIVE:AMP:TEMP:STAT"),
+            ("interlock_drive_amp_curr_status", "INTERLOCK:DRIVE:AMP:CURR:STAT"),
+            ("interlock_ups_status", "INTERLOCK:UPS:STAT"),
+        ]
+    )
     def test_GIVEN_device_is_not_communicating_WHEN_read_status_THEN_value_has_error(self, _, pv):
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)
 
         with self._lewis.backdoor_simulate_disconnected_device():
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID, timeout=30)
-        
+
         # Assert alarms clear on reconnection
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE, timeout=30)

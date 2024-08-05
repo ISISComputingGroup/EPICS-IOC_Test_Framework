@@ -1,15 +1,16 @@
 """
 Testing using channel access.
 """
-import os
-import time
-import operator
+
 import ctypes
 import datetime
+import operator
+import os
+import time
 from contextlib import contextmanager
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
-
 from functools import partial
+
+from genie_python.genie_cachannel_wrapper import CaChannelWrapper, UnableToConnectToPVException
 
 from utils.formatters import format_value
 
@@ -23,6 +24,7 @@ except ImportError:
         """
         Create a method based on another method by filling in arguments.
         """
+
         def __get__(self, instance, owner):
             return partial(self.func, instance, *(self.args or ()), **(self.keywords or {}))
 
@@ -33,6 +35,7 @@ class _MonitorAssertion:
     set an internal value when that changes. It will need to poll ca channel for events before this can be triggered and
     it does this when the value is requested.
     """
+
     def __init__(self, channel_access, pv):
         """
         Initialise.
@@ -68,6 +71,7 @@ class ChannelAccess(object):
         """
         Possible alarm states that a PV can be in.
         """
+
         NONE = "NO_ALARM"  # Alarm value if there is no alarm
         MAJOR = "MAJOR"  # Alarm value if the record is in major alarm
         MINOR = "MINOR"  # Alarm value if the record is in minor alarm
@@ -118,7 +122,7 @@ class ChannelAccess(object):
         """
         if prefix is None:
             prefix = self.prefix
-       
+
         # Take note of original prefix in case it is temporarily modified by paramter
         original_prefix = self.prefix
         self.prefix = prefix
@@ -132,7 +136,9 @@ class ChannelAccess(object):
         # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
         # In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
-        self.ca.set_pv_value(self.create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout)
+        self.ca.set_pv_value(
+            self.create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout
+        )
 
         # Reset original prefix in case it was temporarily changed
         self.prefix = original_prefix
@@ -174,6 +180,7 @@ class ChannelAccess(object):
         Raises:
             AssertionError if the simulated alarm status could not be set.
         """
+
         def _set_and_check_simulated_alarm(set_check_pv, set_check_alarm):
             self.set_pv_value("{}.SIMS".format(set_check_pv), set_check_alarm)
             self.assert_that_pv_alarm_is("{}".format(set_check_pv), set_check_alarm)
@@ -225,7 +232,9 @@ class ChannelAccess(object):
         # last try
         return wait_for_lambda()
 
-    def assert_that_pv_value_causes_func_to_return_true(self, pv, func, timeout=None, message=None, pv_value_source=None):
+    def assert_that_pv_value_causes_func_to_return_true(
+        self, pv, func, timeout=None, message=None, pv_value_source=None
+    ):
         """
         Check that a PV satisfies a given function within some timeout.
 
@@ -238,6 +247,7 @@ class ChannelAccess(object):
         Raises:
             AssertionError: If the function does not evaluate to true within the given timeout
         """
+
         def _wrapper(message):
             if pv_value_source is None:
                 value = self.get_pv_value(pv)
@@ -246,18 +256,25 @@ class ChannelAccess(object):
             try:
                 return_value = func(value)
             except Exception as e:
-                return "Exception was thrown while evaluating function '{}' on pv value {}. Exception was: {} {}"\
-                    .format(func.__name__, format_value(value), e.__class__.__name__, e.message)
+                return "Exception was thrown while evaluating function '{}' on pv value {}. Exception was: {} {}".format(
+                    func.__name__, format_value(value), e.__class__.__name__, e.message
+                )
             if return_value:
                 return None
             else:
-                return "Exception date time: {}{}{}{}{}".format(datetime.datetime.now(), os.linesep,
-                                                               message, os.linesep, "Final PV value was {}".format(format_value(value)))
+                return "Exception date time: {}{}{}{}{}".format(
+                    datetime.datetime.now(),
+                    os.linesep,
+                    message,
+                    os.linesep,
+                    "Final PV value was {}".format(format_value(value)),
+                )
 
         if message is None:
-            message = "Expected function '{}' to evaluate to True when reading PV '{}'." \
-                .format(func.__name__, self.create_pv_with_prefix(pv))
-            
+            message = "Expected function '{}' to evaluate to True when reading PV '{}'.".format(
+                func.__name__, self.create_pv_with_prefix(pv)
+            )
+
         err = self._wait_for_pv_lambda(partial(_wrapper, message), timeout)
         if err is not None:
             raise AssertionError(err)
@@ -278,11 +295,17 @@ class ChannelAccess(object):
         """
 
         if msg is None:
-            msg = "Expected PV, '{}' to have value {}.".format(self.create_pv_with_prefix(pv),
-                                                               format_value(expected_value))
+            msg = "Expected PV, '{}' to have value {}.".format(
+                self.create_pv_with_prefix(pv), format_value(expected_value)
+            )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: val == expected_value, timeout=timeout, message=msg, pv_value_source=pv_value_source)
+            pv,
+            lambda val: val == expected_value,
+            timeout=timeout,
+            message=msg,
+            pv_value_source=pv_value_source,
+        )
 
     def _normalise_path(self, path: str) -> str:
         """
@@ -295,7 +318,9 @@ class ChannelAccess(object):
         """
         return os.path.normpath(os.path.normcase(path))
 
-    def assert_that_pv_is_path(self, pv, expected_path, timeout=None, msg=None, pv_value_source=None):
+    def assert_that_pv_is_path(
+        self, pv, expected_path, timeout=None, msg=None, pv_value_source=None
+    ):
         """
         Assert that a pv is a path that when normalised matches the expected path.
 
@@ -312,12 +337,16 @@ class ChannelAccess(object):
         """
         normalised_expected_path = self._normalise_path(expected_path)
         if msg is None:
-            msg = "Expected PV, '{}' to have path {}.".format(self.create_pv_with_prefix(pv),
-                                                              format_value(normalised_expected_path))
+            msg = "Expected PV, '{}' to have path {}.".format(
+                self.create_pv_with_prefix(pv), format_value(normalised_expected_path)
+            )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: self._normalise_path(val) == normalised_expected_path,
-            timeout=timeout, message=msg, pv_value_source=pv_value_source
+            pv,
+            lambda val: self._normalise_path(val) == normalised_expected_path,
+            timeout=timeout,
+            message=msg,
+            pv_value_source=pv_value_source,
         )
 
     def assert_that_pv_after_processing_is(self, pv, expected_value, timeout=None, msg=None):
@@ -356,7 +385,8 @@ class ChannelAccess(object):
             msg = "Expected PV to not have value {}.".format(format_value(restricted_value))
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: val != restricted_value, timeout, message=msg)
+            pv, lambda val: val != restricted_value, timeout, message=msg
+        )
 
     def _within_tolerance_condition(self, val, expected, tolerance):
         """
@@ -375,10 +405,12 @@ class ChannelAccess(object):
             return False
         return abs(val - expected) <= tolerance
 
-    def assert_that_pv_is_number(self, pv, expected, tolerance=0.0, timeout=None, pv_value_source=None):
+    def assert_that_pv_is_number(
+        self, pv, expected, tolerance=0.0, timeout=None, pv_value_source=None
+    ):
         """
         Assert that the pv has the expected value or that it becomes the expected value within the timeout
-        
+
         Args:
             pv: pv name
             expected: expected value
@@ -389,12 +421,17 @@ class ChannelAccess(object):
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
         """
-        message = "Expected PV '{}' value to be equal to {} (tolerance: {})"\
-            .format(self.create_pv_with_prefix(pv), format_value(expected), format_value(tolerance))
+        message = "Expected PV '{}' value to be equal to {} (tolerance: {})".format(
+            self.create_pv_with_prefix(pv), format_value(expected), format_value(tolerance)
+        )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: self._within_tolerance_condition(val, expected, tolerance), timeout, message=message,
-            pv_value_source=pv_value_source)
+            pv,
+            lambda val: self._within_tolerance_condition(val, expected, tolerance),
+            timeout,
+            message=message,
+            pv_value_source=pv_value_source,
+        )
 
     def assert_that_pv_is_not_number(self, pv, restricted, tolerance=0, timeout=None):
         """
@@ -409,13 +446,20 @@ class ChannelAccess(object):
              AssertionError: if value does not enter the desired range
              UnableToConnectToPVException: if pv does not exist within timeout
         """
-        message = "Expected PV value to be not equal to {} (tolerance: {})"\
-            .format(format_value(restricted), format_value(tolerance))
+        message = "Expected PV value to be not equal to {} (tolerance: {})".format(
+            format_value(restricted), format_value(tolerance)
+        )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
-            pv, lambda val: not self._within_tolerance_condition(val, restricted, tolerance), timeout, message=message)
+            pv,
+            lambda val: not self._within_tolerance_condition(val, restricted, tolerance),
+            timeout,
+            message=message,
+        )
 
-    def assert_that_pv_after_processing_is_number(self, pv, expected_value, tolerance=0.0, timeout=None):
+    def assert_that_pv_after_processing_is_number(
+        self, pv, expected_value, tolerance=0.0, timeout=None
+    ):
         """
         Assert that the pv has the expected number value after the pv is processed
         or that it becomes the expected number value within the timeout.
@@ -447,11 +491,14 @@ class ChannelAccess(object):
              AssertionError: if value does not become requested value
              UnableToConnectToPVException: if pv does not exist within timeout
         """
+
         def _condition(val):
             return val in expected_values
 
         message = "Expected PV value to be in {}".format(expected_values)
-        return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, timeout, message)
+        return self.assert_that_pv_value_causes_func_to_return_true(
+            pv, _condition, timeout, message
+        )
 
     def assert_that_pv_is_within_range(self, pv, min_value, max_value, timeout=None):
         """
@@ -467,11 +514,14 @@ class ChannelAccess(object):
              AssertionError: if value does not become requested value
              UnableToConnectToPVException: if pv does not exist within timeout
         """
+
         def _condition(val):
             return min_value <= float(val) <= max_value
 
         message = "Expected PV value to between {} and {}".format(min_value, max_value)
-        return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, timeout, message)
+        return self.assert_that_pv_value_causes_func_to_return_true(
+            pv, _condition, timeout, message
+        )
 
     def assert_that_pv_exists(self, pv, timeout=None):
         """
@@ -494,7 +544,11 @@ class ChannelAccess(object):
         else:
             # Last try.
             if not self.ca.pv_exists(pv, timeout=1.0):
-                raise AssertionError("Exception date time: {time}\nPV {pv} does not exist".format(time=datetime.datetime.now(),pv=pv))
+                raise AssertionError(
+                    "Exception date time: {time}\nPV {pv} does not exist".format(
+                        time=datetime.datetime.now(), pv=pv
+                    )
+                )
 
     def assert_that_pv_does_not_exist(self, pv, timeout=2):
         """
@@ -543,8 +597,15 @@ class ChannelAccess(object):
         pv_no_field = pv.rsplit(".", 1)[0]
         return self.assert_that_pv_is("{}.SEVR".format(pv_no_field), alarm, timeout=timeout)
 
-    def assert_setting_setpoint_sets_readback(self, value, readback_pv, set_point_pv=None, expected_value=None,
-                                              expected_alarm=Alarms.NONE, timeout=None):
+    def assert_setting_setpoint_sets_readback(
+        self,
+        value,
+        readback_pv,
+        set_point_pv=None,
+        expected_value=None,
+        expected_alarm=Alarms.NONE,
+        timeout=None,
+    ):
         """
         Set a pv to a value and check that the readback has the expected value and alarm state.
 
@@ -585,8 +646,9 @@ class ChannelAccess(object):
         initial_value = self.get_pv_value(pv)
         time.sleep(wait)
 
-        message = "Expected value trend to satisfy comparator '{}'. Initial value was {}."\
-            .format(comparator.__name__, format_value(initial_value))
+        message = "Expected value trend to satisfy comparator '{}'. Initial value was {}.".format(
+            comparator.__name__, format_value(initial_value)
+        )
 
         def _condition(val):
             return comparator(val, initial_value)
@@ -594,17 +656,21 @@ class ChannelAccess(object):
         return self.assert_that_pv_value_causes_func_to_return_true(pv, _condition, message=message)
 
     # Special cases of assert_that_pv_value_over_time_satisfies_comparator
-    assert_that_pv_value_is_increasing = \
-        partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.gt)
+    assert_that_pv_value_is_increasing = partialmethod(
+        assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.gt
+    )
 
-    assert_that_pv_value_is_decreasing = \
-        partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.lt)
+    assert_that_pv_value_is_decreasing = partialmethod(
+        assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.lt
+    )
 
-    assert_that_pv_value_is_unchanged = \
-        partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.eq)
+    assert_that_pv_value_is_unchanged = partialmethod(
+        assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.eq
+    )
 
-    assert_that_pv_value_is_changing = \
-        partialmethod(assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.ne)
+    assert_that_pv_value_is_changing = partialmethod(
+        assert_that_pv_value_over_time_satisfies_comparator, comparator=operator.ne
+    )
 
     @contextmanager
     def assert_that_pv_monitor_gets_values(self, pv, expected_values):
@@ -622,13 +688,16 @@ class ChannelAccess(object):
         yield
 
         if len(expected_values) == len(monitor.all_values):
-
             for i, expected_value in enumerate(expected_values):
                 if expected_value != monitor.all_values[i]:
-                    raise AssertionError(f"Monitor got {monitor.all_values[i]}, but expected {expected_value}")
+                    raise AssertionError(
+                        f"Monitor got {monitor.all_values[i]}, but expected {expected_value}"
+                    )
         else:
-            raise AssertionError(f"List of Monitor values: {monitor.all_values}, but list of Expected values:"
-                                 f" {expected_values}")
+            raise AssertionError(
+                f"List of Monitor values: {monitor.all_values}, but list of Expected values:"
+                f" {expected_values}"
+            )
 
     @contextmanager
     def assert_that_pv_monitor_is(self, pv, expected_value):
@@ -662,7 +731,9 @@ class ChannelAccess(object):
 
         yield
 
-        self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, pv_value_source=pv_value_source)
+        self.assert_that_pv_is_number(
+            pv, expected_value, tolerance=tolerance, pv_value_source=pv_value_source
+        )
 
     @contextmanager
     def assert_pv_processed(self, pv):
@@ -682,10 +753,13 @@ class ChannelAccess(object):
         time_before = PvUpdateTimeValueSource().value
 
         yield
-        
+
         self.assert_that_pv_value_causes_func_to_return_true(
-            pv=pv_with_prefix, func=lambda val: val != time_before, pv_value_source=PvUpdateTimeValueSource(),
-            message="PV {} was not processed".format(pv))
+            pv=pv_with_prefix,
+            func=lambda val: val != time_before,
+            pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was not processed".format(pv),
+        )
 
     @contextmanager
     def assert_pv_not_processed(self, pv):
@@ -707,8 +781,11 @@ class ChannelAccess(object):
         yield
 
         self.assert_that_pv_value_causes_func_to_return_true(
-            pv=pv_with_prefix, func=lambda val: val == time_before, pv_value_source=PvUpdateTimeValueSource(),
-            message="PV {} was processed".format(pv))
+            pv=pv_with_prefix,
+            func=lambda val: val == time_before,
+            pv_value_source=PvUpdateTimeValueSource(),
+            message="PV {} was processed".format(pv),
+        )
 
     def assert_dict_of_pvs_have_given_values(self, pvs_and_values_dict):
         """
@@ -724,4 +801,6 @@ class ChannelAccess(object):
             except AssertionError as e:
                 error_message += "\n{}".format(e.message)
         if error_message != "":
-            raise AssertionError("Not all PVs have given values, see errors: {}".format(error_message))
+            raise AssertionError(
+                "Not all PVs have given values, see errors: {}".format(error_message)
+            )

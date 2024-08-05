@@ -1,9 +1,9 @@
 import unittest
 
-from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # Internal Address of device (must be 2 characters)
 ADDRESS = "01"
@@ -37,7 +37,7 @@ class Amint2lTests(unittest.TestCase):
         self.assertIsNotNone(self._ioc)
 
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
-        self._lewis.backdoor_set_on_device('connected', True)
+        self._lewis.backdoor_set_on_device("connected", True)
         self._lewis.backdoor_set_on_device("address", ADDRESS)
         self._lewis.backdoor_set_on_device("pressure", 0.0)
 
@@ -91,9 +91,8 @@ class Amint2lTests(unittest.TestCase):
 
     @skip_if_recsim("Can not test disconnection in recsim")
     def test_GIVEN_device_not_connected_WHEN_get_pressure_THEN_alarm(self):
-        self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.NONE, timeout=30)
-        with self._lewis.backdoor_simulate_disconnected_device():        
-            self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.INVALID, timeout=30)
+        self.ca.assert_that_pv_alarm_is("PRESSURE", ChannelAccess.Alarms.NONE, timeout=30)
+        with self._lewis.backdoor_simulate_disconnected_device():
+            self.ca.assert_that_pv_alarm_is("PRESSURE", ChannelAccess.Alarms.INVALID, timeout=30)
         # Assert alarms clear on reconnection
-        self.ca.assert_that_pv_alarm_is('PRESSURE', ChannelAccess.Alarms.NONE, timeout=30)
-        
+        self.ca.assert_that_pv_alarm_is("PRESSURE", ChannelAccess.Alarms.NONE, timeout=30)

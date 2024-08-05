@@ -1,29 +1,28 @@
 """
 Lewis emulator interface classes.
 """
-import contextlib
 
 import abc
+import contextlib
 import os
 import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import datetime
+from functools import partial
+from time import sleep, time
+from typing import Any, Dict, List
+
 import psutil
 
-import sys
-from datetime import datetime
-from time import sleep, time
-from functools import partial
-from dataclasses import dataclass
-from typing import List, Any, Dict
-
+from utils.emulator_exceptions import UnableToConnectToEmulatorException
+from utils.formatters import format_value
 from utils.free_ports import get_free_ports
 from utils.ioc_launcher import EPICS_TOP, IOCRegister
 from utils.log_file import log_filename
-from utils.formatters import format_value
-from utils.emulator_exceptions import UnableToConnectToEmulatorException
 from utils.test_modes import TestModes
 
-DEVICE_EMULATOR_PATH = os.path.join(
-    EPICS_TOP, "support", "DeviceEmulator", "master")
+DEVICE_EMULATOR_PATH = os.path.join(EPICS_TOP, "support", "DeviceEmulator", "master")
 DEFAULT_PY_PATH = os.path.join("C:\\", "Instrument", "Apps", "Python3")
 
 
@@ -66,7 +65,6 @@ class EmulatorRegister(object):
 
 
 class EmulatorLauncher(object, metaclass=abc.ABCMeta):
-
     def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         """
         Args:
@@ -197,8 +195,9 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
         self.backdoor_set_on_device(variable, value)
         self.assert_that_emulator_value_is(variable, str(value))
 
-    def assert_that_emulator_value_is(self, emulator_property, expected_value, timeout=None, message=None,
-                                      cast=lambda val: val):
+    def assert_that_emulator_value_is(
+        self, emulator_property, expected_value, timeout=None, message=None, cast=lambda val: val
+    ):
         """
         Assert that the emulator property has the expected value or that it becomes the expected value within the
         timeout.
@@ -215,16 +214,17 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
         """
 
         if message is None:
-            message = "Expected emulator to have value {}.".format(
-                format_value(expected_value))
+            message = "Expected emulator to have value {}.".format(format_value(expected_value))
 
         return self.assert_that_emulator_value_causes_func_to_return_true(
-            emulator_property, lambda val: cast(val) == expected_value, timeout=timeout, msg=message)
+            emulator_property, lambda val: cast(val) == expected_value, timeout=timeout, msg=message
+        )
 
-    def assert_that_emulator_value_is_not(self, emulator_property, value, timeout=None, message=None,
-                                          cast=lambda val: val):
+    def assert_that_emulator_value_is_not(
+        self, emulator_property, value, timeout=None, message=None, cast=lambda val: val
+    ):
         """
-        Assert that the emulator property does not have the passed value and that it does not become the passed value 
+        Assert that the emulator property does not have the passed value and that it does not become the passed value
         within the timeout.
 
         Args:
@@ -240,14 +240,15 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
         """
 
         if message is None:
-            message = "Expected PV to *not* have value {}.".format(
-                format_value(value))
+            message = "Expected PV to *not* have value {}.".format(format_value(value))
 
         return self.assert_that_emulator_value_causes_func_to_return_false(
-            emulator_property, lambda val: cast(val) == value, timeout=timeout, msg=message)
+            emulator_property, lambda val: cast(val) == value, timeout=timeout, msg=message
+        )
 
     def assert_that_emulator_value_causes_func_to_return_true(
-            self, emulator_property, func, timeout=None, msg=None):
+        self, emulator_property, func, timeout=None, msg=None
+    ):
         """
         Check that an emulator property satisfies a given function within some timeout.
 
@@ -266,18 +267,25 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
             try:
                 return_value = func(value)
             except Exception as e:
-                return "Exception was thrown while evaluating function '{}' on emulator property {}. " \
-                       "Exception was: {} {}".format(func.__name__,
-                                                     format_value(value), e.__class__.__name__, e.message)
+                return (
+                    "Exception was thrown while evaluating function '{}' on emulator property {}. "
+                    "Exception was: {} {}".format(
+                        func.__name__, format_value(value), e.__class__.__name__, e.message
+                    )
+                )
             if return_value:
                 return None
             else:
-                return "{}{}{}".format(msg, os.linesep, "Final emulator property value was {}"
-                                       .format(format_value(value)))
+                return "{}{}{}".format(
+                    msg,
+                    os.linesep,
+                    "Final emulator property value was {}".format(format_value(value)),
+                )
 
         if msg is None:
-            msg = "Expected function '{}' to evaluate to True when reading emulator property '{}'." \
-                .format(func.__name__, emulator_property)
+            msg = "Expected function '{}' to evaluate to True when reading emulator property '{}'.".format(
+                func.__name__, emulator_property
+            )
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
 
@@ -285,7 +293,8 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
             raise AssertionError(err)
 
     def assert_that_emulator_value_causes_func_to_return_false(
-            self, emulator_property, func, timeout=None, msg=None):
+        self, emulator_property, func, timeout=None, msg=None
+    ):
         """
         Check that an emulator property does not satisfy a given function within some timeout.
 
@@ -304,18 +313,25 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
             try:
                 return_value = func(value)
             except Exception as e:
-                return "Exception was thrown while evaluating function '{}' on emulator property {}. " \
-                       "Exception was: {} {}".format(func.__name__,
-                                                     format_value(value), e.__class__.__name__, e.message)
+                return (
+                    "Exception was thrown while evaluating function '{}' on emulator property {}. "
+                    "Exception was: {} {}".format(
+                        func.__name__, format_value(value), e.__class__.__name__, e.message
+                    )
+                )
             if return_value:
-                return "{}{}{}".format(msg, os.linesep, "Final emulator property value was {}"
-                                       .format(format_value(value)))
+                return "{}{}{}".format(
+                    msg,
+                    os.linesep,
+                    "Final emulator property value was {}".format(format_value(value)),
+                )
             else:
                 return None
 
         if msg is None:
-            msg = "Expected function '{}' to evaluate to False when reading emulator property '{}'." \
-                .format(func.__name__, emulator_property)
+            msg = "Expected function '{}' to evaluate to False when reading emulator property '{}'.".format(
+                func.__name__, emulator_property
+            )
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
 
@@ -352,7 +368,9 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
         # last try
         return wait_for_lambda()
 
-    def assert_that_emulator_value_is_greater_than(self, emulator_property, min_value, timeout=None):
+    def assert_that_emulator_value_is_greater_than(
+        self, emulator_property, min_value, timeout=None
+    ):
         """
         Assert that an emulator property has a value greater than the expected value.
 
@@ -365,10 +383,14 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
              AssertionError: if value does not become requested value
         """
 
-        message = "Expected emulator property {} to have a value greater than or equal to {}".format(
-            emulator_property, min_value)
+        message = (
+            "Expected emulator property {} to have a value greater than or equal to {}".format(
+                emulator_property, min_value
+            )
+        )
         return self.assert_that_emulator_value_causes_func_to_return_true(
-            emulator_property, lambda value: min_value <= float(value), timeout, message)
+            emulator_property, lambda value: min_value <= float(value), timeout, message
+        )
 
     @contextlib.contextmanager
     def backdoor_simulate_disconnected_device(self, emulator_property="connected"):
@@ -387,19 +409,26 @@ class NullEmulatorLauncher(EmulatorLauncher):
     A null emulator launcher that does nothing.
     """
 
-    def _open(self): pass
+    def _open(self):
+        pass
 
-    def _close(self): pass
+    def _close(self):
+        pass
 
-    def backdoor_get_from_device(self, variable, *args, **kwargs): return None
+    def backdoor_get_from_device(self, variable, *args, **kwargs):
+        return None
 
-    def backdoor_set_on_device(self, variable, value, *args, **kwargs): pass
+    def backdoor_set_on_device(self, variable, value, *args, **kwargs):
+        pass
 
-    def backdoor_emulator_disconnect_device(self, *args, **kwargs): pass
+    def backdoor_emulator_disconnect_device(self, *args, **kwargs):
+        pass
 
-    def backdoor_emulator_connect_device(self, *args, **kwargs): pass
+    def backdoor_emulator_connect_device(self, *args, **kwargs):
+        pass
 
-    def backdoor_run_function_on_device(self, *args, **kwargs): pass
+    def backdoor_run_function_on_device(self, *args, **kwargs):
+        pass
 
 
 @dataclass
@@ -407,6 +436,7 @@ class Emulator(object):
     """
     A utility class to capture data required to create a MultiLewisLauncher
     """
+
     launcher_address: int
     device: str
     var_dir: str
@@ -419,6 +449,7 @@ class TestEmulatorData(object):
     """
     A utility class to capture the required data from a test to create a MultiLewisLauncher.
     """
+
     emulator: str
     emulator_port: Any
     launcher_address: int
@@ -443,15 +474,13 @@ class LewisLauncher(EmulatorLauncher):
             port: the port to use
         """
         super(LewisLauncher, self).__init__(
-            test_name, device, emulator_path, var_dir, port, options)
+            test_name, device, emulator_path, var_dir, port, options
+        )
 
-        self._lewis_path = options.get(
-            "lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
-        self._python_path = options.get(
-            "python_path", os.path.join(DEFAULT_PY_PATH, "python.exe"))
+        self._lewis_path = options.get("lewis_path", LewisLauncher._DEFAULT_LEWIS_PATH)
+        self._python_path = options.get("python_path", os.path.join(DEFAULT_PY_PATH, "python.exe"))
         self._lewis_protocol = options.get("lewis_protocol", "stream")
-        self._lewis_additional_path = options.get(
-            "lewis_additional_path", emulator_path)
+        self._lewis_additional_path = options.get("lewis_additional_path", emulator_path)
         self._lewis_package = options.get("lewis_package", "lewis_emulators")
         self._default_timeout = options.get("default_timeout", 5)
         self._speed = options.get("speed", 100)
@@ -491,10 +520,22 @@ class LewisLauncher(EmulatorLauncher):
         """
         self._logFile = open(self._log_filename(), "w")
         self._control_port = str(get_free_ports(1)[0])
-        lewis_command_line = [self._python_path, "-u", "-m", "lewis",
-                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
-        lewis_command_line.extend(["-p", "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}"
-                                  .format(protocol=self._lewis_protocol, port=self._port)])
+        lewis_command_line = [
+            self._python_path,
+            "-u",
+            "-m",
+            "lewis",
+            "-r",
+            "127.0.0.1:{control_port}".format(control_port=self._control_port),
+        ]
+        lewis_command_line.extend(
+            [
+                "-p",
+                "{protocol}: {{bind_address: 127.0.0.1, port: {port}}}".format(
+                    protocol=self._lewis_protocol, port=self._port
+                ),
+            ]
+        )
         if self._lewis_additional_path is not None:
             lewis_command_line.extend(["-a", self._lewis_additional_path])
         if self._lewis_package is not None:
@@ -502,20 +543,24 @@ class LewisLauncher(EmulatorLauncher):
 
         # Set lewis speed
         lewis_command_line.extend(["-e", str(self._speed), self._device])
-        print(f"Started Lewis Emulator ({self._device}), Lewis log file is {self._log_filename()}\n")
-        self._logFile.write("Started Lewis with '{0}'\n".format(
-            " ".join(lewis_command_line)))
+        print(
+            f"Started Lewis Emulator ({self._device}), Lewis log file is {self._log_filename()}\n"
+        )
+        self._logFile.write("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
         self._logFile.flush()
-        print("Started Lewis with '{0}'\n".format(
-            " ".join(lewis_command_line)))
-        self._process = subprocess.Popen(lewis_command_line,
-                                         creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                         stdout=self._logFile,
-                                         stderr=subprocess.STDOUT)
+        print("Started Lewis with '{0}'\n".format(" ".join(lewis_command_line)))
+        self._process = subprocess.Popen(
+            lewis_command_line,
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+            stdout=self._logFile,
+            stderr=subprocess.STDOUT,
+        )
         self._connected = True
 
     def _log_filename(self):
-        return log_filename(self._test_name, "lewis", self._emulator_id, TestModes.DEVSIM, self._var_dir)
+        return log_filename(
+            self._test_name, "lewis", self._emulator_id, TestModes.DEVSIM, self._var_dir
+        )
 
     def check(self):
         """
@@ -552,7 +597,8 @@ class LewisLauncher(EmulatorLauncher):
         :return:
         """
         self.backdoor_command(
-            ["device", str(variable_name), self._convert_to_string_for_backdoor(value)])
+            ["device", str(variable_name), self._convert_to_string_for_backdoor(value)]
+        )
 
     def backdoor_run_function_on_device(self, function_name, arguments=None):
         """
@@ -565,8 +611,9 @@ class LewisLauncher(EmulatorLauncher):
         """
         command = ["device", function_name]
         if arguments is not None:
-            command.extend([self._convert_to_string_for_backdoor(
-                argument) for argument in arguments])
+            command.extend(
+                [self._convert_to_string_for_backdoor(argument) for argument in arguments]
+            )
 
         return self.backdoor_command(command)
 
@@ -577,17 +624,21 @@ class LewisLauncher(EmulatorLauncher):
         :param lewis_command: array of command line arguments to send
         :return: lines from the command output
         """
-        lewis_command_line = [os.path.join(self._lewis_path, "lewis-control.exe"),
-                              "-r", "127.0.0.1:{control_port}".format(control_port=self._control_port)]
+        lewis_command_line = [
+            os.path.join(self._lewis_path, "lewis-control.exe"),
+            "-r",
+            "127.0.0.1:{control_port}".format(control_port=self._control_port),
+        ]
         lewis_command_line.extend(lewis_command)
-        time_stamp = datetime.fromtimestamp(
-            time()).strftime('%Y-%m-%d %H:%M:%S')
-        self._logFile.write("{0}: lewis backdoor command: {1}\n".format(
-            time_stamp, " ".join(lewis_command_line)))
+        time_stamp = datetime.fromtimestamp(time()).strftime("%Y-%m-%d %H:%M:%S")
+        self._logFile.write(
+            "{0}: lewis backdoor command: {1}\n".format(time_stamp, " ".join(lewis_command_line))
+        )
         self._logFile.flush()
         try:
             p = subprocess.Popen(
-                lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+                lewis_command_line, stderr=subprocess.STDOUT, stdout=subprocess.PIPE
+            )
             for i in range(1, 40):
                 code = p.poll()
                 if code == 0:
@@ -595,10 +646,8 @@ class LewisLauncher(EmulatorLauncher):
                 sleep(0.1)
             else:
                 p.terminate()
-                print(
-                    f"Lewis backdoor command {lewis_command_line} did not finish!")
-                self._logFile.write(
-                    f"Lewis backdoor command {lewis_command_line} did not finish!")
+                print(f"Lewis backdoor command {lewis_command_line} did not finish!")
+                self._logFile.write(f"Lewis backdoor command {lewis_command_line} did not finish!")
                 self._logFile.flush()
 
             output = [line for line in p.stdout]
@@ -606,7 +655,8 @@ class LewisLauncher(EmulatorLauncher):
             for line in output:
                 if b"failed to create process" in line.lower():
                     raise IOError(
-                        f"Failed to spawn lewis-control.exe for backdoor set {lewis_command}.")
+                        f"Failed to spawn lewis-control.exe for backdoor set {lewis_command}."
+                    )
 
             return [line.strip() for line in output]
         except subprocess.CalledProcessError as ex:
@@ -643,7 +693,9 @@ class LewisLauncher(EmulatorLauncher):
         :return: the variables value
         """
         # backdoor_command returns a list of bytes and join takes str so convert them here
-        return "".join(i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)]))
+        return "".join(
+            i.decode("utf-8") for i in self.backdoor_command(["device", str(variable_name)])
+        )
 
 
 class MultiLewisLauncher(object):
@@ -654,7 +706,8 @@ class MultiLewisLauncher(object):
     def __init__(self, test_name: str, emulators: List[Emulator]):
         self.test_name: str = test_name
         self.emulator_launchers: Dict[int, LewisLauncher] = {
-            emulator.launcher_address: LewisLauncher.from_emulator(test_name, emulator) for emulator in emulators
+            emulator.launcher_address: LewisLauncher.from_emulator(test_name, emulator)
+            for emulator in emulators
         }
 
     def __enter__(self):
@@ -690,7 +743,7 @@ class MultiLewisLauncher(object):
         """
         return self.emulator_launchers[launcher_address].backdoor_get_from_device(variable)
 
-    def backdoor_set_on_device(self, launcher_address, variable, value,  *_, **__):
+    def backdoor_set_on_device(self, launcher_address, variable, value, *_, **__):
         """
         Set the variable to the given value on the emulator address with the given launcher address.
 
@@ -698,8 +751,7 @@ class MultiLewisLauncher(object):
         :param variable: The variable on the device to set.
         :param value: The value to set the variable to.
         """
-        self.emulator_launchers[launcher_address].backdoor_set_on_device(
-            variable, value)
+        self.emulator_launchers[launcher_address].backdoor_set_on_device(variable, value)
 
     def backdoor_emulator_disconnect_device(self, launcher_address):
         """
@@ -707,8 +759,7 @@ class MultiLewisLauncher(object):
 
         :param launcher_address: The identifier of the device we want to disconnect.
         """
-        self.emulator_launchers[launcher_address].backdoor_emulator_disconnect_device(
-        )
+        self.emulator_launchers[launcher_address].backdoor_emulator_disconnect_device()
 
     def backdoor_emulator_connect_device(self, launcher_address):
         """
@@ -716,8 +767,7 @@ class MultiLewisLauncher(object):
 
         :param launcher_address: The identifier of the device we want to connect.
         """
-        self.emulator_launchers[launcher_address].backdoor_emulator_connect_device(
-        )
+        self.emulator_launchers[launcher_address].backdoor_emulator_connect_device()
 
     def backdoor_run_function_on_device(self, launcher_address, function_name, arguments=None):
         """
@@ -727,19 +777,23 @@ class MultiLewisLauncher(object):
         :param function_name: The name of the function to run on the device.
         :param arguments: The arguments to pass to the function.
         """
-        return self.emulator_launchers[launcher_address].backdoor_run_function_on_device(function_name, arguments)
+        return self.emulator_launchers[launcher_address].backdoor_run_function_on_device(
+            function_name, arguments
+        )
 
 
 class CommandLineEmulatorLauncher(EmulatorLauncher):
-
     def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         super(CommandLineEmulatorLauncher, self).__init__(
-            test_name, device, emulator_path, var_dir, port, options)
+            test_name, device, emulator_path, var_dir, port, options
+        )
         try:
             self.command_line = options["emulator_command_line"]
         except KeyError:
-            raise KeyError("To use a command line emulator launcher, the 'emulator_command_line' option must be "
-                           "provided as part of the options dictionary")
+            raise KeyError(
+                "To use a command line emulator launcher, the 'emulator_command_line' option must be "
+                "provided as part of the options dictionary"
+            )
 
         try:
             self.wait = options["emulator_wait_to_finish"]
@@ -755,8 +809,12 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         self._log_file = None
 
     def _open(self):
-        self._log_file = open(log_filename(
-            self._test_name, "cmdemulator", self._device, TestModes.RECSIM, self._var_dir), "w")
+        self._log_file = open(
+            log_filename(
+                self._test_name, "cmdemulator", self._device, TestModes.RECSIM, self._var_dir
+            ),
+            "w",
+        )
         self._call_command_line(self.command_line.format(port=self._port))
 
     def _call_command_line(self, command_line):
@@ -764,11 +822,13 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             cwd = self._emulator_path
         else:
             cwd = None
-        self._process = psutil.Popen(command_line,
-                                         cwd=cwd,
-                                         creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                         stdout=self._log_file,
-                                         stderr=subprocess.STDOUT)
+        self._process = psutil.Popen(
+            command_line,
+            cwd=cwd,
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+            stdout=self._log_file,
+            stderr=subprocess.STDOUT,
+        )
 
         if self.wait:
             self._process.wait()
@@ -800,34 +860,30 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             self._log_file.close()
 
     def backdoor_get_from_device(self, variable, *args, **kwargs):
-        raise ValueError(
-            "Cannot use backdoor for an arbitrary command line launcher")
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
     def backdoor_set_on_device(self, variable, value, *args, **kwargs):
-        raise ValueError(
-            "Cannot use backdoor for an arbitrary command line launcher")
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
     def backdoor_emulator_disconnect_device(self, *args, **kwargs):
-        raise ValueError(
-            "Cannot use backdoor for an arbitrary command line launcher")
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
     def backdoor_emulator_connect_device(self, *args, **kwargs):
-        raise ValueError(
-            "Cannot use backdoor for an arbitrary command line launcher")
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
     def backdoor_run_function_on_device(self, *args, **kwargs):
-        raise ValueError(
-            "Cannot use backdoor for an arbitrary command line launcher")
+        raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
 
 class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
-
     def __init__(self, test_name, device, emulator_path, var_dir, port, options):
         try:
             self.beckhoff_root = options["beckhoff_root"]
         except KeyError:
-            raise KeyError("To use a beckhoff emulator launcher, the 'beckhoff_root' and 'tpy_file_path' options must"
-                           " be provided as part of the options dictionary")
+            raise KeyError(
+                "To use a beckhoff emulator launcher, the 'beckhoff_root' and 'tpy_file_path' options must"
+                " be provided as part of the options dictionary"
+            )
 
         run_bat_file = os.path.join(self.beckhoff_root, "run.bat")
         if IOCRegister.test_mode == TestModes.NOSIM:
@@ -837,22 +893,22 @@ class BeckhoffEmulatorLauncher(CommandLineEmulatorLauncher):
             options["emulator_command_line"] = run_bat_file
             options["emulator_wait_to_finish"] = True
             super(BeckhoffEmulatorLauncher, self).__init__(
-                test_name, device, emulator_path, var_dir, port, options)
+                test_name, device, emulator_path, var_dir, port, options
+            )
         else:
-            raise IOError(
-                "Unable to find run.bat. Trying to run {} \n".format(run_bat_file))
+            raise IOError("Unable to find run.bat. Trying to run {} \n".format(run_bat_file))
 
 
 class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
     def __init__(self, test_name, device, emulator_path, var_dir, port, options):
-        labview_scripts_dir = os.path.join(
-            DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
+        labview_scripts_dir = os.path.join(DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
         self.start_command = os.path.join(labview_scripts_dir, "start_sim.bat")
         self.stop_command = os.path.join(labview_scripts_dir, "stop_sim.bat")
         options["emulator_command_line"] = self.start_command
         options["emulator_wait_to_finish"] = True
         super(DAQMxEmulatorLauncher, self).__init__(
-            test_name, device, emulator_path, var_dir, port, options)
+            test_name, device, emulator_path, var_dir, port, options
+        )
 
     def _close(self):
         self.disconnect_device()

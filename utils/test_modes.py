@@ -1,6 +1,7 @@
 """
 Possible testsing mmodes
 """
+
 from enum import Enum
 
 
@@ -8,6 +9,7 @@ class TestModes(Enum):
     """
     Modes in which a set of unit tests can be run
     """
+
     RECSIM = 1
     DEVSIM = 2
     NOSIM = 3

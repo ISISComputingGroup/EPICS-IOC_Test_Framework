@@ -1,6 +1,7 @@
 """
 Possible build configs
 """
+
 from enum import Enum
 
 
@@ -8,6 +9,7 @@ class BuildArchitectures(Enum):
     """
     Build configuration types with which a set of unit tests can be run.
     """
+
     _64BIT = 1
     _32BIT = 2
 

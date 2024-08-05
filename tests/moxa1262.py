@@ -1,9 +1,8 @@
 import unittest
 
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
-
 from common_tests.moxa12XX import Moxa12XXBase
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 
 # Device prefix
 CHANNEL_FORMAT = "CHANNEL{:1d}"
@@ -37,7 +36,9 @@ IOCS = [
     },
 ]
 
-TEST_MODES = [TestModes.DEVSIM, ]
+TEST_MODES = [
+    TestModes.DEVSIM,
+]
 
 NUMBER_OF_CHANNELS = 8
 REGISTERS_PER_CHANNEL = 2

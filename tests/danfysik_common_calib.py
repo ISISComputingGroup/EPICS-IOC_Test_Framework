@@ -1,10 +1,8 @@
 import unittest
 
-from utils.test_modes import TestModes
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, DanfysikBase
 from utils.ioc_launcher import get_default_ioc_dir
-
-from common_tests.danfysik import DanfysikBase, DEVICE_PREFIX, EMULATOR_NAME
-
+from utils.test_modes import TestModes
 
 # Arbitrary - normal danfysik full scale is 1000000, set it a little bit lower so we can tell the limit is working.
 MAX_RAW_SETPOINT = 987654
@@ -35,12 +33,15 @@ class DanfysikCommonCalibTests(DanfysikBase, unittest.TestCase):
     """
     Tests for calibrated danfysik. Tests inherited from DanfysikBase.
     """
+
     def test_GIVEN_local_calib_macro_set_to_no_THEN_calib_base_dir_is_common_dir(self):
         for pv in ["FIELD:CALIB", "FIELD:SP:CALIB"]:
             self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"magnets")
             self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Settings/config/common")
 
-    def test_GIVEN_a_requested_current_which_is_too_big_WHEN_calibrated_THEN_current_setpoint_sent_to_danfysik_is_not_bigger_than_max(self):
+    def test_GIVEN_a_requested_current_which_is_too_big_WHEN_calibrated_THEN_current_setpoint_sent_to_danfysik_is_not_bigger_than_max(
+        self,
+    ):
         # Request a field above the maximum raw setpoint
         self.ca.set_pv_value("FIELD:SP", 10 * MAX_RAW_SETPOINT)
 

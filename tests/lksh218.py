@@ -1,10 +1,9 @@
-import time
 import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, unstable_test
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 DEVICE_PREFIX = "LKSH218_04"
 
@@ -25,6 +24,7 @@ class Lksh218Tests(unittest.TestCase):
     """
     Tests for the Lksh218 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Lksh218", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
@@ -80,21 +80,23 @@ class Lksh218Tests(unittest.TestCase):
 
     def _check_TEMP_and_SENSOR_alarms(self, alarm_mode):
         """
-        Helper function to check temp and sensor alarms in 
+        Helper function to check temp and sensor alarms in
         correct state
         """
         for i in range(1, 9):
-                self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), alarm_mode, timeout=30)
-                self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), alarm_mode, timeout=30)
+            self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), alarm_mode, timeout=30)
+            self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), alarm_mode, timeout=30)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
-    def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP_and_SENSOR(self):
+    def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP_and_SENSOR(
+        self,
+    ):
         self._check_TEMP_and_SENSOR_alarms(ChannelAccess.Alarms.NONE)
 
         with self._lewis.backdoor_simulate_disconnected_device():
             self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
             self._check_TEMP_and_SENSOR_alarms(ChannelAccess.Alarms.INVALID)
-        # Assert alarms clear on reconnect 
+        # Assert alarms clear on reconnect
         self._check_TEMP_and_SENSOR_alarms(ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
@@ -106,7 +108,7 @@ class Lksh218Tests(unittest.TestCase):
             self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
             self.ca.process_pv("SENSORALL")
             self.ca.assert_that_pv_alarm_is("SENSORALL", ChannelAccess.Alarms.INVALID, timeout=30)
-        # Assert alarms clear on reconnect 
+        # Assert alarms clear on reconnect
         self.ca.process_pv("SENSORALL")
         self.ca.assert_that_pv_alarm_is("SENSORALL", ChannelAccess.Alarms.NONE, timeout=30)
 
@@ -114,11 +116,11 @@ class Lksh218Tests(unittest.TestCase):
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMPALL(self):
         self.ca.process_pv("TEMPALL")
         self.ca.assert_that_pv_alarm_is("TEMPALL", ChannelAccess.Alarms.NONE)
-        
+
         with self._lewis.backdoor_simulate_disconnected_device():
             self.assertEqual(self._lewis.backdoor_get_from_device("connected"), str(False))
             self.ca.process_pv("TEMPALL")
             self.ca.assert_that_pv_alarm_is("TEMPALL", ChannelAccess.Alarms.INVALID, timeout=30)
-        # Assert alarms clear on reconnect 
+        # Assert alarms clear on reconnect
         self.ca.process_pv("TEMPALL")
         self.ca.assert_that_pv_alarm_is("TEMPALL", ChannelAccess.Alarms.NONE, timeout=30)

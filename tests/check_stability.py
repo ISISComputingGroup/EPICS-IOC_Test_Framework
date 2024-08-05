@@ -1,6 +1,6 @@
 import operator
-import unittest
 import os
+import unittest
 
 from parameterized import parameterized
 
@@ -21,11 +21,14 @@ IOCS = [
         "pv_for_existence": "VAL",
         "name": DEVICE_PREFIX,
         "directory": os.path.realpath(
-            os.path.join(EPICS_ROOT, "support", "utilities", "master", "iocBoot", "iocutilitiesTest")),
+            os.path.join(
+                EPICS_ROOT, "support", "utilities", "master", "iocBoot", "iocutilitiesTest"
+            )
+        ),
         "macros": {
             "TOLERANCE": TOLERANCE,
             "NSAMP": NUMBER_OF_SAMPLES,
-        }
+        },
     },
 ]
 
@@ -123,7 +126,9 @@ class SimpleTests(unittest.TestCase):
         self.ca.set_pv_value("VAL.SIMS", 3)
         self.ca.set_pv_value("VAL.SIMS", 0)
 
-        for _ in range(NUMBER_OF_SAMPLES - 2):  # -2 because setting SEVR back to zero will cause a record to process.
+        for _ in range(
+            NUMBER_OF_SAMPLES - 2
+        ):  # -2 because setting SEVR back to zero will cause a record to process.
             self.ca.set_pv_value("VAL", stable_value)
 
         self.ca.assert_that_pv_is("STAB:HAS_RECENT_ALARM", False)

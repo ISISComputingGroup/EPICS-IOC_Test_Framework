@@ -1,14 +1,12 @@
 import unittest
-from time import sleep
+from enum import Enum
 
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
-from enum import Enum
-
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 DEVICE_PREFIX = "OERCONE_01"
 
@@ -38,6 +36,7 @@ class OerconeTests(unittest.TestCase):
     """
     Tests for the Oercone IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(IOCS[0]["emulator"], DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
@@ -61,6 +60,3 @@ class OerconeTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(Units))
     def test_WHEN_units_setpoint_set_THEN_read_back_is_correct(self, _, units):
         self.ca.assert_setting_setpoint_sets_readback(units.name, "UNITS")
-
-
-

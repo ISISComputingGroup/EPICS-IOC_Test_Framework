@@ -3,8 +3,7 @@ import unittest
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-
+from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "PDR2000_01"
 
@@ -26,6 +25,7 @@ class Pdr2000Tests(unittest.TestCase):
     """
     Tests for the Pdr2000 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("Pdr2000", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
@@ -62,4 +62,3 @@ class Pdr2000Tests(unittest.TestCase):
         set_scale = 123.45
         self.ca.set_pv_value("SIM:SCALE:2", set_scale)
         self.ca.assert_that_pv_is("SCALE:2", set_scale)
-        

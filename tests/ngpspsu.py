@@ -1,12 +1,17 @@
-from parameterized import parameterized
 import unittest
+
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, skip_if_devsim, add_method, parameterized_list
 from utils.test_modes import TestModes
-
-
+from utils.testing import (
+    add_method,
+    get_running_lewis_and_ioc,
+    parameterized_list,
+    skip_if_devsim,
+    skip_if_recsim,
+)
 
 DEVICE_PREFIX = "NGPSPSU_01"
 
@@ -31,7 +36,7 @@ TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 def reset_emulator():
-    """ Resets the device"""
+    """Resets the device"""
     lewis, ioc = get_running_lewis_and_ioc("ngpspsu", DEVICE_PREFIX)
     ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
 
@@ -79,7 +84,6 @@ def setUp(self):
 
 @add_method(setUp)
 class NgpspsuMiscTests(unittest.TestCase):
-
     def _disconnect_emulator(self):
         self._lewis.backdoor_run_function_on_device("disconnect")
 
@@ -108,7 +112,6 @@ class NgpspsuMiscTests(unittest.TestCase):
 
 @add_method(setUp)
 class NgpspsuStartAndStopTests(unittest.TestCase):
-
     def test_that_GIVEN_a_fresh_device_THEN_the_device_is_off(self):
         # When/Then:
         self.ca.assert_that_pv_is("STAT:POWER", "OFF")
@@ -136,7 +139,6 @@ class NgpspsuStartAndStopTests(unittest.TestCase):
 
 @add_method(setUp)
 class NgpspsuStatusTests(unittest.TestCase):
-
     def test_that_GIVEN_a_setup_device_THEN_the_status_is_zero(self):
         # When/Then:
         for digit in range(1, 9):
@@ -145,13 +147,14 @@ class NgpspsuStatusTests(unittest.TestCase):
 
 @add_method(setUp)
 class NgpspsuErrorTests(unittest.TestCase):
-
     def test_that_GIVEN_a_setup_device_THEN_there_is_no_error_state(self):
         # When/Then:
         self.ca.assert_that_pv_is("ERROR", "No error")
 
     @skip_if_recsim("Cannot catch errors in RECSIM")
-    def test_that_GIVEN_a_running_device_WHEN_told_to_start_THEN_it_does_not_with_no_error_state(self):
+    def test_that_GIVEN_a_running_device_WHEN_told_to_start_THEN_it_does_not_with_no_error_state(
+        self,
+    ):
         # Given
         _start_device(self.ca)
 
@@ -162,7 +165,9 @@ class NgpspsuErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", "No error")
 
     @skip_if_recsim("Cannot catch errors in RECSIM")
-    def test_that_GIVEN_a_stopped_device_WHEN_told_to_stop_THEN_it_does_not_with_no_error_state(self):
+    def test_that_GIVEN_a_stopped_device_WHEN_told_to_stop_THEN_it_does_not_with_no_error_state(
+        self,
+    ):
         # Given
         _stop_device(self.ca)
 
@@ -173,7 +178,9 @@ class NgpspsuErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("ERROR", "No error")
 
     @skip_if_recsim("Can't reset the device in RECSIM.")
-    def test_that_GIVEN_device_which_is_off_WHEN_setting_the_voltage_setpoint_THEN_an_error_is_caught(self):
+    def test_that_GIVEN_device_which_is_off_WHEN_setting_the_voltage_setpoint_THEN_an_error_is_caught(
+        self,
+    ):
         # Given
         self.ca.assert_that_pv_is("STAT:POWER", "OFF")
 
@@ -209,7 +216,6 @@ class NgpspsuErrorTests(unittest.TestCase):
 
 @add_method(setUp)
 class NgpspsuResetTests(unittest.TestCase):
-
     @skip_if_recsim("Can't reset the device in RECSIM.")
     def test_that_GIVEN_a_running_device_WHEN_reset_THEN_the_device_stops(self):
         # Given
@@ -259,7 +265,6 @@ class NgpspsuResetTests(unittest.TestCase):
 
 @add_method(setUp)
 class NgpspsuVoltageTests(unittest.TestCase):
-
     def test_that_GIVEN_a_reset_device_THEN_the_voltage_is_zero(self):
         # Given:
         _reset_device(self.ca)
@@ -267,19 +272,11 @@ class NgpspsuVoltageTests(unittest.TestCase):
         # When/Then:
         self.ca.assert_that_pv_is("VOLT", 0.0)
 
-    @parameterized.expand(
-        parameterized_list([
-            12.006768,
-            23,
-            -5,
-            -2.78,
-            3e-5,
-            0.00445676e4,
-            0
-        ])
-    )
+    @parameterized.expand(parameterized_list([12.006768, 23, -5, -2.78, 3e-5, 0.00445676e4, 0]))
     @skip_if_recsim("Can't test if the device is turned on")
-    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_voltage_setpoint_THEN_it_is_set(self, _, value):
+    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_voltage_setpoint_THEN_it_is_set(
+        self, _, value
+    ):
         # Given:
         _start_device(self.ca)
         self.ca.assert_that_pv_is("STAT:POWER", "ON")
@@ -304,24 +301,15 @@ class NgpspsuVoltageTests(unittest.TestCase):
 
 @add_method(setUp)
 class NgpspsuCurrentTests(unittest.TestCase):
-
     def test_that_GIVEN_a_device_after_set_up_THEN_the_current_is_zero(self):
         # Then:
         self.ca.assert_that_pv_is("CURR", 0.0)
 
-    @parameterized.expand(
-        parameterized_list([
-            12.006768,
-            23,
-            -5,
-            -2.78,
-            3e-5,
-            0.00445676e4,
-            0
-        ])
-    )
+    @parameterized.expand(parameterized_list([12.006768, 23, -5, -2.78, 3e-5, 0.00445676e4, 0]))
     @skip_if_recsim("Can't test if the device is turned on")
-    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_current_setpoint_THEN_it_is_set(self, _, value):
+    def test_that_GIVEN_device_which_is_on_WHEN_setting_the_current_setpoint_THEN_it_is_set(
+        self, _, value
+    ):
         # Given:
         _start_device(self.ca)
         self.ca.assert_that_pv_is("STAT:POWER", "ON")
@@ -344,27 +332,15 @@ class NgpspsuCurrentTests(unittest.TestCase):
         self.ca.assert_that_pv_is("CURR", 0)
 
 
-
 @add_method(setUp)
 class NgpspsuRecsimOnlyVoltageAndCurrentTests(unittest.TestCase):
-
     def _set_voltage_setpoint(self, value):
         self._ioc.set_simulated_value("SIM:VOLT:SP", value)
 
     def _set_current_setpoint(self, value):
         self._ioc.set_simulated_value("SIM:CURR:SP", value)
 
-    @parameterized.expand(
-        parameterized_list([
-            12.006768,
-            23,
-            -5,
-            -2.78,
-            3e-5,
-            0.00445676e4,
-            0
-        ])
-    )
+    @parameterized.expand(parameterized_list([12.006768, 23, -5, -2.78, 3e-5, 0.00445676e4, 0]))
     @skip_if_devsim("These tests will fail in devsim as the device is not on.")
     def test_that_WHEN_setting_the_current_setpoint_THEN_it_is_set(self, _, value):
         # When
@@ -373,17 +349,7 @@ class NgpspsuRecsimOnlyVoltageAndCurrentTests(unittest.TestCase):
         # Then:
         self.ca.assert_that_pv_is("CURR:SP:RBV", value)
 
-    @parameterized.expand(
-        parameterized_list([
-            12.006768,
-            23,
-            -5,
-            -2.78,
-            3e-5,
-            0.00445676e4,
-            0
-        ])
-    )
+    @parameterized.expand(parameterized_list([12.006768, 23, -5, -2.78, 3e-5, 0.00445676e4, 0]))
     @skip_if_devsim("These tests will fail in devsim as the device is not on.")
     def test_that_WHEN_setting_the_voltage_setpoint_THEN_it_is_set(self, _, value):
         # When
@@ -395,7 +361,6 @@ class NgpspsuRecsimOnlyVoltageAndCurrentTests(unittest.TestCase):
 
 @add_method(setUp)
 class NgpspsuFaultTests(unittest.TestCase):
-
     @skip_if_recsim("Can't see faults from the status")
     def test_that_GIVEN_a_reset_device_THEN_the_fault_pv_is_not_in_alarm(self):
         # Given:
@@ -406,17 +371,21 @@ class NgpspsuFaultTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("STAT:FAULT", self.ca.Alarms.NONE)
 
     @parameterized.expand(
-        parameterized_list([
-            "Fault condition",
-            "Mains fault",
-            "Earth leakage",
-            "Earth fuse",
-            "Regulation fault",
-            "DCCT fault"
-        ])
+        parameterized_list(
+            [
+                "Fault condition",
+                "Mains fault",
+                "Earth leakage",
+                "Earth fuse",
+                "Regulation fault",
+                "DCCT fault",
+            ]
+        )
     )
     @skip_if_recsim("Can't see faults from the status")
-    def test_that_GIVEN_a_device_experiencing_a_fault_THEN_the_fault_pv_is_in_alarm(self, _, fault_name):
+    def test_that_GIVEN_a_device_experiencing_a_fault_THEN_the_fault_pv_is_in_alarm(
+        self, _, fault_name
+    ):
         # Given:
         self._lewis.backdoor_run_function_on_device("fault", [fault_name])
 

@@ -1,13 +1,12 @@
-import unittest
 import os
+import unittest
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir, EPICS_TOP
 from parameterized import parameterized
 
-from utils.test_modes import TestModes
 from utils.build_architectures import BuildArchitectures
-from utils.testing import parameterized_list
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP, IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 
 IOCS = [
     {
@@ -16,13 +15,17 @@ IOCS = [
         "custom_prefix": "FINS_VAC",
         "pv_for_existence": "HEARTBEAT",
         "macros": {
-            "FINSCONFIGDIR": (os.path.join(EPICS_TOP, "ioc", "master", "FINS", "exampleSettings", "SANS2D_vacuum")).replace("\\", "/"),
-            "PLCIP": "127.0.0.1"
+            "FINSCONFIGDIR": (
+                os.path.join(EPICS_TOP, "ioc", "master", "FINS", "exampleSettings", "SANS2D_vacuum")
+            ).replace("\\", "/"),
+            "PLCIP": "127.0.0.1",
         },
     },
     {
         "name": "RUNCTRL_01",
-        "directory": (os.path.join(EPICS_TOP, "ioc", "master", "RUNCTRL", "iocBoot", "iocRUNCTRL_01")).replace("\\", "/"),
+        "directory": (
+            os.path.join(EPICS_TOP, "ioc", "master", "RUNCTRL", "iocBoot", "iocRUNCTRL_01")
+        ).replace("\\", "/"),
         "custom_prefix": "CS:IOC:RUNCTRL_01",
         "pv_for_existence": "DEVIOS:HEARTBEAT",
     },
@@ -43,6 +46,7 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
     """
     Tests for the SANS2D vacuum system, based on a FINS PLC.
     """
+
     def setUp(self):
         self._ioc = IOCRegister.get_running("FINS_01")
         self.ca = ChannelAccess(device_prefix="FINS_VAC")
@@ -50,30 +54,42 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
     def test_WHEN_ioc_is_run_THEN_heartbeat_record_exists(self):
         self.ca.assert_setting_setpoint_sets_readback(1, "HEARTBEAT", "SIM:HEARTBEAT")
 
-    @parameterized.expand([(1, "IN", ChannelAccess.Alarms.NONE),
-                           (2, "OUT", ChannelAccess.Alarms.NONE),
-                           (3, "UNKNOWN", ChannelAccess.Alarms.MAJOR),
-                           (4, "ERROR", ChannelAccess.Alarms.MAJOR),
-                           (5, "ERROR(IN)", ChannelAccess.Alarms.MAJOR),
-                           (6, "ERROR(OUT)", ChannelAccess.Alarms.MAJOR)])
+    @parameterized.expand(
+        [
+            (1, "IN", ChannelAccess.Alarms.NONE),
+            (2, "OUT", ChannelAccess.Alarms.NONE),
+            (3, "UNKNOWN", ChannelAccess.Alarms.MAJOR),
+            (4, "ERROR", ChannelAccess.Alarms.MAJOR),
+            (5, "ERROR(IN)", ChannelAccess.Alarms.MAJOR),
+            (6, "ERROR(OUT)", ChannelAccess.Alarms.MAJOR),
+        ]
+    )
     def test_WHEN_data_changes_THEN_monitor_status_correct(self, raw_value, enum_string, alarm):
         self.ca.set_pv_value("SIM:ADDR:1001", raw_value)
         self.ca.assert_that_pv_is("MONITOR3:STATUS", enum_string)
         self.ca.assert_that_pv_alarm_is("MONITOR3:STATUS", alarm)
 
-    @parameterized.expand([(7, "CLOSED", ChannelAccess.Alarms.NONE),
-                           (8, "OPEN", ChannelAccess.Alarms.NONE),
-                           (16, "ERROR", ChannelAccess.Alarms.MAJOR),
-                           (24, "ERROR(OPEN)", ChannelAccess.Alarms.MAJOR)])
+    @parameterized.expand(
+        [
+            (7, "CLOSED", ChannelAccess.Alarms.NONE),
+            (8, "OPEN", ChannelAccess.Alarms.NONE),
+            (16, "ERROR", ChannelAccess.Alarms.MAJOR),
+            (24, "ERROR(OPEN)", ChannelAccess.Alarms.MAJOR),
+        ]
+    )
     def test_WHEN_data_changes_THEN_shutter_status_correct(self, raw_value, enum_string, alarm):
         self.ca.set_pv_value("SIM:ADDR:1001", raw_value)
         self.ca.assert_that_pv_is("SHUTTER:STATUS", enum_string)
         self.ca.assert_that_pv_alarm_is("SHUTTER:STATUS", alarm)
 
-    @parameterized.expand([(127, "CLOSED", ChannelAccess.Alarms.NONE),
-                           (128, "OPEN", ChannelAccess.Alarms.NONE),
-                           (256, "ERROR", ChannelAccess.Alarms.MAJOR),
-                           (384, "ERROR(OPEN)", ChannelAccess.Alarms.MAJOR)])
+    @parameterized.expand(
+        [
+            (127, "CLOSED", ChannelAccess.Alarms.NONE),
+            (128, "OPEN", ChannelAccess.Alarms.NONE),
+            (256, "ERROR", ChannelAccess.Alarms.MAJOR),
+            (384, "ERROR(OPEN)", ChannelAccess.Alarms.MAJOR),
+        ]
+    )
     def test_WHEN_data_changes_THEN_v8_status_correct(self, raw_value, enum_string, alarm):
         self.ca.set_pv_value("SIM:ADDR:1001", raw_value)
         self.ca.assert_that_pv_is("V8:STATUS", enum_string)
@@ -89,19 +105,23 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         self.ca.assert_that_pv_is("COMMON_ALARM:BAD", 0)
         self.ca.assert_that_pv_alarm_is("COMMON_ALARM:BAD", ChannelAccess.Alarms.NONE)
 
-    @parameterized.expand([(1, "DEFLATED", ChannelAccess.Alarms.NONE),
-                           (2, "INFLATING", ChannelAccess.Alarms.NONE),
-                           (4, "INFLATED", ChannelAccess.Alarms.NONE),
-                           (8, "DEFLATING", ChannelAccess.Alarms.NONE)])
+    @parameterized.expand(
+        [
+            (1, "DEFLATED", ChannelAccess.Alarms.NONE),
+            (2, "INFLATING", ChannelAccess.Alarms.NONE),
+            (4, "INFLATED", ChannelAccess.Alarms.NONE),
+            (8, "DEFLATING", ChannelAccess.Alarms.NONE),
+        ]
+    )
     def test_WHEN_data_changes_THEN_seal_status_correct(self, raw_value, enum_string, alarm):
         self.ca.set_pv_value("SIM:ADDR:1004", raw_value)
         self.ca.assert_that_pv_is("SEAL:STATUS", enum_string)
         self.ca.assert_that_pv_alarm_is("SEAL:STATUS", alarm)
 
-    @parameterized.expand([(0, 0),
-                           (4000, 10000),
-                           (2000, 5000)])
-    def test_WHEN_seal_supply_pressure_changes_THEN_correctly_converted(self, raw_value, expected_converted_val):
+    @parameterized.expand([(0, 0), (4000, 10000), (2000, 5000)])
+    def test_WHEN_seal_supply_pressure_changes_THEN_correctly_converted(
+        self, raw_value, expected_converted_val
+    ):
         self.ca.set_pv_value("SIM:SEAL:SUPPLY:PRESS:RAW", raw_value)
         self.ca.assert_that_pv_is("SEAL:SUPPLY:PRESS", expected_converted_val)
 
@@ -111,7 +131,9 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         if expected_state is None:
             expected_state = state
         self.ca.set_pv_value("{}:STATUS:SP".format(set_pv), int_state)
-        self.ca.assert_that_pv_monitor_gets_values("{}:{}:SP".format(set_pv, expected_state), [expected_state, "..."])
+        self.ca.assert_that_pv_monitor_gets_values(
+            "{}:{}:SP".format(set_pv, expected_state), [expected_state, "..."]
+        )
 
     def test_WHEN_opening_and_closing_shutter_THEN_propogates(self):
         self._set_sp_and_assert("SHUTTER", "OPEN")
@@ -144,8 +166,12 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
         ca.assert_setting_setpoint_sets_readback("NO", record + ".SIMM", record + ".SIMM")
 
     def test_WHEN_detector_rate_exceeded_THEN_shutter_closes(self):
-        for detector, record in (("AD1", "INTG:RATE"), ("AD1", "INTG:SPEC:RATE"),
-                                 ("AD2", "INTG:RATE"), ("AD2", "INTG:SPEC:RATE")):
+        for detector, record in (
+            ("AD1", "INTG:RATE"),
+            ("AD1", "INTG:SPEC:RATE"),
+            ("AD2", "INTG:RATE"),
+            ("AD2", "INTG:SPEC:RATE"),
+        ):
             ca_dae = ChannelAccess(device_prefix="DAE:" + detector)
             self._set_sp_and_assert("SHUTTER", "OPEN")
             self.set_test_detector_limits(ca_dae, record, 20, 10)

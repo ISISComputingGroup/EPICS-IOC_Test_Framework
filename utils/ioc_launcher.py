@@ -1,28 +1,28 @@
 """
 Code that launches an IOC/application under test
 """
-import subprocess
+
 import os
+import subprocess
+import telnetlib
 import time
+from abc import ABCMeta
 from contextlib import contextmanager
+from datetime import date
+from signal import SIGTERM
+from time import sleep
 
 import psutil
-from time import sleep
-from abc import ABCMeta
 
 from utils.channel_access import ChannelAccess
 from utils.free_ports import get_free_ports
-from utils.log_file import log_filename, LogFileManager
+from utils.log_file import LogFileManager, log_filename
 from utils.test_modes import TestModes
-from datetime import date
-import telnetlib
-from signal import SIGTERM
 
 APPS_BASE = os.path.join("C:\\", "Instrument", "Apps")
 EPICS_TOP = os.environ.get("EPICS_KIT_ROOT", os.path.join(APPS_BASE, "EPICS"))
 IOCS_DIR = os.path.join(EPICS_TOP, "ioc", "master")
-PYTHON3 = os.environ.get("PYTHON3", os.path.join(
-    APPS_BASE, "Python3", "python.exe"))
+PYTHON3 = os.environ.get("PYTHON3", os.path.join(APPS_BASE, "Python3", "python.exe"))
 
 DEFAULT_IOC_START_TEXT = "epics>"
 # DEFAULT_IOC_START_TEXT = "iocRun: All initialization complete"
@@ -31,7 +31,8 @@ MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 120
 
 EPICS_CASE_ENVIRONMENT_VARS = {
     "EPICS_CAS_INTF_ADDR_LIST": "127.0.0.1",
-    "EPICS_CAS_BEACON_ADDR_LIST": "127.255.255.255"}
+    "EPICS_CAS_BEACON_ADDR_LIST": "127.255.255.255",
+}
 
 
 def get_default_ioc_dir(iocname, iocnum=1):
@@ -43,7 +44,9 @@ def get_default_ioc_dir(iocname, iocnum=1):
     Returns:
         the path
     """
-    return os.path.join(EPICS_TOP, "ioc", "master", iocname, "iocBoot", "ioc{}-IOC-{:02d}".format(iocname, iocnum))
+    return os.path.join(
+        EPICS_TOP, "ioc", "master", iocname, "iocBoot", "ioc{}-IOC-{:02d}".format(iocname, iocnum)
+    )
 
 
 class check_existence_pv(object):
@@ -70,7 +73,8 @@ class check_existence_pv(object):
             self.ca.assert_that_pv_does_not_exist(self.test_pv)
         except AssertionError as ex:
             raise AssertionError(
-                "IOC '{}' appears to already be running: {}".format(self.device, ex))
+                "IOC '{}' appears to already be running: {}".format(self.device, ex)
+            )
 
     def __exit__(self, type, value, traceback):
         if self.test_pv is None:
@@ -81,7 +85,8 @@ class check_existence_pv(object):
         except AssertionError as ex:
             full_pv = self.ca.create_pv_with_prefix(self.test_pv)
             raise AssertionError(
-                "PV '{}' still does not exist after IOC start: {}".format(full_pv, ex))
+                "PV '{}' still does not exist after IOC start: {}".format(full_pv, ex)
+            )
 
 
 class IOCRegister(object):
@@ -136,19 +141,17 @@ class BaseLauncher(object, metaclass=ABCMeta):
                  macros: Dict, the macros that should be passed to this IOC
             var_dir: The directory into which the launcher will save log files.
         """
-        self._device = ioc_config['name']
-        self._device_icp_config_name = ioc_config.get(
-            'icpconfigname', ioc_config['name'])
-        self._directory = ioc_config['directory']
-        self._prefix = ioc_config.get('custom_prefix', self._device)
-        self._ioc_started_text = ioc_config.get(
-            "started_text", DEFAULT_IOC_START_TEXT)
+        self._device = ioc_config["name"]
+        self._device_icp_config_name = ioc_config.get("icpconfigname", ioc_config["name"])
+        self._directory = ioc_config["directory"]
+        self._prefix = ioc_config.get("custom_prefix", self._device)
+        self._ioc_started_text = ioc_config.get("started_text", DEFAULT_IOC_START_TEXT)
         self._pv_for_existence = ioc_config.get("pv_for_existence", "DISABLE")
         self.macros = ioc_config.get("macros", {})
-        self.emulator_port = int(self.macros['EMULATOR_PORT'])
+        self.emulator_port = int(self.macros["EMULATOR_PORT"])
         self._extra_environment_vars = ioc_config.get("environment_vars", {})
-        self._init_values = ioc_config.get('inits', {})
-        self._delay_after_startup = ioc_config.get('delay_after_startup', 0)
+        self._init_values = ioc_config.get("inits", {})
+        self._delay_after_startup = ioc_config.get("delay_after_startup", 0)
         self._var_dir = var_dir
         self._test_name = test_name
         self.ca = None
@@ -165,7 +168,8 @@ class BaseLauncher(object, metaclass=ABCMeta):
         IOCRegister.test_mode = self._test_mode
 
         self.log_file_name = log_filename(
-            self._test_name, "ioc", self._device, self._test_mode, self._var_dir)
+            self._test_name, "ioc", self._device, self._test_mode, self._var_dir
+        )
 
     def open(self):
         """
@@ -189,21 +193,28 @@ class BaseLauncher(object, metaclass=ABCMeta):
 
             self.log_file_manager = LogFileManager(self.log_file_name)
             self.log_file_manager.log_file_w.write(
-                "Started IOC with '{0}'".format(" ".join(self.command_line)))
+                "Started IOC with '{0}'".format(" ".join(self.command_line))
+            )
 
             # To be able to see the IOC output for debugging, remove the redirection of stdin, stdout and stderr.
             # This does mean that the IOC will need to be closed manually after the tests.
             # Make sure to revert before checking code in
-            self._process = subprocess.Popen(" ".join(self.command_line), creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                             cwd=self._directory, stdin=subprocess.PIPE,
-                                             stdout=self.log_file_manager.log_file_w, stderr=subprocess.STDOUT,
-                                             env=settings)
+            self._process = subprocess.Popen(
+                " ".join(self.command_line),
+                creationflags=subprocess.CREATE_NEW_CONSOLE,
+                cwd=self._directory,
+                stdin=subprocess.PIPE,
+                stdout=self.log_file_manager.log_file_w,
+                stderr=subprocess.STDOUT,
+                env=settings,
+            )
 
             # Write a return so that an epics terminal will appear after boot
             self._process.stdin.write("\n".encode("utf-8"))
             self._process.stdin.flush()
             self.log_file_manager.wait_for_console(
-                MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+                MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text
+            )
 
             for key, value in self._init_values.items():
                 print("Initialising PV {} to {}".format(key, value))
@@ -251,8 +262,11 @@ class BaseLauncher(object, metaclass=ABCMeta):
 
         with open(os.path.join(full_dir, "test_macros.txt"), mode="w") as f:
             for macro, value in self.macros.items():
-                f.write("{ioc_name}__{macro}=\"{value}\"\n".format(
-                    ioc_name=self._device_icp_config_name, macro=macro, value=value))
+                f.write(
+                    '{ioc_name}__{macro}="{value}"\n'.format(
+                        ioc_name=self._device_icp_config_name, macro=macro, value=value
+                    )
+                )
 
     def get_environment_vars(self):
         """
@@ -262,22 +276,22 @@ class BaseLauncher(object, metaclass=ABCMeta):
         settings = os.environ.copy()
         if self._test_mode == TestModes.RECSIM:
             # Using record simulation
-            settings['TESTDEVSIM'] = ''
-            settings['TESTRECSIM'] = 'yes'
-            settings['TESTNOSIM'] = ''
+            settings["TESTDEVSIM"] = ""
+            settings["TESTRECSIM"] = "yes"
+            settings["TESTNOSIM"] = ""
         elif self._test_mode == TestModes.DEVSIM:
             # Not using record simulation
-            settings['TESTDEVSIM'] = 'yes'
-            settings['TESTRECSIM'] = ''
-            settings['TESTNOSIM'] = ''
+            settings["TESTDEVSIM"] = "yes"
+            settings["TESTRECSIM"] = ""
+            settings["TESTNOSIM"] = ""
         else:
             # real hardware
-            settings['TESTDEVSIM'] = ''
-            settings['TESTRECSIM'] = ''
-            settings['TESTNOSIM'] = 'yes'
+            settings["TESTDEVSIM"] = ""
+            settings["TESTRECSIM"] = ""
+            settings["TESTNOSIM"] = "yes"
 
         # Set the port
-        settings['EMULATOR_PORT'] = str(self.emulator_port)
+        settings["EMULATOR_PORT"] = str(self.emulator_port)
 
         for env_name, setting in self._extra_environment_vars.items():
             settings[env_name] = setting
@@ -317,9 +331,8 @@ class ProcServLauncher(BaseLauncher):
             test_mode: TestModes.RECSIM or TestModes.DEVSIM depending on IOC test mode
             var_dir: The directory into which the launcher will save log files.
         """
-        super(ProcServLauncher, self).__init__(
-            test_name, ioc, test_mode, var_dir)
-        self.logport = int(self.macros['LOG_PORT'])
+        super(ProcServLauncher, self).__init__(test_name, ioc, test_mode, var_dir)
+        self.logport = int(self.macros["LOG_PORT"])
 
         self.procserv_port = get_free_ports(1)[0]
 
@@ -334,10 +347,8 @@ class ProcServLauncher(BaseLauncher):
         settings["MYDIRPROCSV"] = os.path.join(EPICS_TOP, "iocstartup")
         settings["EPICS_CAS_INTF_ADDR_LIST"] = "127.0.0.1"
         settings["EPICS_CAS_BEACON_ADDR_LIST"] = "127.255.255.255"
-        settings["IOCLOGROOT"] = os.path.join(
-            "C:", "Instrument", "var", "logs", "ioc")
-        settings["IOCCYGLOGROOT"] = self.to_cygwin_address(
-            settings["IOCLOGROOT"])
+        settings["IOCLOGROOT"] = os.path.join("C:", "Instrument", "var", "logs", "ioc")
+        settings["IOCCYGLOGROOT"] = self.to_cygwin_address(settings["IOCLOGROOT"])
         settings["IOCSH_SHOWWIN"] = "H"
         settings["LOGTIME"] = date.today().strftime("%Y%m%d")
 
@@ -362,16 +373,25 @@ class ProcServLauncher(BaseLauncher):
     def _command_line(self):
         comspec = os.getenv("ComSpec")
         cygwin_dir = self.to_cygwin_address(self._directory)
-        return ["{}\\cygwin\\bin\\procServ.exe".format(self.ICPTOOLS), '--logstamp',
-                '--logfile="{}"'.format(self.to_cygwin_address(self.log_file_name)),
-                '--timefmt="%Y-%m-%d %H:%M:%S"',
-                '--restrict', '--ignore="^D^C"', '--autorestart', '--wait',
-                '--name={}'.format(self._device.upper()),
-                '--pidfile="/cygdrive/c/instrument/var/run/EPICS_{}.pid"'.format(
-                    self._device),
-                '--logport={:d}'.format(
-                    self.logport), '--chdir="{}"'.format(cygwin_dir),
-                '{:d}'.format(self.procserv_port), '{}'.format(comspec), '/c', 'runIOC.bat', 'st.cmd']
+        return [
+            "{}\\cygwin\\bin\\procServ.exe".format(self.ICPTOOLS),
+            "--logstamp",
+            '--logfile="{}"'.format(self.to_cygwin_address(self.log_file_name)),
+            '--timefmt="%Y-%m-%d %H:%M:%S"',
+            "--restrict",
+            '--ignore="^D^C"',
+            "--autorestart",
+            "--wait",
+            "--name={}".format(self._device.upper()),
+            '--pidfile="/cygdrive/c/instrument/var/run/EPICS_{}.pid"'.format(self._device),
+            "--logport={:d}".format(self.logport),
+            '--chdir="{}"'.format(cygwin_dir),
+            "{:d}".format(self.procserv_port),
+            "{}".format(comspec),
+            "/c",
+            "runIOC.bat",
+            "st.cmd",
+        ]
 
     def open(self):
         """
@@ -384,22 +404,24 @@ class ProcServLauncher(BaseLauncher):
         super(ProcServLauncher, self).open()
         pids = ",".join([str(s) for s in self._find_processes()])
         print(
-            f"IOC started, connecting to procserv pids {pids} at telnet port {self.procserv_port}")
+            f"IOC started, connecting to procserv pids {pids} at telnet port {self.procserv_port}"
+        )
 
         timeout = 20
 
-        self._telnet = telnetlib.Telnet(
-            "localhost", self.procserv_port, timeout=timeout)
+        self._telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
 
         # Wait for procServ to become responsive by checking for the IOC started text
         init_output = self._telnet.read_until(
-            self._ioc_started_text.encode('ascii'), timeout).decode("ascii")
+            self._ioc_started_text.encode("ascii"), timeout
+        ).decode("ascii")
 
         if "Welcome to procServ" not in init_output:
             raise OSError("Cannot connect to procServ over telnet")
 
     def send_telnet_command_and_retry_if_not_detected_condition_for_success(
-            self, command, condition_for_success, retry_limit):
+        self, command, condition_for_success, retry_limit
+    ):
         """
         Send a command over telnet and detect if the condition for success has been met.
         Retry until the limit is reached and if the condition is not met raise an AssertionError.
@@ -421,7 +443,8 @@ class ProcServLauncher(BaseLauncher):
                 self._telnet.open("localhost", self.procserv_port, timeout=20)
         else:  # If condition for success not detected, raise an assertion error
             raise AssertionError(
-                "Sending telnet command {} failed {} times".format(command, retry_limit))
+                "Sending telnet command {} failed {} times".format(command, retry_limit)
+            )
 
     def send_telnet_command(self, command: str):
         """
@@ -429,16 +452,14 @@ class ProcServLauncher(BaseLauncher):
         Args:
             command: command to set
         """
-        self._telnet.write("{cmd}\n".format(cmd=command).encode('ascii'))
+        self._telnet.write("{cmd}\n".format(cmd=command).encode("ascii"))
 
     def force_manual_save(self):
         """
         Force a manual save by sending requests to save the settings and positions files
         """
-        self.send_telnet_command(
-            "manual_save({}_info_settings.req)".format(self._device))
-        self.send_telnet_command(
-            "manual_save({}_info_positions.req)".format(self._device))
+        self.send_telnet_command("manual_save({}_info_settings.req)".format(self._device))
+        self.send_telnet_command("manual_save({}_info_positions.req)".format(self._device))
 
     def start_ioc(self, wait=False):
         """
@@ -451,14 +472,17 @@ class ProcServLauncher(BaseLauncher):
         """
         start_command = "\x18"
         if wait:
+
             def condition_for_success():
                 try:
                     self.log_file_manager.wait_for_console(
-                        MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text)
+                        MAX_TIME_TO_WAIT_FOR_IOC_TO_START, self._ioc_started_text
+                    )
                 except AssertionError:
                     return False
                 else:
                     return True
+
             self.send_telnet_command_and_retry_if_not_detected_condition_for_success(
                 start_command, condition_for_success, 3
             )
@@ -520,13 +544,18 @@ class ProcServLauncher(BaseLauncher):
             time.sleep(1)
 
         if not at_least_one_killed:
-            print("No process with name procServ.exe found that matched command line {}".format(
-                self.command_line))
+            print(
+                "No process with name procServ.exe found that matched command line {}".format(
+                    self.command_line
+                )
+            )
 
     def _find_processes(self):
         pid_list = []
-        for process in psutil.process_iter(attrs=['pid', 'name']):
-            if process.info['name'] == 'procServ.exe' and self.process_arguments_match_this_ioc(process.cmdline()):
+        for process in psutil.process_iter(attrs=["pid", "name"]):
+            if process.info["name"] == "procServ.exe" and self.process_arguments_match_this_ioc(
+                process.cmdline()
+            ):
                 # Command line arguments match
                 pid_list.append(process.pid)
         return pid_list
@@ -544,11 +573,9 @@ class ProcServLauncher(BaseLauncher):
         """
         # PSUtil strips quote marks (") from the command line used to spawn a process,
         # so we must remove them to compare with our ioc_run_command
-        ioc_start_arguments = [args.replace(
-            '"', '') for args in self.command_line]
+        ioc_start_arguments = [args.replace('"', "") for args in self.command_line]
 
-        arguments_match = all(
-            [args in process_arguments for args in ioc_start_arguments])
+        arguments_match = all([args in process_arguments for args in ioc_start_arguments])
 
         return arguments_match
 
@@ -615,8 +642,8 @@ class IocLauncher(BaseLauncher):
         super(IocLauncher, self).__init__(test_name, ioc, test_mode, var_dir)
 
     def _command_line(self):
-        run_ioc_path = os.path.join(self._directory, 'runIOC.bat')
-        st_cmd_path = os.path.join(self._directory, 'st.cmd')
+        run_ioc_path = os.path.join(self._directory, "runIOC.bat")
+        st_cmd_path = os.path.join(self._directory, "st.cmd")
 
         if not os.path.isfile(run_ioc_path):
             print("Run IOC path not found: '{0}'".format(run_ioc_path))
@@ -639,27 +666,31 @@ class IocLauncher(BaseLauncher):
             max_wait_for_ioc_to_die = 60
             wait_per_loop = 0.1
 
-            for loop_count in range(int(max_wait_for_ioc_to_die/wait_per_loop)):
+            for loop_count in range(int(max_wait_for_ioc_to_die / wait_per_loop)):
                 try:
                     self._get_channel_access().assert_that_pv_does_not_exist(self._pv_for_existence)
                     break
                 except AssertionError:
                     sleep(wait_per_loop)
                     if loop_count % 100 == 99:
-                        print("   waited {}".format(loop_count*wait_per_loop))
+                        print("   waited {}".format(loop_count * wait_per_loop))
             else:
-                print("IOC process did not die after {} seconds after killing with `exit` in iocsh. "
-                      "Killing process and waiting another {} seconds"
-                      .format(max_wait_for_ioc_to_die, max_wait_for_ioc_to_die))
+                print(
+                    "IOC process did not die after {} seconds after killing with `exit` in iocsh. "
+                    "Killing process and waiting another {} seconds".format(
+                        max_wait_for_ioc_to_die, max_wait_for_ioc_to_die
+                    )
+                )
                 self._process.kill()
                 sleep(max_wait_for_ioc_to_die)
                 try:
                     self._get_channel_access().assert_that_pv_does_not_exist(self._pv_for_existence)
-                    print(
-                        "After killing process forcibly and waiting, IOC died correctly.")
+                    print("After killing process forcibly and waiting, IOC died correctly.")
                 except AssertionError:
-                    print("After killing process forcibly and waiting, IOC was still up. Will continue anyway, but "
-                          "the next set of tests to use this IOC are likely to fail")
+                    print(
+                        "After killing process forcibly and waiting, IOC was still up. Will continue anyway, but "
+                        "the next set of tests to use this IOC are likely to fail"
+                    )
 
         self._print_log_file_location()
 
@@ -675,16 +706,13 @@ class PythonIOCLauncher(IocLauncher):
     """
 
     def __init__(self, test_name, ioc, test_mode, var_dir):
-        super(PythonIOCLauncher, self).__init__(
-            test_name, ioc, test_mode, var_dir)
-        self._python_script_commandline = ioc.get(
-            "python_script_commandline", None)
+        super(PythonIOCLauncher, self).__init__(test_name, ioc, test_mode, var_dir)
+        self._python_script_commandline = ioc.get("python_script_commandline", None)
 
     def _command_line(self):
         run_ioc_path = self._python_script_commandline[0]
         if not os.path.isfile(run_ioc_path):
-            print("Command first argument path not found: '{0}'".format(
-                run_ioc_path))
+            print("Command first argument path not found: '{0}'".format(run_ioc_path))
         command_line = [PYTHON3]
         command_line.extend(self._python_script_commandline)
         return command_line

@@ -1,13 +1,13 @@
 import unittest
 from itertools import product
 
-from common_tests.moxa12XX import Moxa12XXBase
-
-from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir
-from utils.channel_access import ChannelAccess
-from utils.testing import get_running_lewis_and_ioc
 from parameterized import parameterized
+
+from common_tests.moxa12XX import Moxa12XXBase
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc
 
 # Device prefix
 DEVICE_PREFIX = "MOXA12XX_01"
@@ -50,7 +50,9 @@ IOCS = [
 AI_REGISTER_OFFSET = 0x200
 REGISTERS_PER_CHANNEL = 1
 
-TEST_MODES = [TestModes.DEVSIM, ]
+TEST_MODES = [
+    TestModes.DEVSIM,
+]
 
 AICHANNELS = range(NUMBER_OF_AI_CHANNELS)
 DICHANNELS = range(NUMBER_OF_DI_CHANNELS)
@@ -58,9 +60,7 @@ DICHANNELS = range(NUMBER_OF_DI_CHANNELS)
 MIN_VOLT_MEAS = 0.0
 MAX_VOLT_MEAS = 10.0
 
-TEST_VALUES = [MIN_VOLT_MEAS,
-               MAX_VOLT_MEAS,
-               0.5*(MIN_VOLT_MEAS + MAX_VOLT_MEAS)]
+TEST_VALUES = [MIN_VOLT_MEAS, MAX_VOLT_MEAS, 0.5 * (MIN_VOLT_MEAS + MAX_VOLT_MEAS)]
 
 
 class Moxa1242AITestsFromBase(Moxa12XXBase, unittest.TestCase):
@@ -109,14 +109,21 @@ class Moxa1242AITestsFromBase(Moxa12XXBase, unittest.TestCase):
         for channel, test_value in product(AICHANNELS, TEST_VALUES):
             register_offset = channel * self.get_registers_per_channel()
 
-            self._lewis.backdoor_run_function_on_device(self.get_setter_function_name(),
-                                                        (self.get_starting_reg_addr() + register_offset, test_value))
+            self._lewis.backdoor_run_function_on_device(
+                self.get_setter_function_name(),
+                (self.get_starting_reg_addr() + register_offset, test_value),
+            )
 
-            self.ca.assert_that_pv_is_number("CH{:01d}:AI:RBV".format(channel, PV=self.get_PV_name()),
-                                             test_value, tolerance=0.1*abs(test_value))
-                                             
-    
-class Moxa1242DITests(unittest.TestCase):   
+            self.ca.assert_that_pv_is_number(
+                "CH{:01d}:AI:RBV".format(
+                    channel,
+                ),
+                test_value,
+                tolerance=0.1 * abs(test_value),
+            )
+
+
+class Moxa1242DITests(unittest.TestCase):
     """
     Tests for the Moxa ioLogik e1242 Discrete Inputs. (8x Discrete inputs)
     """
@@ -128,7 +135,7 @@ class Moxa1242DITests(unittest.TestCase):
 
         # Sends a backdoor command to the device to set a discrete input (DI) value
 
-        self._lewis.backdoor_run_function_on_device("set_di", (0, [False]*NUMBER_OF_DI_CHANNELS))
+        self._lewis.backdoor_run_function_on_device("set_di", (0, [False] * NUMBER_OF_DI_CHANNELS))
 
     def resetDICounter(self, channel):
         """
@@ -138,15 +145,14 @@ class Moxa1242DITests(unittest.TestCase):
             channel (int) : The DI (channel) counter to be reset
 
         We typically want to preserve our counter values for each channel even upon restart. For testing purposes
-        this function will reset the counter values to 0. 
+        this function will reset the counter values to 0.
         """
         self.ca.set_pv_value("CH{:01d}:DI:CNT".format(channel), 0)
 
-    @parameterized.expand([
-        ("CH{:01d}".format(channel), channel) for channel in DICHANNELS
-    ])
-    
-    def test_WHEN_DI_input_is_switched_on_THEN_only_that_channel_readback_changes_to_state_just_set(self, _, channel):
+    @parameterized.expand([("CH{:01d}".format(channel), channel) for channel in DICHANNELS])
+    def test_WHEN_DI_input_is_switched_on_THEN_only_that_channel_readback_changes_to_state_just_set(
+        self, _, channel
+    ):
         self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
 
         self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
@@ -158,20 +164,22 @@ class Moxa1242DITests(unittest.TestCase):
 
             self.ca.assert_that_pv_is("CH{:1d}:DI".format(test_channel), "Low")
 
-    #@parameterized.expand([ This needs to be fixed in #7963
+    # @parameterized.expand([ This needs to be fixed in #7963
     #    ("CH{:01d}:DI:CNT".format(channel), channel) for channel in DICHANNELS
-    #])
+    # ])
     #
-    #def test_WHEN_di_input_is_triggered_a_number_of_times_THEN_di_counter_matches(self, channel_pv, channel):
+    # def test_WHEN_di_input_is_triggered_a_number_of_times_THEN_di_counter_matches(self, channel_pv, channel):
     #    self.resetDICounter(channel)
     #    expected_count = 5
+
+
 #
-    #    for i in range(expected_count):
-    #        # Toggle channel and ensure it's registered the trigger
-    #        self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
-    #        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
-    #        self._lewis.backdoor_run_function_on_device("set_di", (channel, (False,)))
-    #        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "Low")
-    #        self.ca.assert_that_pv_is(channel_pv, i+1, timeout=5)
+#    for i in range(expected_count):
+#        # Toggle channel and ensure it's registered the trigger
+#        self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
+#        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
+#        self._lewis.backdoor_run_function_on_device("set_di", (channel, (False,)))
+#        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "Low")
+#        self.ca.assert_that_pv_is(channel_pv, i+1, timeout=5)
 #
-    #    self.ca.assert_that_pv_is(channel_pv, expected_count)
+#    self.ca.assert_that_pv_is(channel_pv, expected_count)

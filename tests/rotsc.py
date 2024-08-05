@@ -1,11 +1,16 @@
 import unittest
 
 from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import (IOCRegister, skip_if_recsim, get_running_lewis_and_ioc, assert_log_messages,
-                           parameterized_list)
+from utils.testing import (
+    IOCRegister,
+    get_running_lewis_and_ioc,
+    parameterized_list,
+    skip_if_recsim,
+)
 
 DEVICE_PREFIX = "ROTSC_01"
 
@@ -29,6 +34,7 @@ class RotscTests(unittest.TestCase):
     """
     Tests for the Rotsc IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("rotating_sample_changer", DEVICE_PREFIX)
         self.assertIsNotNone(self._lewis)
@@ -70,13 +76,15 @@ class RotscTests(unittest.TestCase):
             self.ca.assert_that_pv_is("CALC_MOVE_FINISHED", 1)
 
     # Change to various positions and check the moves all work ok.
-    @parameterized.expand(parameterized_list(range(2, 16+1, 3)))
+    @parameterized.expand(parameterized_list(range(2, 16 + 1, 3)))
     def test_WHEN_position_set_to_value_THEN_readback_set_to_value(self, _, val):
         self.ca.set_pv_value("POSN:SP", val)
         self._assert_position_reached(val)
 
     @skip_if_recsim("Recsim cannot model complex behaviour (motor motion)")
-    def test_GIVEN_sample_changer_is_initialised_WHEN_position_setpoint_changed_THEN_motor_active(self):
+    def test_GIVEN_sample_changer_is_initialised_WHEN_position_setpoint_changed_THEN_motor_active(
+        self,
+    ):
         # GIVEN
         self._assert_position_reached(1)
         # WHEN
@@ -84,7 +92,9 @@ class RotscTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is("MOTOR_0_ACTIVE", "ACTIVE")
 
-    def test_GIVEN_current_position_WHEN_position_set_to_current_position_THEN_setpoint_not_sent(self):
+    def test_GIVEN_current_position_WHEN_position_set_to_current_position_THEN_setpoint_not_sent(
+        self,
+    ):
         # GIVEN
         with self.ca.assert_pv_processed("POSN:SP:RAW"):
             self.ca.set_pv_value("POSN:SP", 3)
@@ -111,7 +121,7 @@ class RotscTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("ERR_STRING", self.ca.Alarms.MAJOR)
 
         # Confirm we move back to original position
-        self._lewis.assert_that_emulator_value_is("sample_retrieved", 'False')
+        self._lewis.assert_that_emulator_value_is("sample_retrieved", "False")
         # Temporarily removed in https://github.com/ISISComputingGroup/IBEX/issues/5342
         # self.ca.assert_that_pv_is("POSN", initial_position)
         self.ca.assert_that_pv_is("CALC_NOT_MOVING", 1)
@@ -128,16 +138,22 @@ class RotscTests(unittest.TestCase):
 
     @skip_if_recsim("No emulator backdoor in recsim")
     @unittest.skip("Temporarily removed in https://github.com/ISISComputingGroup/IBEX/issues/5342")
-    def test_GIVEN_sample_changer_drops_sample_persistently_WHEN_doing_a_move_THEN_error_after_multiple_retrieves(self):
+    def test_GIVEN_sample_changer_drops_sample_persistently_WHEN_doing_a_move_THEN_error_after_multiple_retrieves(
+        self,
+    ):
         self._lewis.backdoor_set_and_assert_set("drop_persistently", True)
 
         self.set_up_sample_dropped_test(3, 6, 10)
 
         # Confirm we eventually get an error that retrieving sample failed
-        self.ca.assert_that_pv_is("ERR_STRING.SVAL", "Dropped sample could not be retrieved", timeout=60)
+        self.ca.assert_that_pv_is(
+            "ERR_STRING.SVAL", "Dropped sample could not be retrieved", timeout=60
+        )
 
     @skip_if_recsim("No emulator backdoor in recsim")
-    def test_GIVEN_sample_changer_drops_sample_WHEN_doing_a_move_THEN_status_error_and_alarms_propogated(self):
+    def test_GIVEN_sample_changer_drops_sample_WHEN_doing_a_move_THEN_status_error_and_alarms_propogated(
+        self,
+    ):
         initial_position, sample_drop_position, final_position = 2, 5, 10
         self.set_up_sample_dropped_test(initial_position, sample_drop_position, final_position)
 

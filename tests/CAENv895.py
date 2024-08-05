@@ -6,14 +6,13 @@ import unittest
 from genie_python import genie as g
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
-
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.ioc_launcher import IOCRegister
 
 AUTOSAVE_DIR = os.path.join("C:/", "Instrument", "var", "autosave", "CAENV895_01_DEVSIM")
 
 DEVICE_PREFIX = "CAENV895_01"
+
 
 # copy a configmenu configuration "ioctestdefaults" ready for use by ioc
 def pre_ioc_launch_hook():
@@ -24,6 +23,7 @@ def pre_ioc_launch_hook():
     defaults_contents: str = get_defaults_file_as_string()
     defaults_contents_with_pv_prefix = defaults_contents.replace("{pv_prefix}", g.my_pv_prefix)
     write_defaults_to_autosave_configuration(defaults_contents_with_pv_prefix)
+
 
 NUM_CARDS_CRATE0 = 6
 NUM_CARDS_CRATE1 = 10
@@ -41,7 +41,7 @@ IOCS = [
         "environment_vars": {
             "DEFAULTCFG": "ioctestdefaults",
         },
-        "pre_ioc_launch_hook": pre_ioc_launch_hook
+        "pre_ioc_launch_hook": pre_ioc_launch_hook,
     },
 ]
 
@@ -78,7 +78,7 @@ class CAENv895Tests(unittest.TestCase):
 
     def setUp(self):
         self.ca = ChannelAccess(default_timeout=30, device_prefix=DEVICE_PREFIX)
-        self.ca_np = ChannelAccess(default_timeout=30) # no device name prefix in PV
+        self.ca_np = ChannelAccess(default_timeout=30)  # no device name prefix in PV
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("CR0:BOARD_ID")
 
@@ -88,7 +88,9 @@ class CAENv895Tests(unittest.TestCase):
         # check values from configmenu config "ioctestdefaults" file loaded in pre_ioc_launch_hook()
         self.ca.assert_that_pv_is("CR0:C0:CH3:THOLD:SP", 75)
         self.ca.assert_that_pv_is("CR0:C1:CH0:ENABLE:SP", "YES")
-        self.ca_np.assert_that_pv_is("AS:{}:vmeconfigMenu:currName".format(DEVICE_PREFIX), "ioctestdefaults")
+        self.ca_np.assert_that_pv_is(
+            "AS:{}:vmeconfigMenu:currName".format(DEVICE_PREFIX), "ioctestdefaults"
+        )
         self.ca_np.assert_that_pv_is("AS:{}:vmeconfigMenu:status".format(DEVICE_PREFIX), "Success")
         self.ca_np.assert_that_pv_is("AS:{}:vmeconfigMenu:busy".format(DEVICE_PREFIX), "Done")
 
@@ -118,4 +120,3 @@ class CAENv895Tests(unittest.TestCase):
 
         # Crate 2 has no card macro so should not be loaded
         self.ca.assert_that_pv_does_not_exist("CR2:CARDS")
-        

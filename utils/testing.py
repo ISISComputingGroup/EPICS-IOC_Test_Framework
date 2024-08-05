@@ -2,13 +2,14 @@ import functools
 import unittest
 from time import sleep
 
-from utils.ioc_launcher import IOCRegister, IocLauncher
-from utils.emulator_launcher import EmulatorRegister, LewisLauncher
-
+from utils.emulator_launcher import EmulatorRegister
+from utils.ioc_launcher import IOCRegister
 from utils.test_modes import TestModes
+
 
 class ManagerMode(object):
     """A context manager for switching manager mode on."""
+
     MANAGER_MODE_PV = "CS:MANAGER"
 
     def __init__(self, channel_access):
@@ -26,11 +27,19 @@ class ManagerMode(object):
 
 class _AssertLogContext(object):
     """A context manager used to implement assert_log_messages."""
+
     messages = list()
     first_message = 0
 
-    def __init__(self, log_manager, number_of_messages=None, in_time=5, must_contain=None,
-                 ignore_log_client_failures=True, ignore_autosave=True):
+    def __init__(
+        self,
+        log_manager,
+        number_of_messages=None,
+        in_time=5,
+        must_contain=None,
+        ignore_log_client_failures=True,
+        ignore_autosave=True,
+    ):
         """
         Args:
             log_manager: A reference to the IOC log object
@@ -60,18 +69,31 @@ class _AssertLogContext(object):
 
         if self.ignore_autosave:
             self.messages = [
-                message for message in self.messages if "autosave" not in message and "save_restore" not in message]
+                message
+                for message in self.messages
+                if "autosave" not in message and "save_restore" not in message
+            ]
 
         actual_num_of_messages = len(self.messages)
 
-        if self.exp_num_of_messages is not None and actual_num_of_messages > self.exp_num_of_messages:
-            raise AssertionError("Incorrect number of log messages created. Expected {} and found {}.\n"
-                                 "Found log messages were: \n{}"
-                                 .format(self.exp_num_of_messages, actual_num_of_messages, "\n".join(self.messages)))
+        if (
+            self.exp_num_of_messages is not None
+            and actual_num_of_messages > self.exp_num_of_messages
+        ):
+            raise AssertionError(
+                "Incorrect number of log messages created. Expected {} and found {}.\n"
+                "Found log messages were: \n{}".format(
+                    self.exp_num_of_messages, actual_num_of_messages, "\n".join(self.messages)
+                )
+            )
 
-        if self.must_contain is not None and not any(self.must_contain in message for message in self.messages):
-            raise AssertionError("Expected the generated log messages to contain the string '{}' but they didn't.\n"
-                                 "The log messages were: \n{}".format(self.must_contain, "\n".join(self.messages)))
+        if self.must_contain is not None and not any(
+            self.must_contain in message for message in self.messages
+        ):
+            raise AssertionError(
+                "Expected the generated log messages to contain the string '{}' but they didn't.\n"
+                "The log messages were: \n{}".format(self.must_contain, "\n".join(self.messages))
+            )
 
         return True
 
@@ -89,7 +111,9 @@ def get_running_lewis_and_ioc(emulator_name=None, ioc_name=None):
     ioc = IOCRegister.get_running(ioc_name)
 
     if ioc is None and (lewis is None and emulator_name is not None):
-        raise AssertionError("Emulator ({}) and IOC ({}) are not running".format(emulator_name, ioc_name))
+        raise AssertionError(
+            "Emulator ({}) and IOC ({}) are not running".format(emulator_name, ioc_name)
+        )
     if ioc is None:
         raise AssertionError("IOC ({}) is not running".format(ioc_name))
     if lewis is None and emulator_name is not None:
@@ -98,8 +122,14 @@ def get_running_lewis_and_ioc(emulator_name=None, ioc_name=None):
     return lewis, ioc
 
 
-def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=None,
-                        ignore_log_client_failures=True, ignore_autosave=True):
+def assert_log_messages(
+    ioc,
+    number_of_messages=None,
+    in_time=1,
+    must_contain=None,
+    ignore_log_client_failures=True,
+    ignore_autosave=True,
+):
     """
     A context object that asserts that the given code produces the given number of ioc log messages in the the given
     amount of time.
@@ -122,8 +152,14 @@ def assert_log_messages(ioc, number_of_messages=None, in_time=1, must_contain=No
         ignore_log_client_failures (bool): Whether to ignore messages about not being able to connect to logserver
         ignore_autosave (bool): Whether to ignore messages coming from autosave
     """
-    return _AssertLogContext(ioc.log_file_manager, number_of_messages, in_time, must_contain,
-                             ignore_log_client_failures, ignore_autosave)
+    return _AssertLogContext(
+        ioc.log_file_manager,
+        number_of_messages,
+        in_time,
+        must_contain,
+        ignore_log_client_failures,
+        ignore_autosave,
+    )
 
 
 def skip_if_condition(condition, reason):
@@ -138,13 +174,16 @@ def skip_if_condition(condition, reason):
         condition (func): The condition on which to skip the test. Should be callable.
         reason (str): The reason for skipping the test
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if condition():
                 raise unittest.SkipTest(reason)
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -152,13 +191,18 @@ def skip_if_condition(condition, reason):
 skip_if_recsim = functools.partial(skip_if_condition, lambda: IOCRegister.uses_rec_sim)
 
 """Decorator to skip tests if running in devsim"""
-skip_if_devsim = functools.partial(skip_if_condition, lambda: IOCRegister.test_mode == TestModes.DEVSIM)
+skip_if_devsim = functools.partial(
+    skip_if_condition, lambda: IOCRegister.test_mode == TestModes.DEVSIM
+)
 
 """Decorator to skip tests if running in nosim"""
-skip_if_nosim = functools.partial(skip_if_condition, lambda: IOCRegister.test_mode == TestModes.NOSIM)
+skip_if_nosim = functools.partial(
+    skip_if_condition, lambda: IOCRegister.test_mode == TestModes.NOSIM
+)
 
 """Decorator to skip tests if running in devsim"""
 skip_always = functools.partial(skip_if_condition, lambda: True)
+
 
 def add_method(method):
     """
@@ -175,6 +219,7 @@ def add_method(method):
     def wrapper(class_to_decorate):
         setattr(class_to_decorate, method.__name__, method)
         return class_to_decorate
+
     return wrapper
 
 
@@ -215,6 +260,7 @@ def unstable_test(max_retries=2, error_class=AssertionError, wait_between_runs=0
         error_class: the class of error to retry under (defaults to AssertionError)
         wait_between_runs: number of seconds to wait between each failed attempt at running the test
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -233,5 +279,7 @@ def unstable_test(max_retries=2, error_class=AssertionError, wait_between_runs=0
                         self.tearDown()  # Rerun tearDown regardless of success or not
                 else:
                     raise last_error
+
         return wrapper
+
     return decorator

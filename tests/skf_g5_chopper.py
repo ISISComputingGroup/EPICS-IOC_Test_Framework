@@ -1,11 +1,12 @@
 import unittest
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.test_modes import TestModes
 from parameterized.parameterized import parameterized
 
-from utils.testing import get_running_lewis_and_ioc, unstable_test
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc
+
 # Device prefix
 DEVICE_PREFIX = "SKFCHOPPER_01"
 
@@ -29,6 +30,7 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM]
 PV_TO_WAIT_FOR = "FREQ"
 
+
 class SkfG5ChopperTests(unittest.TestCase):
     """
     Tests for the SKF G5 Chopper Controller
@@ -40,7 +42,7 @@ class SkfG5ChopperTests(unittest.TestCase):
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
     # sending invalid transaction ids can cause lots of ioc timeouts and can cause a big buildup
-    # of pending reads in the ioc if it is expecting valid ones. So make sure we reset emulator to 
+    # of pending reads in the ioc if it is expecting valid ones. So make sure we reset emulator to
     # an OK state at end of test so when ioc restarts for next test it doesn't get stuck
     def tearDown(self):
         self._lewis.backdoor_set_on_device("send_ok_transid", True)
@@ -58,19 +60,33 @@ class SkfG5ChopperTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("freq", expected)
         self.ca.assert_that_pv_is_not("FREQ", expected, timeout=5)
         self.ca.assert_that_pv_is("FREQ", initial, timeout=5)
-    
+
     @parameterized.expand([True, False])
-    def test_GIVEN_incorrect_transaction_id_WHEN_skipping_check_THEN_state_correct(self, send_correct_transaction_id):
+    def test_GIVEN_incorrect_transaction_id_WHEN_skipping_check_THEN_state_correct(
+        self, send_correct_transaction_id
+    ):
         self._lewis.backdoor_set_on_device("send_ok_transid", send_correct_transaction_id)
-        with self._ioc.start_with_macros({"SKIP_TRANSACTION_ID": 1, "NAME": "TEST_CHOPPER", "OPEN": OPEN, "CLOSED": CLOSED,}, pv_to_wait_for=PV_TO_WAIT_FOR):
+        with self._ioc.start_with_macros(
+            {
+                "SKIP_TRANSACTION_ID": 1,
+                "NAME": "TEST_CHOPPER",
+                "OPEN": OPEN,
+                "CLOSED": CLOSED,
+            },
+            pv_to_wait_for=PV_TO_WAIT_FOR,
+        ):
             expected = 12
             self.ca.assert_that_pv_is_not("FREQ", expected, timeout=5)
             self._lewis.backdoor_set_on_device("freq", expected)
             self.ca.assert_that_pv_is("FREQ", expected, timeout=30)
-            self._lewis.backdoor_set_on_device("freq", expected + 1) # so not remembered in emulator for next test
+            self._lewis.backdoor_set_on_device(
+                "freq", expected + 1
+            )  # so not remembered in emulator for next test
 
     @parameterized.expand(["V13", "W13", "V24", "W24", "Z12"])
-    def test_GIVEN_normalised_and_fsv_value_WHEN_peak_position_read_THEN_position_correct(self, pos):
+    def test_GIVEN_normalised_and_fsv_value_WHEN_peak_position_read_THEN_position_correct(
+        self, pos
+    ):
         norm = 10000
         fsv = 1234
         # Calculate peak position in engineering units.
@@ -78,7 +94,7 @@ class SkfG5ChopperTests(unittest.TestCase):
 
         self._lewis.backdoor_set_on_device(f"{pos.lower()}_norm", norm)
         self._lewis.backdoor_set_on_device(f"{pos.lower()}_fsv", fsv)
-        
+
         self.ca.assert_that_pv_is(f"{pos}:NORM", norm, timeout=90)
         self.ca.assert_that_pv_is(f"{pos}:FSV", fsv, timeout=90)
         self.ca.assert_that_pv_is(pos, expected)

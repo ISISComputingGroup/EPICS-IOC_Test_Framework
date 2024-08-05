@@ -1,12 +1,12 @@
 import unittest
 
+from genie_python.utilities import dehex_and_decompress
 from parameterized import parameterized
 
-from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
-from genie_python.utilities import dehex_and_decompress
 
 # Device prefix
 DEVICE_PREFIX = "HLX503_01"
@@ -25,22 +25,23 @@ IOCS = [
             "1KPOTHE3POTLO_SENSOR": 2,
             "HE3POTHI_SENSOR": 3,
             "MAX_TEMP_FOR_HE3_COOLING": 2.0,
-            "MAX_OPERATING_TEMP_FOR_HELIOX": 20.0
-        }
+            "MAX_OPERATING_TEMP_FOR_HELIOX": 20.0,
+        },
     },
 ]
 
-channels = {
-    "SORB": "SORB",
-    "HE3POT": "HE3POTHI"
-}
+channels = {"SORB": "SORB", "HE3POT": "HE3POTHI"}
 
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 PID_TABLE_LOOKUP_VALUES = [
-    (0.6, 10.0, 11.0, 12.0, "SORB"), (4.0, 20.0, 21.0, 22.0, "SORB"), (5.8, 30.0, 31.0, 32.0, "SORB"),
-    (0.6, 13.0, 14.0, 15.0, "HE3POT"), (4.0, 23.0, 24.0, 25.0, "HE3POT"), (5.8, 33.0, 34.0, 35.0, "HE3POT")
+    (0.6, 10.0, 11.0, 12.0, "SORB"),
+    (4.0, 20.0, 21.0, 22.0, "SORB"),
+    (5.8, 30.0, 31.0, 32.0, "SORB"),
+    (0.6, 13.0, 14.0, 15.0, "HE3POT"),
+    (4.0, 23.0, 24.0, 25.0, "HE3POT"),
+    (5.8, 33.0, 34.0, 35.0, "HE3POT"),
 ]
 
 
@@ -67,7 +68,9 @@ class HLX503Tests(unittest.TestCase):
     def test_WHEN_set_autopid_AND_THEN_autopid_set(self, _, value):
         self.ca.assert_setting_setpoint_sets_readback(value, "AUTOPID")
 
-    @parameterized.expand(parameterized_list(["Locked", "Remote only", "Local only", "Local and remote"]))
+    @parameterized.expand(
+        parameterized_list(["Locked", "Remote only", "Local only", "Local and remote"])
+    )
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_set_ctrl_THEN_ctrl_set(self, _, value):
         expected_alarm = self.ca.Alarms.NONE if value != "Local only" else self.ca.Alarms.MAJOR
@@ -116,7 +119,9 @@ class HLX503Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("TEMP:HE3POT", 1.0)
 
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
-    def test_WHEN_set_he3pot_temp_above_max_temp_threshold_THEN_he3pot_temp_not_set_AND_in_alarm(self):
+    def test_WHEN_set_he3pot_temp_above_max_temp_threshold_THEN_he3pot_temp_not_set_AND_in_alarm(
+        self,
+    ):
         he3pot_temp = self.ca.get_pv_value("TEMP:HE3POT")
         ctrl_channel = self.ca.get_pv_value("CTRLCHANNEL")
         self.ca.set_pv_value("TEMP:HE3POT:SP", 22.0)
@@ -156,7 +161,9 @@ class HLX503Tests(unittest.TestCase):
     @skip_if_recsim("ReadASCII struggles in recsim")
     def test_WHEN_temp_set_THEN_pids_set_correctly(self, _, temp, p, i, d, sorb_or_he3pot):
         self.ca.assert_setting_setpoint_sets_readback("YES", "ADJUST_PIDS")
-        self.ca.assert_setting_setpoint_sets_readback(f"{sorb_or_he3pot}_file.txt", f"{sorb_or_he3pot}:PID_FILE")
+        self.ca.assert_setting_setpoint_sets_readback(
+            f"{sorb_or_he3pot}_file.txt", f"{sorb_or_he3pot}:PID_FILE"
+        )
         self.ca.set_pv_value(f"TEMP:{sorb_or_he3pot}:SP", temp)
         self.ca.assert_that_pv_is("P", p)
         self.ca.assert_that_pv_is("I", i)
@@ -164,22 +171,29 @@ class HLX503Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list([("SORB", "HE3POT"), ("HE3POT", "SORB")]))
     @skip_if_recsim("ReadASCII struggles in recsim")
-    def test_GIVEN_control_channel_WHEN_using_control_channel_THEN_correct_pid_file_used(self,
-            _, pid_pv_prefix, not_in_use_pid_pv_prefix):
+    def test_GIVEN_control_channel_WHEN_using_control_channel_THEN_correct_pid_file_used(
+        self, _, pid_pv_prefix, not_in_use_pid_pv_prefix
+    ):
         self.ca.assert_setting_setpoint_sets_readback("YES", "ADJUST_PIDS")
         self.ca.set_pv_value(f"{pid_pv_prefix}:PID_FILE:SP", f"{pid_pv_prefix}_file.txt")
-        self.ca.set_pv_value(f"{not_in_use_pid_pv_prefix}:PID_FILE:SP", f"{not_in_use_pid_pv_prefix}_file.txt")
+        self.ca.set_pv_value(
+            f"{not_in_use_pid_pv_prefix}:PID_FILE:SP", f"{not_in_use_pid_pv_prefix}_file.txt"
+        )
         self.ca.set_pv_value("CTRLCHANNEL:SP", channels[pid_pv_prefix])
         self.ca.assert_that_pv_is("_PID_FILE", f"{pid_pv_prefix}_file.txt")
 
     @parameterized.expand(parameterized_list(PID_TABLE_LOOKUP_VALUES))
     @skip_if_recsim("ReadASCII struggles in recsim")
-    def test_WHEN_temp_set_AND_lookup_table_off_THEN_pids_not_set(self, _, temp, p, i, d, sorb_or_he3pot):
+    def test_WHEN_temp_set_AND_lookup_table_off_THEN_pids_not_set(
+        self, _, temp, p, i, d, sorb_or_he3pot
+    ):
         self.ca.assert_setting_setpoint_sets_readback("NO", "ADJUST_PIDS")
         self.ca.set_pv_value("P:SP", 0)
         self.ca.set_pv_value("I:SP", 0)
         self.ca.set_pv_value("D:SP", 0)
-        self.ca.assert_setting_setpoint_sets_readback(f"{sorb_or_he3pot}_file.txt", f"{sorb_or_he3pot}:PID_FILE")
+        self.ca.assert_setting_setpoint_sets_readback(
+            f"{sorb_or_he3pot}_file.txt", f"{sorb_or_he3pot}:PID_FILE"
+        )
         self.ca.set_pv_value(f"TEMP:{sorb_or_he3pot}:SP", temp)
         self.ca.assert_that_pv_is_not("P", p)
         self.ca.assert_that_pv_is_not("I", i)

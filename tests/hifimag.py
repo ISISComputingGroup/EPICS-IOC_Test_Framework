@@ -1,9 +1,8 @@
 import unittest
 
-from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 
 # Device prefix
 DEVICE_PREFIX = "HIFIMAG_01"
@@ -29,8 +28,6 @@ class HifimagTests(unittest.TestCase):
 
         self.ca = ChannelAccess(20, DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
-        
+
     def test_WHEN_ioc_is_started_THEN_ioc_is_not_disabled(self):
         self.ca.assert_that_pv_is("DISABLE", "COMMS ENABLED")
-
-

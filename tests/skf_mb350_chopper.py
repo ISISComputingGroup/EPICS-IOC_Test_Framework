@@ -85,7 +85,9 @@ class SkfMB350ChopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("PHAS:SP:RBV", phase, 0.1)
 
     @skip_if_recsim("Uses lewis backdoor command")
-    def test_WHEN_phase_repeatability_is_set_via_backdoor_THEN_the_repeatability_pv_updates_with_the_same_value(self):
+    def test_WHEN_phase_repeatability_is_set_via_backdoor_THEN_the_repeatability_pv_updates_with_the_same_value(
+        self,
+    ):
         for phas_err_width in TEST_PHAS_ERR_WIDTHS:
             self._lewis.backdoor_set_on_device("phase_repeatability", phas_err_width)
             self.ca.assert_that_pv_is_number("PHAS_ERR", phas_err_width, 0.01)
@@ -97,16 +99,21 @@ class SkfMB350ChopperTests(unittest.TestCase):
             self.ca.assert_that_pv_is_number("PHAS_ERR", phas_err_width, 0.01)
 
     @skip_if_recsim("Uses lewis backdoor command")
-    def test_WHEN_phase_percent_ok_is_set_via_backdoor_THEN_the_percent_ok_pv_updates_with_the_same_value(self):
+    def test_WHEN_phase_percent_ok_is_set_via_backdoor_THEN_the_percent_ok_pv_updates_with_the_same_value(
+        self,
+    ):
         for percentage in TEST_PERCENTAGES:
             self._lewis.backdoor_set_on_device("phase_percent_ok", percentage)
             self.ca.assert_that_pv_is_number("PHAS:PERCENTOK", percentage, 0.01)
 
     @skip_if_recsim("Uses lewis backdoor command")
-    def test_WHEN_interlock_states_are_set_THEN_the_interlock_pvs_reflect_the_state_that_was_just_set(self):
-
+    def test_WHEN_interlock_states_are_set_THEN_the_interlock_pvs_reflect_the_state_that_was_just_set(
+        self,
+    ):
         def _set_and_assert_interlock_state(interlock, on):
-            self._lewis.backdoor_command(["device", "set_interlock_state", interlock, "True" if on else "False"])
+            self._lewis.backdoor_command(
+                ["device", "set_interlock_state", interlock, "True" if on else "False"]
+            )
             self.ca.assert_that_pv_is("ILK:{}".format(interlock), "Active" if on else "Inactive")
 
         for interlock in INTERLOCKS:
@@ -114,14 +121,17 @@ class SkfMB350ChopperTests(unittest.TestCase):
             _set_and_assert_interlock_state(interlock, False)
 
     @skip_if_recsim("Depends on state which is not implemented in recsim")
-    def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(self):
+    def test_WHEN_device_is_started_then_stopped_THEN_up_to_speed_pv_reflects_the_stopped_or_started_state(
+        self,
+    ):
         self.ca.set_pv_value("START", 1)
         self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "YES")
         self.ca.set_pv_value("STOP", 1)
         self.ca.assert_that_pv_is("STAT:UP_TO_SPEED", "NO")
 
-    def test_WHEN_rotator_angle_is_set_via_pv_THEN_rotator_angle_pv_updates_with_the_angle_just_set(self):
-
+    def test_WHEN_rotator_angle_is_set_via_pv_THEN_rotator_angle_pv_updates_with_the_angle_just_set(
+        self,
+    ):
         # Check initial angle was the park open position - i.e. it was sent at IOC startup
         # This is the only test that sets the rotator angle so run this here - it's the only place which guarantees
         # running this test before the value is overwritten
