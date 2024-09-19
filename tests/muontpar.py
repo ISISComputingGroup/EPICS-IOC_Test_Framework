@@ -1,7 +1,6 @@
 import os
 import unittest
 
-
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import (
     IOCRegister,
@@ -22,9 +21,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MUONTPAR"),
         "pv_for_existence": "FILE_DIR",
-        "macros": {
-            "EDITOR_TPAR_FILE_DIR": test_config_path.replace("\\", "\\\\") + "\\"
-        },
+        "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path.replace("\\", "\\\\") + "\\"},
     },
 ]
 
