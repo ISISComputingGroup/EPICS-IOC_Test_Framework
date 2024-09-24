@@ -7,6 +7,7 @@ from utils.ioc_launcher import (
     get_default_ioc_dir,
 )
 from utils.test_modes import TestModes
+from utils.testing import ManagerMode
 
 ioc_number = 1
 DEVICE_PREFIX = "MUONTPAR_01"
@@ -22,6 +23,13 @@ IOCS = [
         "directory": get_default_ioc_dir("MUONTPAR"),
         "pv_for_existence": "FILE_DIR",
         "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path.replace("\\", "\\\\") + "\\"},
+    },
+        {
+        # INSTETC is required to control manager mode.
+        "name": "INSTETC",
+        "directory": get_default_ioc_dir("INSTETC"),
+        "custom_prefix": "CS",
+        "pv_for_existence": "MANAGER",
     },
 ]
 
@@ -63,7 +71,8 @@ class MuonTPARTests(unittest.TestCase):
         file_name = TEST_TPAR_FILENAME
         self.ca.set_pv_value("FILE_NAME:SP", file_name)
         self.ca.set_pv_value("LINES_ARRAY:SP", TEST_TPAR)
-        self.ca.set_pv_value("SAVE_FILE", 1, wait=True)
+        with ManagerMode(ChannelAccess()):
+            self.ca.set_pv_value("SAVE_FILE", 1, wait=True)
         with open(os.path.join(test_config_path, file_name), "r") as tpar_file:
             self.assertEqual(TEST_TPAR, tpar_file.read())
 
