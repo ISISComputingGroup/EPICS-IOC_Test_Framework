@@ -24,6 +24,7 @@ def pre_ioc_launch_hook():
     defaults_contents_with_pv_prefix = defaults_contents.replace("{pv_prefix}", g.my_pv_prefix)
     write_defaults_to_autosave_configuration(defaults_contents_with_pv_prefix)
 
+
 MAX_CARD_NUM_CRATE0 = 6
 MAX_CARD_NUM_CRATE1 = 10
 
@@ -106,13 +107,13 @@ class CAENv895Tests(unittest.TestCase):
 
     def test_GIVEN_card_macro_set_WHEN_ioc_started_THEN_correct_number_of_card_pvs_loaded(self):
         # Crate 0 macro requests 6 cards
-        self.ca.assert_that_pv_is("CR0:CARDS", MAX_CARD_NUM_CRATE0+1)
+        self.ca.assert_that_pv_is("CR0:CARDS", MAX_CARD_NUM_CRATE0 + 1)
         # The 6th card should exist, but the 7th shouldn't
         self.ca.assert_that_pv_exists("CR0:C6:ENABLE")
         self.ca.assert_that_pv_does_not_exist("CR0:C7:ENABLE")
 
         # Crate 1 macro requests 10 cards
-        self.ca.assert_that_pv_is("CR1:CARDS", MAX_CARD_NUM_CRATE1+1)
+        self.ca.assert_that_pv_is("CR1:CARDS", MAX_CARD_NUM_CRATE1 + 1)
         # The 6th card should exist, but the 7th shouldn't
         self.ca.assert_that_pv_exists("CR1:C10:ENABLE")
         self.ca.assert_that_pv_does_not_exist("CR1:C11:ENABLE")
