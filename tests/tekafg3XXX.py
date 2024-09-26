@@ -71,3 +71,4 @@ class Tekafg3XXXTests(unittest.TestCase):
         self._assert_rbv_set("SWEEP_STOP", 40)
         self._assert_rbv_set("SWEEP_HTIME", 1)
         self._assert_rbv_set("SWEEP_MODE", "AUTO")
+        self._assert_rbv_set("RAMP:SYMMETRY", 42.0)
