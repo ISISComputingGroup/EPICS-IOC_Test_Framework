@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from utils.channel_access import ChannelAccess
+from utils.pv_access import PVAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import skip_if_nosim
@@ -104,7 +104,7 @@ class GalilTests(unittest.TestCase):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.assertIsNotNone(self._ioc)
 
-        self.ca = ChannelAccess(device_prefix=None, default_timeout=20, default_wait_time=0.0)
+        self.ca = PVAccess(device_prefix=None, default_timeout=20, default_wait_time=0.0)
         # test galil hardware does not currently have an encoder, software simulated motors do
         if IOCRegister.test_mode == TestModes.NOSIM:
             ueip = "No"
