@@ -446,9 +446,9 @@ class PVAccess(object):
             True if within tolerance, False otherwise.
         """
         try:
-            assert isinstance(val, float)
+            assert isinstance(val, (float, int, str))
             val = float(val)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, AssertionError):
             return False
         return abs(val - expected) <= tolerance
 
