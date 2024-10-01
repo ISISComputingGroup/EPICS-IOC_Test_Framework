@@ -7,41 +7,49 @@ import datetime
 import operator
 import os
 import time
+from abc import abstractmethod
 from contextlib import contextmanager
 from functools import partial, partialmethod
-from typing import Callable
+from typing import Callable, Generator, Optional
 
 from genie_python.genie_p4p_wrapper import P4PWrapper, PVValue
 
 from utils.formatters import format_value
 
 
-class _MonitorAssertion:
+class _ValueSource:
+    @property
+    @abstractmethod
+    def value(self) -> PVValue:
+        pass
+
+
+class _MonitorAssertion(_ValueSource):
     """
-    This is used to assert the value based on a pv monitor event. It will sign up to the monitor call backs and
-    set an internal value when that changes. It will need to poll ca channel for events before this can be triggered and
-    it does this when the value is requested.
+    This is used to assert the value based on a pv monitor event. It will sign up to the monitor
+    call backs and set an internal value when that changes. It will need to poll ca channel for
+    events before this can be triggered and it does this when the value is requested.
     """
 
-    def __init__(self, channel_access, pv) -> None:
+    def __init__(self, pv_access: "PVAccess", pv: str) -> None:
         """
         Initialise.
         Args:
-            channel_access: channel_access to set up monitor
+            pv_access: pv_access to set up monitor
             pv: name of pv to monitor
         """
         self.pv = pv
-        self._full_pv_name = channel_access.create_pv_with_prefix(pv)
+        self._full_pv_name = pv_access.create_pv_with_prefix(pv)
         self.all_values = []
         self.latest_value = None
-        P4PWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
+        P4PWrapper.add_monitor(pv_access.create_pv_with_prefix(pv), self._set_val)
 
-    def _set_val(self, value, alarm_severity, alarm_status) -> None:
+    def _set_val(self, value: PVValue, alarm_severity: str, alarm_status: str) -> None:
         self.latest_value = value
         self.all_values.append(value)
 
     @property
-    def value(self):
+    def value(self) -> PVValue:
         """
         Returns: value monitor set
         """
@@ -65,7 +73,10 @@ class PVAccess(object):
         DISABLE = "DISABLE"  # Alarm stat value if the record has been disabled
 
     def __init__(
-        self, default_timeout: float = 5, device_prefix: str = None, default_wait_time: float = 1.0
+        self,
+        default_timeout: float = 5,
+        device_prefix: Optional[str] = None,
+        default_wait_time: float = 1.0,
     ) -> None:
         """
         Initializes this PVAccess object.
@@ -81,7 +92,7 @@ class PVAccess(object):
         self.default_wait_time = default_wait_time
 
         # Silence P4P errors
-        P4PWrapper.errorLogFunc = lambda *a, **kw: None
+        P4PWrapper.error_log_function = lambda *a, **kw: None
         try:
             hcom = ctypes.cdll.LoadLibrary("COM.DLL")
             hcom.eltc(ctypes.c_int(0))
@@ -101,9 +112,9 @@ class PVAccess(object):
         self,
         pv: str,
         value: PVValue,
-        prefix: str = None,
+        prefix: Optional[str] = None,
         wait: bool = False,
-        sleep_after_set: float | None = None,
+        sleep_after_set: Optional[float] = None,
     ) -> None:
         """
         Sets the specified PV to the supplied value.
@@ -124,12 +135,12 @@ class PVAccess(object):
 
         if sleep_after_set is None:
             sleep_after_set = self.default_wait_time
-        # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try to jump the gun
-        # and attempt to write to a PV that doesn't exist yet
+        # Wait for the PV to exist before writing to it. If this is not here sometimes the tests try
+        # to jump the gun and attempt to write to a PV that doesn't exist yet
         self.assert_that_pv_exists(pv)
 
-        # Don't use wait=True because it will cause an infinite wait if the value never gets set successfully
-        # In that case the test should fail (because the correct value is not set)
+        # Don't use wait=True because it will cause an infinite wait if the value never gets
+        # set successfully In that case the test should fail (because the correct value is not set)
         # but it should not hold up all the other tests
         self.P4P.set_pv_value(
             self.create_pv_with_prefix(pv), value, wait=wait, timeout=self._default_timeout
@@ -164,10 +175,10 @@ class PVAccess(object):
         return self.P4P.set_pv_value(pv_proc, 1)
 
     @contextmanager
-    def put_simulated_record_into_alarm(self, pv: str, alarm: str):
+    def put_simulated_record_into_alarm(self, pv: str, alarm: str) -> Generator[None, None, None]:
         """
-        Put a simulated record into alarm. Using a context manager to put PVs into alarm means they don't accidentally
-        get left in alarm if the test fails.
+        Put a simulated record into alarm. Using a context manager to put PVs into alarm means they
+        don't accidentally get left in alarm if the test fails.
 
         Args:
              pv: pv to put into alarm
@@ -176,7 +187,7 @@ class PVAccess(object):
             AssertionError if the simulated alarm status could not be set.
         """
 
-        def _set_and_check_simulated_alarm(set_check_pv, set_check_alarm) -> None:
+        def _set_and_check_simulated_alarm(set_check_pv: str, set_check_alarm: str) -> None:
             self.set_pv_value("{}.SIMS".format(set_check_pv), set_check_alarm)
             self.assert_that_pv_alarm_is("{}".format(set_check_pv), set_check_alarm)
 
@@ -197,9 +208,12 @@ class PVAccess(object):
         """
         return "{prefix}{pv}".format(prefix=self.prefix, pv=pv)
 
-    def _wait_for_pv_lambda(self, wait_for_lambda: Callable, timeout: float):
+    def _wait_for_pv_lambda(
+        self, wait_for_lambda: Callable[[], PVValue], timeout: Optional[float] = None
+    ) -> PVValue:
         """
-        Wait for a lambda containing a pv to become None; return value or timeout and return actual value.
+        Wait for a lambda containing a pv to become None; return value or timeout and return actual
+        value.
 
         Args:
             wait_for_lambda: lambda we expect to be None
@@ -231,24 +245,26 @@ class PVAccess(object):
         self,
         pv: str,
         func: Callable[[PVValue], bool],
-        timeout: float = None,
-        message: str = None,
-        pv_value_source=None,
+        timeout: Optional[float] = None,
+        message: Optional[str] = None,
+        pv_value_source: Optional[_ValueSource] = None,
     ) -> None:
         """
         Check that a PV satisfies a given function within some timeout.
 
         Args:
             pv: the PV to check
-            func: a function that takes one argument, the PV value, and returns True if the value is valid.
+            func: a function that takes one argument, the PV value, and returns True if the value
+            is valid.
             timeout: time to wait for the PV to satisfy the function
             message: custom message to print on failure
-            pv_value_source: place to get value from; None from pv get; otherwise attribute value will be used
+            pv_value_source: place to get value from; None from pv get; otherwise attribute value
+            will be used
         Raises:
             AssertionError: If the function does not evaluate to true within the given timeout
         """
 
-        def _wrapper(message):
+        def _wrapper(err_message: str) -> str | None:
             if pv_value_source is None:
                 value = self.get_pv_value(pv)
             else:
@@ -256,16 +272,17 @@ class PVAccess(object):
             try:
                 return_value = func(value)
             except Exception as e:
-                return "Exception was thrown while evaluating function '{}' on pv value {}. Exception was: {} {}".format(
-                    func.__name__, format_value(value), e.__class__.__name__, e.message
-                )
+                return (
+                    "Exception was thrown while evaluating function '{}' "
+                    "on pv value {}. Exception was: {} {}"
+                ).format(func.__name__, format_value(value), e.__class__.__name__, e)
             if return_value:
                 return None
             else:
                 return "Exception date time: {}{}{}{}{}".format(
                     datetime.datetime.now(),
                     os.linesep,
-                    message,
+                    err_message,
                     os.linesep,
                     "Final PV value was {}".format(format_value(value)),
                 )
@@ -280,17 +297,24 @@ class PVAccess(object):
             raise AssertionError(err)
 
     def assert_that_pv_is(
-        self, pv: str, expected_value, timeout: float = None, msg=None, pv_value_source=None
-    ):
+        self,
+        pv: str,
+        expected_value: PVValue,
+        timeout: Optional[float] = None,
+        msg: Optional[str] = None,
+        pv_value_source: Optional[_ValueSource] | None = None,
+    ) -> None:
         """
-        Assert that the pv has the expected value or that it becomes the expected value within the timeout.
+        Assert that the pv has the expected value or that it becomes the expected value within the
+        timeout.
 
         Args:
             pv: pv name
             expected_value: expected value
             timeout: if it hasn't changed within this time raise assertion error
             msg: Extra message to print
-            pv_value_source: place to get pv value from on get; None pv is read using caget; otherwise attribute value will be used
+            pv_value_source: place to get pv value from on get; None pv is read using caget;
+             otherwise attribute value will be used
         Raises:
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
@@ -309,7 +333,8 @@ class PVAccess(object):
             pv_value_source=pv_value_source,
         )
 
-    def _normalise_path(self, path: str) -> str:
+    @staticmethod
+    def _normalise_path(path: PVValue) -> str:
         """
         Normalise a path and it's case (useful for comparisons)
 
@@ -318,11 +343,17 @@ class PVAccess(object):
         Returns:
             str: The normalised path
         """
+        assert isinstance(path, str)
         return os.path.normpath(os.path.normcase(path))
 
     def assert_that_pv_is_path(
-        self, pv: str, expected_path, timeout: float = None, msg=None, pv_value_source=None
-    ):
+        self,
+        pv: str,
+        expected_path: str,
+        timeout: Optional[float] = None,
+        msg: Optional[str] = None,
+        pv_value_source: Optional[_ValueSource] = None,
+    ) -> None:
         """
         Assert that a pv is a path that when normalised matches the expected path.
 
@@ -352,8 +383,12 @@ class PVAccess(object):
         )
 
     def assert_that_pv_after_processing_is(
-        self, pv: str, expected_value, timeout: float = None, msg=None
-    ):
+        self,
+        pv: str,
+        expected_value: PVValue,
+        timeout: Optional[float] = None,
+        msg: Optional[str] = None,
+    ) -> None:
         """
         Assert that the pv has the expected value after the pv is processed
         or that it becomes the expected value within the timeout.
@@ -369,12 +404,18 @@ class PVAccess(object):
         """
 
         self.process_pv(pv)
-        return self.assert_that_pv_is(pv, expected_value, timeout=None, msg=None)
+        return self.assert_that_pv_is(pv, expected_value, timeout=timeout, msg=msg)
 
-    def assert_that_pv_is_not(self, pv: str, restricted_value, timeout: float = None, msg=None):
+    def assert_that_pv_is_not(
+        self,
+        pv: str,
+        restricted_value: PVValue,
+        timeout: Optional[float] = None,
+        msg: Optional[str] = None,
+    ) -> None:
         """
-        Assert that the pv does not have a particular value and optionally it does not become that value within the
-        timeout.
+        Assert that the pv does not have a particular value and optionally it does not become that
+        value within the timeout.
 
         Args:
             pv: pv name
@@ -392,7 +433,8 @@ class PVAccess(object):
             pv, lambda val: val != restricted_value, timeout, message=msg
         )
 
-    def _within_tolerance_condition(self, val, expected, tolerance):
+    @staticmethod
+    def _within_tolerance_condition(val: PVValue, expected: float, tolerance: float) -> bool:
         """
         Condition to tell whether a number is equal to another within a tolerance.
 
@@ -404,16 +446,23 @@ class PVAccess(object):
             True if within tolerance, False otherwise.
         """
         try:
+            assert isinstance(val, float)
             val = float(val)
         except (ValueError, TypeError):
             return False
         return abs(val - expected) <= tolerance
 
     def assert_that_pv_is_number(
-        self, pv: str, expected, tolerance=0.0, timeout: float = None, pv_value_source=None
-    ):
+        self,
+        pv: str,
+        expected: float,
+        tolerance: float = 0.0,
+        timeout: Optional[float] = None,
+        pv_value_source: Optional[_ValueSource] = None,
+    ) -> None:
         """
-        Assert that the pv has the expected value or that it becomes the expected value within the timeout
+        Assert that the pv has the expected value or that it becomes the expected value within the
+        timeout.
 
         Args:
             pv: pv name
@@ -437,7 +486,9 @@ class PVAccess(object):
             pv_value_source=pv_value_source,
         )
 
-    def assert_that_pv_is_not_number(self, pv: str, restricted, tolerance=0, timeout: float = None):
+    def assert_that_pv_is_not_number(
+        self, pv: str, restricted: float, tolerance: float = 0, timeout: Optional[float] = None
+    ) -> None:
         """
         Assert that the pv is at least tolerance from the restricted value within the timeout
 
@@ -453,7 +504,6 @@ class PVAccess(object):
         message = "Expected PV value to be not equal to {} (tolerance: {})".format(
             format_value(restricted), format_value(tolerance)
         )
-
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv,
             lambda val: not self._within_tolerance_condition(val, restricted, tolerance),
@@ -462,8 +512,12 @@ class PVAccess(object):
         )
 
     def assert_that_pv_after_processing_is_number(
-        self, pv: str, expected_value, tolerance=0.0, timeout: float = None
-    ):
+        self,
+        pv: str,
+        expected_value: float,
+        tolerance: float = 0.0,
+        timeout: Optional[float] = None,
+    ) -> None:
         """
         Assert that the pv has the expected number value after the pv is processed
         or that it becomes the expected number value within the timeout.
@@ -480,12 +534,15 @@ class PVAccess(object):
         """
 
         self.process_pv(pv)
-        return self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, timeout=None)
+        return self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance,
+                                             timeout=timeout)
 
-    def assert_that_pv_is_one_of(self, pv: str, expected_values, timeout: float = None):
+    def assert_that_pv_is_one_of(
+        self, pv: str, expected_values: list[PVValue], timeout: Optional[float] = None
+    ) -> None:
         """
-        Assert that the pv has one of the expected values or that it becomes one of the expected value within the
-        timeout.
+        Assert that the pv has one of the expected values or that it becomes one of the expected
+        value within the timeout.
 
         Args:
              pv: pv name
@@ -496,7 +553,7 @@ class PVAccess(object):
              UnableToConnectToPVException: if pv does not exist within timeout
         """
 
-        def _condition(val):
+        def _condition(val: PVValue) -> bool:
             return val in expected_values
 
         message = "Expected PV value to be in {}".format(expected_values)
@@ -504,10 +561,16 @@ class PVAccess(object):
             pv, _condition, timeout, message
         )
 
-    def assert_that_pv_is_within_range(self, pv: str, min_value, max_value, timeout: float = None):
+    def assert_that_pv_is_within_range(
+        self,
+        pv: str,
+        min_value: int | float,
+        max_value: int | float,
+        timeout: Optional[float] = None,
+    ) -> None:
         """
-        Assert that the pv is within or at the bounds of the ranges  between a minimum and maximum within the
-        timeout
+        Assert that the pv is within or at the bounds of the ranges  between a minimum and maximum
+        within the timeout
 
         Args:
              pv: pv name
@@ -519,7 +582,8 @@ class PVAccess(object):
              UnableToConnectToPVException: if pv does not exist within timeout
         """
 
-        def _condition(val):
+        def _condition(val: PVValue) -> bool:
+            assert isinstance(val, float)
             return min_value <= float(val) <= max_value
 
         message = "Expected PV value to between {} and {}".format(min_value, max_value)
@@ -527,7 +591,7 @@ class PVAccess(object):
             pv, _condition, timeout, message
         )
 
-    def assert_that_pv_exists(self, pv, timeout=None) -> None:
+    def assert_that_pv_exists(self, pv: str, timeout: Optional[float] = None) -> None:
         """
         Wait for pv to be available or timeout and throw UnableToConnectToPVException.
 
@@ -554,7 +618,7 @@ class PVAccess(object):
                     )
                 )
 
-    def assert_that_pv_does_not_exist(self, pv, timeout=2) -> None:
+    def assert_that_pv_does_not_exist(self, pv: str, timeout: float = 2) -> None:
         """
         Asserts that a pv does not exist.
 
@@ -571,7 +635,9 @@ class PVAccess(object):
         else:
             raise AssertionError("PV {pv} exists".format(pv=self.create_pv_with_prefix(pv)))
 
-    def assert_that_pv_alarm_is_not(self, pv: str, alarm: str, timeout: float = None) -> None:
+    def assert_that_pv_alarm_is_not(
+        self, pv: str, alarm: str, timeout: Optional[float] = None
+    ) -> None:
         """
         Assert that a pv is not in alarm state given or timeout.
 
@@ -585,7 +651,7 @@ class PVAccess(object):
         """
         return self.assert_that_pv_is_not("{}.SEVR".format(pv), alarm, timeout=timeout)
 
-    def assert_that_pv_alarm_is(self, pv: str, alarm: str, timeout: float = None) -> None:
+    def assert_that_pv_alarm_is(self, pv: str, alarm: str, timeout: Optional[float] = None) -> None:
         """
         Assert that a pv is in alarm state given or timeout.
         Checks the SERV of the pv name with any field name removed.
@@ -605,10 +671,10 @@ class PVAccess(object):
         self,
         value: PVValue,
         readback_pv: str,
-        set_point_pv: str | None = None,
+        set_point_pv: Optional[str] = None,
         expected_value: PVValue = None,
-        expected_alarm: str | None = Alarms.NONE,
-        timeout: float | None = None,
+        expected_alarm: Optional[str] = Alarms.NONE,
+        timeout: Optional[float] = None,
     ) -> None:
         """
         Set a pv to a value and check that the readback has the expected value and alarm state.
@@ -680,7 +746,9 @@ class PVAccess(object):
     )
 
     @contextmanager
-    def assert_that_pv_monitor_gets_values(self, pv: str, expected_values: list[PVValue]) -> None:
+    def assert_that_pv_monitor_gets_values(
+        self, pv: str, expected_values: list[PVValue]
+    ) -> Generator[None, None, None]:
         """
         Assert that a pv has received a number of values set by a monitor event
         Args:
@@ -707,7 +775,9 @@ class PVAccess(object):
             )
 
     @contextmanager
-    def assert_that_pv_monitor_is(self, pv: str, expected_value: PVValue) -> None:
+    def assert_that_pv_monitor_is(
+        self, pv: str, expected_value: PVValue
+    ) -> Generator[None, None, None]:
         """
         Assert that a pv has a given value set by a monitor event
         Args:
@@ -724,8 +794,8 @@ class PVAccess(object):
 
     @contextmanager
     def assert_that_pv_monitor_is_number(
-        self, pv: str, expected_value: PVValue, tolerance: float = 0.0
-    ) -> None:
+        self, pv: str, expected_value: float, tolerance: float = 0.0
+    ) -> Generator[None, None, None]:
         """
         Assert that a pv value is set by a monitor event and is within a tolerance
         Args:
@@ -739,13 +809,12 @@ class PVAccess(object):
         pv_value_source = _MonitorAssertion(self, pv)
 
         yield
-
         self.assert_that_pv_is_number(
             pv, expected_value, tolerance=tolerance, pv_value_source=pv_value_source
         )
 
     @contextmanager
-    def assert_pv_processed(self, pv: str) -> None:
+    def assert_pv_processed(self, pv: str) -> Generator[None, None, None]:
         """
         Asserts that a PV was processed by putting a monitor on the PV and asserting it's called.
 
@@ -754,10 +823,10 @@ class PVAccess(object):
         """
         pv_with_prefix = self.create_pv_with_prefix(pv)
 
-        class PvUpdateTimeValueSource(object):
+        class PvUpdateTimeValueSource(_ValueSource):
             @property
-            def value(self) -> PVValue:
-                return P4PWrapper.get_pv_timestamp(pv_with_prefix)
+            def value(self) -> str:
+                return str(P4PWrapper.get_pv_timestamp(pv_with_prefix))
 
         time_before = PvUpdateTimeValueSource().value
 
@@ -771,7 +840,7 @@ class PVAccess(object):
         )
 
     @contextmanager
-    def assert_pv_not_processed(self, pv: str) -> None:
+    def assert_pv_not_processed(self, pv: str) -> Generator[None, None, None]:
         """
         Asserts that a PV was processed by getting the time
 
@@ -780,10 +849,10 @@ class PVAccess(object):
         """
         pv_with_prefix = self.create_pv_with_prefix(pv)
 
-        class PvUpdateTimeValueSource(object):
+        class PvUpdateTimeValueSource(_ValueSource):
             @property
-            def value(self) -> PVValue:
-                return P4PWrapper.get_pv_timestamp(pv_with_prefix)
+            def value(self) -> str:
+                return str(P4PWrapper.get_pv_timestamp(pv_with_prefix))
 
         time_before = PvUpdateTimeValueSource().value
 
@@ -793,7 +862,7 @@ class PVAccess(object):
             pv=pv_with_prefix,
             func=lambda val: val == time_before,
             pv_value_source=PvUpdateTimeValueSource(),
-            message="PV {} was processed".format(pv),
+            message=f"PV {pv} was processed",
         )
 
     def assert_dict_of_pvs_have_given_values(self, pvs_and_values_dict: dict[str, PVValue]) -> None:
@@ -808,8 +877,6 @@ class PVAccess(object):
             try:
                 self.assert_that_pv_is(pv, value)
             except AssertionError as e:
-                error_message += "\n{}".format(e.message)
+                error_message += f"\n{e}"
         if error_message != "":
-            raise AssertionError(
-                "Not all PVs have given values, see errors: {}".format(error_message)
-            )
+            raise AssertionError(f"Not all PVs have given values, see errors: {error_message}")
