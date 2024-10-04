@@ -17,6 +17,7 @@ from genie_python.genie_cachannel_wrapper import (
     PVValue,
     UnableToConnectToPVException,
 )
+from genie_python.genie_p4p_wrapper import P4PWrapper
 
 from utils.formatters import format_value
 
@@ -35,7 +36,7 @@ class _MonitorAssertion(_ValueSource):
     events before this can be triggered and it does this when the value is requested.
     """
 
-    def __init__(self, channel_access: "ChannelAccess", pv: str) -> None:
+    def __init__(self, channel_access: "ChannelAccess", pv: str, pv_access: bool = False) -> None:
         """
         Initialise.
         Args:
@@ -46,7 +47,11 @@ class _MonitorAssertion(_ValueSource):
         self._full_pv_name = channel_access.create_pv_with_prefix(pv)
         self.all_values = []
         self.latest_value = None
-        CaChannelWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
+        self.pv_access = pv_access
+        if pv_access:
+            P4PWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
+        else:
+            CaChannelWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
 
     def _set_val(self, value: PVValue, alarm_severity: str, alarm_status: str) -> None:
         self.latest_value = value
@@ -57,7 +62,8 @@ class _MonitorAssertion(_ValueSource):
         """
         Returns: value monitor set
         """
-        CaChannelWrapper.poll()
+        if not self.pv_access:
+            CaChannelWrapper.poll()
         return self.latest_value
 
 
@@ -82,6 +88,7 @@ class ChannelAccess(object):
         default_timeout: float = 5,
         device_prefix: Optional[str] = None,
         default_wait_time: float = 1.0,
+        pv_access: bool = False,
     ) -> None:
         """
         Initializes this ChannelAccess object.
@@ -93,11 +100,18 @@ class ChannelAccess(object):
         Returns:
             None.
         """
-        self.ca = CaChannelWrapper()
+        self.pv_access = pv_access
+        if pv_access:
+            self.ca = P4PWrapper()
+        else:
+            self.ca = CaChannelWrapper()
         self.default_wait_time = default_wait_time
 
         # Silence CA errors
-        CaChannelWrapper.error_log_func = lambda *a, **kw: None
+        if pv_access:
+            P4PWrapper.error_log_function = lambda *a, **kw: None
+        else:
+            CaChannelWrapper.error_log_func = lambda *a, **kw: None
         try:
             hcom = ctypes.cdll.LoadLibrary("COM.DLL")
             hcom.eltc(ctypes.c_int(0))
@@ -830,11 +844,16 @@ class ChannelAccess(object):
         pv_with_prefix = self.create_pv_with_prefix(pv)
 
         class PvUpdateTimeValueSource(_ValueSource):
+            def __init__(self, pv_access: bool = False) -> None:
+                self.pv_access = pv_access
+
             @property
             def value(self) -> str:
+                if self.pv_access:
+                    return str(P4PWrapper.get_pv_timestamp(pv_with_prefix))
                 return str(CaChannelWrapper.get_pv_timestamp(pv_with_prefix))
 
-        time_before = PvUpdateTimeValueSource().value
+        time_before = PvUpdateTimeValueSource(self.pv_access).value
 
         yield
 
@@ -856,11 +875,16 @@ class ChannelAccess(object):
         pv_with_prefix = self.create_pv_with_prefix(pv)
 
         class PvUpdateTimeValueSource(_ValueSource):
+            def __init__(self, pv_access: bool = False) -> None:
+                self.pv_access = pv_access
+
             @property
             def value(self) -> str:
+                if self.pv_access:
+                    return str(P4PWrapper.get_pv_timestamp(pv_with_prefix))
                 return str(CaChannelWrapper.get_pv_timestamp(pv_with_prefix))
 
-        time_before = PvUpdateTimeValueSource().value
+        time_before = PvUpdateTimeValueSource(self.pv_access).value
 
         yield
 
