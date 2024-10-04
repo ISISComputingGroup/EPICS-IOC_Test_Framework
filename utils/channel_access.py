@@ -17,7 +17,7 @@ from genie_python.genie_cachannel_wrapper import (
     PVValue,
     UnableToConnectToPVException,
 )
-from genie_python.genie_p4p_wrapper import P4PWrapper
+from genie_python.genie_p4p_wrapper import P4PWrapper  # type: ignore
 
 from utils.formatters import format_value
 
