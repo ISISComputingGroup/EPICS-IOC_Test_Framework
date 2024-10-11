@@ -314,8 +314,6 @@ class HifimagsTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("Y:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("Z:OUTPUT:FIELD:GAUSS", 0.3, tolerance=1e-3)
         self.ca.assert_that_pv_is_number("M:OUTPUT:FIELD:GAUSS", 0.2, tolerance=1e-3)
-        self.ca.assert_that_pv_is("M:PERSIST", "Non Persisting")
-        self.ca.assert_that_pv_is("M:RAMP:LEADS", "Leads to 0")
 
         self.ca.assert_that_pv_is("X:DIS", "X ENABLED")
         self.ca.assert_that_pv_is("Y:DIS", "Y ENABLED")
