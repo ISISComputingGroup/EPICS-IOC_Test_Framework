@@ -1,10 +1,21 @@
 import functools
 import unittest
 from time import sleep
+from types import TracebackType
+from typing import TYPE_CHECKING, Callable, Concatenate, ParamSpec, Self, Type, TypeVar, overload
 
 from utils.emulator_launcher import EmulatorRegister
 from utils.ioc_launcher import IOCRegister
 from utils.test_modes import TestModes
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+if TYPE_CHECKING:
+    from utils.channel_access import ChannelAccess
+    from utils.emulator_launcher import EmulatorLauncher
+    from utils.ioc_launcher import IocLauncher
+    from utils.log_file import LogFileManager
 
 
 class ManagerMode(object):
@@ -12,15 +23,20 @@ class ManagerMode(object):
 
     MANAGER_MODE_PV = "CS:MANAGER"
 
-    def __init__(self, channel_access):
+    def __init__(self, channel_access: "ChannelAccess") -> None:
         self.channel_access = channel_access
         self.channel_access.assert_that_pv_exists(self.MANAGER_MODE_PV)
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 1)
         self.channel_access.assert_that_pv_is(self.MANAGER_MODE_PV, "Yes", timeout=5)
 
-    def __exit__(self, *args):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.channel_access.set_pv_value(self.MANAGER_MODE_PV, 0)
         self.channel_access.assert_that_pv_is(self.MANAGER_MODE_PV, "No", timeout=5)
 
@@ -28,25 +44,28 @@ class ManagerMode(object):
 class _AssertLogContext(object):
     """A context manager used to implement assert_log_messages."""
 
-    messages = list()
+    messages = []
     first_message = 0
 
     def __init__(
         self,
-        log_manager,
-        number_of_messages=None,
-        in_time=5,
-        must_contain=None,
-        ignore_log_client_failures=True,
-        ignore_autosave=True,
-    ):
+        log_manager: "LogFileManager",
+        number_of_messages: int | None = None,
+        in_time: float = 5,
+        must_contain: str | None = None,
+        ignore_log_client_failures: bool = True,
+        ignore_autosave: bool = True,
+    ) -> None:
         """
         Args:
             log_manager: A reference to the IOC log object
-            number_of_messages: A number of log messages to expect (None to not check number of messages)
+            number_of_messages: A number of log messages to expect (None to not check number of
+                messages)
             in_time: The amount of time to wait for messages to be generated
-            must_contain: A string which must appear in the generated log messages (None to not check contents)
-            ignore_log_client_failures (bool): Whether to ignore messages about not being able to connect to logserver
+            must_contain: A string which must appear in the generated log messages (None to not
+                check contents)
+            ignore_log_client_failures (bool): Whether to ignore messages about not being able to
+                connect to logserver
             ignore_autosave (bool): Whether to ignore messages coming from autosave
         """
         self.in_time = in_time
@@ -56,11 +75,16 @@ class _AssertLogContext(object):
         self.ignore_log_client_failures = ignore_log_client_failures
         self.ignore_autosave = ignore_autosave
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self.log_manager.read_log()  # Read any excess log
         return self
 
-    def __exit__(self, *args):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool:
         sleep(self.in_time)
         self.messages = self.log_manager.read_log()
 
@@ -98,14 +122,25 @@ class _AssertLogContext(object):
         return True
 
 
-def get_running_lewis_and_ioc(emulator_name=None, ioc_name=None):
+@overload
+def get_running_lewis_and_ioc(emulator_name: None, ioc_name: str) -> tuple[None, "IocLauncher"]: ...
+
+
+@overload
+def get_running_lewis_and_ioc(
+    emulator_name: str, ioc_name: str
+) -> tuple["EmulatorLauncher", "IocLauncher"]: ...
+
+
+def get_running_lewis_and_ioc(
+    emulator_name: str | None = None, ioc_name: str | None = None
+) -> tuple["EmulatorLauncher | None", "IocLauncher"]:
     """
     Assert that the emulator and ioc have been started if needed.
 
     :param emulator_name: the name of the lewis emulator; None for don't check the emulator
     :param ioc_name: the name of the IOC
     :return: lewis launcher and ioc launcher tuple
-    :rtype: (LewisLauncher, IocLauncher)
     """
     lewis = EmulatorRegister.get_running(emulator_name)
     ioc = IOCRegister.get_running(ioc_name)
@@ -123,16 +158,16 @@ def get_running_lewis_and_ioc(emulator_name=None, ioc_name=None):
 
 
 def assert_log_messages(
-    ioc,
-    number_of_messages=None,
-    in_time=1,
-    must_contain=None,
-    ignore_log_client_failures=True,
-    ignore_autosave=True,
-):
+    ioc: "IocLauncher",
+    number_of_messages: int | None = None,
+    in_time: float = 1,
+    must_contain: str | None = None,
+    ignore_log_client_failures: bool = True,
+    ignore_autosave: bool = True,
+) -> _AssertLogContext:
     """
-    A context object that asserts that the given code produces the given number of ioc log messages in the the given
-    amount of time.
+    A context object that asserts that the given code produces the given number of ioc log messages
+    in the the given amount of time.
 
     To assert that no more than 5 messages are produced in 5 seconds::
         with assert_log_messages(self._ioc, 5, 5):
@@ -146,14 +181,20 @@ def assert_log_messages(
 
     Args:
         ioc (IocLauncher): The IOC that we are checking the logs for.
-        number_of_messages (int): The maximum number of messages that are expected (None to not check number of messages)
+        number_of_messages (int): The maximum number of messages that are expected (None to not
+            check number of messages)
         in_time (int): The number of seconds to wait for messages
-        must_contain (str): a string which must be contained in at least one of the messages (None to not check)
-        ignore_log_client_failures (bool): Whether to ignore messages about not being able to connect to logserver
+        must_contain (str): a string which must be contained in at least one of the messages (None
+            to not check)
+        ignore_log_client_failures (bool): Whether to ignore messages about not being able to
+            connect to logserver
         ignore_autosave (bool): Whether to ignore messages coming from autosave
     """
+    manager = ioc.log_file_manager
+    if manager is None:
+        raise ValueError("IOC does not have a log file manager, cannot use assert_log_messages")
     return _AssertLogContext(
-        ioc.log_file_manager,
+        manager,
         number_of_messages,
         in_time,
         must_contain,
@@ -162,22 +203,24 @@ def assert_log_messages(
     )
 
 
-def skip_if_condition(condition, reason):
+def skip_if_condition(
+    condition: Callable[[], bool], reason: str
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator to skip tests given a particular condition.
 
-    This is similar to unittest's @skipIf decorator, but this one determines it's condition at runtime as opposed to
-    class load time. This is necessary because otherwise the decorators don't properly pick up changes in
-    IOCRegister.uses_rec_sim
+    This is similar to unittest's @skipIf decorator, but this one determines it's condition at
+    runtime as opposed to class load time. This is necessary because otherwise the decorators don't
+    properly pick up changes in IOCRegister.uses_rec_sim
 
     Args:
         condition (func): The condition on which to skip the test. Should be callable.
         reason (str): The reason for skipping the test
     """
 
-    def decorator(func):
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             if condition():
                 raise unittest.SkipTest(reason)
             return func(*args, **kwargs)
@@ -204,26 +247,27 @@ skip_if_nosim = functools.partial(
 skip_always = functools.partial(skip_if_condition, lambda: True)
 
 
-def add_method(method):
+def add_method(method: Callable[P, T]) -> Callable[[Type[T]], Type[T]]:
     """
-    Class decorator which as the method to the decorated class.
+    Class decorator which adds the method to the decorated class.
 
-    This is inspired by https://stackoverflow.com/questions/9443725/add-method-to-a-class-dynamically-with-decorator
-    and https://gist.github.com/victorlei/5968685.
+    This is inspired by
+    https://stackoverflow.com/questions/9443725/add-method-to-a-class-dynamically-with-decorator
+    and
+    https://gist.github.com/victorlei/5968685.
 
     Args:
         method (func): The method to add to the class decorated. Should be callable.
     """
 
-    @functools.wraps(method)
-    def wrapper(class_to_decorate):
+    def wrapper(class_to_decorate: Type[T]) -> Type[T]:
         setattr(class_to_decorate, method.__name__, method)
         return class_to_decorate
 
     return wrapper
 
 
-def parameterized_list(cases):
+def parameterized_list(cases: list[T]) -> list[tuple[str, T]]:
     """
     Creates a list of cases for parameterized to use to run tests.
 
@@ -243,37 +287,46 @@ def parameterized_list(cases):
     for case in cases:
         test_case = (str(case),)
         try:
-            return_list.append(test_case + case)
+            return_list.append(test_case + case)  # type: ignore
         except TypeError:
             return_list.append(test_case + (case,))
 
     return return_list
 
 
-def unstable_test(max_retries=2, error_class=AssertionError, wait_between_runs=0):
+def unstable_test(
+    max_retries: int = 2,
+    error_class: Type[BaseException] = AssertionError,
+    wait_between_runs: float = 0,
+) -> Callable[
+    [Callable[Concatenate[unittest.TestCase, P], T]], Callable[Concatenate[unittest.TestCase, P], T]
+]:
     """
-    Decorator which will retry a test on failure. This decorator should not be required on most tests and should not
-    be included as standard when writing a test.
+    Decorator which will retry a test on failure. This decorator should not be required on most
+    tests and should not be included as standard when writing a test.
 
     Args:
-        max_retries: the max number of times to run the test before actually throwing an error (defaults to 2 retries)
+        max_retries: the max number of times to run the test before actually throwing an error
+            (defaults to 2 retries)
         error_class: the class of error to retry under (defaults to AssertionError)
         wait_between_runs: number of seconds to wait between each failed attempt at running the test
     """
 
-    def decorator(func):
+    def decorator(
+        func: Callable[Concatenate[unittest.TestCase, P], T],
+    ) -> Callable[Concatenate[unittest.TestCase, P], T]:
         @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: unittest.TestCase, *args: P.args, **kwargs: P.kwargs) -> T:
             try:
                 return func(self, *args, **kwargs)  # Initial attempt to run the test "normally"
-            except error_class:
+            except (error_class,):
                 last_error = None
                 for _ in range(max_retries):
                     sleep(wait_between_runs)
                     try:
                         self.setUp()  # Need to rerun setup
                         return func(self, *args, **kwargs)
-                    except error_class as e:
+                    except (error_class,) as e:
                         last_error = e
                     finally:
                         self.tearDown()  # Rerun tearDown regardless of success or not
