@@ -7,7 +7,7 @@ from utils.test_modes import TestModes
 LOG_FILES_DIRECTORY = os.path.join("logs", "IOCTestFramework")
 
 
-def log_filename(test_name, what, device, test_mode, var_dir):
+def log_filename(test_name: str, what: str, device: str, test_mode: TestModes, var_dir: str) -> str:
     """
     Log file name with path. Ensure path exists.
 
@@ -41,11 +41,11 @@ class LogFileManager(object):
     Class to manage the access of log files
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.log_file_w = open(filename, "w", 1)
         self.log_file_r = open(filename, "r")
 
-    def read_log(self):
+    def read_log(self) -> list[str]:
         """
         Takes any new lines that have been written to the log and returns them
 
@@ -63,7 +63,7 @@ class LogFileManager(object):
 
         return new_messages
 
-    def wait_for_console(self, timeout, ioc_started_text):
+    def wait_for_console(self, timeout: int, ioc_started_text: str) -> None:
         """
         Waits until the ioc has started.
 
@@ -89,7 +89,7 @@ class LogFileManager(object):
                 )
             )
 
-    def close(self):
+    def close(self) -> None:
         """
         Returns: close the log file
         """

@@ -14,7 +14,7 @@ class BuildArchitectures(Enum):
     _32BIT = 2
 
     @staticmethod
-    def archname(arch):
+    def archname(arch: str) -> str:
         """
         Returns: nice name of architecture
         """
