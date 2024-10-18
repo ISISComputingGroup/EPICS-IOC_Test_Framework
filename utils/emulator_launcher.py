@@ -41,7 +41,7 @@ class EmulatorRegister(object):
     RunningEmulators = {}
 
     @classmethod
-    def get_running(cls, name: str) -> "EmulatorLauncher | MultiLewisLauncher | None":
+    def get_running(cls, name: str | None) -> "EmulatorLauncher | MultiLewisLauncher | None":
         """
         Get a running emulator by name, return None if not running.
 
@@ -197,14 +197,14 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def backdoor_run_function_on_device(
-        self, function_name: str, arguments: list[Any] | None
+        self, function_name: str, arguments: list[Any] | None = None
     ) -> list[bytes]:
         """
         Runs a function on an emulator via the backdoor.
 
         Args:
-            args: arbitrary arguments
-            kwargs: arbitrary keyword arguments
+            function_name: name of the function to run
+            arguments: arguments to the function
 
         Returns:
             Nothing.
@@ -511,7 +511,7 @@ class NullEmulatorLauncher(EmulatorLauncher):
         pass
 
     def backdoor_run_function_on_device(
-        self, function_name: str, arguments: list[Any] | None
+        self, function_name: str, arguments: list[Any] | None = None
     ) -> list[bytes]:
         return []
 
@@ -1014,7 +1014,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 
     def backdoor_run_function_on_device(
-        self, function_name: str, arguments: list[Any] | None
+        self, function_name: str, arguments: list[Any] | None = None
     ) -> list[bytes]:
         raise ValueError("Cannot use backdoor for an arbitrary command line launcher")
 

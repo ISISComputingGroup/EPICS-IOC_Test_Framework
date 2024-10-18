@@ -10,11 +10,12 @@ from utils.test_modes import TestModes
 
 P = ParamSpec("P")
 T = TypeVar("T")
+CT = TypeVar("CT")
 
 if TYPE_CHECKING:
     from utils.channel_access import ChannelAccess
-    from utils.emulator_launcher import EmulatorLauncher
-    from utils.ioc_launcher import IocLauncher
+    from utils.emulator_launcher import EmulatorLauncher, MultiLewisLauncher
+    from utils.ioc_launcher import BaseLauncher, IocLauncher
     from utils.log_file import LogFileManager
 
 
@@ -123,18 +124,20 @@ class _AssertLogContext(object):
 
 
 @overload
-def get_running_lewis_and_ioc(emulator_name: None, ioc_name: str) -> tuple[None, "IocLauncher"]: ...
+def get_running_lewis_and_ioc(
+    emulator_name: None, ioc_name: str
+) -> tuple[None, "BaseLauncher"]: ...
 
 
 @overload
 def get_running_lewis_and_ioc(
     emulator_name: str, ioc_name: str
-) -> tuple["EmulatorLauncher", "IocLauncher"]: ...
+) -> tuple["EmulatorLauncher | MultiLewisLauncher", "BaseLauncher"]: ...
 
 
 def get_running_lewis_and_ioc(
     emulator_name: str | None = None, ioc_name: str | None = None
-) -> tuple["EmulatorLauncher | None", "IocLauncher"]:
+) -> tuple["EmulatorLauncher | MultiLewisLauncher | None", "BaseLauncher"]:
     """
     Assert that the emulator and ioc have been started if needed.
 
@@ -247,7 +250,7 @@ skip_if_nosim = functools.partial(
 skip_always = functools.partial(skip_if_condition, lambda: True)
 
 
-def add_method(method: Callable[P, T]) -> Callable[[Type[T]], Type[T]]:
+def add_method(method: Callable[P, T]) -> Callable[[Type[CT]], Type[CT]]:
     """
     Class decorator which adds the method to the decorated class.
 
@@ -260,7 +263,7 @@ def add_method(method: Callable[P, T]) -> Callable[[Type[T]], Type[T]]:
         method (func): The method to add to the class decorated. Should be callable.
     """
 
-    def wrapper(class_to_decorate: Type[T]) -> Type[T]:
+    def wrapper(class_to_decorate: Type[CT]) -> Type[CT]:
         setattr(class_to_decorate, method.__name__, method)
         return class_to_decorate
 

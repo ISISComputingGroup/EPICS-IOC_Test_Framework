@@ -111,13 +111,15 @@ class IOCRegister(object):
     test_mode = TestModes.DEVSIM
 
     @classmethod
-    def get_running(cls, ioc_name: str) -> "BaseLauncher | None":
+    def get_running(cls, ioc_name: str | None) -> "BaseLauncher | None":
         """
         Get a running ioc by name, return None if not running.
 
         :param ioc_name: name of the ioc emulator to grab
         :return: ioc launcher
         """
+        if ioc_name is None:
+            return None
         return cls.RunningIOCs.get(ioc_name)
 
     @classmethod
