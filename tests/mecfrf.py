@@ -6,7 +6,11 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list, skip_if_devsim
+from utils.testing import (
+    get_running_lewis_and_ioc,
+    parameterized_list,
+    skip_if_recsim,
+)
 
 DEVICE_PREFIX = "MECFRF_01"
 _EMULATOR_NAME = "mecfrf"
@@ -32,7 +36,6 @@ RAW_READING_SCALING = 1000000
 
 
 class MecfrfTests(unittest.TestCase):
-
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
@@ -54,7 +57,7 @@ class MecfrfTests(unittest.TestCase):
     def test_WHEN_emulator_sends_corrupt_packets_THEN_records_go_into_alarm(self):
         self._lewis.backdoor_set_on_device("corrupted_messages", False)
         self.ca.assert_that_pv_is("_GETTING_INVALID_MESSAGES", 0)
-        
+
         with self.ca.assert_pv_processed("_RESET_CONNECTION"):
             self._lewis.backdoor_set_on_device("corrupted_messages", True)
             self.ca.assert_that_pv_is("_GETTING_INVALID_MESSAGES", 1)
@@ -75,5 +78,3 @@ class MecfrfTests(unittest.TestCase):
         # Assert alarms clear on reconnection
         self.ca.assert_that_pv_is("_READINGS_OUTDATED", "No")
         self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
-
-

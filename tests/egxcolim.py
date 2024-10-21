@@ -1,7 +1,7 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "EGXCOLIM_01"
@@ -39,4 +39,6 @@ class EgxcolimTests(unittest.TestCase):
     def test_WHEN_setpoint_is_set_THEN_readback_updates(self):
         for direction in self.directions:
             for axis in self.axes:
-                self.ca.assert_setting_setpoint_sets_readback(123, "{direction}:{axis}".format(direction=direction, axis=axis))
+                self.ca.assert_setting_setpoint_sets_readback(
+                    123, "{direction}:{axis}".format(direction=direction, axis=axis)
+                )

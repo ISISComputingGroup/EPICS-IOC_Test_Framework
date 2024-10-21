@@ -1,3 +1,4 @@
+import os
 import unittest
 from time import sleep
 
@@ -6,9 +7,7 @@ from parameterized import parameterized
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list, ManagerMode
-import os
-
+from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
 # These definitions should match self.channels in the emulator
 TEMP_CARDS = ["MB0.T0", "DB2.T1"]
@@ -38,7 +37,9 @@ def get_card_pv_prefix(card):
     """
     if card in TEMP_CARDS:
         assert card not in PRESSURE_CARDS and card not in LEVEL_CARDS
-        return "{}".format(TEMP_CARDS.index(card) + 1)  # Only a numeric prefix for temperature cards
+        return "{}".format(
+            TEMP_CARDS.index(card) + 1
+        )  # Only a numeric prefix for temperature cards
     elif card in PRESSURE_CARDS:
         assert card not in LEVEL_CARDS
         return "PRESSURE:{}".format(PRESSURE_CARDS.index(card) + 1)
@@ -72,9 +73,11 @@ DEVICE_PREFIX = "MERCURY_01"
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": os.path.join(EPICS_TOP, "ioc", "master", "MERCURY_ITC", "iocBoot", "iocMERCURY-IOC-01"),
+        "directory": os.path.join(
+            EPICS_TOP, "ioc", "master", "MERCURY_ITC", "iocBoot", "iocMERCURY-IOC-01"
+        ),
         "emulator": "mercuryitc",
-        "macros": macros
+        "macros": macros,
     },
     {
         # INSTETC is required to enable manager mode.
@@ -82,7 +85,7 @@ IOCS = [
         "directory": get_default_ioc_dir("INSTETC"),
         "custom_prefix": "CS",
         "pv_for_existence": "MANAGER",
-    }
+    },
 ]
 
 
@@ -108,15 +111,17 @@ MOCK_NICKNAMES = ["MyNickName", "SomeOtherNickname"]
 MOCK_CALIB_FILES = ["FakeCalib", "OtherFakeCalib", "test_calib.dat", "test space calib.dat"]
 
 # Taken from the calibration file, minimum temperature, pressure
-PRESSSURE_FOR = [(0, 35),
-                 (4, 35),
-                 (10, 25),
-                 (20, 14),
-                 (50, 10),
-                 (100, 8),
-                 (150, 8),
-                 (200, 8),
-                 (280, 8)]
+PRESSSURE_FOR = [
+    (0, 35),
+    (4, 35),
+    (10, 25),
+    (20, 14),
+    (50, 10),
+    (100, 8),
+    (150, 8),
+    (200, 8),
+    (280, 8),
+]
 
 
 def pressure_for(setpoint_temp):
@@ -137,14 +142,16 @@ class MercuryFLOWSPCTests(unittest.TestCase):
     """
     Tests for the Mercury IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("mercuryitc", DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device("connected", True)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
         card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
-        self.ca.assert_setting_setpoint_sets_readback("OFF", readback_pv="{}:SPC".format(card_pv_prefix),
-                                                      expected_alarm=self.ca.Alarms.MAJOR)
-        
+        self.ca.assert_setting_setpoint_sets_readback(
+            "OFF", readback_pv="{}:SPC".format(card_pv_prefix), expected_alarm=self.ca.Alarms.MAJOR
+        )
+
     def test_WHEN_auto_flow_set_THEN_pv_updates_and_states_are_set(self):
         card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
@@ -155,8 +162,10 @@ class MercuryFLOWSPCTests(unittest.TestCase):
         self.ca.set_pv_value("{}:FLOW:STAT:SP".format(pressure_card_pv_prefix), "Manual")
 
         self.ca.assert_setting_setpoint_sets_readback(
-            "ON", set_point_pv="{}:SPC:SP".format(card_pv_prefix),
-            readback_pv="{}:SPC".format(card_pv_prefix))
+            "ON",
+            set_point_pv="{}:SPC:SP".format(card_pv_prefix),
+            readback_pv="{}:SPC".format(card_pv_prefix),
+        )
         self.ca.assert_that_pv_is("{}:PID:AUTO".format(card_pv_prefix), "ON")
         self.ca.assert_that_pv_is("{}:FLOW:STAT".format(card_pv_prefix), "Manual")
         self.ca.assert_that_pv_is("{}:HEATER:MODE".format(card_pv_prefix), "Auto")
@@ -173,8 +182,11 @@ class MercuryFLOWSPCTests(unittest.TestCase):
         self.ca.set_pv_value("{}:FLOW:STAT:SP".format(pressure_card_pv_prefix), "Manual")
 
         self.ca.assert_setting_setpoint_sets_readback(
-            "OFF", set_point_pv="{}:SPC:SP".format(card_pv_prefix),
-            readback_pv="{}:SPC".format(card_pv_prefix), expected_alarm=self.ca.Alarms.MAJOR)
+            "OFF",
+            set_point_pv="{}:SPC:SP".format(card_pv_prefix),
+            readback_pv="{}:SPC".format(card_pv_prefix),
+            expected_alarm=self.ca.Alarms.MAJOR,
+        )
         self.ca.assert_that_pv_is("{}:PID:AUTO".format(card_pv_prefix), "OFF")
         self.ca.assert_that_pv_is("{}:FLOW:STAT".format(card_pv_prefix), "Auto")
         self.ca.assert_that_pv_is("{}:HEATER:MODE".format(card_pv_prefix), "Manual")
@@ -192,53 +204,87 @@ class MercuryFLOWSPCTests(unittest.TestCase):
         self.ca.set_pv_value("{}:SPC:SP".format(card_pv_prefix), spc_state)
         self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", reading])
+            "backdoor_set_channel_property", [TEMP_CARDS[0], "temperature", reading]
+        )
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_auto_flow_set_on_and_temp_lower_than_2_deadbands_THEN_pressure_set_to_minimum_pressure(self):
+    def test_WHEN_auto_flow_set_on_and_temp_lower_than_2_deadbands_THEN_pressure_set_to_minimum_pressure(
+        self,
+    ):
         set_point = 10
         reading = 10 - SPC_TEMP_DEADBAND * 2.1
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
         self.set_temp_reading_and_sp(reading, set_point)
 
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), SPC_MIN_PRESSURE)
+        self.ca.assert_that_pv_is(
+            "{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), SPC_MIN_PRESSURE
+        )
 
-    @parameterized.expand([(10, ), (1, ), (300, ), (12, ), (20,)])
+    @parameterized.expand([(10,), (1,), (300,), (12,), (20,)])
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_auto_flow_set_on_and_temp_low_but_within_1_to_2_deadbands_THEN_pressure_set_to_pressure_for_setpoint_temp_and_does_not_ramp(self, set_point):
+    def test_WHEN_auto_flow_set_on_and_temp_low_but_within_1_to_2_deadbands_THEN_pressure_set_to_pressure_for_setpoint_temp_and_does_not_ramp(
+        self, set_point
+    ):
         reading = set_point - SPC_TEMP_DEADBAND * 1.5
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
         self.set_temp_reading_and_sp(reading, set_point)
 
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), pressure_for(set_point))
+        self.ca.assert_that_pv_is(
+            "{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), pressure_for(set_point)
+        )
         sleep(1.5)
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), pressure_for(set_point))
+        self.ca.assert_that_pv_is(
+            "{}:PRESSURE:SP:RBV".format(pressure_card_pv_prefix), pressure_for(set_point)
+        )
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_auto_flow_set_on_and_temp_at_setpoint_THEN_pressure_set_to_pressure_for_setpoint_temp_and_does_ramp_down(self):
+    def test_WHEN_auto_flow_set_on_and_temp_at_setpoint_THEN_pressure_set_to_pressure_for_setpoint_temp_and_does_ramp_down(
+        self,
+    ):
         set_point = 10
         reading = set_point
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
         self.set_temp_reading_and_sp(reading, set_point)
 
-        self.ca.assert_that_pv_is_number("{}:PRESSURE:SP".format(pressure_card_pv_prefix), pressure_for(set_point) + SPC_OFFSET, tolerance=SPC_OFFSET/4)  # should see number in ramp
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), pressure_for(set_point))  # final value
+        self.ca.assert_that_pv_is_number(
+            "{}:PRESSURE:SP".format(pressure_card_pv_prefix),
+            pressure_for(set_point) + SPC_OFFSET,
+            tolerance=SPC_OFFSET / 4,
+        )  # should see number in ramp
+        self.ca.assert_that_pv_is(
+            "{}:PRESSURE:SP".format(pressure_card_pv_prefix), pressure_for(set_point)
+        )  # final value
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_auto_flow_set_on_and_temp_above_setpoint_by_more_than_deadband_THEN_pressure_set_to_pressure_for_setpoint_temp_plus_gain_and_does_ramp(self):
+    def test_WHEN_auto_flow_set_on_and_temp_above_setpoint_by_more_than_deadband_THEN_pressure_set_to_pressure_for_setpoint_temp_plus_gain_and_does_ramp(
+        self,
+    ):
         diff = SPC_TEMP_DEADBAND * 1.1
         set_point = 10
         reading = set_point + diff
-        expected_pressure = round((pressure_for(set_point) + SPC_OFFSET + (abs(reading - set_point - SPC_TEMP_DEADBAND) * SPC_GAIN) ** 2), 2)
+        expected_pressure = round(
+            (
+                pressure_for(set_point)
+                + SPC_OFFSET
+                + (abs(reading - set_point - SPC_TEMP_DEADBAND) * SPC_GAIN) ** 2
+            ),
+            2,
+        )
         pressure_card_pv_prefix = get_card_pv_prefix(PRESSURE_CARDS[0])
         self.set_temp_reading_and_sp(reading, set_point)
 
-        self.ca.assert_that_pv_is_number("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance = 0.01)  # final value
+        self.ca.assert_that_pv_is_number(
+            "{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance=0.01
+        )  # final value
         sleep(1.5)  # wait for possible ramp
-        self.ca.assert_that_pv_is_number("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance = 0.01)  # final value
+        self.ca.assert_that_pv_is_number(
+            "{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_pressure, tolerance=0.01
+        )  # final value
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
-    def test_WHEN_auto_flow_set_on_and_pressure_would_be_high_THEN_pressure_set_to_maximum_pressure(self):
+    def test_WHEN_auto_flow_set_on_and_pressure_would_be_high_THEN_pressure_set_to_maximum_pressure(
+        self,
+    ):
         diff = 1000
         set_point = 10
         reading = set_point + diff
@@ -246,7 +292,9 @@ class MercuryFLOWSPCTests(unittest.TestCase):
 
         self.set_temp_reading_and_sp(reading, set_point)
 
-        self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), SPC_MAX_PRESSURE)  # final value
+        self.ca.assert_that_pv_is(
+            "{}:PRESSURE:SP".format(pressure_card_pv_prefix), SPC_MAX_PRESSURE
+        )  # final value
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_auto_flow_set_off_THEN_pressure_is_not_updated(self):
@@ -276,11 +324,17 @@ class MercuryFLOWSPCTests(unittest.TestCase):
             # (and this will be variable) before the record we choose gets processed and fails or hits
             # the stream device lock timeout instead.
             # So we need to wait for at least as long as stream device lock timeout to see an alarm raised`
-            self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.INVALID, timeout=60)
+            self.ca.assert_that_pv_alarm_is(
+                "{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.INVALID, timeout=60
+            )
 
             self.ca.set_pv_value("{}:SPC:SP".format(card_pv_prefix), "ON")
             self.ca.set_pv_value("{}:TEMP:SP".format(card_pv_prefix), set_point)
 
-            self.ca.assert_that_pv_is("{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value)
-        
-        self.ca.assert_that_pv_alarm_is("{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.NONE, timeout=60)
+            self.ca.assert_that_pv_is(
+                "{}:PRESSURE:SP".format(pressure_card_pv_prefix), expected_value
+            )
+
+        self.ca.assert_that_pv_alarm_is(
+            "{}:TEMP:SP:RBV".format(card_pv_prefix), self.ca.Alarms.NONE, timeout=60
+        )

@@ -1,13 +1,9 @@
 import unittest
 
-from parameterized import parameterized
-
-from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
-
-from utils.ioc_launcher import IOCRegister, IocLauncher
-from utils.testing import get_running_lewis_and_ioc, parameterized_list
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "CP2800_01"
 
@@ -23,19 +19,19 @@ TEST_MODES = [TestModes.RECSIM]
 
 
 class CP2800StatusTests(unittest.TestCase):
-
     def setUp(self):
         _, self._ioc = get_running_lewis_and_ioc(None, DEVICE_PREFIX)
         self.assertIsNotNone(self._ioc)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
 
     def test_GIVEN_compressor_elapsed_minutes_THEN_alarm_correct(self):
-        tests = [(-1, self.ca.Alarms.MAJOR),
-                 (0, self.ca.Alarms.NONE),
-                 (1, self.ca.Alarms.NONE),
-                 (500001, self.ca.Alarms.MINOR),
-                 (1000001, self.ca.Alarms.MAJOR),
-                 ]
+        tests = [
+            (-1, self.ca.Alarms.MAJOR),
+            (0, self.ca.Alarms.NONE),
+            (1, self.ca.Alarms.NONE),
+            (500001, self.ca.Alarms.MINOR),
+            (1000001, self.ca.Alarms.MAJOR),
+        ]
         for test in tests:
             elapsed_time, expected_alarm = test
             self.ca.set_pv_value("SIM:ELAPSED", elapsed_time)

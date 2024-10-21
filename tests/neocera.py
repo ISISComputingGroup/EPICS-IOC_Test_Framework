@@ -1,10 +1,9 @@
-import unittest
 import itertools
+import unittest
 
-from utils.test_modes import TestModes
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-from utils.testing import skip_if_recsim, get_running_lewis_and_ioc
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
 
 # Device prefix
 DEVICE_PREFIX = "NEOCERA_01"
@@ -42,7 +41,10 @@ class NeoceraTests(unittest.TestCase):
     def test_WHEN_temperatue_setpoint_is_set_THEN_readback_updates_to_the_value_just_set(self):
         for sensor, value in itertools.product(SENSORS, TEST_VALUES):
             self.ca.assert_setting_setpoint_sets_readback(
-                value, set_point_pv="{}:TEMP:SP".format(sensor), readback_pv="{}:TEMP:SP:RBV".format(sensor))
+                value,
+                set_point_pv="{}:TEMP:SP".format(sensor),
+                readback_pv="{}:TEMP:SP:RBV".format(sensor),
+            )
 
     def test_WHEN_pid_settings_are_set_THEN_readbacks_update_to_the_values_just_set(self):
         for sensor, value, control in itertools.product(SENSORS, TEST_VALUES, ["P", "I", "D"]):

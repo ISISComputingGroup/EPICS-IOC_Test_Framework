@@ -1,28 +1,25 @@
 import unittest
-
-from parameterized import parameterized
-
-from common_tests.tpgx00 import Tpgx00Base
-from utils.ioc_launcher import get_default_ioc_dir
-from utils.test_modes import TestModes
-from utils.testing import skip_if_recsim, parameterized_list
 from enum import Enum
 
 from genie_python.genie_cachannel_wrapper import InvalidEnumStringException
+from parameterized import parameterized
 
+from common_tests.tpgx00 import Tpgx00Base
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list, skip_if_recsim
 
 DEVICE_PREFIX = "TPG300_01"
 
 IOCS = [
     {
-    "name": DEVICE_PREFIX,
-    "directory": get_default_ioc_dir("TPG300"),
-    "macros": {
-        "MODEL": "500"
-    },
-    "emulator": "tpgx00",
-    "lewis_protocol": "tpg500",
-    "pv_for_existence": "UNITS",
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("TPG300"),
+        "macros": {"MODEL": "500"},
+        "emulator": "tpgx00",
+        "lewis_protocol": "tpg500",
+        "pv_for_existence": "UNITS",
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
@@ -31,14 +28,15 @@ TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 SWITCHING_FUNCTIONS = ("SEL", "1", "2", "3", "4")
 
+
 class SFAssignment(Enum):
-    OFF         = (0, "Switched off")
-    A1          = (1, "A1")
-    A2          = (2, "A2")
-    B1          = (3, "B1")
-    B2          = (4, "B2")
-    ON          = (5, "Switched on")
-    
+    OFF = (0, "Switched off")
+    A1 = (1, "A1")
+    A2 = (2, "A2")
+    B1 = (3, "B1")
+    B2 = (4, "B2")
+    ON = (5, "Switched on")
+
     def __new__(cls, value, desc):
         obj = object.__new__(cls)
         obj._value_ = value
@@ -63,17 +61,17 @@ class Tpg500Tests(Tpgx00Base, unittest.TestCase):
 
     def get_prefix(self):
         return DEVICE_PREFIX
-    
+
     def get_units(self):
         return Units
 
     def get_sf_assignment(self):
         return SFAssignment
-        
+
     def get_switching_fns(self):
         return SWITCHING_FUNCTIONS
 
-    @parameterized.expand(parameterized_list(['A', 'B']))
+    @parameterized.expand(parameterized_list(["A", "B"]))
     @skip_if_recsim("Requires emulator")
     def test_WHEN_invalid_switching_function_set_THEN_pv_goes_into_alarm(self, _, switching_func):
         with self.assertRaises(InvalidEnumStringException):

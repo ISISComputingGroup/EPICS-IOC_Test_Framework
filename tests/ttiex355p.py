@@ -1,11 +1,12 @@
 import unittest
+
 from parameterized import parameterized
 
 from common_tests.tti_common import TtiCommon
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 DEVICE_PREFIX = "TTIEX355P_01"
 DEVICE_NAME = "ttiex355p"
@@ -24,13 +25,9 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("TTIEX355P"),
-        "macros": {
-            "AMPSTOGAUSS": AMPSTOGAUSS,
-            "MAX_FIELD": MAX_FIELD,
-            "DISABLE_AUTOONOFF": 0
-        },
+        "macros": {"AMPSTOGAUSS": AMPSTOGAUSS, "MAX_FIELD": MAX_FIELD, "DISABLE_AUTOONOFF": 0},
         "emulator": DEVICE_NAME,
-        "lewis_protocol": "ttiex355p"
+        "lewis_protocol": "ttiex355p",
     },
 ]
 
@@ -42,6 +39,7 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
     """
     Tests for the Tti355 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(DEVICE_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
@@ -75,7 +73,9 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
         self.ca.set_pv_value("FIELD:SP", field)
         self.ca.assert_that_pv_is_number("CURRENT:SP", field / AMPSTOGAUSS, tolerance=TOLERANCE)
 
-        self.ca.assert_that_pv_is_number("CURRENT", field / AMPSTOGAUSS, tolerance=TOLERANCE, timeout=30)
+        self.ca.assert_that_pv_is_number(
+            "CURRENT", field / AMPSTOGAUSS, tolerance=TOLERANCE, timeout=30
+        )
         self.ca.assert_that_pv_is_number("CURRENT:SP:RBV", field / AMPSTOGAUSS, tolerance=TOLERANCE)
 
         self.ca.assert_that_pv_is_number("FIELD", field, tolerance=TOLERANCE)
@@ -128,10 +128,16 @@ class Tti355Tests(TtiCommon, unittest.TestCase):
         self.ca.assert_that_pv_is_number("CURRENT", 0, tolerance=TOLERANCE)
         self.ca.assert_that_pv_is("OUTPUTSTATUS", self.get_off_state_name(), timeout=60)
 
-    @parameterized.expand(parameterized_list([
-        ("VOLTAGE", MIN_VOLTAGE - 1.0, MIN_VOLTAGE), ("VOLTAGE", MAX_VOLTAGE + 1.0, MAX_VOLTAGE),
-        ("CURRENT", MIN_CURRENT - 1.0, MIN_CURRENT), ("CURRENT", MAX_CURRENT + 1.0, MAX_CURRENT)
-    ]))
+    @parameterized.expand(
+        parameterized_list(
+            [
+                ("VOLTAGE", MIN_VOLTAGE - 1.0, MIN_VOLTAGE),
+                ("VOLTAGE", MAX_VOLTAGE + 1.0, MAX_VOLTAGE),
+                ("CURRENT", MIN_CURRENT - 1.0, MIN_CURRENT),
+                ("CURRENT", MAX_CURRENT + 1.0, MAX_CURRENT),
+            ]
+        )
+    )
     def test_WHEN_set_past_limits_THEN_limits_set(self, _, pv, setpoint, expected_val):
         self.ca.set_pv_value(f"{pv}:SP", setpoint)
         self.ca.assert_that_pv_is_number(f"{pv}:SP:RBV", expected_val, tolerance=TOLERANCE)

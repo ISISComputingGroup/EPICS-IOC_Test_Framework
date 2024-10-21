@@ -1,7 +1,7 @@
 import socket
 
 
-def get_free_ports(n):
+def get_free_ports(n: int) -> tuple[int, ...]:
     """
     Returns n free port numbers on the current machine.
 
@@ -21,7 +21,7 @@ def get_free_ports(n):
     return tuple(ports)
 
 
-def get_free_ports_from_list(n, port_low, port_high):
+def get_free_ports_from_list(n: int, port_low: int, port_high: int) -> tuple[int, ...]:
     """
     Return n free ports by testing specified range.
 
@@ -41,7 +41,7 @@ def get_free_ports_from_list(n, port_low, port_high):
                 ports.append(s.getsockname()[1])
                 socks.append(s)
                 break
-            except:
+            except socket.error:
                 pass
     for s in socks:
         s.close()

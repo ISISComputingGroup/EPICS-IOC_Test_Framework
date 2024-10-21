@@ -1,22 +1,26 @@
+import time
 import unittest
-
-from common_tests.kepco import KepcoTests, DEVICE_PREFIX, emulator_name, IDN_NO_REM, IDN_REM, MAX_CURRENT
-
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.test_modes import TestModes
-from utils.testing import skip_if_recsim, parameterized_list
+from distutils.util import strtobool
 
 from parameterized import parameterized
 
-from distutils.util import strtobool
-import time
-
+from common_tests.kepco import (
+    DEVICE_PREFIX,
+    IDN_NO_REM,
+    IDN_REM,
+    MAX_CURRENT,
+    KepcoTests,
+    emulator_name,
+)
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import parameterized_list, skip_if_recsim
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("KEPCO"),
-        "macros": {"CURRENT_MAX": MAX_CURRENT},
+        "macros": {"CURRENT_MAX": MAX_CURRENT, "REMOTE_ON_SET": "NO"},
         "emulator": emulator_name,
         "ioc_launcher_class": ProcServLauncher,
     },
@@ -56,13 +60,19 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         if error_message_calls != "":
             raise AssertionError("Failed to call sets:{}".format(error_message_calls))
 
-    @parameterized.expand(parameterized_list([
-        (IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 1}),
-        (IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 2}),
-        (IDN_REM[0], IDN_REM[1], {"RESET_ON_START": 2}),
-    ]))
+    @parameterized.expand(
+        parameterized_list(
+            [
+                (IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 1}),
+                (IDN_NO_REM[0], IDN_NO_REM[1], {"RESET_ON_START": 2}),
+                (IDN_REM[0], IDN_REM[1], {"RESET_ON_START": 2}),
+            ]
+        )
+    )
     @skip_if_recsim("Lewis not available in recsim")
-    def test_GIVEN_kepco_started_THEN_reset_and_params_resent(self, _, idn_no_firmware, firmware, macros):
+    def test_GIVEN_kepco_started_THEN_reset_and_params_resent(
+        self, _, idn_no_firmware, firmware, macros
+    ):
         # Reset data
         self._lewis.backdoor_run_function_on_device("reset")
         self._set_IDN(idn_no_firmware, firmware)
@@ -72,8 +82,10 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
         pv_values = {
             "CURRENT:SP": float(self._lewis.backdoor_get_from_device("setpoint_current")) + 5.0,
             "VOLTAGE:SP": float(self._lewis.backdoor_get_from_device("setpoint_voltage")) + 5.0,
-            "OUTPUTMODE:SP": "VOLTAGE" if self.ca.get_pv_value("OUTPUTMODE:SP") == "CURRENT" else "CURRENT",
-            "OUTPUTSTATUS:SP": "OFF" if self.ca.get_pv_value("OUTPUTSTATUS:SP") == "ON" else "ON"
+            "OUTPUTMODE:SP": "VOLTAGE"
+            if self.ca.get_pv_value("OUTPUTMODE:SP") == "CURRENT"
+            else "CURRENT",
+            "OUTPUTSTATUS:SP": "OFF" if self.ca.get_pv_value("OUTPUTSTATUS:SP") == "ON" else "ON",
         }
         for pv, value in pv_values.items():
             self.ca.set_pv_value(pv, value)
@@ -84,7 +96,12 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
 
         # Set counts to zero and remote mode to false
         # We want lewis_vars and lewis_vals separate as they are checked later
-        lewis_vars = ["voltage_set_count", "current_set_count", "output_mode_set_count", "output_status_set_count"]
+        lewis_vars = [
+            "voltage_set_count",
+            "current_set_count",
+            "output_mode_set_count",
+            "output_status_set_count",
+        ]
         lewis_vals = [0, 0, 0, 0]
         self.lewis_set_and_assert_list(
             zip(lewis_vars + ["reset_count", "remote_comms_enabled"], lewis_vals + [0, False])

@@ -1,5 +1,5 @@
-import unittest
 import os
+import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -9,8 +9,16 @@ from utils.test_modes import TestModes
 
 GALIL_ADDR = "127.0.0.11"
 
-test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
-                                          "support", "motorExtensions", "master", "settings", "emma_chopper_lifter"))
+test_path = os.path.realpath(
+    os.path.join(
+        os.getenv("EPICS_KIT_ROOT"),
+        "support",
+        "motorExtensions",
+        "master",
+        "settings",
+        "emma_chopper_lifter",
+    )
+)
 
 IOCS = [
     {
@@ -35,6 +43,7 @@ class FermiChopperLifterTests(unittest.TestCase):
 
     There isn't any logic to test in this IOC so this is really just a test that the DB records get loaded.
     """
+
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
         self.ca = ChannelAccess(default_timeout=30)

@@ -1,14 +1,11 @@
-import six
-
 from abc import ABCMeta, abstractmethod
+from itertools import product
 
 from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
-from itertools import product
 
 
-@six.add_metaclass(ABCMeta)
-class Moxa12XXBase(object):
+class Moxa12XXBase(object, metaclass=ABCMeta):
     """
     Tests for a moxa ioLogik e1240. (8x DC Voltage/Current measurements)
     """
@@ -62,7 +59,6 @@ class Moxa12XXBase(object):
         pass
 
     def setUp(self):
-
         self.NUMBER_OF_CHANNELS = self.get_number_of_channels()
 
         self.CHANNELS = range(self.NUMBER_OF_CHANNELS)
@@ -81,37 +77,53 @@ class Moxa12XXBase(object):
 
         # Sends a backdoor command to the device to reset all input registers (IRs) to 0
         reset_value = 0
-        self._lewis.backdoor_run_function_on_device("set_ir", (self.get_starting_reg_addr(),
-                                                               [reset_value]*self.get_registers_per_channel()*self.NUMBER_OF_CHANNELS))
+        self._lewis.backdoor_run_function_on_device(
+            "set_ir",
+            (
+                self.get_starting_reg_addr(),
+                [reset_value] * self.get_registers_per_channel() * self.NUMBER_OF_CHANNELS,
+            ),
+        )
 
     def test_WHEN_an_AI_input_is_changed_THEN_that_channel_readback_updates(self):
         for channel, test_value in product(self.CHANNELS, self.get_test_values()):
             register_offset = channel * self.get_registers_per_channel()
 
-            self._lewis.backdoor_run_function_on_device(self.get_setter_function_name(),
-                                                        (self.get_starting_reg_addr() + register_offset, test_value))
+            self._lewis.backdoor_run_function_on_device(
+                self.get_setter_function_name(),
+                (self.get_starting_reg_addr() + register_offset, test_value),
+            )
 
             expected_value = self.SCALING_FACTOR * test_value
 
-            self.ca.assert_that_pv_is_number("CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
-                                             expected_value, tolerance=0.1*abs(expected_value))
+            self.ca.assert_that_pv_is_number(
+                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
+                expected_value,
+                tolerance=0.1 * abs(expected_value),
+            )
 
     def test_WHEN_device_voltage_is_within_user_limits_THEN_PV_shows_no_alarm(self):
         for channel in self.CHANNELS:
             register_offset = channel * self.get_registers_per_channel()
 
-            value_to_set = 0.5*(self.low_alarm_limit + self.high_alarm_limit)
+            value_to_set = 0.5 * (self.low_alarm_limit + self.high_alarm_limit)
 
             expected_value = self.SCALING_FACTOR * value_to_set
 
-            self._lewis.backdoor_run_function_on_device(self.get_setter_function_name(),
-                                                        (self.get_starting_reg_addr() + register_offset, value_to_set))
+            self._lewis.backdoor_run_function_on_device(
+                self.get_setter_function_name(),
+                (self.get_starting_reg_addr() + register_offset, value_to_set),
+            )
 
-            self.ca.assert_that_pv_is_number("CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
-                                             expected_value, tolerance=0.1*abs(expected_value))
+            self.ca.assert_that_pv_is_number(
+                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
+                expected_value,
+                tolerance=0.1 * abs(expected_value),
+            )
 
-            self.ca.assert_that_pv_alarm_is("CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
-                                            self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_alarm_is(
+                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()), self.ca.Alarms.NONE
+            )
 
     def test_WHEN_device_voltage_is_outside_user_limits_THEN_PV_shows_major_alarm(self):
         test_values = [self.low_alarm_limit - 1.0, self.high_alarm_limit + 1.0]
@@ -121,14 +133,20 @@ class Moxa12XXBase(object):
 
             expected_value = self.SCALING_FACTOR * value_to_set
 
-            self._lewis.backdoor_run_function_on_device(self.get_setter_function_name(),
-                                                        (self.get_starting_reg_addr() + register_offset, value_to_set))
+            self._lewis.backdoor_run_function_on_device(
+                self.get_setter_function_name(),
+                (self.get_starting_reg_addr() + register_offset, value_to_set),
+            )
 
-            self.ca.assert_that_pv_is_number("CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
-                                             expected_value, tolerance=0.1*abs(expected_value))
+            self.ca.assert_that_pv_is_number(
+                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
+                expected_value,
+                tolerance=0.1 * abs(expected_value),
+            )
 
-            self.ca.assert_that_pv_alarm_is("CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
-                                            self.ca.Alarms.MAJOR)
+            self.ca.assert_that_pv_alarm_is(
+                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()), self.ca.Alarms.MAJOR
+            )
 
     def test_WHEN_a_channel_is_aliased_THEN_a_PV_with_that_alias_exists(self):
         for channel in self.CHANNELS:

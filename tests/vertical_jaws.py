@@ -1,11 +1,12 @@
-import unittest
 import os
+import unittest
+
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list, unstable_test
-from parameterized import parameterized
 
 DEVICE_PREFIX = "GALIL_01"
 
@@ -19,14 +20,16 @@ MOTOR_S_SP = MOTOR_S + ":SP"
 UNDERLYING_MTR_NORTH = "MOT:MTR0101"
 UNDERLYING_MTR_SOUTH = "MOT:MTR0102"
 
-all_motors = [MOTOR_N, MOTOR_S,
-              UNDERLYING_MTR_NORTH, UNDERLYING_MTR_SOUTH]
+all_motors = [MOTOR_N, MOTOR_S, UNDERLYING_MTR_NORTH, UNDERLYING_MTR_SOUTH]
 
 TEST_POSITIONS = [-5, 0, 10, 10e-1]
 
 # Tests will fail if JAWS support module is not up to date and built
 test_path = os.path.realpath(
-    os.path.join(os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_vertical_only"))
+    os.path.join(
+        os.getenv("EPICS_KIT_ROOT"), "support", "jaws", "master", "settings", "jaws_vertical_only"
+    )
+)
 
 IOCS = [
     {
@@ -46,7 +49,6 @@ TEST_MODES = [TestModes.RECSIM]
 
 
 class VerticalJawsTests(unittest.TestCase):
-
     def set_motor_speeds(self):
         self.ca.set_pv_value(UNDERLYING_MTR_NORTH + ".VMAX", 20)
         self.ca.set_pv_value(UNDERLYING_MTR_NORTH + ".VELO", 20)
@@ -56,6 +58,7 @@ class VerticalJawsTests(unittest.TestCase):
     """
     Tests for vertical jaws
     """
+
     def setUp(self):
         self._ioc = IOCRegister.get_running("vertical_jaws")
         self.ca = ChannelAccess(default_timeout=30)

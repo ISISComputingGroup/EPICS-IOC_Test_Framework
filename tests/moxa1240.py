@@ -2,9 +2,8 @@ import unittest
 from itertools import product
 
 from common_tests.moxa12XX import Moxa12XXBase
-
-from utils.test_modes import TestModes
 from utils.ioc_launcher import get_default_ioc_dir
+from utils.test_modes import TestModes
 
 # Device prefix
 DEVICE_PREFIX = "MOXA12XX_01"
@@ -42,16 +41,16 @@ IOCS = [
 AI_REGISTER_OFFSET = 0
 REGISTERS_PER_CHANNEL = 1
 
-TEST_MODES = [TestModes.DEVSIM, ]
+TEST_MODES = [
+    TestModes.DEVSIM,
+]
 NUMBER_OF_CHANNELS = 8
 CHANNELS = range(NUMBER_OF_CHANNELS)
 
 MIN_VOLT_MEAS = 0.0
 MAX_VOLT_MEAS = 10.0
 
-TEST_VALUES = [MIN_VOLT_MEAS,
-               MAX_VOLT_MEAS,
-               0.5*(MIN_VOLT_MEAS + MAX_VOLT_MEAS)]
+TEST_VALUES = [MIN_VOLT_MEAS, MAX_VOLT_MEAS, 0.5 * (MIN_VOLT_MEAS + MAX_VOLT_MEAS)]
 
 
 class Moxa1240TestsFromBase(Moxa12XXBase, unittest.TestCase):
@@ -100,8 +99,15 @@ class Moxa1240TestsFromBase(Moxa12XXBase, unittest.TestCase):
         for channel, test_value in product(CHANNELS, TEST_VALUES):
             register_offset = channel * self.get_registers_per_channel()
 
-            self._lewis.backdoor_run_function_on_device(self.get_setter_function_name(),
-                                                        (self.get_starting_reg_addr() + register_offset, test_value))
+            self._lewis.backdoor_run_function_on_device(
+                self.get_setter_function_name(),
+                (self.get_starting_reg_addr() + register_offset, test_value),
+            )
 
-            self.ca.assert_that_pv_is_number("CH{:01d}:AI:RBV".format(channel, PV=self.get_PV_name()),
-                                             test_value, tolerance=0.1*abs(test_value))
+            self.ca.assert_that_pv_is_number(
+                "CH{:01d}:AI:RBV".format(
+                    channel,
+                ),
+                test_value,
+                tolerance=0.1 * abs(test_value),
+            )

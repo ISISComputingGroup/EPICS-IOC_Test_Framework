@@ -1,11 +1,11 @@
 import unittest
 
+from parameterized import parameterized
+
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
-from parameterized import parameterized
-
 
 DEVICE_PREFIX = "PT2025_01"
 
@@ -24,10 +24,12 @@ DATA_UNLOCKED = ["W12.1243470T", "V12.1242321T", "V12.1242341T"]
 
 TEST_MODES = [TestModes.DEVSIM]
 
+
 class Pt2025Tests(unittest.TestCase):
     """
     Tests for the Pt2025 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc("pt2025", DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)

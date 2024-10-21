@@ -27,6 +27,7 @@ class Knr1050Tests(unittest.TestCase):
     """
     Tests for the Knr1050 IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(device_name, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_wait_time=0.0)
@@ -80,7 +81,9 @@ class Knr1050Tests(unittest.TestCase):
         self.assertEqual(pump_status, "True")
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_concentration_via_ioc_WHEN_ramp_command_sent_via_ioc_THEN_correct_concentration_set(self):
+    def test_GIVEN_set_concentration_via_ioc_WHEN_ramp_command_sent_via_ioc_THEN_correct_concentration_set(
+        self,
+    ):
         expected_concentrations = [0, 50, 35, 15]
         self.ca.set_pv_value("COMP:A:SP", expected_concentrations[0])
         self.ca.set_pv_value("COMP:B:SP", expected_concentrations[1])
@@ -88,12 +91,14 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("COMP:D:SP", expected_concentrations[3])
         self.ca.set_pv_value("START:SP", 1)
 
-        sleep(1.0) # allow emulator to process above data
+        sleep(1.0)  # allow emulator to process above data
 
-        concentrations = [self.ca.get_pv_value("COMP:A"),
-                          self.ca.get_pv_value("COMP:B"),
-                          self.ca.get_pv_value("COMP:C"),
-                          self.ca.get_pv_value("COMP:D")]
+        concentrations = [
+            self.ca.get_pv_value("COMP:A"),
+            self.ca.get_pv_value("COMP:B"),
+            self.ca.get_pv_value("COMP:C"),
+            self.ca.get_pv_value("COMP:D"),
+        ]
         self.assertEqual(expected_concentrations, concentrations)
 
     @skip_if_recsim("Recsim simulation not implemented")
@@ -120,14 +125,16 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("START:SP", 1)
         self.ca.set_pv_value("STOP:SP", 1)
 
-        sleep(1.0) # allow emulator to process above data
+        sleep(1.0)  # allow emulator to process above data
 
         state = self._lewis.backdoor_get_from_device("state")
 
         self.assertEqual(expected_dev_state, state)
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_low_pressure_limit_via_backdoor_WHEN_get_low_pressure_limits_via_IOC_THEN_get_expected_pressure_limit(self):
+    def test_GIVEN_set_low_pressure_limit_via_backdoor_WHEN_get_low_pressure_limits_via_IOC_THEN_get_expected_pressure_limit(
+        self,
+    ):
         expected_pressure = 10
         self._set_pressure_limit_low(expected_pressure)
         self.ca.set_pv_value("PRESSURE:LIMITS.PROC", 1)
@@ -135,7 +142,9 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("PRESSURE:MIN", expected_pressure)
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_high_pressure_limit_via_backdoor_WHEN_get_high_pressure_limits_via_IOC_THEN_get_expected_pressure_limit(self):
+    def test_GIVEN_set_high_pressure_limit_via_backdoor_WHEN_get_high_pressure_limits_via_IOC_THEN_get_expected_pressure_limit(
+        self,
+    ):
         expected_pressure = 100
         self._set_pressure_limit_high(expected_pressure)
         self.ca.set_pv_value("PRESSURE:LIMITS.PROC", 1)
@@ -143,30 +152,40 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("PRESSURE:MAX", expected_pressure)
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_low_pressure_limit_via_ioc_WHEN_get_low_pressure_limit_THEN_get_expected_pressure_limit(self):
+    def test_GIVEN_set_low_pressure_limit_via_ioc_WHEN_get_low_pressure_limit_THEN_get_expected_pressure_limit(
+        self,
+    ):
         expected_pressure = 10
         self.ca.set_pv_value("PRESSURE:MIN:SP", expected_pressure)
         self.ca.set_pv_value("PRESSURE:LIMITS.PROC", 1)
         self.ca.assert_that_pv_is("PRESSURE:MIN", expected_pressure)
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_high_pressure_limit_via_ioc_WHEN_get_high_pressure_limit_via_backdoor_THEN_get_expected_pressure_limit(self):
+    def test_GIVEN_set_high_pressure_limit_via_ioc_WHEN_get_high_pressure_limit_via_backdoor_THEN_get_expected_pressure_limit(
+        self,
+    ):
         expected_pressure = 200
         self.ca.set_pv_value("PRESSURE:MAX:SP", expected_pressure)
         self.ca.set_pv_value("PRESSURE:LIMITS.PROC", 1)
         self.ca.assert_that_pv_is("PRESSURE:MAX", expected_pressure)
 
-        self.assertEqual(self._lewis.backdoor_get_from_device("pressure_limit_high"), str(expected_pressure))
+        self.assertEqual(
+            self._lewis.backdoor_get_from_device("pressure_limit_high"), str(expected_pressure)
+        )
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_low_pressure_limit_via_ioc_WHEN_get_low_pressure_limit_via_IOC_THEN_get_expected_value(self):
+    def test_GIVEN_set_low_pressure_limit_via_ioc_WHEN_get_low_pressure_limit_via_IOC_THEN_get_expected_value(
+        self,
+    ):
         expected_pressure = 45
         self.ca.set_pv_value("PRESSURE:MIN:SP", expected_pressure)
         self.ca.set_pv_value("PRESSURE:LIMITS.PROC", 1)
         self.ca.assert_that_pv_is("PRESSURE:MIN", expected_pressure)
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_high_pressure_limit_via_ioc_WHEN_get_high_pressure_limit_via_IOC_THEN_get_expected_value(self):
+    def test_GIVEN_set_high_pressure_limit_via_ioc_WHEN_get_high_pressure_limit_via_IOC_THEN_get_expected_value(
+        self,
+    ):
         expected_pressure = 500
 
         self.ca.set_pv_value("PRESSURE:MAX:SP", expected_pressure)
@@ -174,7 +193,9 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("PRESSURE:MAX", expected_pressure)
 
     @skip_if_recsim("Recsim simulation not implemented")
-    def test_GIVEN_set_flow_limit_min_via_ioc_WHEN_ramp_command_sent_via_IOC_THEN_correct_flow_limit_set(self):
+    def test_GIVEN_set_flow_limit_min_via_ioc_WHEN_ramp_command_sent_via_IOC_THEN_correct_flow_limit_set(
+        self,
+    ):
         expected_flow = 0.01
         self.ca.set_pv_value("FLOWRATE:SP", expected_flow)
         self.ca.set_pv_value("START:SP", 1)
@@ -190,14 +211,14 @@ class Knr1050Tests(unittest.TestCase):
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_ioc_turned_on_WHEN_get_dev_state_via_ioc_THEN_off_state_returned(self):
-        expected_dev_state = 'OFF'
+        expected_dev_state = "OFF"
         state = self.ca.get_pv_value("STATUS")
 
         self.assertEqual(expected_dev_state, state)
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_ioc_turned_on_WHEN_set_local_mode_via_IOC_THEN_disabled_mode(self):
-        expected_mode = 'Disabled'
+        expected_mode = "Disabled"
         self.ca.set_pv_value("MODE:SP", "LOCAL")
 
         self.ca.assert_that_pv_is("DISABLE", expected_mode)
@@ -207,22 +228,22 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("MODE:SP", "LOCAL")
         self.ca.set_pv_value("START:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", 'OFF')
+        self.ca.assert_that_pv_is("STATUS", "OFF")
 
     @skip_if_recsim("Recsim simulation not implemented")
     def test_GIVEN_incorrect_gradients_WHEN_set_pump_on_via_IOC_THEN_pump_disabled(self):
         self.ca.set_pv_value("COMP:A:SP", 50)  # sum of gradients =/= 100%
         self.ca.set_pv_value("START:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", 'OFF')
+        self.ca.assert_that_pv_is("STATUS", "OFF")
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_get_status_THEN_alarm(self):
-        self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is("PRESSURE:LIMITS", ChannelAccess.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_device():
-            self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is("PRESSURE:LIMITS", ChannelAccess.Alarms.INVALID)
         # Assert alarms clear on reconnection
-        self.ca.assert_that_pv_alarm_is('PRESSURE:LIMITS', ChannelAccess.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is("PRESSURE:LIMITS", ChannelAccess.Alarms.NONE)
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_timed_run_started_THEN_remaining_time_decreases(self):
@@ -237,7 +258,7 @@ class Knr1050Tests(unittest.TestCase):
         self.ca.set_pv_value("TIME:SP", 10)
         self.ca.set_pv_value("TIMED:SP", 1)
 
-        self.ca.assert_that_pv_is("STATUS", 'OFF', timeout=15)
+        self.ca.assert_that_pv_is("STATUS", "OFF", timeout=15)
 
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_long_timed_run_started_THEN_if_remaining_time_checked_then_not_finished(self):

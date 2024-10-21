@@ -20,7 +20,7 @@ IOCS = [
             "HIGH_LEVEL_ALARM": hi_level,
             "HIHI_LEVEL_ALARM": hihi_level,
             "LOW_LEVEL_ALARM": low_level,
-            "LOLO_LEVEL_ALARM": lolo_level
+            "LOLO_LEVEL_ALARM": lolo_level,
         },
         "emulator": "hlg",
     },
@@ -80,13 +80,14 @@ class HlgTests(unittest.TestCase):
 
     @skip_if_recsim("Can not disconnect in recsim")
     def test_GIVEN_not_connected_WHEN_read_THEN_alarm_error(self):
-
         self._set_level(None)
 
         self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.INVALID)
 
     @skip_if_recsim("Can not set prefix in recsim")
-    def test_GIVEN_prefix_set_incorrectly_WHEN_read_THEN_prefix_is_set_to_none_and_level_is_read(self):
+    def test_GIVEN_prefix_set_incorrectly_WHEN_read_THEN_prefix_is_set_to_none_and_level_is_read(
+        self,
+    ):
         expected_level = 234
         self._lewis.backdoor_set_on_device("prefix", 4)
         self._set_level(expected_level)
@@ -95,7 +96,9 @@ class HlgTests(unittest.TestCase):
         self.ca.assert_that_pv_alarm_is("LEVEL", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Can not set verbosity in recsim")
-    def test_GIVEN_verbosity_set_incorrectly_WHEN_read_THEN_verbosity_is_set_to_1_and_level_is_read(self):
+    def test_GIVEN_verbosity_set_incorrectly_WHEN_read_THEN_verbosity_is_set_to_1_and_level_is_read(
+        self,
+    ):
         expected_level = 250
         self._lewis.backdoor_set_on_device("verbosity", 0)
         self._set_level(expected_level)

@@ -1,6 +1,7 @@
 """
 Possible build configs
 """
+
 from enum import Enum
 
 
@@ -8,11 +9,12 @@ class BuildArchitectures(Enum):
     """
     Build configuration types with which a set of unit tests can be run.
     """
+
     _64BIT = 1
     _32BIT = 2
 
     @staticmethod
-    def archname(arch):
+    def archname(arch: str) -> str:
         """
         Returns: nice name of architecture
         """

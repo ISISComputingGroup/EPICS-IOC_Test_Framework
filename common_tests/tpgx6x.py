@@ -1,7 +1,5 @@
 import abc
 
-import six
-
 from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
 
@@ -38,9 +36,7 @@ class ErrorStrings(object):
     IDENTIFICATION_ERROR = "Identification Error"
 
 
-@six.add_metaclass(abc.ABCMeta)
-class TpgBase(object):
-
+class TpgBase(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_prefix(self):
         pass

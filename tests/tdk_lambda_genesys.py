@@ -3,10 +3,9 @@ import os
 import unittest
 
 from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
-from utils.ioc_launcher import EPICS_TOP
-
 
 AMPS_TO_GAUSS = 10
 
@@ -20,7 +19,9 @@ MAX_CURRENT = 250
 IOCS = [
     {
         "name": "GENESYS_01",
-        "directory": os.path.join(EPICS_TOP, "ioc", "master", "TDK_LAMBDA_GENESYS", "iocBoot", "iocGENESYS-IOC-01"),
+        "directory": os.path.join(
+            EPICS_TOP, "ioc", "master", "TDK_LAMBDA_GENESYS", "iocBoot", "iocGENESYS-IOC-01"
+        ),
         "macros": {
             "ADDR1": "1",
             "PORT1": "1",
@@ -32,7 +33,7 @@ IOCS = [
             "MAX_CURRENT1": MAX_CURRENT,
         },
         "emulator": "tdk_lambda_genesys",
-        "pv_for_existence": "1:CURR"
+        "pv_for_existence": "1:CURR",
     },
 ]
 
@@ -46,7 +47,6 @@ class OutputMode(object):
 
 
 class TdkLambdaGenesysTests(unittest.TestCase):
-
     @contextlib.contextmanager
     def _temporarily_change_offsets(self, read_offset, write_offset):
         self.ca.set_pv_value("1:CURR:_CALC.B", read_offset)
@@ -89,13 +89,15 @@ class TdkLambdaGenesysTests(unittest.TestCase):
 
     def test_GIVEN_setpoint_voltage_set_WHEN_read_THEN_setpoint_voltage_is_as_expected(self):
         expected_voltage = self.ca.get_pv_value("1:VOLT:SP") + 2.5
-        self.ca.assert_setting_setpoint_sets_readback(expected_voltage, "1:VOLT:SP:RBV",
-                                                      "1:VOLT:SP")
+        self.ca.assert_setting_setpoint_sets_readback(
+            expected_voltage, "1:VOLT:SP:RBV", "1:VOLT:SP"
+        )
 
     def test_GIVEN_setpoint_current_set_when_read_THEN_setpoint_current_is_as_expected(self):
         expected_current = self.ca.get_pv_value("1:CURR:SP") + 5
-        self.ca.assert_setting_setpoint_sets_readback(expected_current, "1:CURR:SP:RBV",
-                                                      "1:CURR:SP")
+        self.ca.assert_setting_setpoint_sets_readback(
+            expected_current, "1:CURR:SP:RBV", "1:CURR:SP"
+        )
 
     @skip_if_recsim("Uses LeWIS backdoor")
     def test_GIVEN_state_set_WHEN_read_THEN_state_is_as_expected_ON(self):
@@ -125,7 +127,9 @@ class TdkLambdaGenesysTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("comms_initialized", True)
 
     def test_GIVEN_field_THEN_able_to_read_back(self):
-        self.ca.assert_setting_setpoint_sets_readback(123, readback_pv="1:FIELD:SP:RBV", set_point_pv="1:FIELD:SP")
+        self.ca.assert_setting_setpoint_sets_readback(
+            123, readback_pv="1:FIELD:SP:RBV", set_point_pv="1:FIELD:SP"
+        )
 
     @skip_if_recsim("Uses LeWIS backdoor")
     def test_GIVEN_current_THEN_able_to_field_correctly(self):
@@ -144,7 +148,7 @@ class TdkLambdaGenesysTests(unittest.TestCase):
         test_value = 112.5
         self._lewis.backdoor_set_on_device("setpoint_current", test_value)
         self.ca.assert_that_pv_is_number("1:CURR:SP:RBV", test_value)
-        self.ca.assert_that_pv_is_number("1:FIELD:SP:RBV",  test_value * AMPS_TO_GAUSS)
+        self.ca.assert_that_pv_is_number("1:FIELD:SP:RBV", test_value * AMPS_TO_GAUSS)
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_GIVEN_non_zero_offsets_WHEN_setpoint_sent_to_psu_THEN_adjusted_by_offset(self):
@@ -152,7 +156,9 @@ class TdkLambdaGenesysTests(unittest.TestCase):
         write_offset = 10
         with self._temporarily_change_offsets(read_offset=0, write_offset=write_offset):
             self.ca.set_pv_value("1:CURR:SP", test_value)
-            self._lewis.assert_that_emulator_value_is("setpoint_current", test_value + write_offset, cast=float)
+            self._lewis.assert_that_emulator_value_is(
+                "setpoint_current", test_value + write_offset, cast=float
+            )
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_GIVEN_non_zero_offsets_WHEN_value_read_back_from_psu_THEN_adjusted_by_offset(self):
@@ -174,4 +180,3 @@ class TdkLambdaGenesysTests(unittest.TestCase):
         self.ca.set_pv_value("1:CURR:SP", MAX_CURRENT + 1)
         self.ca.assert_that_pv_is_number("1:CURR:SP", MAX_CURRENT)
         self.ca.assert_that_pv_alarm_is("1:CURR:SP:RBV", self.ca.Alarms.MINOR)
-

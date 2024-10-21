@@ -1,9 +1,9 @@
 import unittest
-from utils.test_modes import TestModes
+
+from common_tests.fermichopper import FermichopperBase
 from utils.build_architectures import BuildArchitectures
 from utils.ioc_launcher import get_default_ioc_dir
-from common_tests.fermichopper import FermichopperBase
-
+from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "FERMCHOP_01"
 

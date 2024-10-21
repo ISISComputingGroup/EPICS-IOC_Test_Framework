@@ -2,7 +2,7 @@ import os
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, EPICS_TOP
+from utils.ioc_launcher import EPICS_TOP, IOCRegister
 from utils.test_modes import TestModes
 
 DEVICE_PREFIX = "SAMPOS"
@@ -26,7 +26,7 @@ class SamposTests(unittest.TestCase):
     """
 
     test_values = [0, 10]
-    axes = ['X', 'Y', 'Z', 'W', 'S']
+    axes = ["X", "Y", "Z", "W", "S"]
 
     def setUp(self):
         self._ioc = IOCRegister.get_running("SAMPOS")
@@ -40,11 +40,13 @@ class SamposTests(unittest.TestCase):
     def test_WHEN_values_are_set_THEN_readbacks_update(self):
         for axis in self.axes:
             for value in self.test_values:
-                self.ca.assert_setting_setpoint_sets_readback(value, readback_pv="{}".format(axis),
-                                                              set_point_pv="{}:SP".format(axis))
+                self.ca.assert_setting_setpoint_sets_readback(
+                    value, readback_pv="{}".format(axis), set_point_pv="{}:SP".format(axis)
+                )
 
     def test_WHEN_values_are_set_THEN_setpoint_readbacks_update(self):
         for axis in self.axes:
             for value in self.test_values:
-                self.ca.assert_setting_setpoint_sets_readback(value, readback_pv="{}:SP:RBV".format(axis),
-                                                              set_point_pv="{}:SP".format(axis))
+                self.ca.assert_setting_setpoint_sets_readback(
+                    value, readback_pv="{}:SP:RBV".format(axis), set_point_pv="{}:SP".format(axis)
+                )

@@ -1,11 +1,8 @@
-import os
 import unittest
 
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, DanfysikCommon
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-
-from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED
-from utils.testing import skip_if_recsim
 
 # write factor = 10 * (1 / read factor)
 read_scale_factor = 0.5
@@ -29,7 +26,7 @@ IOCS = [
         "emulator": EMULATOR_NAME,
         "lewis_protocol": "model8000",
         "pv_for_existence": "FIELD",
-        "ioc_launcher_class": ProcServLauncher
+        "ioc_launcher_class": ProcServLauncher,
     },
 ]
 
@@ -41,14 +38,19 @@ class DanfysikCalibratedTests(DanfysikCommon, unittest.TestCase):
     """
     Tests for a calibrated danfysik with asymmetric read/write factors. Tests inherited from DanfysikBase.
     """
+
     def setUp(self):
         super(DanfysikCalibratedTests, self).setUp()
         self.current_readback_factor = read_scale_factor
         self.ca.set_pv_value("FIELD:SP", 0)
         self._lewis.backdoor_run_function_on_device("set_current_read_factor", [read_scale_factor])
-        self._lewis.backdoor_run_function_on_device("set_current_write_factor", [write_scale_factor])
+        self._lewis.backdoor_run_function_on_device(
+            "set_current_write_factor", [write_scale_factor]
+        )
 
-    def test_GIVEN_asymmetric_read_and_write_WHEN_setting_current_THEN_current_rbv_and_sp_rbv_are_correct(self):
+    def test_GIVEN_asymmetric_read_and_write_WHEN_setting_current_THEN_current_rbv_and_sp_rbv_are_correct(
+        self,
+    ):
         expected = 100
         for id_prefix in self.id_prefixes:
             self.ca.set_pv_value("{}CURR:SP".format(id_prefix), expected)
@@ -56,7 +58,9 @@ class DanfysikCalibratedTests(DanfysikCommon, unittest.TestCase):
             self.ca.assert_that_pv_is_number("{}CURR".format(id_prefix), expected)
             self.ca.assert_that_pv_is_number("{}CURR:SP:RBV".format(id_prefix), expected)
 
-    def test_GIVEN_asymmetric_read_and_write_WHEN_setting_field_THEN_rbv_and_sp_rbv_and_percent_are_correct(self):
+    def test_GIVEN_asymmetric_read_and_write_WHEN_setting_field_THEN_rbv_and_sp_rbv_and_percent_are_correct(
+        self,
+    ):
         # default scaling field:raw is 1:1
         expected = 10000
         expected_percent = 100.0 / max_raw_setpoint * expected

@@ -1,12 +1,12 @@
 import unittest
 from contextlib import contextmanager
 
-from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-from utils.test_modes import TestModes
-from utils.testing import get_running_lewis_and_ioc, parameterized_list, unstable_test
 from parameterized import parameterized
 
+from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, unstable_test
 
 DEVICE_PREFIX = "IPS_01"
 EMULATOR_NAME = "ips"
@@ -22,8 +22,8 @@ IOCS = [
             "MANAGER_ASG": "DEFAULT",
             "MAX_SWEEP_RATE": "1.0",
             "HEATER_WAITTIME": "10",  # On a real system the macro has a default of 60s,
-                                      # but speed it up a bit for the sake of tests.
-        }
+            # but speed it up a bit for the sake of tests.
+        },
     },
 ]
 
@@ -39,13 +39,17 @@ TOLERANCE = 0.0001
 HEATER_OFF_STATES = ["Off Mag at 0", "Off Mag at F"]
 
 # Time to wait for the heater to warm up/cool down (extracted from IOC macros above)
-HEATER_WAIT_TIME = float((IOCS[0].get('macros').get('HEATER_WAITTIME')))
+HEATER_WAIT_TIME = float((IOCS[0].get("macros").get("HEATER_WAITTIME")))
 
 ACTIVITY_STATES = ["Hold", "To Setpoint", "To Zero", "Clamped"]
 
 # Generate all the control commands to test that remote and unlocked is set for
 # Chain flattens the list
-CONTROL_COMMANDS_WITH_VALUES = [("FIELD", 0.1), ("FIELD:RATE", 0.1), ("SWEEPMODE:PARAMS", "Tesla Fast")]
+CONTROL_COMMANDS_WITH_VALUES = [
+    ("FIELD", 0.1),
+    ("FIELD:RATE", 0.1),
+    ("SWEEPMODE:PARAMS", "Tesla Fast"),
+]
 for activity_state in ACTIVITY_STATES:
     CONTROL_COMMANDS_WITH_VALUES.append(("ACTIVITY", activity_state))
 for heater_off_state in HEATER_OFF_STATES:
@@ -58,11 +62,12 @@ class IpsTests(unittest.TestCase):
     """
     Tests for the Ips IOC.
     """
+
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         # Some changes happen on the order of HEATER_WAIT_TIME seconds. Use a significantly longer timeout
         # to capture a few heater wait times plus some time for PVs to update.
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=HEATER_WAIT_TIME*10)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=HEATER_WAIT_TIME * 10)
 
         # Wait for some critical pvs to be connected.
         for pv in ["MAGNET:FIELD:PERSISTENT", "FIELD", "FIELD:SP:RBV", "HEATER:STATUS"]:
@@ -102,7 +107,10 @@ class IpsTests(unittest.TestCase):
     def _assert_heater_is(self, heater_state):
         self.ca.assert_that_pv_is("HEATER:STATUS:SP", "On" if heater_state else "Off")
         if heater_state:
-            self.ca.assert_that_pv_is("HEATER:STATUS", "On",)
+            self.ca.assert_that_pv_is(
+                "HEATER:STATUS",
+                "On",
+            )
         else:
             self.ca.assert_that_pv_is_one_of("HEATER:STATUS", HEATER_OFF_STATES)
 
@@ -110,8 +118,9 @@ class IpsTests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback("YES" if mode else "NO", "PERSISTENT")
 
     @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
-    def test_GIVEN_persistent_mode_enabled_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_ramps_to_zero(self, _, val):
-
+    def test_GIVEN_persistent_mode_enabled_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_ramps_to_zero(
+        self, _, val
+    ):
         initial_field = 1
 
         self._set_and_check_persistent_mode(True)
@@ -142,8 +151,12 @@ class IpsTests(unittest.TestCase):
         # Now that the heater is off, can ramp down the PSU to zero (SNL waits some time for heater to be off before
         # ramping PSU to zero)
         self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=TOLERANCE)  # PSU field
-        self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE)  # Persistent field
-        self.ca.assert_that_pv_is_number("FIELD:USER", val, tolerance=TOLERANCE)  # User field should be tracking persistent field here
+        self.ca.assert_that_pv_is_number(
+            "MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE
+        )  # Persistent field
+        self.ca.assert_that_pv_is_number(
+            "FIELD:USER", val, tolerance=TOLERANCE
+        )  # User field should be tracking persistent field here
         self.ca.assert_that_pv_is("ACTIVITY", "To Zero")
 
         # ...And the magnet should now be in the right state!
@@ -153,12 +166,17 @@ class IpsTests(unittest.TestCase):
         # "User" field should take the value put in the setpoint, even when the actual field provided by the supply
         # drops to zero
         self.ca.assert_that_pv_is_number("FIELD", 0, tolerance=TOLERANCE)  # PSU field
-        self.ca.assert_that_pv_is_number("MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE)  # Persistent field
-        self.ca.assert_that_pv_is_number("FIELD:USER", val, tolerance=TOLERANCE)  # User field should be tracking persistent field here
+        self.ca.assert_that_pv_is_number(
+            "MAGNET:FIELD:PERSISTENT", val, tolerance=TOLERANCE
+        )  # Persistent field
+        self.ca.assert_that_pv_is_number(
+            "FIELD:USER", val, tolerance=TOLERANCE
+        )  # User field should be tracking persistent field here
 
     @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
-    def test_GIVEN_non_persistent_mode_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_does_not_ramp_to_zero(self, _, val):
-
+    def test_GIVEN_non_persistent_mode_WHEN_magnet_told_to_go_to_field_setpoint_THEN_goes_to_that_setpoint_and_psu_does_not_ramp_to_zero(
+        self, _, val
+    ):
         initial_field = 1
 
         self._set_and_check_persistent_mode(True)
@@ -205,8 +223,9 @@ class IpsTests(unittest.TestCase):
             self.ca.assert_that_pv_alarm_is("STS:SYSTEM:FAULT", self.ca.Alarms.NONE)
 
     @parameterized.expand(field for field in parameterized_list(TEST_VALUES))
-    def test_GIVEN_magnet_quenches_while_at_field_THEN_ioc_displays_this_quench_in_statuses(self, _, field):
-
+    def test_GIVEN_magnet_quenches_while_at_field_THEN_ioc_displays_this_quench_in_statuses(
+        self, _, field
+    ):
         self._set_and_check_persistent_mode(False)
         self.ca.set_pv_value("FIELD:SP", field)
         self._assert_field_is(field)
@@ -245,20 +264,28 @@ class IpsTests(unittest.TestCase):
 
     @parameterized.expand(activity_state for activity_state in parameterized_list(ACTIVITY_STATES))
     @unstable_test()
-    def test_WHEN_activity_set_via_backdoor_to_clamped_THEN_alarm_major_ELSE_no_alarm(self, _, activity_state):
+    def test_WHEN_activity_set_via_backdoor_to_clamped_THEN_alarm_major_ELSE_no_alarm(
+        self, _, activity_state
+    ):
         self.ca.set_pv_value("ACTIVITY", activity_state)
         if activity_state == "Clamped":
             self.ca.assert_that_pv_alarm_is("ACTIVITY", "MAJOR")
         else:
             self.ca.assert_that_pv_alarm_is("ACTIVITY", "NO_ALARM")
 
-    @parameterized.expand(control_command for control_command in parameterized_list(CONTROL_COMMANDS_WITH_VALUES))
-    def test_WHEN_control_command_value_set_THEN_remote_unlocked_set(self, _, control_pv, set_value):
+    @parameterized.expand(
+        control_command for control_command in parameterized_list(CONTROL_COMMANDS_WITH_VALUES)
+    )
+    def test_WHEN_control_command_value_set_THEN_remote_unlocked_set(
+        self, _, control_pv, set_value
+    ):
         self.ca.set_pv_value("CONTROL", "Local & Locked")
         self.ca.set_pv_value(control_pv, set_value)
         self.ca.assert_that_pv_is("CONTROL", "Remote & Unlocked")
 
-    @parameterized.expand(control_pv for control_pv in parameterized_list(CONTROL_COMMANDS_WITHOUT_VALUES))
+    @parameterized.expand(
+        control_pv for control_pv in parameterized_list(CONTROL_COMMANDS_WITHOUT_VALUES)
+    )
     def test_WHEN_control_command_processed_THEN_remote_unlocked_set(self, _, control_pv):
         self.ca.set_pv_value("CONTROL", "Local & Locked")
         self.ca.process_pv(control_pv)

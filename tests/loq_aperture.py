@@ -1,14 +1,15 @@
-import unittest
 import os
+import unittest
+from collections import OrderedDict
+
+from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
-from parameterized import parameterized
-from collections import OrderedDict
-from utils.testing import unstable_test
 
 # Internal Address of device (must be 2 characters)
 from utils.test_modes import TestModes
+from utils.testing import unstable_test
 
 GALIL_ADDR = "127.0.0.11"
 
@@ -31,16 +32,28 @@ CLOSESTSHUTTER = "APERTURE:CLOSESTSHUTTER"
 CLOSEAPERTURE = "APERTURE:CLOSEAPERTURE"
 
 # Test motion set points located in test_support/loq_aperture.
-MOTION_SETPOINT = OrderedDict([("Aperture_large",  02.900000),
-                               ("Stop_01",         15.400000),
-                               ("Aperture_medium", 27.900000),
-                               ("Stop_02",         40.400000),
-                               ("Aperture_small",  52.900000)])
+MOTION_SETPOINT = OrderedDict(
+    [
+        ("Aperture_large", 02.900000),
+        ("Stop_01", 15.400000),
+        ("Aperture_medium", 27.900000),
+        ("Stop_02", 40.400000),
+        ("Aperture_small", 52.900000),
+    ]
+)
 
 SETPOINT_GAP = MOTION_SETPOINT["Stop_01"] - MOTION_SETPOINT["Aperture_large"]
 
-test_path = os.path.realpath(os.path.join(os.getenv("EPICS_KIT_ROOT"),
-                                          "support", "motorExtensions", "master", "settings", "loqAperture"))
+test_path = os.path.realpath(
+    os.path.join(
+        os.getenv("EPICS_KIT_ROOT"),
+        "support",
+        "motorExtensions",
+        "master",
+        "settings",
+        "loqAperture",
+    )
+)
 
 IOCS = [
     {
@@ -64,6 +77,7 @@ class LoqApertureTests(unittest.TestCase):
     """
     Tests for the LOQ Aperture
     """
+
     def setUp(self):
         self._ioc = IOCRegister.get_running("GALIL_01")
         self.ca = ChannelAccess(default_timeout=30)
@@ -72,18 +86,24 @@ class LoqApertureTests(unittest.TestCase):
         self.ca.assert_that_pv_exists(CLOSEAPERTURE)
 
     # Closest positions defined in ticket 3623
-    @parameterized.expand([
-        ("Aperture_large",  0, 1),
-        ("Stop_01",         1, 1),
-        ("Aperture_medium", 2, 3),
-        ("Stop_02",         3, 3),
-        ("Aperture_small",  4, 3),
-    ])
-    def test_GIVEN_motor_on_an_aperture_position_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, start_position, start_index, closest_stop):
+    @parameterized.expand(
+        [
+            ("Aperture_large", 0, 1),
+            ("Stop_01", 1, 1),
+            ("Aperture_medium", 2, 3),
+            ("Stop_02", 3, 3),
+            ("Aperture_small", 4, 3),
+        ]
+    )
+    def test_GIVEN_motor_on_an_aperture_position_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(
+        self, start_position, start_index, closest_stop
+    ):
         # GIVEN
         self.ca.set_pv_value(POSITION_SP, start_index)
         self.ca.assert_that_pv_is_number(POSITION_INDEX, start_index, tolerance=TOLERANCE)
-        self.ca.assert_that_pv_is_number(MOTOR, MOTION_SETPOINT[start_position], tolerance=TOLERANCE)
+        self.ca.assert_that_pv_is_number(
+            MOTOR, MOTION_SETPOINT[start_position], tolerance=TOLERANCE
+        )
 
         # WHEN
         self.ca.process_pv(CLOSEAPERTURE)
@@ -91,22 +111,30 @@ class LoqApertureTests(unittest.TestCase):
         # THEN
         self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
         self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
-        self.ca.assert_that_pv_is_number(MOTOR, list(MOTION_SETPOINT.values())[closest_stop], tolerance=TOLERANCE)
+        self.ca.assert_that_pv_is_number(
+            MOTOR, list(MOTION_SETPOINT.values())[closest_stop], tolerance=TOLERANCE
+        )
 
     # Closest positions defined in ticket 3623
-    @parameterized.expand([
-        ("Aperture_large",  0, 1),
-        ("Stop_01",         1, 1),
-        ("Aperture_medium", 2, 3),
-        ("Stop_02",         3, 3),
-        ("Aperture_small",  4, 3),
-    ])
+    @parameterized.expand(
+        [
+            ("Aperture_large", 0, 1),
+            ("Stop_01", 1, 1),
+            ("Aperture_medium", 2, 3),
+            ("Stop_02", 3, 3),
+            ("Aperture_small", 4, 3),
+        ]
+    )
     @unstable_test()
-    def test_GIVEN_motor_off_setpoint_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(self, _, start_index, closest_stop):
+    def test_GIVEN_motor_off_setpoint_WHEN_motor_set_to_closest_beamstop_THEN_motor_moves_to_closest_beamstop(
+        self, _, start_index, closest_stop
+    ):
         # GIVEN
         # Move 25 per cent forwards and backwards off centre of setpoint
         for fraction_moved_off_setpoint in [0.25, -0.25]:
-            initial_position = list(MOTION_SETPOINT.values())[start_index] + (fraction_moved_off_setpoint * SETPOINT_GAP)
+            initial_position = list(MOTION_SETPOINT.values())[start_index] + (
+                fraction_moved_off_setpoint * SETPOINT_GAP
+            )
             self.ca.set_pv_value(MOTOR, initial_position, wait=True)
             self.ca.assert_that_pv_is_number(MOTOR, initial_position, tolerance=TOLERANCE)
 
@@ -119,4 +147,6 @@ class LoqApertureTests(unittest.TestCase):
             # THEN
             self.ca.assert_that_pv_is_number(CLOSESTSHUTTER, closest_stop)
             self.ca.assert_that_pv_is_number(POSITION_INDEX, closest_stop, timeout=5)
-            self.ca.assert_that_pv_is_number(MOTOR, list(MOTION_SETPOINT.values())[closest_stop], tolerance=TOLERANCE)
+            self.ca.assert_that_pv_is_number(
+                MOTOR, list(MOTION_SETPOINT.values())[closest_stop], tolerance=TOLERANCE
+            )

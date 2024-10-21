@@ -1,9 +1,8 @@
 import unittest
 
+from common_tests.danfysik import DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED, DanfysikCommon
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
-from utils.ioc_launcher import get_default_ioc_dir, ProcServLauncher
-
-from common_tests.danfysik import DanfysikCommon, DEVICE_PREFIX, EMULATOR_NAME, HAS_TRIPPED
 from utils.testing import skip_if_recsim
 
 MAX_RAW_SETPOINT = 1000000
@@ -52,6 +51,7 @@ class Danfysik9X00Tests(DanfysikCommon, unittest.TestCase):
     """
     Tests for danfysik model 9X00. Tests inherited from DanfysikBase.
     """
+
     def test_GIVEN_ioc_THEN_model_is_set_correctly(self):
         self.ca.assert_that_pv_is("DEV_TYPE", "9X00")
 
@@ -64,7 +64,9 @@ class Danfysik9X00Tests(DanfysikCommon, unittest.TestCase):
             self._lewis.backdoor_command(["device", "disable_interlock", ilk_name])
             self.ca.assert_that_pv_is(ilk_pv, HAS_TRIPPED[False])
 
-    def test_GIVEN_polarity_is_bipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(self):
+    def test_GIVEN_polarity_is_bipolar_WHEN_setting_current_THEN_min_setpoint_is_negative_of_max_setpoint(
+        self,
+    ):
         self.ca.set_pv_value("CURR:SP", MIN_RAW_SETPOINT * 2)
 
         self.ca.assert_that_pv_is("CURR:SP:RBV", MIN_RAW_SETPOINT)
