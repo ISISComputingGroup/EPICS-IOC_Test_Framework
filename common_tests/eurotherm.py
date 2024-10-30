@@ -1,6 +1,7 @@
 import abc
 import os
 import time
+import contextlib
 
 from parameterized import parameterized
 
@@ -20,6 +21,8 @@ TEST_VALUES = [-50, 0.1, 50, 3000]
 PID_TEST_VALUES = [-50, 50, 3000]
 
 sensors = ["0011", "0022", "0033", "0044", "0055", "0066"]
+
+PV_sensors = ["A01", "A02", "A03", "A04", "A05", "A06"]
 
 class EurothermBaseTests(metaclass=abc.ABCMeta):
     """
@@ -56,9 +59,9 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_exists("A01:RBV", timeout=30)
         self.ca.assert_that_pv_exists("A01:CAL:SEL", timeout=10)
 
-    def _reset_device_state(self):
-        for sensor in sensors:
-            self._lewis.backdoor_run_function_on_device("set_connected", [sensor , True])
+    def _reset_device_state(self, sensor=PV_sensors[0]):
+        for item in sensors:
+            self._lewis.backdoor_run_function_on_device("set_connected", [item , True])
         reset_calibration_file(self.ca, prefix=f"{'A01'}:")
 
         intial_temp = 0.0
@@ -74,7 +77,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         # Ensure the temperature isn't being changed by a ramp any more
         self.ca.assert_that_pv_value_is_unchanged(f"{sensor}:TEMP", 5)
 
-    def _set_setpoint_and_current_temperature(self, temperature, sensor="A01"):
+    def _set_setpoint_and_current_temperature(self, temperature, sensor=PV_sensors[0]):
         if IOCRegister.uses_rec_sim:
             self.ca.set_pv_value(f"{sensor}:SIM:TEMP:SP", temperature)
             self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP", temperature)
@@ -307,7 +310,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
     
     def test_WHEN_eurotherm_missing_THEN_updates_of_PVs_stop(self):
-        with self._lewis.backdoor_simulate_disconnected_device():
+        with self._lewis.backdoor_simulate_disconnected_addr():
             self.ca.assert_that_pv_value_is_unchanged("A01:RBV", 20)
 
     @parameterized.expand(parameterized_list(PID_TEST_VALUES))
