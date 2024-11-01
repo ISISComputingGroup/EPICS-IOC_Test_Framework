@@ -485,11 +485,11 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
         """
         Simulate device with disconnected ADDR, such as Eurotherm
         """
-        self.backdoor_run_function_on_device("set_connected", ['0011' , False])
+        self.backdoor_run_function_on_device("set_connected", ['01' , False])
         try:
             yield
         finally:
-            self.backdoor_run_function_on_device("set_connected", ['0011' , True])
+            self.backdoor_run_function_on_device("set_connected", ['01' , True])
 
 
 class NullEmulatorLauncher(EmulatorLauncher):

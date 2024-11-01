@@ -45,7 +45,7 @@ TEST_MODES = [TestModes.DEVSIM]
 class EurothermTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermTests, self).setUp()
-        self._lewis.backdoor_set_on_device("scaling", 1.0 / float(SCALING))
+        self._lewis.backdoor_run_function_on_device("set_scaling", ["01", 1.0])
 
     def get_device(self):
         return DEVICE
@@ -115,20 +115,20 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
     def test_GIVEN_simulated_delay_WHEN_temperature_read_from_multiple_sensors_THEN_all_reads_correct(
         self,
     ):
-        self._lewis.backdoor_set_on_device("delay_time", 300 / 1000)
+        self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
 
         for temp in range(1, 10):
-            self._lewis.backdoor_set_on_device("current_temperature", float(temp))
+            self._lewis.backdoor_run_function_on_device("set_current_temperature", ["01", float(temp)])
             for id in range(1, 7):
                 sensor = f"A{id:02}"
                 self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp))
 
-        self._lewis.backdoor_set_on_device("delay_time", None)
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, None])
 
     def test_GIVEN_simulated_delay_WHEN_temperature_set_on_multiple_sensors_THEN_all_reads_correct(
         self,
     ):
-        self._lewis.backdoor_set_on_device("delay_time", 300 / 1000)
+        self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
         for id in range(1, 7):
             sensor = f"A{id:02}"
             self._reset_device_state(sensor=sensor)
@@ -138,4 +138,4 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
                 self._set_setpoint_and_current_temperature(float(temp), sensor=sensor)
                 self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp), timeout=30.0)
 
-        self._lewis.backdoor_set_on_device("delay_time", None)
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, None])

@@ -20,7 +20,7 @@ TEST_VALUES = [-50, 0.1, 50, 3000]
 # PIDs cannot be floating-point
 PID_TEST_VALUES = [-50, 50, 3000]
 
-sensors = ["0011", "0022", "0033", "0044", "0055", "0066"]
+sensors = ["01", "02", "03", "04", "05", "06"]
 
 PV_sensors = ["A01", "A02", "A03", "A04", "A05", "A06"]
 
@@ -60,15 +60,15 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_exists("A01:CAL:SEL", timeout=10)
 
     def _reset_device_state(self, sensor=PV_sensors[0]):
-        for item in sensors:
-            self._lewis.backdoor_run_function_on_device("set_connected", [item , True])
+        for address in sensors:
+            self._lewis.backdoor_run_function_on_device("set_connected", [address , True])
         reset_calibration_file(self.ca, prefix=f"{'A01'}:")
 
         intial_temp = 0.0
 
         self._set_setpoint_and_current_temperature(intial_temp)
 
-        self._lewis.backdoor_run_function_on_device("set_ramping_on", [sensors[0]])
+        self._lewis.backdoor_run_function_on_device("set_ramping_on", [sensors[0], True])
         self._lewis.backdoor_run_function_on_device("set_ramp_rate", [sensors[0], 1.0])
         self.ca.set_pv_value(f"{sensor}:RAMPON:SP", 0, sleep_after_set=0)
 
@@ -303,7 +303,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
     )
     def test_WHEN_disconnected_THEN_in_alarm(self, record):
         self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
-        with self._lewis.backdoor_simulate_disconnected_device():
+        with self._lewis.backdoor_simulate_disconnected_addr():
             self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=60)
         # Assert alarms clear on reconnection
         with self._get_temperature_setter_wrapper():
