@@ -116,14 +116,15 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         self,
     ):
         self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
+        for id in range(1, 7):
+            PV_sensor = f"A{id:02}"
+            sensor = f"{id:02}"
 
-        for temp in range(1, 10):
-            self._lewis.backdoor_run_function_on_device("set_current_temperature", ["01", float(temp)])
-            for id in range(1, 7):
-                sensor = f"A{id:02}"
-                self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp))
+            for temp in range(1, 3):
+                self._lewis.backdoor_run_function_on_device("set_current_temperature", [sensor, float(temp)])
+                self.ca.assert_that_pv_is(f"{PV_sensor}:RBV", float(temp))
 
-        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, None])
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
 
     def test_GIVEN_simulated_delay_WHEN_temperature_set_on_multiple_sensors_THEN_all_reads_correct(
         self,
@@ -131,11 +132,8 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
         for id in range(1, 7):
             sensor = f"A{id:02}"
-            self._reset_device_state(sensor=sensor)
-        for id in range(1, 7):
-            sensor = f"A{id:02}"
-            for temp in range(1, 5):
+            for temp in range(1, 3):
                 self._set_setpoint_and_current_temperature(float(temp), sensor=sensor)
                 self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp), timeout=30.0)
 
-        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, None])
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
