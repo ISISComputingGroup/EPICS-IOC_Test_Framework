@@ -59,11 +59,12 @@ IOCS = [
 
 TEST_MODES = [TestModes.DEVSIM]
 
+sensors = ["01", "02", "03", "04", "05", "06"]
 
 class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermModbusNeedleValveTests, self).setUp()
-        self._lewis.backdoor_set_on_device("scaling", 1.0 / float(SCALING))
+        self._lewis.backdoor_run_function_on_device("set_scaling", [sensors[0], 1.0 / float(SCALING)])
         with ManagerMode(ChannelAccess()):
             self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", "AUTO")
 
@@ -82,12 +83,12 @@ class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
     # READ TESTS
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_using_needle_valve_THEN_flow_exists(self):
-        self._lewis.backdoor_set_on_device("needlevalve_flow", 5.0)
+        self._lewis.backdoor_run_function_on_device("set_needlevalve_flow", [sensors[0], 5.0])
         self.ca.assert_that_pv_is_number("A01:FLOW", 5.0, tolerance=0, timeout=15)
 
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_using_needle_valve_THEN_valve_dir_exists(self):
-        self._lewis.backdoor_set_on_device("needlevalve_direction", 1)
+        self._lewis.backdoor_run_function_on_device("set_needlevalve_direction", [sensors[0], 1])
         self.ca.assert_that_pv_is("A01:VALVE_DIR", "OPENING", timeout=15)
 
     # WRITE TESTS
