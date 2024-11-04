@@ -60,9 +60,9 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self.ca.assert_that_pv_exists("A01:CAL:SEL", timeout=10)
 
     def _reset_device_state(self, sensor=PV_sensors[0]):
-        for address in sensors:
-            self._lewis.backdoor_run_function_on_device("set_connected", [address , True])
-        reset_calibration_file(self.ca, prefix=f"{'A01'}:")
+        i = PV_sensors.index(sensor)
+        self._lewis.backdoor_run_function_on_device("set_connected", [sensors[i], True])
+        reset_calibration_file(self.ca, prefix=f"{sensor}:")
 
         intial_temp = 0.0
 
@@ -74,8 +74,8 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
 
         self._set_setpoint_and_current_temperature(intial_temp)
         self.ca.assert_that_pv_is(f"{sensor}:TEMP", intial_temp)
-        # Ensure the temperature isn't being changed by a ramp any more
-        self.ca.assert_that_pv_value_is_unchanged(f"{sensor}:TEMP", 5)
+        #Ensure the temperature isn't being changed by a ramp any more
+        self.ca.assert_that_pv_value_is_unchanged(f"{sensor}:TEMP", wait=3)
 
     def _set_setpoint_and_current_temperature(self, temperature, sensor=PV_sensors[0]):
         if IOCRegister.uses_rec_sim:
@@ -84,9 +84,10 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP:SP", temperature)
             self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP:SP:RBV", temperature)
         else:
-            self._lewis.backdoor_run_function_on_device("set_current_temperature", [sensors[0], temperature])
+            i = PV_sensors.index(sensor)
+            self._lewis.backdoor_run_function_on_device("set_current_temperature", [sensors[i], temperature])
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP", temperature, 0.1, timeout=30)
-            self._lewis.backdoor_run_function_on_device("set_ramp_setpoint_temperature", [sensors[0], temperature])
+            self._lewis.backdoor_run_function_on_device("set_ramp_setpoint_temperature", [sensors[i], temperature])
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
 
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
@@ -289,8 +290,8 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.A", temperature)
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER", expected_value_of_under_range_calc_pv)
 
-    @parameterized.expand(
-        [
+    def test_WHEN_disconnected_THEN_in_alarm(self):
+        records = [
             "A01:TEMP",
             "A01:TEMP:SP:RBV",
             "A01:P",
@@ -300,14 +301,15 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             "A01:MAX_OUTPUT",
             "A01:LOWLIM",
         ]
-    )
-    def test_WHEN_disconnected_THEN_in_alarm(self, record):
-        self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
+        for record in records:
+            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_addr():
-            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=60)
+            for record in records:
+                self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=60)
         # Assert alarms clear on reconnection
         with self._get_temperature_setter_wrapper():
-            self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
+            for record in records:
+                self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
     
     def test_WHEN_eurotherm_missing_THEN_updates_of_PVs_stop(self):
         with self._lewis.backdoor_simulate_disconnected_addr():
