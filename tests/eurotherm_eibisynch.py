@@ -137,3 +137,15 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
                 self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp), timeout=30.0)
 
         self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
+
+    def test_GIVEN_multiple_sensors_WHEN_one_sensor_disconnected_THEN_other_sensors_can_still_read(self, ):
+        # Ensure that A02 is connected
+        self._lewis.backdoor_run_function_on_device("set_connected", ['02', True])
+
+        # Disconnect A01 and check PV for A01 is in alarm, and PV for A02 is not:
+        with self._lewis.backdoor_simulate_disconnected_addr():
+            self.ca.assert_that_pv_alarm_is("A01:TEMP", self.ca.Alarms.INVALID, timeout=30)
+            self.ca.assert_that_pv_alarm_is_not("A02:TEMP", self.ca.Alarms.INVALID, timeout=30)
+
+        # Ensure that after backdoor_run_function, the PV for A01 gets reconnected:
+        self.ca.assert_that_pv_alarm_is("A01:TEMP", self.ca.Alarms.NONE, timeout=30)
