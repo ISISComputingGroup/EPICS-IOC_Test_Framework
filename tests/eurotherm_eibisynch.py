@@ -113,7 +113,7 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", c006_calibration_file_min)
 
     def test_GIVEN_sim_delay_WHEN_temp_read_from_many_sensors_THEN_all_reads_correct(self) -> None:
-        self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [(300 / 1000)])
         for id in range(1, 7):
             pv_sensor = f"A{id:02}"
             sensor = f"{id:02}"
@@ -127,14 +127,14 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
 
     def test_GIVEN_sim_delay_WHEN_temp_set_on_multiple_sensors_THEN_all_reads_correct(self) -> None:
-        self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [(300 / 1000)])
         for id in range(1, 7):
             sensor = f"A{id:02}"
             for temp in range(1, 3):
                 self._set_setpoint_and_current_temperature(float(temp), sensor=sensor)
                 self.ca.assert_that_pv_is(f"{sensor}:RBV", float(temp), timeout=30.0)
 
-        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [0.0])
 
     def test_GIVEN_many_sensors_WHEN_one_sensor_disconnect_THEN_other_sensors_read_ok(self) -> None:
         # Ensure that A02 is connected
