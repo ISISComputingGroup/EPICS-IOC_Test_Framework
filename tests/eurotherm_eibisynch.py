@@ -2,6 +2,7 @@ import contextlib
 import unittest
 
 from parameterized import parameterized
+from utils.emulator_launcher import LewisLauncher
 
 from common_tests.eurotherm import (
     NONE_TXT_CALIBRATION_MAX_TEMPERATURE,
@@ -15,7 +16,7 @@ from utils.test_modes import TestModes
 DEVICE = "EUROTHRM_01"
 EMULATOR = "eurotherm"
 SCALING = "1.0"
-
+TEST_MODES = [TestModes.DEVSIM]
 IOCS = [
     {
         "name": DEVICE,
@@ -39,13 +40,11 @@ IOCS = [
 ]
 
 
-TEST_MODES = [TestModes.DEVSIM]
-
-
 class EurothermTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermTests, self).setUp()
         self._lewis.backdoor_run_function_on_device("set_scaling", ["01", 1.0])
+        self._lewis:LewisLauncher
 
     def get_device(self):
         return DEVICE
@@ -67,8 +66,8 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         ]
     )
     def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
-        self, _, temperature, expected_value_of_over_range_calc_pv
-    ):
+        self, _: str, temperature: float, expected_value_of_over_range_calc_pv: float
+    ) -> None:
         """
         Note: this test can only run on BISYNCH eurotherms, modbus max temperature is 6553.5 but ramp file goes up
         to 10,000 and this test attempts to check this behaviour
@@ -87,15 +86,16 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.A", temperature)
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
 
-    def test_GIVEN_None_txt_calibration_file_WHEN_changed_to_C006_txt_calibration_file_THEN_the_calibration_limits_change(
+    def test_GIVEN_None_txt_calib_file_WHEN_changed_to_C006_calib_file_THEN_the_calib_limits_change(
         self,
-    ):
+    ) -> None:
         """
-        Note: this test can only run on BISYNCH eurotherms, modbus max temperature is 6553.5 but ramp file goes up
+        Note: this test can only run on BISYNCH eurotherms,
+        modbus max temperature is 6553.5 but ramp file goes up
         to 10,000 and this test attempts to check this behaviour
         """
-        C006_CALIBRATION_FILE_MAX = 330.26135292267900000000
-        C006_CALIBRATION_FILE_MIN = 1.20927230303971000000
+        c006_calibration_file_max = 330.26135292267900000000
+        c006_calibration_file_min = 1.20927230303971000000
 
         # Arrange
         self._assert_using_mock_table_location()
@@ -109,26 +109,24 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         # Act:
         with use_calibration_file(self.ca, "C006.txt", prefix="A01:"):
             # Assert
-            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", C006_CALIBRATION_FILE_MAX)
-            self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", C006_CALIBRATION_FILE_MIN)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.B", c006_calibration_file_max)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.B", c006_calibration_file_min)
 
-    def test_GIVEN_simulated_delay_WHEN_temperature_read_from_multiple_sensors_THEN_all_reads_correct(
-        self,
-    ):
+    def test_GIVEN_sim_delay_WHEN_temp_read_from_many_sensors_THEN_all_reads_correct(self) -> None:
         self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
         for id in range(1, 7):
-            PV_sensor = f"A{id:02}"
+            pv_sensor = f"A{id:02}"
             sensor = f"{id:02}"
 
             for temp in range(1, 3):
-                self._lewis.backdoor_run_function_on_device("set_current_temperature", [sensor, float(temp)])
-                self.ca.assert_that_pv_is(f"{PV_sensor}:RBV", float(temp))
+                self._lewis.backdoor_run_function_on_device(
+                    "set_current_temperature", [sensor, float(temp)]
+                )
+                self.ca.assert_that_pv_is(f"{pv_sensor}:RBV", float(temp))
 
         self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
 
-    def test_GIVEN_simulated_delay_WHEN_temperature_set_on_multiple_sensors_THEN_all_reads_correct(
-        self,
-    ):
+    def test_GIVEN_sim_delay_WHEN_temp_set_on_multiple_sensors_THEN_all_reads_correct(self) -> None:
         self._lewis.backdoor_run_function_on_device("set_delay_time", ["01", (300 / 1000)])
         for id in range(1, 7):
             sensor = f"A{id:02}"
@@ -138,9 +136,9 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
 
         self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
 
-    def test_GIVEN_multiple_sensors_WHEN_one_sensor_disconnected_THEN_other_sensors_can_still_read(self, ):
+    def test_GIVEN_many_sensors_WHEN_one_sensor_disconnect_THEN_other_sensors_read_ok(self) -> None:
         # Ensure that A02 is connected
-        self._lewis.backdoor_run_function_on_device("set_connected", ['02', True])
+        self._lewis.backdoor_run_function_on_device("set_connected", ["02", True])
 
         # Disconnect A01 and check PV for A01 is in alarm, and PV for A02 is not:
         with self._lewis.backdoor_simulate_disconnected_addr():
