@@ -272,7 +272,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         ]
     )
     def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
-        self, _, temperature, expected_value_of_under_range_calc_pv
+        self, _, temperature, exp_val
     ):
         # Arrange
 
@@ -289,7 +289,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             # Assert
 
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER.A", temperature)
-            self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER", expected_value_of_under_range_calc_pv)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:UNDER", expected_value=exp_val)
 
     def test_WHEN_disconnected_THEN_in_alarm(self):
         records = [
