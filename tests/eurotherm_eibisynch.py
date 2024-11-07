@@ -124,7 +124,7 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
                 )
                 self.ca.assert_that_pv_is(f"{pv_sensor}:RBV", float(temp))
 
-        self._lewis.backdoor_run_function_on_device("set_delay_time", [None, 0.0])
+        self._lewis.backdoor_run_function_on_device("set_delay_time", [0.0])
 
     def test_GIVEN_sim_delay_WHEN_temp_set_on_multiple_sensors_THEN_all_reads_correct(self) -> None:
         self._lewis.backdoor_run_function_on_device("set_delay_time", [(300 / 1000)])
