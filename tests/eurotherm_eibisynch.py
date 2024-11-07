@@ -66,7 +66,7 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
         ]
     )
     def test_GIVEN_None_txt_calibration_file_WHEN_temperature_is_set_THEN(
-        self, _: str, temperature: float, expected_value_of_over_range_calc_pv: float
+        self, _: str, temperature: float, exp_val: float
     ) -> None:
         """
         Note: this test can only run on BISYNCH eurotherms, modbus max temperature is 6553.5 but ramp file goes up
@@ -84,7 +84,7 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
 
             # Assert
             self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER.A", temperature)
-            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER", expected_value_of_over_range_calc_pv)
+            self.ca.assert_that_pv_is("A01:TEMP:RANGE:OVER", expected_value=exp_val)
 
     def test_GIVEN_None_txt_calib_file_WHEN_changed_to_C006_calib_file_THEN_the_calib_limits_change(
         self,
