@@ -4,6 +4,7 @@ import unittest
 from parameterized import parameterized
 
 from common_tests.eurotherm import PID_TEST_VALUES, EurothermBaseTests
+from utils.emulator_launcher import LewisLauncher
 from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
@@ -19,7 +20,6 @@ IOCS = [
         "ioc_launcher_class": ProcServLauncher,
         "macros": {
             "COMMS_MODE": "modbus",
-            "NEEDLE_VALVE": "no",
             "ADDR_1": "01",
             "ADDR_2": "",
             "ADDR_3": "",
@@ -51,7 +51,10 @@ sensors = ["01", "02", "03", "04", "05", "06"]
 class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermModbusTests, self).setUp()
-        self._lewis.backdoor_run_function_on_device("set_scaling", [sensors[0], 1.0 / float(SCALING)])
+        self._lewis.backdoor_run_function_on_device(
+            "set_scaling", [sensors[0], 1.0 / float(SCALING)]
+        )
+        self._lewis:LewisLauncher
 
     def get_device(self):
         return DEVICE
