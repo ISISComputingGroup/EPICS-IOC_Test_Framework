@@ -1,13 +1,15 @@
 import abc
 import os
 import time
-import contextlib
+import typing
+import unittest
+from typing import ContextManager
 
 from parameterized import parameterized
-from typing import ContextManager
 
 from utils.calibration_utils import reset_calibration_file, use_calibration_file
 from utils.channel_access import ChannelAccess
+from utils.emulator_launcher import LewisLauncher
 from utils.ioc_launcher import EPICS_TOP, IOCRegister
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
@@ -25,7 +27,10 @@ SENSORS = ["01", "02", "03", "04", "05", "06"]
 
 PV_SENSORS = ["A01", "A02", "A03", "A04", "A05", "A06"]
 
-class EurothermBaseTests(metaclass=abc.ABCMeta):
+# This class is only valid for classes which also derive from unittest.TestCase, 
+# and we can't derive from unittest.TestCase at runtime, because 
+# unittest would try to execute them as tests
+class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, metaclass=abc.ABCMeta):
     """
     Tests for the Eurotherm temperature controller.
     """
@@ -53,9 +58,10 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
         self.ca_no_prefix = ChannelAccess()
+        self._lewis:LewisLauncher
 
     def _setup_lewis_and_channel_access(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", "EUROTHRM_01")
+        self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", "EUROTHRM_01") # type:ignore
         self.ca = ChannelAccess(device_prefix="EUROTHRM_01", default_wait_time=0)
         self.ca.assert_that_pv_exists("A01:RBV", timeout=30)
         self.ca.assert_that_pv_exists("A01:CAL:SEL", timeout=10)
@@ -121,7 +127,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
             "A01:TEMP:SP:RBV", setpoint_temperature, tolerance=0.1, timeout=60
         )
         end = time.time()
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             end - start,
             60.0 * (setpoint_temperature - start_temperature) / ramp_rate,
             delta=0.1 * (end - start),
@@ -342,7 +348,7 @@ class EurothermBaseTests(metaclass=abc.ABCMeta):
 
     @parameterized.expand(parameterized_list(TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")
-    def test_WHEN_output_set_via_backdoor_THEN_output_updates(self, _, val):
+    def test_WHEN_max_output_set_via_backdoor_THEN_output_updates(self, _, val):
         self._lewis.backdoor_run_function_on_device("set_max_output", [SENSORS[0], val])
         self.ca.assert_that_pv_is_number("A01:MAX_OUTPUT", val, tolerance=0.05, timeout=15)
 
