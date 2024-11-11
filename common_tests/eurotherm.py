@@ -27,10 +27,13 @@ SENSORS = ["01", "02", "03", "04", "05", "06"]
 
 PV_SENSORS = ["A01", "A02", "A03", "A04", "A05", "A06"]
 
-# This class is only valid for classes which also derive from unittest.TestCase, 
-# and we can't derive from unittest.TestCase at runtime, because 
+
+# This class is only valid for classes which also derive from unittest.TestCase,
+# and we can't derive from unittest.TestCase at runtime, because
 # unittest would try to execute them as tests
-class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, metaclass=abc.ABCMeta):
+class EurothermBaseTests(
+    unittest.TestCase if typing.TYPE_CHECKING else object, metaclass=abc.ABCMeta
+):
     """
     Tests for the Eurotherm temperature controller.
     """
@@ -58,10 +61,10 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
         self._setup_lewis_and_channel_access()
         self._reset_device_state()
         self.ca_no_prefix = ChannelAccess()
-        self._lewis:LewisLauncher
+        self._lewis: LewisLauncher
 
     def _setup_lewis_and_channel_access(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", "EUROTHRM_01") # type:ignore
+        self._lewis, self._ioc = get_running_lewis_and_ioc("eurotherm", "EUROTHRM_01")  # type:ignore
         self.ca = ChannelAccess(device_prefix="EUROTHRM_01", default_wait_time=0)
         self.ca.assert_that_pv_exists("A01:RBV", timeout=30)
         self.ca.assert_that_pv_exists("A01:CAL:SEL", timeout=10)
@@ -81,7 +84,7 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
 
         self._set_setpoint_and_current_temperature(intial_temp)
         self.ca.assert_that_pv_is(f"{sensor}:TEMP", intial_temp)
-        #Ensure the temperature isn't being changed by a ramp any more
+        # Ensure the temperature isn't being changed by a ramp any more
         self.ca.assert_that_pv_value_is_unchanged(f"{sensor}:TEMP", wait=3)
 
     def _set_setpoint_and_current_temperature(self, temperature, sensor=PV_SENSORS[0]):
@@ -92,9 +95,13 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
             self.ca.assert_that_pv_is(f"{sensor}:SIM:TEMP:SP:RBV", temperature)
         else:
             i = PV_SENSORS.index(sensor)
-            self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[i], temperature])
+            self._lewis.backdoor_run_function_on_device(
+                "set_current_temperature", [SENSORS[i], temperature]
+            )
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP", temperature, 0.1, timeout=30)
-            self._lewis.backdoor_run_function_on_device("set_ramp_setpoint_temperature", [SENSORS[i], temperature])
+            self._lewis.backdoor_run_function_on_device(
+                "set_ramp_setpoint_temperature", [SENSORS[i], temperature]
+            )
             self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
 
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
@@ -134,12 +141,16 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
         )  # Lower tolerance will be too tight given scan rate
 
     def test_WHEN_sensor_disconnected_THEN_ramp_setting_is_disabled(self):
-        self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE])
+        self._lewis.backdoor_run_function_on_device(
+            "set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE]
+        )
 
         self.ca.assert_that_pv_is_number("A01:RAMPON:SP.DISP", 1)
 
     def test_GIVEN_sensor_disconnected_WHEN_sensor_reconnected_THEN_ramp_setting_is_enabled(self):
-        self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE])
+        self._lewis.backdoor_run_function_on_device(
+            "set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE]
+        )
 
         self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], 0])
 
@@ -150,7 +161,9 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
     ):
         self.ca.set_pv_value("A01:RAMPON:SP", 0)
 
-        self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE])
+        self._lewis.backdoor_run_function_on_device(
+            "set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE]
+        )
 
         self.ca.assert_that_pv_is("A01:RAMPON", "OFF")
         self.ca.assert_that_pv_is("A01:RAMPON:CACHE", "OFF")
@@ -160,7 +173,9 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
     ):
         self.ca.set_pv_value("A01:RAMPON:SP", 1)
 
-        self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE])
+        self._lewis.backdoor_run_function_on_device(
+            "set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE]
+        )
 
         self.ca.assert_that_pv_is("A01:RAMPON", "OFF")
         self.ca.assert_that_pv_is("A01:RAMPON:CACHE", "ON")
@@ -168,7 +183,9 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
     def test_GIVEN_ramp_was_on_WHEN_sensor_disconnected_and_reconnected_THEN_ramp_is_on(self):
         self.ca.set_pv_value("A01:RAMPON:SP", 1)
 
-        self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE])
+        self._lewis.backdoor_run_function_on_device(
+            "set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE]
+        )
         self.ca.assert_that_pv_is("A01:RAMPON", "OFF")
         self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], 0])
 
@@ -317,7 +334,7 @@ class EurothermBaseTests(unittest.TestCase if typing.TYPE_CHECKING else object, 
         with self._get_temperature_setter_wrapper():
             for record in records:
                 self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
-    
+
     def test_WHEN_eurotherm_missing_THEN_updates_of_PVs_stop(self):
         with self._lewis.backdoor_simulate_disconnected_addr():
             self.ca.assert_that_pv_value_is_unchanged("A01:RBV", 20)

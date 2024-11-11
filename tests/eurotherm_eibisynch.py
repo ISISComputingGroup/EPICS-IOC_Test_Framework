@@ -2,7 +2,6 @@ import contextlib
 import unittest
 
 from parameterized import parameterized
-from utils.emulator_launcher import LewisLauncher
 
 from common_tests.eurotherm import (
     NONE_TXT_CALIBRATION_MAX_TEMPERATURE,
@@ -10,6 +9,7 @@ from common_tests.eurotherm import (
     EurothermBaseTests,
 )
 from utils.calibration_utils import use_calibration_file
+from utils.emulator_launcher import LewisLauncher
 from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 
@@ -44,7 +44,7 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
         super(EurothermTests, self).setUp()
         self._lewis.backdoor_run_function_on_device("set_scaling", ["01", 1.0])
-        self._lewis:LewisLauncher
+        self._lewis: LewisLauncher
 
     def get_device(self):
         return DEVICE

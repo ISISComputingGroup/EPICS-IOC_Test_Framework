@@ -54,7 +54,7 @@ class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "set_scaling", [sensors[0], 1.0 / float(SCALING)]
         )
-        self._lewis:LewisLauncher
+        self._lewis: LewisLauncher
 
     def get_device(self):
         return DEVICE

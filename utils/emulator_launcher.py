@@ -481,15 +481,15 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
             self.backdoor_set_on_device(emulator_property, True)
 
     @contextlib.contextmanager
-    def backdoor_simulate_disconnected_addr(self, emulator_property = "address"):
+    def backdoor_simulate_disconnected_addr(self, emulator_property="address"):
         """
         Simulate device with disconnected ADDR, such as Eurotherm
         """
-        self.backdoor_run_function_on_device("set_connected", ['01' , False])
+        self.backdoor_run_function_on_device("set_connected", ["01", False])
         try:
             yield
         finally:
-            self.backdoor_run_function_on_device("set_connected", ['01' , True])
+            self.backdoor_run_function_on_device("set_connected", ["01", True])
 
 
 class NullEmulatorLauncher(EmulatorLauncher):

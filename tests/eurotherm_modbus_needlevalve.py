@@ -71,7 +71,7 @@ class EurothermModbusNeedleValveTests(EurothermBaseTests, unittest.TestCase):
         )
         with ManagerMode(ChannelAccess()):
             self.ca.set_pv_value("A01:FLOW_SP_MODE_SELECT:SP", "AUTO")
-        self._lewis:LewisLauncher
+        self._lewis: LewisLauncher
 
     def get_device(self):
         return DEVICE
