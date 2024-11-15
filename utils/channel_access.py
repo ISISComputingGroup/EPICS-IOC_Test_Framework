@@ -12,9 +12,9 @@ from contextlib import contextmanager
 from functools import partial, partialmethod
 from typing import Callable, Generator, Optional
 
+from genie_python.genie import PVValue
 from genie_python.genie_cachannel_wrapper import (
     CaChannelWrapper,
-    PVValue,
     UnableToConnectToPVException,
 )
 from genie_python.genie_p4p_wrapper import P4PWrapper  # type: ignore
