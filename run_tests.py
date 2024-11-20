@@ -50,8 +50,10 @@ def check_and_do_pre_ioc_launch_hook(ioc):
 
     :param ioc: A dictionary representing an ioc.
     """
+
     def do_nothing(*args):
         return None
+
     pre_ioc_launch_hook = ioc.get("pre_ioc_launch_hook", do_nothing)
     if callable(pre_ioc_launch_hook):
         pre_ioc_launch_hook()
@@ -178,8 +180,10 @@ def load_and_run_tests(
     test_results = []
 
     arch = get_build_architecture()
-    print(f"Running tests for arch {arch.name}, "
-          f"defaulting to {'PV' if global_settings.DEFAULT_USE_PVA else 'Channel'} Access.")
+    print(
+        f"Running tests for arch {arch.name}, "
+        f"defaulting to {'PV' if global_settings.DEFAULT_USE_PVA else 'Channel'} Access."
+    )
     for mode in modes:
         if tests_mode is not None and mode != tests_mode:
             continue
@@ -460,7 +464,7 @@ if __name__ == "__main__":
         "--pv-access",
         action="store_true",
         help="""Run tests using PV Access instead of Channel Access. (Note: tests can locally
-        override this)."""
+        override this).""",
     )
 
     arguments = parser.parse_args()

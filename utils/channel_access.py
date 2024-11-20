@@ -36,7 +36,9 @@ class _MonitorAssertion(_ValueSource):
     events before this can be triggered and it does this when the value is requested.
     """
 
-    def __init__(self, channel_access: "ChannelAccess", pv: str, pv_access: bool = None) -> None:
+    def __init__(
+        self, channel_access: "ChannelAccess", pv: str, pv_access: Optional[bool] = None
+    ) -> None:
         """
         Initialise.
         Args:
@@ -47,7 +49,9 @@ class _MonitorAssertion(_ValueSource):
         self._full_pv_name = channel_access.create_pv_with_prefix(pv)
         self.all_values = []
         self.latest_value = None
-        self.pv_access = pv_access
+        import global_settings
+
+        self.pv_access = pv_access if pv_access is not None else global_settings.DEFAULT_USE_PVA
         if pv_access:
             P4PWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
         else:
@@ -88,7 +92,7 @@ class ChannelAccess(object):
         default_timeout: float = 5,
         device_prefix: Optional[str] = None,
         default_wait_time: float = 1.0,
-        pv_access: bool = None,
+        pv_access: Optional[bool] = None,
     ) -> None:
         """
         Initializes this ChannelAccess object.
@@ -101,6 +105,7 @@ class ChannelAccess(object):
             None.
         """
         import global_settings
+
         self.pv_access = pv_access if pv_access is not None else global_settings.DEFAULT_USE_PVA
         if pv_access:
             self.ca = P4PWrapper()

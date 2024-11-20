@@ -3,7 +3,7 @@ import importlib
 import os
 from contextlib import contextmanager
 from types import ModuleType
-from typing import Generator, List, Optional, Set, Unpack
+from typing import Generator, List, Optional, Set
 
 from utils.build_architectures import BuildArchitectures
 from utils.test_modes import TestModes
@@ -27,7 +27,7 @@ def package_contents(package_path: str, filter_files: str) -> Set[str]:
 
 
 @contextmanager
-def modified_environment(**kwargs:str) -> Generator[None, None, None]:
+def modified_environment(**kwargs: str) -> Generator[None, None, None]:
     """
     Modifies the environment variables as required then returns them to their original state.
 
