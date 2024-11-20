@@ -12,7 +12,7 @@ from datetime import datetime
 from functools import partial
 from time import sleep, time
 from types import TracebackType
-from typing import Any, Callable, Dict, Generator, List, Self, Type, TypeAlias, TypeVar
+from typing import Any, Callable, Dict, Generator, List, Optional, Self, Type, TypeAlias, TypeVar
 
 import psutil
 
@@ -77,7 +77,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
         device: str,
         emulator_path: str,
         var_dir: str,
-        port: int,
+        port: Optional[int],
         options: dict[str, Any],
     ) -> None:
         """

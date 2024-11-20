@@ -14,6 +14,7 @@ from typing import List
 import xmlrunner
 from genie_python.utilities import cleanup_subprocs_on_process_exit
 
+import global_settings
 from run_utils import ModuleTests, modified_environment, package_contents
 from utils.build_architectures import BuildArchitectures
 from utils.device_launcher import device_collection_launcher, device_launcher
@@ -29,7 +30,6 @@ from utils.free_ports import get_free_ports
 from utils.ioc_launcher import IOCS_DIR, IocLauncher
 from utils.test_modes import TestModes
 
-import global_settings
 
 def clean_environment():
     """
@@ -50,7 +50,8 @@ def check_and_do_pre_ioc_launch_hook(ioc):
 
     :param ioc: A dictionary representing an ioc.
     """
-    do_nothing = lambda *args: None
+    def do_nothing(*args):
+        return None
     pre_ioc_launch_hook = ioc.get("pre_ioc_launch_hook", do_nothing)
     if callable(pre_ioc_launch_hook):
         pre_ioc_launch_hook()

@@ -2,11 +2,14 @@ import glob
 import importlib
 import os
 from contextlib import contextmanager
+from types import ModuleType
+from typing import Generator, List, Optional, Set, Unpack
 
 from utils.build_architectures import BuildArchitectures
+from utils.test_modes import TestModes
 
 
-def package_contents(package_path, filter_files):
+def package_contents(package_path: str, filter_files: str) -> Set[str]:
     """
     Finds all the files in a package.
 
@@ -24,7 +27,7 @@ def package_contents(package_path, filter_files):
 
 
 @contextmanager
-def modified_environment(**kwargs):
+def modified_environment(**kwargs:str) -> Generator[None, None, None]:
     """
     Modifies the environment variables as required then returns them to their original state.
 
@@ -53,49 +56,49 @@ class ModuleTests(object):
         modes: Modes to run the tests in.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.__name = name
-        self.tests = None
+        self.tests: Optional[List[str]] = None
         self.__file = self.__get_file_reference()
         self.__modes = self.__get_modes()
         self.__architectures = self.__get_architectures()
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Returns the name of the module."""
         return self.__name
 
     @property
-    def modes(self):
+    def modes(self) -> Set[TestModes]:
         """Returns the modes to run the tests in."""
         return self.__modes
 
     @property
-    def file(self):
+    def file(self) -> ModuleType:
         """Returns a reference to the module file."""
         return self.__file
 
     @property
-    def architectures(self):
+    def architectures(self) -> Set[BuildArchitectures]:
         """Returns the architectures the test can be run in."""
         return self.__architectures
 
-    def __get_file_reference(self):
+    def __get_file_reference(self) -> ModuleType:
         module = load_module("tests.{}".format(self.__name))
         return module
 
-    def __get_modes(self):
+    def __get_modes(self) -> Set[TestModes]:
         if not self.__file:
             self.__get_file_reference()
         return check_test_modes(self.__file)
 
-    def __get_architectures(self):
+    def __get_architectures(self) -> Set[BuildArchitectures]:
         if not self.__file:
             self.__get_file_reference()
         return check_build_architectures(self.__file)
 
 
-def load_module(name):
+def load_module(name: str) -> ModuleType:
     """
     Loads a module based on its name.
 
@@ -107,7 +110,7 @@ def load_module(name):
     )
 
 
-def check_test_modes(module):
+def check_test_modes(module: ModuleType) -> Set[TestModes]:
     """
     Checks for RECSIM and DEVSIM test modes.
 
@@ -124,7 +127,7 @@ def check_test_modes(module):
     return modes
 
 
-def check_build_architectures(module):
+def check_build_architectures(module: ModuleType) -> Set[BuildArchitectures]:
     """
     Checks for which build architectures the test can run in.
     If not specified, default to both 64 and 32 bit allowed.

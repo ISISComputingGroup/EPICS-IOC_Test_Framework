@@ -1,9 +1,11 @@
 from contextlib import ExitStack, contextmanager
-from typing import ContextManager, Generator
+from typing import ContextManager, Generator, Optional
 
 
 @contextmanager
-def device_launcher(ioc: ContextManager, lewis: ContextManager) -> Generator[None, None, None]:
+def device_launcher(
+    ioc: ContextManager, lewis: Optional[ContextManager]
+) -> Generator[None, None, None]:
     """
     Context manager that launches an ioc and emulator pair
     :param ioc: the ioc launcher
