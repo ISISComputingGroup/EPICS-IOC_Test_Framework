@@ -104,6 +104,14 @@ you can use:
 
 >  `python -u run_tests.py  --test_and_emulator C:\Instrument\Apps\EPICS\support\CCD100\master\system_tests`
 
+### Run tests using PV Access
+
+To run tests using PV Access (via P4P) instead of Channel Access, you can use:
+
+>  `python -u run_tests.py -pva`
+or
+>  `python -u run_tests.py --pv-access`
+
 ## Troubleshooting
 
 If all tests are failing then it is likely that the PV prefix is incorrect.
