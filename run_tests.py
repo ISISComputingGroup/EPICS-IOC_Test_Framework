@@ -29,6 +29,7 @@ from utils.free_ports import get_free_ports
 from utils.ioc_launcher import IOCS_DIR, IocLauncher
 from utils.test_modes import TestModes
 
+import global_settings
 
 def clean_environment():
     """
@@ -176,8 +177,8 @@ def load_and_run_tests(
     test_results = []
 
     arch = get_build_architecture()
-    print("Running tests for arch {}".format(arch.name))
-
+    print(f"Running tests for arch {arch.name}, "
+          f"defaulting to {'PV' if global_settings.DEFAULT_USE_PVA else 'Channel'} Access.")
     for mode in modes:
         if tests_mode is not None and mode != tests_mode:
             continue
@@ -190,7 +191,9 @@ def load_and_run_tests(
             # Skip tests that cannot be run with a 32-bit architecture
             if arch not in module.architectures:
                 print(
-                    f"Skipped module tests.{module.name} in {TestModes.name(mode)}: suite not available with a {BuildArchitectures.archname(arch)} build architecture"
+                    f"Skipped module tests.{module.name} in {TestModes.name(mode)}: "
+                    f"suite not available with a {BuildArchitectures.archname(arch)} "
+                    f"build architecture"
                 )
                 continue
 
@@ -346,7 +349,6 @@ def run_tests(
     settings = {"EPICS_CA_ADDR_LIST": "127.255.255.255"}
 
     test_names = [f"tests.{test}" for test in tests_to_run]
-
     runner = xmlrunner.XMLTestRunner(
         output="test-reports", stream=sys.stdout, failfast=failfast_switch, verbosity=3
     )
@@ -452,6 +454,13 @@ if __name__ == "__main__":
         help="""Specify a folder that holds both the tests (in a folder called tests) and a lewis 
                         emulator (in a folder called lewis_emulators).""",
     )
+    parser.add_argument(
+        "-pva",
+        "--pv-access",
+        action="store_true",
+        help="""Run tests using PV Access instead of Channel Access. (Note: tests can locally
+        override this)."""
+    )
 
     arguments = parser.parse_args()
 
@@ -499,7 +508,7 @@ if __name__ == "__main__":
     failfast = arguments.failfast
     report_coverage = arguments.report_coverage
     ask_before_running_tests = arguments.ask_before_running
-
+    global_settings.DEFAULT_USE_PVA = arguments.pv_access
     tests_mode = None
     if arguments.tests_mode == "RECSIM":
         tests_mode = TestModes.RECSIM

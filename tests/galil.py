@@ -104,7 +104,7 @@ class GalilTests(unittest.TestCase):
         self.assertIsNotNone(self._ioc)
 
         self.pv = ChannelAccess(
-            device_prefix=None, default_timeout=20, default_wait_time=0.0, pv_access=True
+            device_prefix=None, default_timeout=20, default_wait_time=0.0
         )
         # test galil hardware does not currently have an encoder, software simulated motors do
         if IOCRegister.test_mode == TestModes.NOSIM:

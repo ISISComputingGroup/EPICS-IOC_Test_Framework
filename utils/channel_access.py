@@ -36,7 +36,7 @@ class _MonitorAssertion(_ValueSource):
     events before this can be triggered and it does this when the value is requested.
     """
 
-    def __init__(self, channel_access: "ChannelAccess", pv: str, pv_access: bool = False) -> None:
+    def __init__(self, channel_access: "ChannelAccess", pv: str, pv_access: bool = None) -> None:
         """
         Initialise.
         Args:
@@ -88,7 +88,7 @@ class ChannelAccess(object):
         default_timeout: float = 5,
         device_prefix: Optional[str] = None,
         default_wait_time: float = 1.0,
-        pv_access: bool = False,
+        pv_access: bool = None,
     ) -> None:
         """
         Initializes this ChannelAccess object.
@@ -100,7 +100,8 @@ class ChannelAccess(object):
         Returns:
             None.
         """
-        self.pv_access = pv_access
+        import global_settings
+        self.pv_access = pv_access if pv_access is not None else global_settings.DEFAULT_USE_PVA
         if pv_access:
             self.ca = P4PWrapper()
         else:
