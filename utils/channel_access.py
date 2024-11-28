@@ -433,7 +433,7 @@ class ChannelAccess(object):
             pv_value_source=pv_value_source,
         )
 
-    def assert_that_pv_is_not_number(self, pv, restricted, tolerance=0, timeout=None):
+    def assert_that_pv_is_not_number(self, pv, restricted, tolerance=0.0, timeout=None):
         """
         Assert that the pv is at least tolerance from the restricted value within the timeout
 
