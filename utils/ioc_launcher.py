@@ -377,7 +377,7 @@ class ProcServLauncher(BaseLauncher):
     def get_environment_vars(self) -> dict[str, str]:
         settings = super(ProcServLauncher, self).get_environment_vars()
 
-        settings["CYGWIN"] = "nodosfilewarning"
+        settings["CYGWIN"] = "disable_pcon"
         settings["MYDIRPROCSV"] = os.path.join(EPICS_TOP, "iocstartup")
         settings["EPICS_CAS_INTF_ADDR_LIST"] = "127.0.0.1"
         settings["EPICS_CAS_BEACON_ADDR_LIST"] = "127.255.255.255"
