@@ -52,7 +52,7 @@ class _MonitorAssertion(_ValueSource):
         import global_settings
 
         self.pv_access = pv_access if pv_access is not None else global_settings.DEFAULT_USE_PVA
-        if pv_access:
+        if self.pv_access:
             P4PWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
         else:
             CaChannelWrapper.add_monitor(channel_access.create_pv_with_prefix(pv), self._set_val)
@@ -107,14 +107,14 @@ class ChannelAccess(object):
         import global_settings
 
         self.pv_access = pv_access if pv_access is not None else global_settings.DEFAULT_USE_PVA
-        if pv_access:
+        if self.pv_access:
             self.ca = P4PWrapper()
         else:
             self.ca = CaChannelWrapper()
         self.default_wait_time = default_wait_time
 
         # Silence CA errors
-        if pv_access:
+        if self.pv_access:
             P4PWrapper.error_log_function = lambda *a, **kw: None
         else:
             CaChannelWrapper.error_log_func = lambda *a, **kw: None
