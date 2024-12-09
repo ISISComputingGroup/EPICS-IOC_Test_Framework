@@ -12,7 +12,7 @@ from datetime import datetime
 from functools import partial
 from time import sleep, time
 from types import TracebackType
-from typing import Any, Callable, Dict, Generator, List, Self, Type, TypeAlias, TypeVar
+from typing import Any, Callable, Dict, Generator, List, Optional, Self, Type, TypeAlias, TypeVar
 
 import psutil
 
@@ -77,7 +77,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
         device: str,
         emulator_path: str,
         var_dir: str,
-        port: int,
+        port: Optional[int],
         options: dict[str, Any],
     ) -> None:
         """
@@ -481,7 +481,9 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
             self.backdoor_set_on_device(emulator_property, True)
 
     @contextlib.contextmanager
-    def backdoor_simulate_disconnected_addr(self, emulator_property="address"):
+    def backdoor_simulate_disconnected_addr(
+        self, emulator_property: str = "address"
+    ) -> Generator[None, None, None]:
         """
         Simulate device with disconnected ADDR, such as Eurotherm
         """

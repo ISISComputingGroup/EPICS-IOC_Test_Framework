@@ -1,0 +1,1 @@
+import global_settings as global_settings

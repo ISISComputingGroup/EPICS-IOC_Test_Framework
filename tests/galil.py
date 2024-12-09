@@ -1,5 +1,6 @@
 import os
 import unittest
+from typing import Literal
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
@@ -72,8 +73,6 @@ CONTROLLER_SETUP = {
     "MOT:DMC{}:SEND_CMD_STR": "CN-1,-1",
     "MOT:DMC{}:LIMITTYPE_CMD": "NO",
     "MOT:DMC{}:HOMETYPE_CMD": "NO",
-    "MOT:DMC{}:LIMITTYPE_CMD": "NO",
-    "MOT:DMC{}:HOMETYPE_CMD": "NO",
 }
 
 # TEST_MODES = [TestModes.DEVSIM,TestModes.NOSIM]
@@ -90,21 +89,21 @@ class GalilTests(unittest.TestCase):
 
     def zero_motors(self):
         for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
-            self.ca.set_pv_value("MOT:MTR{}{}".format(self.controller, motor), 0)
-            self.ca.assert_that_pv_is("MOT:MTR{}{}".format(self.controller, motor), 0)
-            self.ca.assert_that_pv_is("MOT:MTR{}{}.RBV".format(self.controller, motor), 0)
+            self.pv.set_pv_value("MOT:MTR{}{}".format(self.controller, motor), 0)
+            self.pv.assert_that_pv_is("MOT:MTR{}{}".format(self.controller, motor), 0)
+            self.pv.assert_that_pv_is("MOT:MTR{}{}.RBV".format(self.controller, motor), 0)
 
     def stop_motors(self):
         for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
-            self.ca.set_pv_value("MOT:MTR{}{}.STOP".format(self.controller, motor), 1)
-            self.ca.assert_that_pv_is("MOT:MTR{}{}.DMOV".format(self.controller, motor), 1)
-            self.ca.assert_that_pv_is("MOT:MTR{}{}.MOVN".format(self.controller, motor), 0)
+            self.pv.set_pv_value("MOT:MTR{}{}.STOP".format(self.controller, motor), 1)
+            self.pv.assert_that_pv_is("MOT:MTR{}{}.DMOV".format(self.controller, motor), 1)
+            self.pv.assert_that_pv_is("MOT:MTR{}{}.MOVN".format(self.controller, motor), 0)
 
     def setUp(self):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
         self.assertIsNotNone(self._ioc)
 
-        self.ca = ChannelAccess(device_prefix=None, default_timeout=20, default_wait_time=0.0)
+        self.pv = ChannelAccess(device_prefix=None, default_timeout=20, default_wait_time=0.0)
         # test galil hardware does not currently have an encoder, software simulated motors do
         if IOCRegister.test_mode == TestModes.NOSIM:
             ueip = "No"
@@ -120,67 +119,69 @@ class GalilTests(unittest.TestCase):
         check for real motors
         """
         for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
-            self.ca.assert_that_pv_exists("MOT:MTR{}{}".format(self.controller, motor))
+            self.pv.assert_that_pv_exists("MOT:MTR{}{}".format(self.controller, motor))
 
     def test_GIVEN_ioc_started_THEN_axes_for_all_motors_exist(self):
         for motor in range(1, 8 + 1):
-            self.ca.assert_that_pv_exists("GALIL_01:AXIS{}".format(motor))
+            self.pv.assert_that_pv_exists("GALIL_01:AXIS{}".format(motor))
 
     def test_GIVEN_motor_requested_to_move_THEN_motor_moves(self):
         self.zero_motors()
 
         # Move motor 0101
         val = 3.0
-        self.ca.set_pv_value("MOT:MTR0101", val)
-        self.ca.assert_that_pv_is("MOT:MTR0101", val)
-        self.ca.assert_that_pv_is("MOT:MTR0101.RBV", val)
+        self.pv.set_pv_value("MOT:MTR0101", val)
+        self.pv.assert_that_pv_is("MOT:MTR0101", val)
+        self.pv.assert_that_pv_is("MOT:MTR0101.RBV", val)
 
     def test_GIVEN_axis_requested_to_move_THEN_axis_moves(self):
         self.zero_motors()
 
         # Move axis 1
         val = 4.0
-        self.ca.set_pv_value("GALIL_01:AXIS1:SP", val)
-        self.ca.assert_that_pv_is("GALIL_01:AXIS1:SP:RBV", val)
-        self.ca.assert_that_pv_is("GALIL_01:AXIS1", val)
-        self.ca.assert_that_pv_is("MOT:MTR0101", val)
-        self.ca.assert_that_pv_is("MOT:MTR0101.RBV", val)
+        self.pv.set_pv_value("GALIL_01:AXIS1:SP", val)
+        self.pv.assert_that_pv_is("GALIL_01:AXIS1:SP:RBV", val)
+        self.pv.assert_that_pv_is("GALIL_01:AXIS1", val)
+        self.pv.assert_that_pv_is("MOT:MTR0101", val)
+        self.pv.assert_that_pv_is("MOT:MTR0101.RBV", val)
 
     # @skip_always("Not working")
     @skip_if_nosim("No encoder on test real motor")
     def test_GIVEN_motors_THEN_check_motor_encoder_diff_works(self):
         val = 2.0
         # setup motor using encoder
-        self.ca.set_pv_value("MOT:MTR0101.UEIP", "Yes")
-        self.ca.assert_that_pv_is("MOT:MTR0101.UEIP", "Yes")
-        mres = self.ca.get_pv_value("MOT:MTR0101.MRES")
-        eres = self.ca.get_pv_value("MOT:MTR0101.ERES")
+        self.pv.set_pv_value("MOT:MTR0101.UEIP", "Yes")
+        self.pv.assert_that_pv_is("MOT:MTR0101.UEIP", "Yes")
+        mres = self.pv.get_pv_value("MOT:MTR0101.MRES")
+        eres = self.pv.get_pv_value("MOT:MTR0101.ERES")
+        assert isinstance(mres, float)
+        assert isinstance(eres, float)
         self.zero_motors()
 
         # move to initial position and check in step
-        self.ca.set_pv_value("MOT:MTR0101", val, wait=True)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101", val)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101.RBV", val, tolerance=eres)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", 0.0, tolerance=eres)
+        self.pv.set_pv_value("MOT:MTR0101", val, wait=True)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101", val)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101.RBV", val, tolerance=eres)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", 0.0, tolerance=eres)
 
         # now double encoder resolution so encoder now thinks it is at 2*val
         # giving difference (val - 2*val)
-        self.ca.set_pv_value("MOT:MTR0101.ERES", eres * 2.0, wait=True)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101.RBV", 2.0 * val, tolerance=eres)
-        self.ca.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", -val, tolerance=eres)
+        self.pv.set_pv_value("MOT:MTR0101.ERES", eres * 2.0, wait=True)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101.RBV", 2.0 * val, tolerance=eres)
+        self.pv.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", -val, tolerance=eres)
 
-    def setup_motors(self, ueip):
+    def setup_motors(self, ueip: Literal["Yes", "No"]):
         for key, value in CONTROLLER_SETUP.items():
-            self.ca.set_pv_value(key.format(self.controller), value)
-            self.ca.assert_that_pv_is(key.format(self.controller), value)
+            self.pv.set_pv_value(key.format(self.controller), value)
+            self.pv.assert_that_pv_is(key.format(self.controller), value)
 
         for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
             for key, value in MOTOR_SETUP.items():
                 if isinstance(value, str):
                     value = value.format(ueip=ueip)
-                self.ca.set_pv_value(key.format(self.controller, motor), value)
-                self.ca.assert_that_pv_is(key.format(self.controller, motor), value)
+                self.pv.set_pv_value(key.format(self.controller, motor), value)
+                self.pv.assert_that_pv_is(key.format(self.controller, motor), value)
