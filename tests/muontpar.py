@@ -14,7 +14,7 @@ DEVICE_PREFIX = "MUONTPAR_01"
 
 test_config_path = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_data", "muontpar")
-)
+).replace("\\", "/")
 
 
 IOCS = [
@@ -22,7 +22,7 @@ IOCS = [
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("MUONTPAR"),
         "pv_for_existence": "FILE_DIR",
-        "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path.replace("\\", "\\\\") + "\\"},
+        "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path},
     },
         {
         # INSTETC is required to control manager mode.
@@ -59,21 +59,46 @@ class MuonTPARTests(unittest.TestCase):
             os.remove(os.path.join(test_config_path, TEST_TPAR_FILENAME))
 
     def test_tpar_dir_populates_file_dir_pv(self):
-        self.ca.assert_that_pv_is("FILE_DIR", test_config_path + "\\")
+        self.ca.assert_that_pv_is("FILE_DIR", test_config_path)
 
     def test_tpar_file_contents_match_disk_contents_on_read(self):
         file_name = "tpar.tpar"
         self.ca.set_pv_value("FILE_NAME:SP", file_name)
+        self.ca.assert_that_pv_is("FILE_NAME", file_name)
+        self.ca.assert_that_pv_is("NEW_FILE_WARNING", "No")
         with open(os.path.join(test_config_path, file_name), "r") as tpar_file:
             self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read())
 
+    def test_tpar_missing_file_gives_warning(self):
+        file_name = "tpar.tpar"
+        self.ca.set_pv_value("FILE_NAME:SP", file_name)
+        self.ca.assert_that_pv_is("NEW_FILE_WARNING", "No")
+        self.ca.set_pv_value("FILE_NAME:SP", "missing_file.txt")
+        self.ca.assert_that_pv_is("NEW_FILE_WARNING", "Yes")
+
     def test_tpar_editor_writes_tpar_content(self):
         file_name = TEST_TPAR_FILENAME
-        self.ca.set_pv_value("FILE_NAME:SP", file_name)
+        self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
+        self.ca.set_pv_value("FILE_NAME:SP", file_name, wait=True)
+        self.ca.assert_that_pv_is("NEW_FILE_WARNING", "Yes")
         self.ca.set_pv_value("LINES_ARRAY:SP", TEST_TPAR)
+        self.ca.assert_that_pv_is("UNSAVED_CHANGES", "Yes")
         with ManagerMode(ChannelAccess()):
             self.ca.set_pv_value("SAVE_FILE", 1, wait=True)
+        self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
+        self.ca.assert_that_pv_is("NEW_FILE_WARNING", "No")
         with open(os.path.join(test_config_path, file_name), "r") as tpar_file:
             self.assertEqual(TEST_TPAR, tpar_file.read())
 
+    def test_tpar_editor_reset(self):
+        file_name = "tpar.tpar"
+        self.ca.set_pv_value("FILE_NAME:SP", file_name, wait=True)
+        self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
+        self.ca.assert_that_pv_is("NEW_FILE_WARNING", "No")
+        self.ca.set_pv_value("LINES_ARRAY:SP", TEST_TPAR)
+        self.ca.assert_that_pv_is("UNSAVED_CHANGES", "Yes")
+        self.ca.set_pv_value("RESET", 1)
+        self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
+        with open(os.path.join(test_config_path, file_name), "r") as tpar_file:
+            self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read())
 
