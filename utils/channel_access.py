@@ -608,7 +608,7 @@ class ChannelAccess(object):
         """
 
         def _condition(val: PVValue) -> bool:
-            assert isinstance(val, float)
+            assert isinstance(val, (int, float, str))
             return min_value <= float(val) <= max_value
 
         message = "Expected PV value to between {} and {}".format(min_value, max_value)
