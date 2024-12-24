@@ -19,17 +19,17 @@ test_config_path = os.path.abspath(
 
 IOCS = [
     {
-        "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("MUONTPAR"),
-        "pv_for_existence": "FILE_DIR",
-        "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path},
-    },
-        {
         # INSTETC is required to control manager mode.
         "name": "INSTETC",
         "directory": get_default_ioc_dir("INSTETC"),
         "custom_prefix": "CS",
         "pv_for_existence": "MANAGER",
+    },
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("MUONTPAR"),
+        "pv_for_existence": "FILE_DIR",
+        "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path},
     },
 ]
 
