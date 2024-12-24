@@ -47,6 +47,7 @@ TEST_TPAR = """
 """
 TEST_TPAR_FILENAME = "test_write.tpar"
 
+
 class MuonTPARTests(unittest.TestCase):
     """
     Tests for the muon tpar IOC.
@@ -101,4 +102,3 @@ class MuonTPARTests(unittest.TestCase):
         self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
         with open(os.path.join(test_config_path, file_name), "r") as tpar_file:
             self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read())
-
