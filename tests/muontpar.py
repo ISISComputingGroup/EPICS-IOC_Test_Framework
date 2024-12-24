@@ -19,17 +19,17 @@ test_config_path = os.path.abspath(
 
 IOCS = [
     {
-        "name": DEVICE_PREFIX,
-        "directory": get_default_ioc_dir("MUONTPAR"),
-        "pv_for_existence": "FILE_DIR",
-        "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path},
-    },
-        {
         # INSTETC is required to control manager mode.
         "name": "INSTETC",
         "directory": get_default_ioc_dir("INSTETC"),
         "custom_prefix": "CS",
         "pv_for_existence": "MANAGER",
+    },
+    {
+        "name": DEVICE_PREFIX,
+        "directory": get_default_ioc_dir("MUONTPAR"),
+        "pv_for_existence": "FILE_DIR",
+        "macros": {"EDITOR_TPAR_FILE_DIR": test_config_path},
     },
 ]
 
@@ -46,6 +46,7 @@ TEST_TPAR = """
 
 """
 TEST_TPAR_FILENAME = "test_write.tpar"
+
 
 class MuonTPARTests(unittest.TestCase):
     """
@@ -101,4 +102,3 @@ class MuonTPARTests(unittest.TestCase):
         self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
         with open(os.path.join(test_config_path, file_name), "r") as tpar_file:
             self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read())
-
