@@ -1,11 +1,12 @@
-import unittest
 import time
+import unittest
 
 from parameterized import parameterized
-from utils.test_modes import TestModes
+
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir, IOCRegister
-from utils.testing import get_running_lewis_and_ioc, skip_if_recsim, parameterized_list
+from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
 DEVICE_PREFIX = "CRYOSMS_01"
 EMULATOR_NAME = "cryogenic_sms"
@@ -57,21 +58,22 @@ IOCS = [
             "FAST_RATE": 0.5,
             "RESTORE_WRITE_UNIT_TIMEOUT": 10,
             "CRYOMAGNET": "Yes",
-        }
+        },
     },
 ]
 
 
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
-TEST_RAMPS = [[(0.0, 1.0), {1: 1.12}],
-              [(0.5, 2.5), {1: 1.12, 2: 0.547, 2.5: 0.038}],
-              [(-0.5, -2.5), {-1: 1.12, -2: 0.547, -2.5: 0.038}],
-              [(2.5, 0.5), {2: 0.038, 1: 0.547, 0: 1.12}],
-              [(2.5, -2.5), {2: 0.038, 1: 0.547, -1: 1.12, -2: 0.547, -2.5: 0.038}],
-              [(-2.5, 2.5), {-2: 0.038, -1: 0.547, 1: 1.12, 2: 0.547, 2.5: 0.038}],
-              [(-2.5, 0), {-2: 0.038, -1: 0.547, 0: 1.12}],
-              [(2.5, 0), {2: 0.038, 1: 0.547, 0: 1.12}],
-              ]
+TEST_RAMPS = [
+    [(0.0, 1.0), {1: 1.12}],
+    [(0.5, 2.5), {1: 1.12, 2: 0.547, 2.5: 0.038}],
+    [(-0.5, -2.5), {-1: 1.12, -2: 0.547, -2.5: 0.038}],
+    [(2.5, 0.5), {2: 0.038, 1: 0.547, 0: 1.12}],
+    [(2.5, -2.5), {2: 0.038, 1: 0.547, -1: 1.12, -2: 0.547, -2.5: 0.038}],
+    [(-2.5, 2.5), {-2: 0.038, -1: 0.547, 1: 1.12, 2: 0.547, 2.5: 0.038}],
+    [(-2.5, 0), {-2: 0.038, -1: 0.547, 0: 1.12}],
+    [(2.5, 0), {2: 0.038, 1: 0.547, 0: 1.12}],
+]
 
 
 class CryoSMSTests(unittest.TestCase):
@@ -83,7 +85,7 @@ class CryoSMSTests(unittest.TestCase):
             self.ca.assert_that_pv_exists("DISABLE", timeout=30)
         else:
             self._lewis.backdoor_set_on_device("is_quenched", False)
-            self.ca.assert_that_pv_is("INIT", "Startup complete",  timeout=60)
+            self.ca.assert_that_pv_is("INIT", "Startup complete", timeout=60)
             self.ca.set_pv_value("PERSIST", 0)
             self.ca.set_pv_value("SIM:TEMP:MAGNET", 3.67)
             self.ca.set_pv_value("SIM:COMP1STAT", 1)
@@ -96,48 +98,58 @@ class CryoSMSTests(unittest.TestCase):
 
     @skip_if_recsim("Cannot properly simulate device startup in recsim")
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
-        expectedValues = {"OUTPUT:SP": 0,
-                          "OUTPUT": 0,
-                          "OUTPUT:COIL": 0,
-                          "OUTPUT:PERSIST": 0,
-                          "OUTPUT:VOLT": 0,
-                          "RAMP:RATE": 1.12,
-                          "READY": "Ready",
-                          "RAMP:RAMPING": 0,
-                          "TARGET:TIME": 0,
-                          "STAT": "Ready",
-                          "HEATER:STAT": "ON",
-                          "START:SP.DISP": "0",
-                          "PAUSE:SP.DISP": "0",
-                          "ABORT.DISP": "0",
-                          "OUTPUT:SP.DISP": "0",
-                          "PERSIST.DISP": "0",
-                          "RAMP:LEADS.DISP": "0",
-                          }
-        failedPVs = []
-        for PV in expectedValues:
+        expected_values = {
+            "OUTPUT:SP": 0,
+            "OUTPUT": 0,
+            "OUTPUT:COIL": 0,
+            "OUTPUT:PERSIST": 0,
+            "OUTPUT:VOLT": 0,
+            "RAMP:RATE": 1.12,
+            "READY": "Ready",
+            "RAMP:RAMPING": 0,
+            "TARGET:TIME": 0,
+            "STAT": "Ready",
+            "HEATER:STAT": "ON",
+            "START:SP.DISP": "0",
+            "PAUSE:SP.DISP": "0",
+            "ABORT.DISP": "0",
+            "OUTPUT:SP.DISP": "0",
+            "PERSIST.DISP": "0",
+            "RAMP:LEADS.DISP": "0",
+        }
+        failed_pvs = []
+        for pv in expected_values:
             try:
-                if type(expectedValues[PV]) in [int, float]:
-                    self.ca.assert_that_pv_is_within_range(PV, expectedValues[PV]-0.01,
-                                                           expectedValues[PV]+0.01, timeout=5)
+                if type(expected_values[pv]) in [int, float]:
+                    self.ca.assert_that_pv_is_within_range(
+                        pv, expected_values[pv] - 0.01, expected_values[pv] + 0.01, timeout=5
+                    )
                 else:
-                    self.ca.assert_that_pv_is(PV, expectedValues[PV], timeout=5)
+                    self.ca.assert_that_pv_is(pv, expected_values[pv], timeout=5)
             except Exception as e:
                 if hasattr(e, "message"):
-                    failedPVs.append(e.message)
+                    failed_pvs.append(e.message)
                 else:
-                    failedPVs.append(repr(e))
-        if failedPVs:
-            self.fail("The following PVs generated errors:\n{}".format("\n".join(failedPVs)))
+                    failed_pvs.append(repr(e))
+        if failed_pvs:
+            self.fail("The following PVs generated errors:\n{}".format("\n".join(failed_pvs)))
 
-    def test_GIVEN_outputmode_sp_correct_WHEN_outputmode_sp_written_to_THEN_outputmode_changes(self):
+    def test_GIVEN_outputmode_sp_correct_WHEN_outputmode_sp_written_to_THEN_outputmode_changes(
+        self,
+    ):
         # For all other tests, alongside normal operation, communication should be in amps
-        self.ca.assert_setting_setpoint_sets_readback("TESLA", "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
-        self.ca.assert_setting_setpoint_sets_readback("AMPS", "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10)
+        self.ca.assert_setting_setpoint_sets_readback(
+            "TESLA", "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10
+        )
+        self.ca.assert_setting_setpoint_sets_readback(
+            "AMPS", "OUTPUTMODE", "OUTPUTMODE:SP", timeout=10
+        )
 
     @parameterized.expand(parameterized_list(TEST_RAMPS))
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
-    def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(self, _, ramp_data):
+    def test_GIVEN_psu_at_field_strength_A_WHEN_told_to_ramp_to_B_THEN_correct_rates_used(
+        self, _, ramp_data
+    ):
         start_point, end_point = ramp_data[0]
         ramp_rates = ramp_data[1]
         output = None
@@ -161,7 +173,11 @@ class CryoSMSTests(unittest.TestCase):
                     time.sleep(1)
                     output = self.ca.get_pv_value("OUTPUT")
             else:
-                self.fail("Output failed to reach mid-point, was {0}G but expected {1}G".format(output, mid_point))
+                self.fail(
+                    "Output failed to reach mid-point, was {0}G but expected {1}G".format(
+                        output, mid_point
+                    )
+                )
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=25)
         self.ca.assert_that_pv_is_within_range("OUTPUT", end_point - 0.01, end_point + 0.01)
 
@@ -173,7 +189,9 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
-    def test_GIVEN_IOC_ramping_WHEN_paused_and_unpaused_THEN_ramp_is_paused_resumed_and_completes(self):
+    def test_GIVEN_IOC_ramping_WHEN_paused_and_unpaused_THEN_ramp_is_paused_resumed_and_completes(
+        self,
+    ):
         # GIVEN ramping
         self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
@@ -181,12 +199,18 @@ class CryoSMSTests(unittest.TestCase):
         # Pauses when pause set to true
         self.ca.set_pv_value("PAUSE:SP", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON PAUSE", msg="Ramping failed to pause")
-        self.ca.assert_that_pv_is_not("RAMP:STAT", "HOLDING ON TARGET", timeout=5,
-                                      msg="Ramp completed even though it should have paused")
+        self.ca.assert_that_pv_is_not(
+            "RAMP:STAT",
+            "HOLDING ON TARGET",
+            timeout=5,
+            msg="Ramp completed even though it should have paused",
+        )
         # Resumes when pause set to false, completes ramp
         self.ca.set_pv_value("PAUSE:SP", 0)
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING", msg="Ramping failed to resume")
-        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10, msg="Ramping failed to complete")
+        self.ca.assert_that_pv_is(
+            "RAMP:STAT", "HOLDING ON TARGET", timeout=10, msg="Ramping failed to complete"
+        )
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_IOC_ramping_WHEN_aborted_THEN_ramp_aborted(self):
@@ -205,12 +229,12 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.set_pv_value("START:SP", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
         self.ca.set_pv_value("PAUSE:SP", 1)
-        rampTarget = self.ca.get_pv_value("MID")
+        ramp_target = self.ca.get_pv_value("MID")
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON PAUSE", msg="Ramping failed to pause")
         # Aborts when abort set to true, then hits ready again
         self.ca.set_pv_value("ABORT", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
-        self.ca.assert_that_pv_is_not("MID", rampTarget)
+        self.ca.assert_that_pv_is_not("MID", ramp_target)
 
     @skip_if_recsim("Test is to tell whether data from emulator is correctly received")
     def test_GIVEN_output_nonzero_WHEN_units_changed_THEN_output_raw_adjusts(self):
@@ -221,7 +245,7 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_that_pv_is_number("OUTPUT", 1, 1)  # OUTPUT should remain in Gauss
         # Set outputmode to tesla
         self.ca.set_pv_value("OUTPUTMODE:SP", "AMPS")
-        self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1/0.037, 0.001)
+        self.ca.assert_that_pv_is_number("OUTPUT:RAW", 1 / 0.037, 0.001)
         self.ca.assert_that_pv_is_number("OUTPUT", 1, 1)
         # Confirm functionality returns to normal when going back to Amps
         self.ca.set_pv_value("OUTPUTMODE:SP", "TESLA")
@@ -261,7 +285,9 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_that_pv_is("OUTPUTMODE", "TESLA", timeout=15)
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
-    def test_GIVEN_ramping_WHEN_temp_not_in_range_THEN_pauses_and_WHEN_back_in_range_THEN_resumes(self):
+    def test_GIVEN_ramping_WHEN_temp_not_in_range_THEN_pauses_and_WHEN_back_in_range_THEN_resumes(
+        self,
+    ):
         # Start ramp
         self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
@@ -293,7 +319,9 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STAT", "Ready", timeout=15)
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
-    def test_GIVEN_persistent_mode_and_leads_at_field_WHEN_target_reached_THEN_cools_correctly(self):
+    def test_GIVEN_persistent_mode_and_leads_at_field_WHEN_target_reached_THEN_cools_correctly(
+        self,
+    ):
         # Start a ramp in persistenet mode with leads staying at field
         self.ca.set_pv_value("PERSIST", 1)
         self.ca.set_pv_value("RAMP:LEADS", 0)
