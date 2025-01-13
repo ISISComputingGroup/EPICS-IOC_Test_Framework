@@ -1,11 +1,13 @@
 import os
 import time
+import typing
 import unittest
 
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
+from utils.emulator_launcher import EmulatorLauncher
+from utils.ioc_launcher import BaseLauncher, IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
@@ -89,7 +91,10 @@ TEST_RAMPS = [
 
 class CryoSMSTests(unittest.TestCase):
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
+        self._lewis, self._ioc = typing.cast(
+            tuple[EmulatorLauncher, BaseLauncher],
+            get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX),
+        )
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=10)
 
         if IOCRegister.uses_rec_sim:
@@ -146,7 +151,7 @@ class CryoSMSTests(unittest.TestCase):
                     self.ca.assert_that_pv_is(pv, expected_values[pv], timeout=5)
             except Exception as e:
                 if hasattr(e, "message"):
-                    failed_pvs.append(e.message)
+                    failed_pvs.append(e.message)  # pyright: ignore
                 else:
                     failed_pvs.append(repr(e))
         if failed_pvs:

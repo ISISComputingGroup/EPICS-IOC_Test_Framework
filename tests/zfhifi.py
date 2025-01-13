@@ -1,12 +1,13 @@
 import contextlib
 import os
 import threading
+import typing
 import unittest
 from typing import Any
 
 from utils.channel_access import ChannelAccess
-from utils.emulator_launcher import LewisLauncher
-from utils.ioc_launcher import IocLauncher, get_default_ioc_dir
+from utils.emulator_launcher import EmulatorLauncher
+from utils.ioc_launcher import BaseLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
@@ -159,13 +160,16 @@ class ZeroFieldHifiTests(unittest.TestCase):
 
     def setUp(self):
         def ca_lewis_ioc(
-            ioc: str, emulator: str, iocnum: int, timeout: float | None = None
-        ) -> tuple[ChannelAccess, LewisLauncher, IocLauncher]:
+            ioc: str, emulator: str, iocnum: int, timeout: float = 10.0
+        ) -> tuple[ChannelAccess, EmulatorLauncher, BaseLauncher]:
             ca = ChannelAccess(
                 default_timeout=timeout, device_prefix=f"{ioc}_{iocnum:02d}", default_wait_time=0.0
             )
-            lewis, ioc = get_running_lewis_and_ioc(f"{emulator}_{iocnum}", f"{ioc}_{iocnum:02d}")
-            return ca, lewis, ioc
+            lewis, ioc_instance = get_running_lewis_and_ioc(
+                f"{emulator}_{iocnum}", f"{ioc}_{iocnum:02d}"
+            )
+            assert isinstance(lewis, EmulatorLauncher)
+            return ca, lewis, ioc_instance
 
         self.x_psu_ca, self.x_psu_lewis, self.x_psu_ioc = ca_lewis_ioc(
             "CRYOSMS", "cryogenic_sms", 1, timeout=120
@@ -333,9 +337,9 @@ class ZeroFieldHifiTests(unittest.TestCase):
 
         self.wait_for_psus_ready(x=7, y=8, z=9)
 
-        x_actual = self.ca.get_pv_value("OUTPUT:X")
-        y_actual = self.ca.get_pv_value("OUTPUT:Y")
-        z_actual = self.ca.get_pv_value("OUTPUT:Z")
+        x_actual = typing.cast(float, self.ca.get_pv_value("OUTPUT:X"))
+        y_actual = typing.cast(float, self.ca.get_pv_value("OUTPUT:Y"))
+        z_actual = typing.cast(float, self.ca.get_pv_value("OUTPUT:Z"))
         self.assertAlmostEqual(x_actual, 7, delta=SMALL)
         self.assertAlmostEqual(y_actual, 8, delta=SMALL)
         self.assertAlmostEqual(z_actual, 9, delta=SMALL)
@@ -375,9 +379,9 @@ class ZeroFieldHifiTests(unittest.TestCase):
 
         def _update_fields():
             while not ev.is_set():
-                x_actual = self.ca.get_pv_value("OUTPUT:X")
-                y_actual = self.ca.get_pv_value("OUTPUT:Y")
-                z_actual = self.ca.get_pv_value("OUTPUT:Z")
+                x_actual = typing.cast(float, self.ca.get_pv_value("OUTPUT:X"))
+                y_actual = typing.cast(float, self.ca.get_pv_value("OUTPUT:Y"))
+                z_actual = typing.cast(float, self.ca.get_pv_value("OUTPUT:Z"))
 
                 x = round(x_actual + offset_x, 4)
                 y = round(y_actual + offset_y, 4)
