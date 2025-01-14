@@ -1,1 +1,2 @@
-genie_python>=15.1.0-rc1
+genie_python
+parameterized
