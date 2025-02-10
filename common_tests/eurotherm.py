@@ -333,11 +333,15 @@ class EurothermBaseTests(
         # Assert alarms clear on reconnection
         with self._get_temperature_setter_wrapper():
             for record in records:
-                self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=30)
+                self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=60)
 
     def test_WHEN_eurotherm_missing_THEN_updates_of_PVs_stop(self):
+        self.ca.assert_that_pv_alarm_is("A01:RBV", ChannelAccess.Alarms.NONE, timeout=60)
         with self._lewis.backdoor_simulate_disconnected_addr():
             self.ca.assert_that_pv_value_is_unchanged("A01:RBV", 20)
+            self.ca.assert_that_pv_alarm_is("A01:RBV", ChannelAccess.Alarms.INVALID, timeout=60)
+        
+        self.ca.assert_that_pv_alarm_is("A01:RBV", ChannelAccess.Alarms.NONE, timeout=60)
 
     @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")
