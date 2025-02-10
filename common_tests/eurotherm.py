@@ -78,9 +78,7 @@ class EurothermBaseTests(
 
         self._set_setpoint_and_current_temperature(intial_temp)
 
-        self._lewis.backdoor_run_function_on_device(
-            "set_ramping_on", [SENSORS[0], True]
-        )
+        self._lewis.backdoor_run_function_on_device("set_ramping_on", [SENSORS[0], True])
         self._lewis.backdoor_run_function_on_device("set_ramp_rate", [SENSORS[0], 1.0])
         self.ca.set_pv_value(f"{sensor}:RAMPON:SP", 0, sleep_after_set=0)
 
@@ -100,15 +98,11 @@ class EurothermBaseTests(
             self._lewis.backdoor_run_function_on_device(
                 "set_current_temperature", [SENSORS[i], temperature]
             )
-            self.ca.assert_that_pv_is_number(
-                f"{sensor}:TEMP", temperature, 0.1, timeout=30
-            )
+            self.ca.assert_that_pv_is_number(f"{sensor}:TEMP", temperature, 0.1, timeout=30)
             self._lewis.backdoor_run_function_on_device(
                 "set_ramp_setpoint_temperature", [SENSORS[i], temperature]
             )
-            self.ca.assert_that_pv_is_number(
-                f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30
-            )
+            self.ca.assert_that_pv_is_number(f"{sensor}:TEMP:SP:RBV", temperature, 0.1, timeout=30)
 
     def test_WHEN_read_rbv_temperature_THEN_rbv_value_is_same_as_backdoor(self):
         expected_temperature = 10.0
@@ -117,9 +111,7 @@ class EurothermBaseTests(
 
     def test_GIVEN_a_sp_WHEN_sp_read_rbv_temperature_THEN_rbv_value_is_same_as_sp(self):
         expected_temperature = 10.0
-        self.ca.assert_setting_setpoint_sets_readback(
-            expected_temperature, "A01:SP:RBV", "A01:SP"
-        )
+        self.ca.assert_setting_setpoint_sets_readback(expected_temperature, "A01:SP:RBV", "A01:SP")
 
     def test_WHEN_set_ramp_rate_in_K_per_min_THEN_current_temperature_reaches_set_point_in_expected_time(
         self,
@@ -162,9 +154,7 @@ class EurothermBaseTests(
             "set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE]
         )
 
-        self._lewis.backdoor_run_function_on_device(
-            "set_current_temperature", [SENSORS[0], 0]
-        )
+        self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], 0])
 
         self.ca.assert_that_pv_is_number("A01:RAMPON:SP.DISP", 0)
 
@@ -201,9 +191,7 @@ class EurothermBaseTests(
             "set_current_temperature", [SENSORS[0], SENSOR_DISCONNECTED_VALUE]
         )
         self.ca.assert_that_pv_is("A01:RAMPON", "OFF")
-        self._lewis.backdoor_run_function_on_device(
-            "set_current_temperature", [SENSORS[0], 0]
-        )
+        self._lewis.backdoor_run_function_on_device("set_current_temperature", [SENSORS[0], 0])
 
         self.ca.assert_that_pv_is("A01:RAMPON", "ON")
 
@@ -253,12 +241,8 @@ class EurothermBaseTests(
         self._set_setpoint_and_current_temperature(temperature)
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
-            self.ca.assert_that_pv_is_number(
-                "A01:TEMP", temperature, tolerance=tolerance
-            )
-            self.ca.assert_that_pv_is_number(
-                "A01:TEMP:SP:RBV", temperature, tolerance=tolerance
-            )
+            self.ca.assert_that_pv_is_number("A01:TEMP", temperature, tolerance=tolerance)
+            self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance)
 
         with use_calibration_file(self.ca, "C.txt", prefix="A01:"):
             self.ca.assert_that_pv_is_number(
@@ -269,12 +253,8 @@ class EurothermBaseTests(
             )
 
         with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
-            self.ca.assert_that_pv_is_number(
-                "A01:TEMP", temperature, tolerance=tolerance
-            )
-            self.ca.assert_that_pv_is_number(
-                "A01:TEMP:SP:RBV", temperature, tolerance=tolerance
-            )
+            self.ca.assert_that_pv_is_number("A01:TEMP", temperature, tolerance=tolerance)
+            self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance)
 
     def _assert_units(self, units):
         # High timeouts because setting units does not cause processing - wait for normal scan loop to come around.
@@ -377,29 +357,19 @@ class EurothermBaseTests(
             self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_addr():
             for record in records:
-                self.ca.assert_that_pv_alarm_is(
-                    record, ChannelAccess.Alarms.INVALID, timeout=60
-                )
+                self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.INVALID, timeout=60)
         # Assert alarms clear on reconnection
         with self._get_temperature_setter_wrapper():
             for record in records:
-                self.ca.assert_that_pv_alarm_is(
-                    record, ChannelAccess.Alarms.NONE, timeout=60
-                )
+                self.ca.assert_that_pv_alarm_is(record, ChannelAccess.Alarms.NONE, timeout=60)
 
     def test_WHEN_eurotherm_missing_THEN_updates_of_PVs_stop(self):
-        self.ca.assert_that_pv_alarm_is(
-            "A01:RBV", ChannelAccess.Alarms.NONE, timeout=60
-        )
+        self.ca.assert_that_pv_alarm_is("A01:RBV", ChannelAccess.Alarms.NONE, timeout=60)
         with self._lewis.backdoor_simulate_disconnected_addr():
             self.ca.assert_that_pv_value_is_unchanged("A01:RBV", 20)
-            self.ca.assert_that_pv_alarm_is(
-                "A01:RBV", ChannelAccess.Alarms.INVALID, timeout=60
-            )
+            self.ca.assert_that_pv_alarm_is("A01:RBV", ChannelAccess.Alarms.INVALID, timeout=60)
 
-        self.ca.assert_that_pv_alarm_is(
-            "A01:RBV", ChannelAccess.Alarms.NONE, timeout=60
-        )
+        self.ca.assert_that_pv_alarm_is("A01:RBV", ChannelAccess.Alarms.NONE, timeout=60)
 
     @parameterized.expand(parameterized_list(PID_TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")
@@ -429,9 +399,7 @@ class EurothermBaseTests(
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_max_output_set_via_backdoor_THEN_output_updates(self, _, val):
         self._lewis.backdoor_run_function_on_device("set_max_output", [SENSORS[0], val])
-        self.ca.assert_that_pv_is_number(
-            "A01:MAX_OUTPUT", val, tolerance=0.05, timeout=15
-        )
+        self.ca.assert_that_pv_is_number("A01:MAX_OUTPUT", val, tolerance=0.05, timeout=15)
 
     @parameterized.expand(parameterized_list([0, 100, 3276]))
     def test_WHEN_output_rate_set_THEN_output_rate_updates(self, _, val):
