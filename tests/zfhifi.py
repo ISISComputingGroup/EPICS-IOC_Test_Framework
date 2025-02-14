@@ -13,7 +13,7 @@ from utils.testing import get_running_lewis_and_ioc
 
 PREFIX = os.environ.get("testing_prefix") or os.environ.get("MYPVPREFIX")
 
-SMALL = 0.00001
+SMALL = 0.002  # Limited by rounding in cryosms ioc
 
 
 def local_cryosms_pv(pv: str, iocnum: int) -> str:
@@ -31,8 +31,8 @@ def cryosms_macros(iocnum: int) -> dict[str, Any]:
         "WRITE_UNIT": "AMPS",
         "DISPLAY_UNIT": "GAUSS",
         "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\default.txt",
-        "MID_TOLERANCE": 9999999999,  # 0.1
-        "TARGET_TOLERANCE": 9999999999,  # 0.1
+        "MID_TOLERANCE": 999999999,  # 0.1
+        "TARGET_TOLERANCE": 999999999,  # 0.1
         "ALLOW_PERSIST": "No",
         "USE_SWITCH": "No",
         "FAST_FILTER_VALUE": 1,
@@ -40,7 +40,7 @@ def cryosms_macros(iocnum: int) -> dict[str, Any]:
         "NPP": 0.0005,
         "FAST_PERSISTENT_SETTLETIME": 0,
         "PERSISTENT_SETTLETIME": 0,  # 60 on HIFI
-        "NON_PERSISTENT_SETTLETIME": 0,
+        "NON_PERSISTENT_SETTLETIME": 0,  # Should not be used in ZF mode
         "SWITCH_TEMP_PV": local_cryosms_pv("SIM:SWITCH:TEMP", iocnum),
         "SWITCH_HIGH": 3.7,
         "SWITCH_LOW": 3.65,
@@ -59,8 +59,8 @@ def cryosms_macros(iocnum: int) -> dict[str, Any]:
         "MIN_NO_OF_COMP": 0,
         "COMP_1_STAT_PV": "NULL",
         "COMP_2_STAT_PV": "NULL",
-        "HOLD_TIME_ZERO": 0,  # 12 on HIFI
-        "HOLD_TIME": 0,
+        "HOLD_TIME_ZERO": 0,  # Should not be used in ZF mode
+        "HOLD_TIME": 0,  # Should not be used in ZF mode
         "VOLT_STABILITY_DURATION": 1,
         "VOLT_TOLERANCE": 0.2,
         "FAST_RATE": 0.5,
@@ -97,7 +97,7 @@ def group3_hall_probe_ioc(iocnum: int) -> dict[str, Any]:
             "system_tests",
         ),
         "macros": {
-            "FIELD_SCAN_RATE": "Passive",
+            "FIELD_SCAN_RATE": ".1 second",
             "TEMP_SCAN_RATE": ".1 second",
             "NAME0": "X",
             "NAME1": "Y",
@@ -195,6 +195,8 @@ class ZeroFieldHifiTests(unittest.TestCase):
         self.backdoor_set_raw_meas_fields(x1=0, y1=0, z1=0, x2=0, y2=0, z2=0)
 
         self.ca.set_pv_value("FEEDBACK", 1)
+        self.ca.set_pv_value("STATEMACHINE:LOOP_DELAY", 250)
+        self.ca.set_pv_value("STATEMACHINE:WRITE_TIMEOUT", 10)
         self.ca.set_pv_value("AUTOFEEDBACK", 0, sleep_after_set=5)
         self.ca.assert_that_pv_is("STATUS", "No error", timeout=30)
 
@@ -278,12 +280,14 @@ class ZeroFieldHifiTests(unittest.TestCase):
             self.ca.assert_that_pv_is("STATUS", "No error", timeout=30)
 
     def test_WHEN_psu_disconnected_THEN_reflected_in_zf_ioc(self):
-        self.ca.set_pv_value("AUTOFEEDBACK", 1)
-
         for psu in [self.x_psu_lewis, self.y_psu_lewis, self.z_psu_lewis]:
+            self.ca.set_pv_value("AUTOFEEDBACK", 0)
+            self.wait_for_psus_ready()
             with psu.backdoor_simulate_disconnected_device():
-                self.ca.assert_that_pv_is("STATUS", "Power supply invalid", timeout=30)
-            self.ca.assert_that_pv_is("STATUS", "No error", timeout=30)
+                self.ca.set_pv_value("AUTOFEEDBACK", 1)
+                self.ca.assert_that_pv_is("STATUS", "Power supply invalid", timeout=120)
+                self.ca.set_pv_value("AUTOFEEDBACK", 0)
+            self.ca.assert_that_pv_is("STATUS", "No error", timeout=300)
 
     def test_WHEN_has_a_persistent_gradient_THEN_magnetometer_readings_adjusted_correctly(self):
         y1_raw = 100
@@ -354,7 +358,7 @@ class ZeroFieldHifiTests(unittest.TestCase):
     def test_WHEN_autofeedback_on_and_field_always_too_low_THEN_output_goes_up_until_limit(self):
         self.ca.set_pv_value("AUTOFEEDBACK", 1)
 
-        self.backdoor_set_raw_meas_fields(x1=-1, y1=-1, z1=-1, x2=-1, y2=-1, z2=-1)
+        self.backdoor_set_raw_meas_fields(x1=-5, y1=-5, z1=-5, x2=-5, y2=-5, z2=-5)
 
         self.ca.assert_that_pv_is_number("OUTPUT:X:SP", 15, timeout=300)  # Limited by MAX
         self.ca.assert_that_pv_is_number("OUTPUT:Y:SP", 15, timeout=300)
@@ -365,7 +369,7 @@ class ZeroFieldHifiTests(unittest.TestCase):
     def test_WHEN_autofeedback_on_and_field_always_too_high_THEN_output_goes_down_until_limit(self):
         self.ca.set_pv_value("AUTOFEEDBACK", 1)
 
-        self.backdoor_set_raw_meas_fields(x1=1, y1=1, z1=1, x2=1, y2=1, z2=1)
+        self.backdoor_set_raw_meas_fields(x1=5, y1=5, z1=5, x2=5, y2=5, z2=5)
 
         self.ca.assert_that_pv_is_number("OUTPUT:X:SP", -15, timeout=300)  # Limited by MIN
         self.ca.assert_that_pv_is_number("OUTPUT:Y:SP", -15, timeout=300)
