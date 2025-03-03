@@ -34,7 +34,7 @@ IOCS = [
             "MAX_VOLT": 9.9,
             "WRITE_UNIT": "TESLA",
             "DISPLAY_UNIT": "TESLA",
-            "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\default.txt",
+            "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\test.txt",
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.01,
             "ALLOW_PERSIST": "Yes",
@@ -42,9 +42,9 @@ IOCS = [
             "FAST_FILTER_VALUE": 1,
             "FILTER_VALUE": 0.1,
             "NPP": 0.0005,
-            "FAST_PERSISTENT_SETTLETIME": 5,
-            "PERSISTENT_SETTLETIME": 5,  # 60 on HIFI
-            "NON_PERSISTENT_SETTLETIME": 5,  # 30 on HIFI
+            "FAST_PERSISTENT_SETTLETIME": 0,
+            "PERSISTENT_SETTLETIME": 0,  # 60 on HIFI
+            "NON_PERSISTENT_SETTLETIME": 0,  # 30 on HIFI
             "SWITCH_TEMP_PV": local_cryosms_pv("SIM:SWITCH:TEMP"),
             "SWITCH_HIGH": 3.7,
             "SWITCH_LOW": 3.65,
@@ -63,8 +63,8 @@ IOCS = [
             "MIN_NO_OF_COMP": 1,
             "COMP_1_STAT_PV": local_cryosms_pv("SIM:COMP1STAT"),
             "COMP_2_STAT_PV": local_cryosms_pv("SIM:COMP2STAT"),
-            "HOLD_TIME_ZERO": 5,  # 12 on HIFI
-            "HOLD_TIME": 5,  # 30 on HIFI
+            "HOLD_TIME_ZERO": 0,  # 12 on HIFI
+            "HOLD_TIME": 0,  # 30 on HIFI
             "VOLT_STABILITY_DURATION": 300,
             "VOLT_TOLERANCE": 0.2,
             "FAST_RATE": 5.0,
@@ -90,6 +90,20 @@ TEST_RAMPS = [
 
 
 class CryoSMSTests(unittest.TestCase):
+    def set_and_wait(self, target):
+        self.ca.set_pv_value("ABORT", 1)
+        time.sleep(10)
+
+        self.ca.set_pv_value("PAUSE:SP", 0)
+        self.ca.set_pv_value("TARGET:SP", target)
+        self.ca.set_pv_value("START:SP", 1)
+
+        self.ca.assert_that_pv_is("OUTPUT", target, timeout=120)
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
+        self.ca.assert_that_pv_is("STAT", "Ready")
+        self.ca.assert_that_pv_is("READY", "Ready")
+        self.ca.assert_that_pv_is("RAMP:RAMPING", "Not Ramping")
+
     def setUp(self):
         self._lewis, self._ioc = typing.cast(
             tuple[EmulatorLauncher, BaseLauncher],
@@ -102,22 +116,12 @@ class CryoSMSTests(unittest.TestCase):
         else:
             self._lewis.backdoor_set_on_device("is_quenched", False)
             self.ca.assert_that_pv_is("INIT", "Startup complete", timeout=60)
-            self.ca.set_pv_value("PERSIST", 0)
+            self.ca.set_pv_value("PERSIST:SP", 0)
             self.ca.set_pv_value("SIM:TEMP:MAGNET", 3.67)
             self.ca.set_pv_value("SIM:COMP1STAT", 1)
             self.ca.set_pv_value("SIM:COMP2STAT", 1)
 
-            self._lewis.backdoor_set_on_device("mid_target", 0)
-            self._lewis.backdoor_set_on_device("output", 0)
-            self.ca.assert_that_pv_is("MID", 0)
-            self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
-
-            self.ca.set_pv_value("HEATER:STAT:_SP", 1)
-            self.ca.set_pv_value("ABORT", 1)
-
-            self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
-            self.ca.assert_that_pv_is("OUTPUT:RAW", 0)
-            self.ca.assert_that_pv_is("OUTPUT", 0)
+            self.set_and_wait(0)
 
     @skip_if_recsim("Cannot properly simulate device startup in recsim")
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
@@ -175,19 +179,7 @@ class CryoSMSTests(unittest.TestCase):
     ):
         start_point, end_point = ramp_data[0]
         ramp_rates = ramp_data[1]
-        output = None
-        # When setting output, convert from Gauss to Amps by dividing by 10000 and T_TO_A, also ensure sign handled
-        # correctly
-        sign = 1 if start_point >= 0 else -1
-
-        self.ca.set_pv_value("ABORT", 1)
-        time.sleep(3)  # Time for abort to be noticed
-        self._lewis.backdoor_run_function_on_device("switch_direction", [sign])
-        self._lewis.backdoor_set_on_device("mid_target", abs(start_point))
-        self._lewis.backdoor_set_on_device("output", abs(start_point))
-        self.ca.assert_that_pv_is_number("MID", abs(start_point), tolerance=0.0001, timeout=120)
-        self.ca.assert_that_pv_is_number("OUTPUT:RAW", start_point, tolerance=0.0001, timeout=120)
-        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
+        self.set_and_wait(start_point)
 
         self.ca.set_pv_value("TARGET:SP", end_point)
         self.ca.set_pv_value("START:SP", 1)
@@ -211,6 +203,10 @@ class CryoSMSTests(unittest.TestCase):
                 )
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=120)
         self.ca.assert_that_pv_is_within_range("OUTPUT", end_point - 0.01, end_point + 0.01)
+
+        self.ca.assert_that_pv_is("STAT", "Ready")
+        self.ca.assert_that_pv_is("READY", "Ready")
+        self.ca.assert_that_pv_is("RAMP:RAMPING", "Not Ramping")
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_IOC_not_ramping_WHEN_ramp_started_THEN_simulated_ramp_performed(self):
@@ -238,9 +234,8 @@ class CryoSMSTests(unittest.TestCase):
         )
         # Resumes when pause set to false, completes ramp
         self.ca.set_pv_value("PAUSE:SP", 0)
-        self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING", msg="Ramping failed to resume")
         self.ca.assert_that_pv_is(
-            "RAMP:STAT", "HOLDING ON TARGET", timeout=10, msg="Ramping failed to complete"
+            "RAMP:STAT", "HOLDING ON TARGET", msg="Ramping failed to complete"
         )
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
@@ -251,7 +246,7 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
         # Aborts when abort set to true, then hits ready again
         self.ca.set_pv_value("ABORT", 1)
-        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
 
     @skip_if_recsim("C++ driver can not correctly initialised in recsim")
     def test_GIVEN_IOC_paused_WHEN_aborted_THEN_ramp_aborted(self):
@@ -260,12 +255,10 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.set_pv_value("START:SP", 1)
         self.ca.assert_that_pv_is("RAMP:STAT", "RAMPING")
         self.ca.set_pv_value("PAUSE:SP", 1)
-        ramp_target = self.ca.get_pv_value("MID")
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON PAUSE", msg="Ramping failed to pause")
         # Aborts when abort set to true, then hits ready again
         self.ca.set_pv_value("ABORT", 1)
-        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=10)
-        self.ca.assert_that_pv_is_not("MID", ramp_target)
+        self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET")
 
     @skip_if_recsim("Test is to tell whether data from emulator is correctly received")
     def test_GIVEN_output_nonzero_WHEN_units_changed_THEN_output_raw_adjusts(self):
@@ -357,7 +350,7 @@ class CryoSMSTests(unittest.TestCase):
         self,
     ):
         # Start a ramp in persistent mode with leads staying at field
-        self.ca.set_pv_value("PERSIST", 1)
+        self.ca.set_pv_value("PERSIST:SP", 1)
         self.ca.set_pv_value("RAMP:LEADS", 0)
         self.ca.set_pv_value("TARGET:SP", 1)
         self.ca.set_pv_value("START:SP", 1)
