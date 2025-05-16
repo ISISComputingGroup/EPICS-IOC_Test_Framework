@@ -155,9 +155,9 @@ class CryoSMSTests(unittest.TestCase):
                     self.ca.assert_that_pv_is(pv, expected_values[pv], timeout=5)
             except Exception as e:
                 if hasattr(e, "message"):
-                    failed_pvs.append(e.message)  # pyright: ignore
+                    failed_pvs.append(f"{pv} {e.message}")  # pyright: ignore
                 else:
-                    failed_pvs.append(repr(e))
+                    failed_pvs.append(f"{pv} {repr(e)}")
         if failed_pvs:
             self.fail("The following PVs generated errors:\n{}".format("\n".join(failed_pvs)))
 
