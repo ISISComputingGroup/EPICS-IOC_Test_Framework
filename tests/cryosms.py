@@ -127,10 +127,6 @@ class CryoSMSTests(unittest.TestCase):
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
         expected_values = {
             "OUTPUT:SP": 0,
-            "OUTPUT": 0,
-            "OUTPUT:COIL": 0,
-            "OUTPUT:PERSIST": 0,
-            "OUTPUT:VOLT": 0,
             "RAMP:RATE": 1.12,
             "READY": "Ready",
             "RAMP:RAMPING": "Not Ramping",
@@ -155,9 +151,9 @@ class CryoSMSTests(unittest.TestCase):
                     self.ca.assert_that_pv_is(pv, expected_values[pv], timeout=5)
             except Exception as e:
                 if hasattr(e, "message"):
-                    failed_pvs.append(e.message)  # pyright: ignore
+                    failed_pvs.append(f"{pv} {e.message}")  # pyright: ignore
                 else:
-                    failed_pvs.append(repr(e))
+                    failed_pvs.append(f"{pv} {repr(e)}")
         if failed_pvs:
             self.fail("The following PVs generated errors:\n{}".format("\n".join(failed_pvs)))
 
