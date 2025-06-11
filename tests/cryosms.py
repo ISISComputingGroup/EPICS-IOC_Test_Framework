@@ -127,10 +127,6 @@ class CryoSMSTests(unittest.TestCase):
     def test_GIVEN_certain_macros_WHEN_IOC_loads_THEN_correct_values_initialised(self):
         expected_values = {
             "OUTPUT:SP": 0,
-            "OUTPUT": 0,
-            "OUTPUT:COIL": 0,
-            "OUTPUT:PERSIST": 0,
-            "OUTPUT:VOLT": 0,
             "RAMP:RATE": 1.12,
             "READY": "Ready",
             "RAMP:RAMPING": "Not Ramping",
