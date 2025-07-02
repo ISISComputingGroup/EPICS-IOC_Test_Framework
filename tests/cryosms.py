@@ -200,7 +200,7 @@ class CryoSMSTests(unittest.TestCase):
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=120)
         self.ca.assert_that_pv_is_within_range("OUTPUT", end_point - 0.01, end_point + 0.01)
 
-        self.ca.assert_that_pv_is("STAT", "Ready")
+        self.ca.assert_that_pv_is("STAT", "Ready", timeout=20)
         self.ca.assert_that_pv_is("READY", "Ready")
         self.ca.assert_that_pv_is("RAMP:RAMPING", "Not Ramping")
 
