@@ -164,7 +164,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position)
 
         error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
-        self.assertEquals(error_message, ERRORS[axis_pair.name])
+        self.assertEqual(error_message, ERRORS[axis_pair.name])
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
     def test_GIVEN_front_axis_moves_towards_rear_axis_WHEN_setpoint_interval_smaller_than_threshold_THEN_warning_message_is_not_available(
@@ -176,7 +176,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=1)
 
         error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
-        self.assertEquals(error_message, "")
+        self.assertEqual(error_message, "")
 
     def test_GIVEN_all_positions_valid_WHEN_move_all_THEN_all_axes_moved(self):
         # set front det initial position
@@ -191,7 +191,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=10)
         for key in end_values.keys():
-            self.assertEquals(end_values[key], self.ca.get_pv_value(key))
+            self.assertEqual(end_values[key], self.ca.get_pv_value(key))
 
     def test_GIVEN_positions_invalid_WHEN_move_all_THEN_axes_movement_is_inhibited(self):
         for axis_pair in AXIS_PAIRS:
@@ -250,6 +250,6 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
                 print("Re-reading MOVN to workaround race condition")
                 movn = self.ca.get_pv_value("{}:MTR.MOVN".format(tank_axis))
             if movn:
-                self.assertEquals(spmg, "Move")
+                self.assertEqual(spmg, "Move")
             else:
-                self.assertEquals(spmg, "Pause")
+                self.assertEqual(spmg, "Pause")

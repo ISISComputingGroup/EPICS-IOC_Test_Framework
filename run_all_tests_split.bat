@@ -6,7 +6,7 @@ REM have had issues with instrona and ngpsu, hence split here at i and n
 
 set final_errcode=0
 
-for %%i in ( "a-h" "i" "j-m" "n" "o-z" ) do (
+for %%i in ( "a-h" "i" "j-m" "n" "o-y" "z" ) do (
     call %~dp0run_all_tests.bat -tf "[%%~i]*"
     if !errorlevel! NEQ 0 (
         @echo ERROR: code !errorlevel! returned from [%%i] tests in run_all_tests_split.bat
