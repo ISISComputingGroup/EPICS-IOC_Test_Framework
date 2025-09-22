@@ -989,7 +989,10 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         #   we call terminate() ourselves on it
         proc = self._process
         assert proc is not None
-        children = proc.children(recursive=True)
+        try:
+            children = proc.children(recursive=True)
+        except psutil.NoSuchProcess:
+            children = []
         for child in children:
             if child is not None:
                 try:
