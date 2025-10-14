@@ -646,10 +646,6 @@ class LewisLauncher(EmulatorLauncher):
                 ),
             ]
         )
-        if self._lewis_additional_path is not None:
-            lewis_command_line.extend(["-a", self._lewis_additional_path])
-        if self._lewis_package is not None:
-            lewis_command_line.extend(["-k", self._lewis_package])
 
         # Set lewis speed
         lewis_command_line.extend(["-e", str(self._speed), self._device])
