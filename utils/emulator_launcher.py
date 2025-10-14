@@ -588,8 +588,6 @@ class LewisLauncher(EmulatorLauncher):
             "python_path", os.path.join(DEFAULT_PY_PATH, "python.exe")
         )
         self._lewis_protocol: str = options.get("lewis_protocol", "stream")
-        self._lewis_additional_path: str = options.get("lewis_additional_path", emulator_path)
-        self._lewis_package: str = options.get("lewis_package", "lewis_emulators")
         self._default_timeout: float = options.get("default_timeout", 5)
         self._speed: float = options.get("speed", 100)
 

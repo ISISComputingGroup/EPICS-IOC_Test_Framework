@@ -86,16 +86,6 @@ def group3_hall_probe_ioc(iocnum: int) -> dict[str, Any]:
         "directory": get_default_ioc_dir("G3HALLPR", iocnum=iocnum),
         "emulator": "group3hallprobe",
         "emulator_id": f"group3hallprobe_{iocnum}",
-        "lewis_additional_path": os.path.join(
-            "c:\\",
-            "Instrument",
-            "Apps",
-            "EPICS",
-            "support",
-            "group3hallprobe",
-            "master",
-            "system_tests",
-        ),
         "macros": {
             "FIELD_SCAN_RATE": ".1 second",
             "TEMP_SCAN_RATE": ".1 second",
