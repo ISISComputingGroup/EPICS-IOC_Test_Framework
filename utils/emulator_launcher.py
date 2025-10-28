@@ -346,7 +346,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to True " "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to True when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
@@ -400,8 +400,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to False "
-                "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to False when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
