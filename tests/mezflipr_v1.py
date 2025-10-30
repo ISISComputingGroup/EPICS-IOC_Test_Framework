@@ -2,6 +2,7 @@ import os
 import unittest
 
 from parameterized import parameterized
+from pathlib import Path
 
 from utils.channel_access import ChannelAccess
 from utils.emulator_launcher import DEFAULT_PY_PATH, CommandLineEmulatorLauncher
@@ -21,15 +22,7 @@ IOCS = [
         "emulator_launcher_class": CommandLineEmulatorLauncher,
         "emulator_command_line": "{} {} --port {{port}}".format(
             os.path.join(DEFAULT_PY_PATH, "python.exe"),
-            os.path.join(
-                EPICS_TOP,
-                "support",
-                "deviceemulator",
-                "master",
-                "other_emulators",
-                "mezei_flipper",
-                "flipper_emulator.py",
-            ),
+            Path(__file__).parent.parent / "non_lewis_emulators" / "mezei_flipper" / "flipper_emulator.py",
         ),
         "macros": {
             "POLARISERPRESENT": "yes",

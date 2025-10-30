@@ -13,6 +13,7 @@ from functools import partial
 from time import sleep, time
 from types import TracebackType
 from typing import Any, Callable, Dict, Generator, List, Optional, Self, Type, TypeAlias, TypeVar
+from pathlib import Path
 
 import psutil
 
@@ -1077,7 +1078,7 @@ class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
         port: int,
         options: dict[str, Any],
     ) -> None:
-        labview_scripts_dir = os.path.join(DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
+        labview_scripts_dir = Path(__file__).parent.parent / "non_lewis_emulators" / "DAQmx"
         self.start_command = os.path.join(labview_scripts_dir, "start_sim.bat")
         self.stop_command = os.path.join(labview_scripts_dir, "stop_sim.bat")
         options["emulator_command_line"] = self.start_command
