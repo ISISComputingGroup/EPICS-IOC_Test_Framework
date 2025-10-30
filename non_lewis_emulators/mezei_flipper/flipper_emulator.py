@@ -34,8 +34,7 @@ sys.modules["flippr_3"] = fake_flippr_module
 
 
 class _UpdatedValue(object):
-    """This class fake-implements the interface of pyqtsignal (emit()) and the "parent" object (value())
-    """
+    """This class fake-implements the interface of pyqtsignal (emit()) and the "parent" object (value())"""
 
     def __init__(self, init_val):
         self._val = init_val

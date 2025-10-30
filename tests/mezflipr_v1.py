@@ -1,12 +1,12 @@
 import os
 import unittest
+from pathlib import Path
 
 from parameterized import parameterized
-from pathlib import Path
 
 from utils.channel_access import ChannelAccess
 from utils.emulator_launcher import DEFAULT_PY_PATH, CommandLineEmulatorLauncher
-from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
+from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
 
@@ -22,7 +22,10 @@ IOCS = [
         "emulator_launcher_class": CommandLineEmulatorLauncher,
         "emulator_command_line": "{} {} --port {{port}}".format(
             os.path.join(DEFAULT_PY_PATH, "python.exe"),
-            Path(__file__).parent.parent / "non_lewis_emulators" / "mezei_flipper" / "flipper_emulator.py",
+            Path(__file__).parent.parent
+            / "non_lewis_emulators"
+            / "mezei_flipper"
+            / "flipper_emulator.py",
         ),
         "macros": {
             "POLARISERPRESENT": "yes",
