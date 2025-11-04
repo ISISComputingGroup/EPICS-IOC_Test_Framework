@@ -592,11 +592,16 @@ class ProcServLauncher(BaseLauncher):
     def _find_processes(self) -> list[int]:
         pid_list = []
         for process in psutil.process_iter(attrs=["pid", "name"]):
-            if process.info["name"] == "procServ.exe" and self.process_arguments_match_this_ioc(
-                process.cmdline()
-            ):
-                # Command line arguments match
-                pid_list.append(process.pid)
+            try:
+                if process.info["name"] == "procServ.exe" and self.process_arguments_match_this_ioc(
+                    process.cmdline()
+                ):
+                    # Command line arguments match
+                    pid_list.append(process.pid)
+            except psutil.NoSuchProcess:  # process may have aready died
+                pass
+            except psutil.AccessDenied:  # process owned by somebody else maybe
+                pass
         return pid_list
 
     def process_arguments_match_this_ioc(self, process_arguments: list[str]) -> bool:
