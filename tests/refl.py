@@ -255,12 +255,14 @@ class ReflTests(unittest.TestCase):
 
     @contextmanager
     def _assert_pv_monitors(self, param_name, expected_value):
-        with self.ca.assert_that_pv_monitor_is_number(
-            f"PARAM:{param_name}", expected_value, 0.01
-        ), self.ca.assert_that_pv_monitor_is_number(
-            f"PARAM:{param_name}:SP", expected_value, 0.01
-        ), self.ca.assert_that_pv_monitor_is_number(
-            f"PARAM:{param_name}:SP:RBV", expected_value, 0.01
+        with (
+            self.ca.assert_that_pv_monitor_is_number(f"PARAM:{param_name}", expected_value, 0.01),
+            self.ca.assert_that_pv_monitor_is_number(
+                f"PARAM:{param_name}:SP", expected_value, 0.01
+            ),
+            self.ca.assert_that_pv_monitor_is_number(
+                f"PARAM:{param_name}:SP:RBV", expected_value, 0.01
+            ),
         ):
             yield
 
@@ -296,11 +298,13 @@ class ReflTests(unittest.TestCase):
 
         expected_s3_value = SPACING * tan(radians(theta_angle * 2.0))
 
-        with self._assert_pv_monitors("S1", 0.0), self._assert_pv_monitors(
-            "S3", 0.0
-        ), self._assert_pv_monitors("THETA", theta_angle), self._assert_pv_monitors(
-            "DET_POS", 0.0
-        ), self._assert_pv_monitors("DET_ANG", 0.0):
+        with (
+            self._assert_pv_monitors("S1", 0.0),
+            self._assert_pv_monitors("S3", 0.0),
+            self._assert_pv_monitors("THETA", theta_angle),
+            self._assert_pv_monitors("DET_POS", 0.0),
+            self._assert_pv_monitors("DET_ANG", 0.0),
+        ):
             self.ca.set_pv_value("BL:MOVE", 1)
 
         # s1 not moved
@@ -338,9 +342,10 @@ class ReflTests(unittest.TestCase):
     def test_GIVEN_mode_is_NR_WHEN_change_mode_THEN_monitor_updates_to_new_mode(self):
         expected_value = "POLARISED"
 
-        with self.ca.assert_that_pv_monitor_is(
-            "BL:MODE", expected_value
-        ), self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value):
+        with (
+            self.ca.assert_that_pv_monitor_is("BL:MODE", expected_value),
+            self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_value),
+        ):
             self.ca.set_pv_value("BL:MODE:SP", expected_value)
 
     @unstable_test()
@@ -352,14 +357,16 @@ class ReflTests(unittest.TestCase):
         pos_below_res = pos_above_res + 0.0001
         self.ca_galil.set_pv_value("MTR0101.MRES", target_mres)
 
-        with self.ca_galil.assert_that_pv_monitor_is_number(
-            "MTR0101.VAL", pos_above_res
-        ), self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+        with (
+            self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res),
+            self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res),
+        ):
             self.ca.set_pv_value("PARAM:S1:SP", pos_above_res)
 
-        with self.ca_galil.assert_that_pv_monitor_is_number(
-            "MTR0101.VAL", pos_above_res
-        ), self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res):
+        with (
+            self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.VAL", pos_above_res),
+            self.ca_galil.assert_that_pv_monitor_is_number("MTR0101.RBV", pos_above_res),
+        ):
             self.ca.set_pv_value("PARAM:S1:SP", pos_below_res)
 
     def test_GIVEN_motor_velocity_altered_by_move_WHEN_move_completed_THEN_velocity_reverted_to_original_value(
@@ -441,14 +448,15 @@ class ReflTests(unittest.TestCase):
         self,
     ):
         expected_mode_value = "TESTING"
-        PARAM_PREFIX = "PARAM:"
-        IN_MODE_SUFFIX = ":IN_MODE"
+        param_prefix = "PARAM:"
+        in_mode_suffix = ":IN_MODE"
         expected_in_mode_value = "YES"
         expected_out_of_mode_value = "NO"
 
-        with self.ca.assert_that_pv_monitor_is(
-            "BL:MODE", expected_mode_value
-        ), self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_mode_value):
+        with (
+            self.ca.assert_that_pv_monitor_is("BL:MODE", expected_mode_value),
+            self.ca.assert_that_pv_monitor_is("BL:MODE.VAL", expected_mode_value),
+        ):
             self.ca.set_pv_value("BL:MODE:SP", expected_mode_value)
 
         test_in_mode_param_names = ["S1", "S3", "THETA", "DET_POS", "S3INBEAM"]
@@ -456,12 +464,12 @@ class ReflTests(unittest.TestCase):
 
         for param in test_in_mode_param_names:
             self.ca.assert_that_pv_monitor_is(
-                "{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_in_mode_value
+                "{}{}{}".format(param_prefix, param, in_mode_suffix), expected_in_mode_value
             )
 
         for param in test_out_of_mode_params:
             self.ca.assert_that_pv_monitor_is(
-                "{}{}{}".format(PARAM_PREFIX, param, IN_MODE_SUFFIX), expected_out_of_mode_value
+                "{}{}{}".format(param_prefix, param, in_mode_suffix), expected_out_of_mode_value
             )
 
     def test_GIVEN_jaws_set_to_value_WHEN_change_sp_at_low_level_THEN_jaws_sp_rbv_does_not_change(
