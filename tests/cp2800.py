@@ -30,7 +30,7 @@ class CP2800StatusTests(unittest.TestCase):
             (0, self.ca.Alarms.NONE),
             (1, self.ca.Alarms.NONE),
             (500001, self.ca.Alarms.MINOR),
-            (1000001, self.ca.Alarms.MAJOR),
+            (5000001, self.ca.Alarms.MAJOR),
         ]
         for test in tests:
             elapsed_time, expected_alarm = test
