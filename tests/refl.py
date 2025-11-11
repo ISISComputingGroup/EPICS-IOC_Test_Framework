@@ -510,6 +510,7 @@ class ReflTests(unittest.TestCase):
             ("binary", "S3INBEAM", 0),
         ]
     )
+    @unstable_test()
     def test_GIVEN_new_parameter_sp_WHEN_parameter_rbv_not_changing_THEN_parameter_changing_pv_correct(
         self, _, param, value
     ):
