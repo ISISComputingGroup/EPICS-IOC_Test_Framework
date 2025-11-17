@@ -10,6 +10,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
+from pathlib import Path
 from time import sleep, time
 from types import TracebackType
 from typing import Any, Callable, Dict, Generator, List, Optional, Self, Type, TypeAlias, TypeVar
@@ -346,7 +347,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to True " "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to True when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
@@ -400,8 +401,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to False "
-                "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to False when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
@@ -1077,7 +1077,7 @@ class DAQMxEmulatorLauncher(CommandLineEmulatorLauncher):
         port: int,
         options: dict[str, Any],
     ) -> None:
-        labview_scripts_dir = os.path.join(DEVICE_EMULATOR_PATH, "other_emulators", "DAQmx")
+        labview_scripts_dir = Path(__file__).parent.parent / "non_lewis_emulators" / "DAQmx"
         self.start_command = os.path.join(labview_scripts_dir, "start_sim.bat")
         self.stop_command = os.path.join(labview_scripts_dir, "stop_sim.bat")
         options["emulator_command_line"] = self.start_command
