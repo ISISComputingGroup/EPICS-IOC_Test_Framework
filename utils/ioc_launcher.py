@@ -5,7 +5,6 @@ Code that launches an IOC/application under test
 import abc
 import os
 import subprocess
-import telnetlib3
 import time
 from abc import ABCMeta
 from contextlib import contextmanager
@@ -16,7 +15,7 @@ from types import TracebackType
 from typing import Any, Callable, Generator, Self, Type
 
 import psutil
-
+import telnetlib3
 from utils.channel_access import ChannelAccess
 from utils.free_ports import get_free_ports
 from utils.log_file import LogFileManager, log_filename
