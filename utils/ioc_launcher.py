@@ -16,6 +16,7 @@ from typing import Any, Callable, Generator, Self, Type
 
 import psutil
 import telnetlib3
+
 from utils.channel_access import ChannelAccess
 from utils.free_ports import get_free_ports
 from utils.log_file import LogFileManager, log_filename
