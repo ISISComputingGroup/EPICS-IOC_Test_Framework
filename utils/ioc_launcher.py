@@ -5,7 +5,6 @@ Code that launches an IOC/application under test
 import abc
 import os
 import subprocess
-import telnetlib
 import time
 from abc import ABCMeta
 from contextlib import contextmanager
@@ -16,6 +15,7 @@ from types import TracebackType
 from typing import Any, Callable, Generator, Self, Type
 
 import psutil
+import telnetlib3
 
 from utils.channel_access import ChannelAccess
 from utils.free_ports import get_free_ports
@@ -364,11 +364,11 @@ class ProcServLauncher(BaseLauncher):
 
         self.procserv_port = get_free_ports(1)[0]
 
-        self._telnet: telnetlib.Telnet | None = None
+        self._telnet: telnetlib3.Telnet | None = None
         self.autorestart = True
         self.original_macros = ioc.get("macros", {})
 
-    def _get_telnet(self) -> telnetlib.Telnet:
+    def _get_telnet(self) -> telnetlib3.Telnet:
         tn = self._telnet
         if tn is None:
             raise ValueError("Attempted to use telnet before it was set up")
@@ -443,7 +443,7 @@ class ProcServLauncher(BaseLauncher):
 
         timeout = 20
 
-        self._telnet = telnetlib.Telnet("localhost", self.procserv_port, timeout=timeout)
+        self._telnet = telnetlib3.Telnet("localhost", self.procserv_port, timeout=timeout)
 
         # Wait for procServ to become responsive by checking for the IOC started text
         init_output = (
