@@ -1,9 +1,11 @@
+import typing
 import unittest
 
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.emulator_launcher import EmulatorLauncher
+from utils.ioc_launcher import BaseLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
@@ -35,7 +37,10 @@ class ChtobisrTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR, DEVICE_PREFIX)
+        self._lewis, self._ioc = typing.cast(
+            tuple[EmulatorLauncher, BaseLauncher],
+            get_running_lewis_and_ioc(EMULATOR, DEVICE_PREFIX),
+        )
         self.ca = {
             1: ChannelAccess(
                 device_prefix=DEVICE_PREFIX + ":1", default_timeout=30, default_wait_time=0.0
