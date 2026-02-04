@@ -37,9 +37,15 @@ class ChtobisrTests(unittest.TestCase):
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR, DEVICE_PREFIX)
         self.ca = {
-            1: ChannelAccess(device_prefix=DEVICE_PREFIX + ":1", default_timeout=30),
-            2: ChannelAccess(device_prefix=DEVICE_PREFIX + ":2", default_timeout=30),
-            3: ChannelAccess(device_prefix=DEVICE_PREFIX + ":3", default_timeout=30),
+            1: ChannelAccess(
+                device_prefix=DEVICE_PREFIX + ":1", default_timeout=30, default_wait_time=0.0
+            ),
+            2: ChannelAccess(
+                device_prefix=DEVICE_PREFIX + ":2", default_timeout=30, default_wait_time=0.0
+            ),
+            3: ChannelAccess(
+                device_prefix=DEVICE_PREFIX + ":3", default_timeout=30, default_wait_time=0.0
+            ),
         }
         self._lewis.backdoor_set_on_device("connected", True)
         self._lewis.backdoor_run_function_on_device("reset")
@@ -48,7 +54,7 @@ class ChtobisrTests(unittest.TestCase):
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_ID_requested_WHEN_device_connected_THEN_ID_is_returned(self, addr: int):
         expected_value = "Coherent OBIS Laser Remote - EMULATOR"
-        self._lewis.backdoor_set_on_device("id", expected_value)
+        self._lewis.backdoor_run_function_on_device("backdoor_set_id", [addr, expected_value])
         self.ca[addr].assert_that_pv_is("ID", expected_value)
 
     @parameterized.expand([(1,), (2,), (3,)])
@@ -63,7 +69,7 @@ class ChtobisrTests(unittest.TestCase):
     @parameterized.expand([(1,), (2,), (3,)])
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_reset_requested_THEN_emulator_is_reset(self, addr: int):
-        self._lewis.backdoor_set_on_device("interlock", "ON")
+        self._lewis.backdoor_run_function_on_device("backdoor_set_interlock", [addr, "ON"])
         self.ca[addr].assert_that_pv_is("INTERLOCK", "CLOSED")
         self._lewis.backdoor_run_function_on_device("reset")
         self.ca[addr].assert_that_pv_is("INTERLOCK", "OPEN")
@@ -71,7 +77,7 @@ class ChtobisrTests(unittest.TestCase):
     @parameterized.expand([(1,), (2,), (3,)])
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_reset_requested_WHEN_device_connected_THEN_device_is_reset(self, addr: int):
-        self._lewis.backdoor_set_on_device("interlock", "ON")
+        self._lewis.backdoor_run_function_on_device("backdoor_set_interlock", [addr, "ON"])
         self.ca[addr].assert_that_pv_is("INTERLOCK", "CLOSED")
         self.ca[addr].set_pv_value("RESET:SP", "TRUE")
         self.ca[addr].assert_that_pv_is("INTERLOCK", "OPEN")
@@ -79,10 +85,9 @@ class ChtobisrTests(unittest.TestCase):
     @parameterized.expand([(1,), (2,), (3,)])
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_interlock_status_requested_WHEN_device_connected_THEN_interlock_status_is_returned(
-        self,
-        addr: int
+        self, addr: int
     ):
-        self._lewis.backdoor_set_on_device("interlock", "OFF")
+        self._lewis.backdoor_run_function_on_device("backdoor_set_interlock", [addr, "OFF"])
         self.ca[addr].assert_that_pv_is("INTERLOCK", "OPEN")
 
     @parameterized.expand([(1,), (2,), (3,)])
@@ -92,7 +97,9 @@ class ChtobisrTests(unittest.TestCase):
         addr: int,
     ):
         expected_value = 0x0001
-        self._lewis.backdoor_run_function_on_device("backdoor_set_status", ["laser_fault", True])
+        self._lewis.backdoor_run_function_on_device(
+            "backdoor_set_status", [addr, "laser_fault", True]
+        )
         self.ca[addr].assert_that_pv_is("STAT:LOW.VAL", expected_value)
 
     @parameterized.expand([(1,), (2,), (3,)])
@@ -103,31 +110,29 @@ class ChtobisrTests(unittest.TestCase):
     ):
         expected_value = 0x8000
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_status", ["controller_indicator", True]
+            "backdoor_set_status", [addr, "controller_indicator", True]
         )
         self.ca[addr].assert_that_pv_is("STAT:HIGH.VAL", expected_value)
 
     @parameterized.expand([(1,), (2,), (3,)])
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_faults_requested_WHEN_lowest_fault_bit_set_THEN_correct_fault_code_is_returned(
-        self,
-        addr: int
+        self, addr: int
     ):
         expected_value = 0x0001
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_fault", ["base_plate_temp_fault", True]
+            "backdoor_set_fault", [addr, "base_plate_temp_fault", True]
         )
         self.ca[addr].assert_that_pv_is("FAULT:LOW.VAL", expected_value)
 
     @parameterized.expand([(1,), (2,), (3,)])
     @skip_if_recsim("Lewis backdoor not available in RecSim")
     def test_GIVEN_faults_requested_WHEN_highest_fault_bit_set_THEN_correct_fault_code_is_returned(
-        self,
-        addr: int
+        self, addr: int
     ):
         expected_value = 0x8000
         self._lewis.backdoor_run_function_on_device(
-            "backdoor_set_fault", ["controller_status", True]
+            "backdoor_set_fault", [addr, "controller_status", True]
         )
         self.ca[addr].assert_that_pv_is("FAULT:HIGH.VAL", expected_value)
 
@@ -163,7 +168,7 @@ class ChtobisrTests(unittest.TestCase):
     ):
         for state in [False, True]:
             self._lewis.backdoor_run_function_on_device(
-                "backdoor_set_status", [backdoor_name, state]
+                "backdoor_set_status", [1, backdoor_name, state]
             )
             self.ca[1].assert_that_pv_is(pv_name, str(state))
 
@@ -201,6 +206,18 @@ class ChtobisrTests(unittest.TestCase):
     ):
         for state in [False, True]:
             self._lewis.backdoor_run_function_on_device(
-                "backdoor_set_fault", [backdoor_name, state]
+                "backdoor_set_fault", [1, backdoor_name, state]
             )
             self.ca[1].assert_that_pv_is(pv_name, str(state))
+
+    @parameterized.expand([(1,), (2,), (3,)])
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
+    def test_GIVEN_source_power_set_then_power_read_back(self, addr: int):
+        self.ca[addr].assert_setting_setpoint_sets_readback(1.23, "AMP")
+        self.ca[addr].assert_setting_setpoint_sets_readback(4.56, "AMP")
+
+    @parameterized.expand([(1,), (2,), (3,)])
+    @skip_if_recsim("Lewis backdoor not available in RecSim")
+    def test_GIVEN_source_state_set_then_state_read_back(self, addr: int):
+        self.ca[addr].assert_setting_setpoint_sets_readback("ON", "STAT")
+        self.ca[addr].assert_setting_setpoint_sets_readback("OFF", "STAT")
