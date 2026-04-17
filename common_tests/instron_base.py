@@ -675,7 +675,7 @@ class InstronBase(object, metaclass=abc.ABCMeta):
             / float(self.ca.get_pv_value("STRESS:AREA")),
             float(self.ca.get_pv_value("STRAIN:SCALE"))
             * 100000
-            * float(self.ca.get_pv_value("STRAIN:LENGTH")),
+            / float(self.ca.get_pv_value("STRAIN:LENGTH")),
         ]
 
         for i in range(len(conversion_factors)):
@@ -696,16 +696,17 @@ class InstronBase(object, metaclass=abc.ABCMeta):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.set_pv_value(self.wave_prefixed("AMP:SP"), input_values[device_channel])
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP"), expected_values[device_channel])
+            amplitude = "{:.1f}".format(self.ca.get_pv_value(self.wave_prefixed("AMP:SP:RBV")))
+            self.assertEqual(float(amplitude), input_values[device_channel])  # pyright: ignore (Inherited from UnitTest)
             self.ca.assert_that_pv_is(
-                self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel]
+                self.wave_prefixed("AMP:SP:_RAW"), expected_values[device_channel]
             )
 
         for device_channel in range(NUMBER_OF_CHANNELS):
             self.ca.set_pv_value("CHANNEL:SP.VAL", device_channel, sleep_after_set=1)
             self.ca.assert_that_pv_is(self.wave_prefixed("AMP"), expected_values[device_channel])
-            self.ca.assert_that_pv_is(
-                self.wave_prefixed("AMP:SP:RBV"), input_values[device_channel]
-            )
+            amplitude = "{:.1f}".format(self.ca.get_pv_value(self.wave_prefixed("AMP:SP:RBV")))
+            self.assertEqual(float(amplitude), input_values[device_channel])  # pyright: ignore (Inherited from UnitTest)
 
     @skip_if_recsim("RECSIM does not capture dynamic behaviour")
     def test_WHEN_the_quarter_counter_is_off_THEN_the_number_of_counts_is_and_remains_zero(self):
