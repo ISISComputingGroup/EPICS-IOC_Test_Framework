@@ -346,7 +346,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to True " "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to True when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
@@ -400,8 +400,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to False "
-                "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to False when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
@@ -956,6 +955,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
         self._log_file = None
 
     def _open(self) -> None:
+        print(f"Launching commandline emulator ({self._device}).")
         self._log_file = open(
             log_filename(
                 self._test_name, "cmdemulator", self._device, TestModes.RECSIM, self._var_dir
@@ -981,7 +981,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             self._process.wait()
 
     def _close(self) -> None:
-        print("Closing commandline emulator.")
+        print(f"Closing commandline emulator ({self._device}).")
         # We need to catch psutil.NoSuchProcess as it is possible:
         # * the main process may exit after the children have terminated
         #   and before terminate() can be called by us on it
