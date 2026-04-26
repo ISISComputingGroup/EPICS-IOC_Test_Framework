@@ -346,7 +346,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to True " "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to True when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
@@ -400,8 +400,7 @@ class EmulatorLauncher(object, metaclass=abc.ABCMeta):
 
         if msg is None:
             msg = (
-                "Expected function '{}' to evaluate to False "
-                "when reading emulator property '{}'."
+                "Expected function '{}' to evaluate to False when reading emulator property '{}'."
             ).format(func.__name__, emulator_property)
 
         err = self._wait_for_emulator_lambda(partial(wrapper, msg), timeout)
@@ -628,7 +627,7 @@ class LewisLauncher(EmulatorLauncher):
         :param port: the port on which to run lewis
         :return:
         """
-        self._logFile = open(self._log_filename(), "w")
+        self._logFile = open(self._log_filename(), "a")
         self._control_port = str(get_free_ports(1)[0])
         lewis_command_line = [
             self._python_path,
@@ -960,7 +959,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             log_filename(
                 self._test_name, "cmdemulator", self._device, TestModes.RECSIM, self._var_dir
             ),
-            "w",
+            "a",
         )
         self._call_command_line(self.command_line.format(port=self._port))
 
