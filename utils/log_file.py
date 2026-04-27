@@ -41,8 +41,8 @@ class LogFileManager(object):
     Class to manage the access of log files
     """
 
-    def __init__(self, filename: str) -> None:
-        self.log_file_w = open(filename, "w", 1)
+    def __init__(self, filename: str, write_mode: str = "w") -> None:
+        self.log_file_w = open(filename, write_mode, 1)
         self.log_file_r = open(filename, "r")
 
     def read_log(self) -> list[str]:

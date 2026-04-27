@@ -207,7 +207,7 @@ class BaseLauncher(object, metaclass=ABCMeta):
 
             self.create_macros_file()
 
-            self.log_file_manager = LogFileManager(self.log_file_name)
+            self.log_file_manager = LogFileManager(self.log_file_name, "a")
             self.log_file_manager.log_file_w.write(
                 "Started IOC with '{0}'".format(" ".join(self.command_line))
             )

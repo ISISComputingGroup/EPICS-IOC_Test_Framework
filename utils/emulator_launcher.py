@@ -627,7 +627,7 @@ class LewisLauncher(EmulatorLauncher):
         :param port: the port on which to run lewis
         :return:
         """
-        self._logFile = open(self._log_filename(), "w")
+        self._logFile = open(self._log_filename(), "a")
         self._control_port = str(get_free_ports(1)[0])
         lewis_command_line = [
             self._python_path,
@@ -960,7 +960,7 @@ class CommandLineEmulatorLauncher(EmulatorLauncher):
             log_filename(
                 self._test_name, "cmdemulator", self._device, TestModes.RECSIM, self._var_dir
             ),
-            "w",
+            "a",
         )
         self._call_command_line(self.command_line.format(port=self._port))
 
