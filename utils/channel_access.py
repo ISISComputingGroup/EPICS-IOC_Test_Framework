@@ -638,8 +638,9 @@ class ChannelAccess(object):
             # Last try.
             if not self.ca.pv_exists(pv, timeout=1.0):
                 raise AssertionError(
-                    "Exception date time: {time}\nPV {pv} does not exist".format(
-                        time=datetime.datetime.now(), pv=pv
+                    "Exception date time: {time}\n"
+                    "PV {pv} does not exist after {timeout} seconds".format(
+                        time=datetime.datetime.now(), pv=pv, timeout=timeout
                     )
                 )
 

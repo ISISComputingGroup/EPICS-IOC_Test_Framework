@@ -91,7 +91,7 @@ class CheckExistencePv(object):
             return
 
         try:
-            self.ca.assert_that_pv_exists(self.test_pv)
+            self.ca.assert_that_pv_exists(self.test_pv, timeout=30)
         except AssertionError as ex:
             full_pv = self.ca.create_pv_with_prefix(self.test_pv)
             raise AssertionError(
