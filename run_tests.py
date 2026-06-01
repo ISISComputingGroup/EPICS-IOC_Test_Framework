@@ -6,6 +6,7 @@ import argparse
 import glob
 import importlib
 import os
+import subprocess
 import sys
 import traceback
 import unittest
@@ -27,7 +28,7 @@ from utils.emulator_launcher import (
     TestEmulatorData,
 )
 from utils.free_ports import get_free_ports
-from utils.ioc_launcher import IOCS_DIR, IocLauncher
+from utils.ioc_launcher import EPICS_TOP, IOCS_DIR, IocLauncher
 from utils.test_modes import TestModes
 
 
@@ -521,6 +522,14 @@ if __name__ == "__main__":
         tests_mode = TestModes.DEVSIM
     if arguments.tests_mode == "NOSIM":
         tests_mode = TestModes.NOSIM
+
+    # start cygserver in background if not running already
+    # this is needed for procServ launchers on developer machines
+    # as domain accounts seem to make a log ldap query on accounts so we need
+    # cygserver to cache this
+    # we start it before cleanup_subprocs_on_process_exit() so it will
+    # remain running as it takes a while to start and is safe to leave running
+    subprocess.run([os.path.join(EPICS_TOP, "tools", "master", "start_cygserver.bat")], shell=True)
 
     # make sure we close any subprocesses we create when we exit
     cleanup_subprocs_on_process_exit()
