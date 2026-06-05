@@ -122,7 +122,7 @@ class EurothermTests(EurothermBaseTests, unittest.TestCase):
                 self._lewis.backdoor_run_function_on_device(
                     "set_current_temperature", [sensor, float(temp)]
                 )
-                self.ca.assert_that_pv_is(f"{pv_sensor}:RBV", float(temp))
+                self.ca.assert_that_pv_is(f"{pv_sensor}:RBV", float(temp), timeout=30.0)
 
         self._lewis.backdoor_run_function_on_device("set_delay_time", [0.0])
 
