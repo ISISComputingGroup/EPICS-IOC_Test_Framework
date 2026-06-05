@@ -241,8 +241,12 @@ class EurothermBaseTests(
         self._set_setpoint_and_current_temperature(temperature)
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
-            self.ca.assert_that_pv_is_number("A01:TEMP", temperature, tolerance=tolerance, timeout=30)
-            self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=30)
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP", temperature, tolerance=tolerance, timeout=30
+            )
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=30
+            )
 
         with use_calibration_file(self.ca, "C.txt", prefix="A01:"):
             self.ca.assert_that_pv_is_number(
@@ -253,8 +257,12 @@ class EurothermBaseTests(
             )
 
         with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
-            self.ca.assert_that_pv_is_number("A01:TEMP", temperature, tolerance=tolerance, timeout=30)
-            self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=30)
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP", temperature, tolerance=tolerance, timeout=30
+            )
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=30
+            )
 
     def _assert_units(self, units):
         # High timeouts because setting units does not cause processing - wait for normal scan loop to come around.
@@ -418,7 +426,7 @@ class EurothermBaseTests(
     def test_WHEN_low_limit_set_via_backdoor_THEN_low_lim_updates(self, _, val):
         self._lewis.backdoor_run_function_on_device("set_low_lim", [SENSORS[0], val])
         self.ca.assert_that_pv_is_number("A01:LOWLIM", val, tolerance=0.05, timeout=15)
-     
+
     @parameterized.expand(parameterized_list(TEST_VALUES))
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_automan_set_via_backdoor_THEN_automan_updates(self, _, val):
