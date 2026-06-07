@@ -441,7 +441,6 @@ class EurothermBaseTests(
     @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_sensorbreak_set_via_backdoor_THEN_shows_updated_value(self, _, val):
         expected_value = {0: "OFF", 1: "ON"}[val]
-        
+
         self._lewis.backdoor_run_function_on_device("set_snbrkpst", [SENSORS[0], val])
         self.ca.assert_that_pv_is("A01:SNBRKPST", expected_value)
-
