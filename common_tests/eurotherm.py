@@ -430,7 +430,6 @@ class EurothermBaseTests(
         self.ca.assert_that_pv_is_number("A01:LOWLIM", val, tolerance=0.05, timeout=15)
 
     @parameterized.expand(parameterized_list(BINARY_VALUES))
-    @skip_if_recsim("Backdoor not available in recsim")
     def test_WHEN_automan_set_via_backdoor_THEN_automan_updates(self, _, val):
         expected_value = {0: "OFF", 1: "ON"}[val]
 
