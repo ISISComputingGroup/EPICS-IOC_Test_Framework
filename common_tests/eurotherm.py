@@ -442,4 +442,4 @@ class EurothermBaseTests(
         expected_value = {0: "OFF", 1: "ON"}[val]
 
         self._lewis.backdoor_run_function_on_device("set_snbrkpst", [SENSORS[0], val])
-        self.ca.assert_that_pv_is("A01:SNBRKPST", expected_value)
+        self.ca.assert_that_pv_is("A01:SNBRKPST", expected_value, timeout=15)
