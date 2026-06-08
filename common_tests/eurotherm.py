@@ -27,6 +27,8 @@ SENSORS = ["01", "02", "03", "04", "05", "06"]
 
 PV_SENSORS = ["A01", "A02", "A03", "A04", "A05", "A06"]
 
+BINARY_VALUES = [0, 1]
+
 
 # This class is only valid for classes which also derive from unittest.TestCase,
 # and we can't derive from unittest.TestCase at runtime, because
@@ -241,20 +243,28 @@ class EurothermBaseTests(
         self._set_setpoint_and_current_temperature(temperature)
         self._assert_using_mock_table_location()
         with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
-            self.ca.assert_that_pv_is_number("A01:TEMP", temperature, tolerance=tolerance)
-            self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance)
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP", temperature, tolerance=tolerance, timeout=30
+            )
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=30
+            )
 
         with use_calibration_file(self.ca, "C.txt", prefix="A01:"):
             self.ca.assert_that_pv_is_number(
-                "A01:TEMP", temperature_calibrated, tolerance=tolerance
+                "A01:TEMP", temperature_calibrated, tolerance=tolerance, timeout=30
             )
             self.ca.assert_that_pv_is_number(
-                "A01:TEMP:SP:RBV", temperature_calibrated, tolerance=tolerance
+                "A01:TEMP:SP:RBV", temperature_calibrated, tolerance=tolerance, timeout=30
             )
 
         with use_calibration_file(self.ca, "None.txt", prefix="A01:"):
-            self.ca.assert_that_pv_is_number("A01:TEMP", temperature, tolerance=tolerance)
-            self.ca.assert_that_pv_is_number("A01:TEMP:SP:RBV", temperature, tolerance=tolerance)
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP", temperature, tolerance=tolerance, timeout=30
+            )
+            self.ca.assert_that_pv_is_number(
+                "A01:TEMP:SP:RBV", temperature, tolerance=tolerance, timeout=30
+            )
 
     def _assert_units(self, units):
         # High timeouts because setting units does not cause processing - wait for normal scan loop to come around.
@@ -418,3 +428,18 @@ class EurothermBaseTests(
     def test_WHEN_low_limit_set_via_backdoor_THEN_low_lim_updates(self, _, val):
         self._lewis.backdoor_run_function_on_device("set_low_lim", [SENSORS[0], val])
         self.ca.assert_that_pv_is_number("A01:LOWLIM", val, tolerance=0.05, timeout=15)
+
+    @parameterized.expand(parameterized_list(BINARY_VALUES))
+    def test_WHEN_automan_set_via_backdoor_THEN_automan_updates(self, _, val):
+        expected_value = {0: "OFF", 1: "ON"}[val]
+
+        self.ca.set_pv_value("A01:AUTOMAN:SP", val)
+        self.ca.assert_that_pv_is("A01:AUTOMAN", expected_value)
+
+    @parameterized.expand(parameterized_list(BINARY_VALUES))
+    @skip_if_recsim("Backdoor not available in recsim")
+    def test_WHEN_sensorbreak_set_via_backdoor_THEN_shows_updated_value(self, _, val):
+        expected_value = {0: "OFF", 1: "ON"}[val]
+
+        self._lewis.backdoor_run_function_on_device("set_snbrkpst", [SENSORS[0], val])
+        self.ca.assert_that_pv_is("A01:SNBRKPST", expected_value)
