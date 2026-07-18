@@ -60,7 +60,7 @@ UNITS = [
 CHANNELS = ["CH1", "CH2"]
 
 
-class MKS_PR4000B_Tests(unittest.TestCase):
+class MKSPR4000BTests(unittest.TestCase):
     """
     Tests for the MKSPR4K IOC.
     """
@@ -74,7 +74,7 @@ class MKS_PR4000B_Tests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(CHANNELS))
     def test_WHEN_ioc_is_started_THEN_channels_are_not_disabled(self, _, chan):
-        self.ca.assert_that_pv_is("{}:DISABLE".format(chan), "COMMS ENABLED")
+        self.ca.assert_that_pv_is(f"{chan}:DISABLE", "COMMS ENABLED")
 
     @parameterized.expand(parameterized_list(CONTROL_MODES))
     def test_WHEN_set_control_mode_THEN_readback_updates(self, _, mode):
@@ -87,109 +87,109 @@ class MKS_PR4000B_Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     def test_WHEN_channel_setpoint_is_set_THEN_setpoint_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
-            val, set_point_pv="{}:VAL:SP".format(chan), readback_pv="{}:VAL:SP:RBV".format(chan)
+            val, set_point_pv=f"{chan}:VAL:SP", readback_pv=f"{chan}:VAL:SP:RBV"
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     def test_WHEN_channel_setpoint_is_set_THEN_value_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
-            val, set_point_pv="{}:VAL:SP".format(chan), readback_pv="{}:VAL".format(chan)
+            val, set_point_pv=f"{chan}:VAL:SP", readback_pv=f"{chan}:VAL"
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, VALVE_STATES)))
     def test_WHEN_valve_state_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
-            val, set_point_pv="{}:VALVE:SP".format(chan), readback_pv="{}:VALVE".format(chan)
+            val, set_point_pv=f"{chan}:VALVE:SP", readback_pv=f"{chan}:VALVE"
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, VALVE_STATES)))
     def test_WHEN_relay_state_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
-            val, set_point_pv="{}:RELAY:SP".format(chan), readback_pv="{}:RELAY".format(chan)
+            val, set_point_pv=f"{chan}:RELAY:SP", readback_pv=f"{chan}:RELAY"
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     def test_WHEN_gain_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
-            val, set_point_pv="{}:GAIN:SP".format(chan), readback_pv="{}:GAIN".format(chan)
+            val, set_point_pv=f"{chan}:GAIN:SP", readback_pv=f"{chan}:GAIN"
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_INTEGER_VALUES)))
     def test_WHEN_offset_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
-            val, set_point_pv="{}:OFFSET:SP".format(chan), readback_pv="{}:OFFSET".format(chan)
+            val, set_point_pv=f"{chan}:OFFSET:SP", readback_pv=f"{chan}:OFFSET"
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_INTEGER_VALUES)))
     def test_WHEN_rtd_offset_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:RTDOFFSET:SP".format(chan),
-            readback_pv="{}:RTDOFFSET".format(chan),
+            set_point_pv=f"{chan}:RTDOFFSET:SP",
+            readback_pv=f"{chan}:RTDOFFSET",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_INTEGER_VALUES)))
     def test_WHEN_input_range_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:INP:RANGE:SP".format(chan),
-            readback_pv="{}:INP:RANGE".format(chan),
+            set_point_pv=f"{chan}:INP:RANGE:SP",
+            readback_pv=f"{chan}:INP:RANGE",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_INTEGER_VALUES)))
     def test_WHEN_output_range_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:OUTP:RANGE:SP".format(chan),
-            readback_pv="{}:OUTP:RANGE".format(chan),
+            set_point_pv=f"{chan}:OUTP:RANGE:SP",
+            readback_pv=f"{chan}:OUTP:RANGE",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_INTEGER_VALUES)))
     def test_WHEN_external_input_range_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:EXTINP:RANGE:SP".format(chan),
-            readback_pv="{}:EXTINP:RANGE".format(chan),
+            set_point_pv=f"{chan}:EXTINP:RANGE:SP",
+            readback_pv=f"{chan}:EXTINP:RANGE",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_INTEGER_VALUES)))
     def test_WHEN_external_output_range_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:EXTOUTP:RANGE:SP".format(chan),
-            readback_pv="{}:EXTOUTP:RANGE".format(chan),
+            set_point_pv=f"{chan}:EXTOUTP:RANGE:SP",
+            readback_pv=f"{chan}:EXTOUTP:RANGE",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, SIGNAL_MODES)))
     def test_WHEN_signal_mode_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:SIGNALMODE:SP".format(chan),
-            readback_pv="{}:SIGNALMODE".format(chan),
+            set_point_pv=f"{chan}:SIGNALMODE:SP",
+            readback_pv=f"{chan}:SIGNALMODE",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, LIMIT_MODES)))
     def test_WHEN_limit_mode_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:LIMITMODE:SP".format(chan),
-            readback_pv="{}:LIMITMODE".format(chan),
+            set_point_pv=f"{chan}:LIMITMODE:SP",
+            readback_pv=f"{chan}:LIMITMODE",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     def test_WHEN_upper_limit_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:UPPERLIMIT:SP".format(chan),
-            readback_pv="{}:UPPERLIMIT".format(chan),
+            set_point_pv=f"{chan}:UPPERLIMIT:SP",
+            readback_pv=f"{chan}:UPPERLIMIT",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     def test_WHEN_lower_limit_setpoint_is_set_THEN_readback_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
             val,
-            set_point_pv="{}:LOWERLIMIT:SP".format(chan),
-            readback_pv="{}:LOWERLIMIT".format(chan),
+            set_point_pv=f"{chan}:LOWERLIMIT:SP",
+            readback_pv=f"{chan}:LOWERLIMIT",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
@@ -200,25 +200,25 @@ class MKS_PR4000B_Tests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [chan_number, "external_input", val]
         )
-        self.ca.assert_that_pv_is_number("{}:EXTIN".format(chan), val, tolerance=0.001)
+        self.ca.assert_that_pv_is_number(f"{chan}:EXTIN", val, tolerance=0.001)
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, UNITS)))
     @skip_if_recsim("Complex behaviour not properly emulated (values push from protocol).")
     def test_WHEN_range_units_are_set_THEN_readbacks_updates(self, _, chan, units):
         self.ca.assert_setting_setpoint_sets_readback(
             units,
-            readback_pv="{}:RANGE:UNITS".format(chan),
-            set_point_pv="{}:RANGE:UNITS:SP".format(chan),
+            readback_pv=f"{chan}:RANGE:UNITS",
+            set_point_pv=f"{chan}:RANGE:UNITS:SP",
         )
 
         # Units should also be copied to value's EGU field
-        self.ca.assert_that_pv_is("{}:VAL.EGU".format(chan), units)
-        self.ca.assert_that_pv_is("{}:VAL:SP.EGU".format(chan), units)
-        self.ca.assert_that_pv_is("{}:VAL:SP:RBV.EGU".format(chan), units)
+        self.ca.assert_that_pv_is(f"{chan}:VAL.EGU", units)
+        self.ca.assert_that_pv_is(f"{chan}:VAL:SP.EGU", units)
+        self.ca.assert_that_pv_is(f"{chan}:VAL:SP:RBV.EGU", units)
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_FLOAT_VALUES)))
     @skip_if_recsim("Complex behaviour not properly emulated (values push from protocol).")
     def test_WHEN_range_is_set_THEN_readbacks_updates(self, _, chan, val):
         self.ca.assert_setting_setpoint_sets_readback(
-            val, readback_pv="{}:RANGE".format(chan), set_point_pv="{}:RANGE:SP".format(chan)
+            val, readback_pv=f"{chan}:RANGE", set_point_pv=f"{chan}:RANGE:SP"
         )

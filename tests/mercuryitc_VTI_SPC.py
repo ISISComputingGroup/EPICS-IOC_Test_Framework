@@ -1,4 +1,4 @@
-import os
+import pathlib
 import unittest
 
 from utils.channel_access import ChannelAccess
@@ -34,27 +34,25 @@ def get_card_pv_prefix(card):
     """
     if card in TEMP_CARDS:
         assert card not in PRESSURE_CARDS and card not in LEVEL_CARDS
-        return "{}".format(
-            TEMP_CARDS.index(card) + 1
-        )  # Only a numeric prefix for temperature cards
+        return f"{TEMP_CARDS.index(card) + 1}"  # Only a numeric prefix for temperature cards
     elif card in PRESSURE_CARDS:
         assert card not in LEVEL_CARDS
-        return "PRESSURE:{}".format(PRESSURE_CARDS.index(card) + 1)
+        return f"PRESSURE:{PRESSURE_CARDS.index(card) + 1}"
     elif card in LEVEL_CARDS:
-        return "LEVEL:{}".format(LEVEL_CARDS.index(card) + 1)
+        return f"LEVEL:{LEVEL_CARDS.index(card) + 1}"
     else:
         raise ValueError("Unknown card")
 
 
 macros = {}
-macros.update({"TEMP_{}".format(key): val for key, val in enumerate(TEMP_CARDS, start=1)})
-macros.update({"PRESSURE_{}".format(key): val for key, val in enumerate(PRESSURE_CARDS, start=1)})
-macros.update({"LEVEL_{}".format(key): val for key, val in enumerate(LEVEL_CARDS, start=1)})
+macros.update({f"TEMP_{key}": val for key, val in enumerate(TEMP_CARDS, start=1)})
+macros.update({f"PRESSURE_{key}": val for key, val in enumerate(PRESSURE_CARDS, start=1)})
+macros.update({f"LEVEL_{key}": val for key, val in enumerate(LEVEL_CARDS, start=1)})
 macros["SPC_TYPE_1"] = "VTI"
 macros["SPC_TYPE_2"] = "VTI"
 
-macros["CALIB_BASE_DIR"] = EPICS_TOP.replace("\\", "/")
-macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings").replace("\\", "/")
+macros["CALIB_BASE_DIR"] = pathlib.PurePath(EPICS_TOP).as_posix()
+macros["CALIB_DIR"] = pathlib.PurePath("support", "mercuryitc", "master", "settings").as_posix()
 
 macros["VTI_SPC_PRESSURE_1"] = 1
 macros["VTI_SPC_PRESSURE_2"] = 2
@@ -64,8 +62,10 @@ macros["VTI_SPC_PRESSURE_CONSTANT"] = 5
 macros["VTI_SPC_TEMP_CUTOFF_POINT"] = 5
 macros["VTI_SPC_TEMP_SCALE"] = 5
 
-macros["VTI_CALIB_BASE_DIR"] = "C:/Instrument/Apps/EPICS/support"
-macros["VTI_SENS_DIR"] = "mercuryitc/master/test_calib/vti_spc"
+macros["VTI_CALIB_BASE_DIR"] = (EPICS_TOP / "support").as_posix()
+macros["VTI_SENS_DIR"] = pathlib.PurePath(
+    "mercuryitc", "master", "test_calib", "vti_spc"
+).as_posix()
 
 
 DEVICE_PREFIX = "MERCURY_01"
@@ -73,9 +73,9 @@ DEVICE_PREFIX = "MERCURY_01"
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": os.path.join(
-            EPICS_TOP, "ioc", "master", "MERCURY_ITC", "iocBoot", "iocMERCURY-IOC-01"
-        ),
+        "directory": (
+            EPICS_TOP / "ioc" / "master" / "MERCURY_ITC" / "iocBoot" / "iocMERCURY-IOC-01"
+        ).as_posix(),
         "emulator": "mercuryitc",
         "macros": macros,
     },

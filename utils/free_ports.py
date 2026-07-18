@@ -8,9 +8,9 @@ def get_free_ports(n: int) -> tuple[int, ...]:
     :param n: the number of ports required
     :return:  a tuple containing n free port numbers
     """
-    socks = list()
-    ports = list()
-    for i in range(0, n):
+    socks = []
+    ports = []
+    for i in range(n):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         s.bind(("", 0))
@@ -30,9 +30,9 @@ def get_free_ports_from_list(n: int, port_low: int, port_high: int) -> tuple[int
     :param port_high: the maximum of the port range
     :return: a tuple containing n free port numbers
     """
-    socks = list()
-    ports = list()
-    for i in range(0, n):
+    socks = []
+    ports = []
+    for i in range(n):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         for j in range(port_low, port_high):
@@ -41,8 +41,9 @@ def get_free_ports_from_list(n: int, port_low: int, port_high: int) -> tuple[int
                 ports.append(s.getsockname()[1])
                 socks.append(s)
                 break
-            except socket.error:
-                pass
+            except OSError:
+                # Port is unavailable or cannot be bound; try next candidate port.
+                continue
     for s in socks:
         s.close()
     return tuple(ports)

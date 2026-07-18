@@ -29,20 +29,19 @@ class CybamanTests(unittest.TestCase):
     Tests for the cybaman IOC.
     """
 
-    AXES = ["A", "B", "C"]
-    test_positions = [-200, -1.23, 0, 180.0]
-
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_DEVICE, DEVICE_PREFIX)
         self.ca = ChannelAccess(default_timeout=20, device_prefix=DEVICE_PREFIX)
         self.ca.assert_that_pv_exists("INITIALIZE", timeout=30)
+        self.AXES = ["A", "B", "C"]
+        self.test_positions = [-200, -1.23, 0, 180.0]
 
         self._lewis.backdoor_set_on_device("connected", True)
 
         # Check that all the relevant PVs are up.
         for axis in self.AXES:
             self.ca.assert_that_pv_exists(axis)
-            self.ca.assert_that_pv_exists("{}:SP".format(axis))
+            self.ca.assert_that_pv_exists(f"{axis}:SP")
 
         # Initialize the device, do this in setup to avoid doing it in every test
         self.ca.set_pv_value("INITIALIZE", 1)
@@ -57,18 +56,16 @@ class CybamanTests(unittest.TestCase):
     ):
         for axis in self.AXES:
             for pos in self.test_positions:
-                self._lewis.backdoor_set_on_device("{}_setpoint".format(axis.lower()), pos)
-                self.ca.assert_that_pv_is_number("{}".format(axis), pos, tolerance=0.01)
+                self._lewis.backdoor_set_on_device(f"{axis.lower()}_setpoint", pos)
+                self.ca.assert_that_pv_is_number(f"{axis}", pos, tolerance=0.01)
 
     @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_home_position_is_set_WHEN_home_pv_is_set_THEN_position_moves_towards_home(self):
         for axis in self.AXES:
             for pos in self.test_positions:
-                self._lewis.backdoor_set_on_device(
-                    "home_position_axis_{}".format(axis.lower()), pos
-                )
-                self.ca.set_pv_value("{}:HOME".format(axis), 1)
-                self.ca.assert_that_pv_is_number("{}".format(axis), pos, tolerance=0.01)
+                self._lewis.backdoor_set_on_device(f"home_position_axis_{axis.lower()}", pos)
+                self.ca.set_pv_value(f"{axis}:HOME", 1)
+                self.ca.assert_that_pv_is_number(f"{axis}", pos, tolerance=0.01)
 
     @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_a_device_in_some_other_state_WHEN_reset_command_is_sent_THEN_device_is_reset_to_original_state(
@@ -85,16 +82,16 @@ class CybamanTests(unittest.TestCase):
 
         original = {}
         for axis in self.AXES:
-            original[axis] = float(self.ca.get_pv_value("{}".format(axis.upper())))
+            original[axis] = float(self.ca.get_pv_value(f"{axis.upper()}"))
 
             # Set both value and setpoint to avoid the device moving back towards the setpoint
             self._lewis.backdoor_set_on_device(
-                "{}_setpoint".format(axis.lower()), original[axis] + modifier
+                f"{axis.lower()}_setpoint", original[axis] + modifier
             )
-            self._lewis.backdoor_set_on_device("{}".format(axis.lower()), original[axis] + modifier)
+            self._lewis.backdoor_set_on_device(f"{axis.lower()}", original[axis] + modifier)
 
             self.ca.assert_that_pv_is_number(
-                "{}".format(axis.upper()), original[axis] + modifier, tolerance=0.001
+                f"{axis.upper()}", original[axis] + modifier, tolerance=0.001
             )
 
         # Reset cybaman
@@ -102,17 +99,15 @@ class CybamanTests(unittest.TestCase):
 
         # Check that a, b and c values are now at original values
         for axis in self.AXES:
-            self.ca.assert_that_pv_is_number(
-                "{}".format(axis.upper()), original[axis], tolerance=0.001
-            )
+            self.ca.assert_that_pv_is_number(f"{axis.upper()}", original[axis], tolerance=0.001)
 
     def test_GIVEN_a_device_in_initialized_state_WHEN_setpoints_are_sent_THEN_device_goes_to_setpoint(
         self,
     ):
         for axis in self.AXES:
             for pos in self.test_positions:
-                self.ca.set_pv_value("{}:SP".format(axis.upper()), pos)
-                self.ca.assert_that_pv_is_number("{}".format(axis.upper()), pos)
+                self.ca.set_pv_value(f"{axis.upper()}:SP", pos)
+                self.ca.assert_that_pv_is_number(f"{axis.upper()}", pos)
 
     @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_a_device_with_a_setpoint_less_than_minus_150_WHEN_homed_THEN_setpoint_is_set_to_minus_150_before_home(
@@ -120,20 +115,20 @@ class CybamanTests(unittest.TestCase):
     ):
         for axis in self.AXES:
             # Ensure home position is known
-            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100)
+            self._lewis.backdoor_set_on_device(f"home_position_axis_{axis.lower()}", 100)
 
             # Ensure setpoint and readback are less than -150
-            self.ca.set_pv_value("{}:SP".format(axis.upper()), -155)
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), -155, tolerance=0.01)
+            self.ca.set_pv_value(f"{axis.upper()}:SP", -155)
+            self.ca.assert_that_pv_is_number(f"{axis.upper()}", -155, tolerance=0.01)
 
             # Tell axis to home
-            self.ca.set_pv_value("{}:HOME".format(axis.upper()), 1)
+            self.ca.set_pv_value(f"{axis.upper()}:HOME", 1)
 
             # Ensure that setpoint is updated to -150 before home
-            self.ca.assert_that_pv_is_number("{}:SP".format(axis.upper()), -150, tolerance=0.01)
+            self.ca.assert_that_pv_is_number(f"{axis.upper()}:SP", -150, tolerance=0.01)
 
             # Let device actually reach home position
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), 100)
+            self.ca.assert_that_pv_is_number(f"{axis.upper()}", 100)
 
     @skip_if_recsim("Uses lewis backdoor command")
     def test_GIVEN_a_device_with_a_setpoint_more_than_minus_150_WHEN_homed_THEN_setpoint_is_not_set_before_home(
@@ -141,20 +136,20 @@ class CybamanTests(unittest.TestCase):
     ):
         for axis in self.AXES:
             # Ensure home position is known
-            self._lewis.backdoor_set_on_device("home_position_axis_{}".format(axis.lower()), 100)
+            self._lewis.backdoor_set_on_device(f"home_position_axis_{axis.lower()}", 100)
 
             # Ensure setpoint and readback are more than -150
-            self.ca.set_pv_value("{}:SP".format(axis.upper()), -145)
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), -145, tolerance=0.01)
+            self.ca.set_pv_value(f"{axis.upper()}:SP", -145)
+            self.ca.assert_that_pv_is_number(f"{axis.upper()}", -145, tolerance=0.01)
 
             # Tell axis to home
-            self.ca.set_pv_value("{}:HOME".format(axis.upper()), 1)
+            self.ca.set_pv_value(f"{axis.upper()}:HOME", 1)
 
             # Ensure that setpoint has not been updated
-            self.ca.assert_that_pv_is_number("{}:SP".format(axis.upper()), -145, tolerance=0.01)
+            self.ca.assert_that_pv_is_number(f"{axis.upper()}:SP", -145, tolerance=0.01)
 
             # Let device actually reach home position
-            self.ca.assert_that_pv_is_number("{}".format(axis.upper()), 100)
+            self.ca.assert_that_pv_is_number(f"{axis.upper()}", 100)
 
     def test_GIVEN_a_device_at_a_specific_position_WHEN_setpoint_is_updated_THEN_tm_val_is_calculated_correctly(
         self,
@@ -193,10 +188,8 @@ class CybamanTests(unittest.TestCase):
         for case in test_cases:
             # Ensure original position is what it's meant to be
             for axis, setpoint in zip(self.AXES, case["old_pos"]):
-                self.ca.set_pv_value("{}:SP".format(axis.upper()), setpoint)
-                self.ca.assert_that_pv_is_number(
-                    "{}".format(axis.upper()), setpoint, tolerance=0.01
-                )
+                self.ca.set_pv_value(f"{axis.upper()}:SP", setpoint)
+                self.ca.assert_that_pv_is_number(f"{axis.upper()}", setpoint, tolerance=0.01)
 
             # Change the relevant axis to a new setpoint
             self.ca.set_pv_value(
@@ -233,8 +226,8 @@ class CybamanTests(unittest.TestCase):
     ):
         # Put all setpoints to zero
         for axis in self.AXES:
-            self.ca.set_pv_value("{}:SP".format(axis.upper()), 0)
-            self.ca.assert_that_pv_is("{}".format(axis.upper()), 0)
+            self.ca.set_pv_value(f"{axis.upper()}:SP", 0)
+            self.ca.assert_that_pv_is(f"{axis.upper()}", 0)
 
         self.ca.set_pv_value("A:HOME", 1)
         # Wait for homing to start

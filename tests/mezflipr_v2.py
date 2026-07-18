@@ -3,6 +3,7 @@ import unittest
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
+from utils.emulator_launcher import EmulatorLauncher
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
@@ -38,38 +39,38 @@ class MezfliprTests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(["On", "Off"]))
     def test_GIVEN_power_is_set_THEN_can_be_read_back(self, _, state):
-        self.ca.assert_setting_setpoint_sets_readback(state, readback_pv="{}:POWER".format(flipper))
+        self.ca.assert_setting_setpoint_sets_readback(state, readback_pv=f"{flipper}:POWER")
 
     @parameterized.expand(parameterized_list([0.0, 0.12, 5000.5]))
     def test_GIVEN_compensation_is_set_THEN_compensation_can_be_read_back(self, _, compensation):
         self.ca.assert_setting_setpoint_sets_readback(
-            compensation, readback_pv="{}:COMPENSATION".format(flipper)
+            compensation, readback_pv=f"{flipper}:COMPENSATION"
         )
 
     def _assert_mode(self, mode):
-        self.ca.assert_that_pv_is("{}:MODE".format(flipper), mode)
-        self.ca.assert_that_pv_alarm_is("{}:MODE".format(flipper), self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_is(f"{flipper}:MODE", mode)
+        self.ca.assert_that_pv_alarm_is(f"{flipper}:MODE", self.ca.Alarms.NONE)
 
     def _assert_params(self, param):
         self.ca.assert_that_pv_value_causes_func_to_return_true(
-            "{}:PARAMS".format(flipper), lambda val: val is not None and val.rstrip() == param
+            f"{flipper}:PARAMS", lambda val: val is not None and val.rstrip() == param
         )
-        self.ca.assert_that_pv_alarm_is("{}:PARAMS".format(flipper), self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(f"{flipper}:PARAMS", self.ca.Alarms.NONE)
 
     @skip_if_recsim("State of device not simulated in recsim")
     def test_WHEN_constant_current_mode_set_THEN_parameters_reflected_and_mode_is_constant_current(
         self,
     ):
         param = 25
-        self.ca.set_pv_value("{}:CURRENT:SP".format(flipper), param)
+        self.ca.set_pv_value(f"{flipper}:CURRENT:SP", param)
 
-        self._assert_params("{:.1f}".format(param))
+        self._assert_params(f"{param:.1f}")
         self._assert_mode("static")
 
     @skip_if_recsim("State of device not simulated in recsim")
     def test_WHEN_steps_mode_set_THEN_parameters_reflected_and_mode_is_steps(self):
         param = "[some, random, list, of, data]"
-        self.ca.set_pv_value("{}:CURRENT_STEPS:SP".format(flipper), param)
+        self.ca.set_pv_value(f"{flipper}:CURRENT_STEPS:SP", param)
 
         self._assert_params(param)
         self._assert_mode("steps")
@@ -77,7 +78,7 @@ class MezfliprTests(unittest.TestCase):
     @skip_if_recsim("State of device not simulated in recsim")
     def test_WHEN_analytical_mode_set_THEN_parameters_reflected_and_mode_is_analytical(self):
         param = "a long string of parameters which is longer than 40 characters"
-        self.ca.set_pv_value("{}:CURRENT_ANALYTICAL:SP".format(flipper), param)
+        self.ca.set_pv_value(f"{flipper}:CURRENT_ANALYTICAL:SP", param)
 
         self._assert_params(param)
         self._assert_mode("analytical")
@@ -85,7 +86,7 @@ class MezfliprTests(unittest.TestCase):
     @skip_if_recsim("State of device not simulated in recsim")
     def test_WHEN_file_mode_set_THEN_parameters_reflected_and_mode_is_file(self):
         param = r"C:\some\file\path\to\a\file\in\a\really\deep\directory\structure\with\path\longer\than\40\characters"
-        self.ca.set_pv_value("{}:FILENAME:SP".format(flipper), param)
+        self.ca.set_pv_value(f"{flipper}:FILENAME:SP", param)
 
         self._assert_params(param)
         self._assert_mode("file")
@@ -93,8 +94,9 @@ class MezfliprTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(["MODE", "COMPENSATION", "PARAMS"]))
     @skip_if_recsim("Recsim cannot test disconnected device")
     def test_WHEN_device_is_disconnected_THEN_pvs_are_in_invalid_alarm(self, _, pv):
-        self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.NONE)
+        assert isinstance(self._lewis, EmulatorLauncher), "_lewis must be an EmulatorLauncher"
+        self.ca.assert_that_pv_alarm_is(f"{flipper}:{pv}", self.ca.Alarms.NONE)
         with self._lewis.backdoor_simulate_disconnected_device():
-            self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is(f"{flipper}:{pv}", self.ca.Alarms.INVALID)
         # Assert alarms clear on reconnection
-        self.ca.assert_that_pv_alarm_is("{}:{}".format(flipper, pv), self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(f"{flipper}:{pv}", self.ca.Alarms.NONE)

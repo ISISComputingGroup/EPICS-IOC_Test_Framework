@@ -27,22 +27,20 @@ class Kynctm3KTests(unittest.TestCase):
     Tests for the Keyence TM-3001P IOC.
     """
 
-    # Defines the OUT channels which are on/off for each program
-    program_modes = {
-        "all_off": ["off"] * 16,
-        "all_out_of_range": ["out_of_range"] * 16,
-        "first_on_rest_out_of_range": ["on"] + ["out_of_range"] * 15,
-        "first_on_rest_off": ["on"] + ["off"] * 15,
-        "all_on": ["on"] * 16,
-        "even_on_odd_out_of_range": ["out_of_range", "on"] * 8,
-        "even_on_odd_off": ["off", "on"] * 8,
-    }
-
-    init_OUT_VALUES = ["off"] * 16
-
     def setUp(self):
         self._lewis, self._ioc = get_running_lewis_and_ioc(EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX)
+        # Defines the OUT channels which are on/off for each program
+        self.program_modes = {
+            "all_off": ["off"] * 16,
+            "all_out_of_range": ["out_of_range"] * 16,
+            "first_on_rest_out_of_range": ["on"] + ["out_of_range"] * 15,
+            "first_on_rest_off": ["on"] + ["off"] * 15,
+            "all_on": ["on"] * 16,
+            "even_on_odd_out_of_range": ["out_of_range", "on"] * 8,
+            "even_on_odd_off": ["off", "on"] * 8,
+        }
+        self.init_OUT_VALUES = ["off"] * 16
 
         self._lewis.backdoor_run_function_on_device("reset_device")
 
@@ -82,7 +80,7 @@ class Kynctm3KTests(unittest.TestCase):
                 self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
                 for channel_to_test, expected_value in enumerate(expected_values):
-                    pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+                    pv = f"MEAS:OUT:{channel_to_test + 1:02d}"
                     if expected_value in ("off", "out_of_range"):
                         continue
                     else:
@@ -102,7 +100,7 @@ class Kynctm3KTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
         for channel in range(1, 17):
-            pv = "MEAS:OUT:{:02d}".format(channel)
+            pv = f"MEAS:OUT:{channel:02d}"
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.MAJOR)
 
     @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
@@ -117,7 +115,7 @@ class Kynctm3KTests(unittest.TestCase):
                 self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
                 for channel_to_test, expected_value in enumerate(expected_values):
-                    pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+                    pv = f"MEAS:OUT:{channel_to_test + 1:02d}"
                     if expected_value == "out_of_range":
                         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.MAJOR)
                     elif type(expected_value) is float:
@@ -136,7 +134,7 @@ class Kynctm3KTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
         for channel in range(1, 17):
-            pv = "MEAS:OUT:{:02d}".format(channel)
+            pv = f"MEAS:OUT:{channel:02d}"
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
 
     @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
@@ -149,7 +147,7 @@ class Kynctm3KTests(unittest.TestCase):
             self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
             for channel_to_test, expected_value in enumerate(expected_values):
-                pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+                pv = f"MEAS:OUT:{channel_to_test + 1:02d}"
                 if expected_value == "off":
                     self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
                 elif type(expected_value) is float:
@@ -169,7 +167,7 @@ class Kynctm3KTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
         for channel in range(1, 17):
-            pv = "MEAS:OUT:{:02d}".format(channel)
+            pv = f"MEAS:OUT:{channel:02d}"
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)
 
     @skip_if_recsim("Backdoor behaviour too complex for RECSIM")
@@ -181,7 +179,7 @@ class Kynctm3KTests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("OUT_values", expected_values)
 
         for channel_to_test, expected_value in enumerate(expected_values):
-            pv = "MEAS:OUT:{:02d}".format(channel_to_test + 1)
+            pv = f"MEAS:OUT:{channel_to_test + 1:02d}"
 
             self._lewis.backdoor_set_on_device("auto_send", True)
 

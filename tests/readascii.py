@@ -10,9 +10,9 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import EPICS_TOP, IOCRegister
 from utils.test_modes import TestModes
 
-DEFAULT_SETTINGS_DIR = os.path.join(
-    "C:/", "Instrument", "Apps", "EPICS", "support", "ReadASCII", "master", "example_settings"
-)
+DEFAULT_SETTINGS_DIR = (
+    EPICS_TOP / "support" / "ReadASCII" / "master" / "example_settings"
+).as_posix()
 DEFAULT_SETTINGS_FILE = "Default.txt"
 
 TEMP_TEST_SETTINGS_DIR = os.path.join("C:/", "Instrument", "var", "tmp", "readascii_test")
@@ -26,9 +26,9 @@ DEVICE_PREFIX = "READASCIITEST"
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": os.path.join(
-            EPICS_TOP, "support", "ReadASCII", "master", "iocBoot", "iocReadASCIITest"
-        ),
+        "directory": (
+            EPICS_TOP / "support" / "ReadASCII" / "master" / "iocBoot" / "iocReadASCIITest"
+        ).as_posix(),
         "pv_for_existence": "DIRBASE",
     },
 ]
@@ -58,8 +58,7 @@ class ReadasciiTests(unittest.TestCase):
         """
         with open(os.path.join(TEMP_TEST_SETTINGS_DIR, name), "w") as f:
             f.write("{}\n".format(" ".join(str(d) for d in headers)))
-            for row in data:
-                f.write("{}\n".format(" ".join(str(d) for d in row)))
+            f.writelines("{}\n".format(" ".join(str(d) for d in row)) for row in data)
         time.sleep(5)  # allow new file on disk to be noticed
 
     @contextmanager
@@ -141,9 +140,9 @@ class ReadasciiTests(unittest.TestCase):
         ]
     )
     def test_GIVEN_the_test_file_has_entries_for_a_setpoint_WHEN_that_exact_setpoint_is_set_THEN_it_updates_the_pid_pvs_with_the_values_from_the_file(
-        self, _, MH_name
+        self, _, mh_name
     ):
-        headers = ["SP", "P", "I", "D", MH_name]
+        headers = ["SP", "P", "I", "D", mh_name]
         rows = [
             (50, 1, 2, 3, 4),
             (100, 5, 6, 7, 8),
@@ -368,8 +367,9 @@ class ReadasciiTests(unittest.TestCase):
 
         check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
         # we use file2 this time and expect new values
-        with self._generate_temporary_test_file(headers, rows, "file2"), self._use_test_file(
-            "file2"
+        with (
+            self._generate_temporary_test_file(headers, rows, "file2"),
+            self._use_test_file("file2"),
         ):
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:])
@@ -391,8 +391,9 @@ class ReadasciiTests(unittest.TestCase):
         ]
 
         check_pvs = ["OUT_P", "OUT_I", "OUT_D", "OUT_MAX"]
-        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file(
-            "RealFile"
+        with (
+            self._generate_temporary_test_file(headers, rows, "RealFile"),
+            self._use_test_file("RealFile"),
         ):
             for row in rows:
                 self._set_and_check_flexible(row[0], check_pvs, row[1:])
@@ -407,7 +408,8 @@ class ReadasciiTests(unittest.TestCase):
             (0, 0, 0, 0, 0),
         ]
 
-        with self._generate_temporary_test_file(headers, rows, "RealFile"), self._use_test_file(
-            "RealFile"
+        with (
+            self._generate_temporary_test_file(headers, rows, "RealFile"),
+            self._use_test_file("RealFile"),
         ):
             self.ca.assert_that_pv_is("RAMP_FILE_NOT_DEFAULT", 1)

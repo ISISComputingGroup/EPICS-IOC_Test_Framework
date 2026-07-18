@@ -50,7 +50,7 @@ sensors = ["01", "02", "03", "04", "05", "06"]
 
 class EurothermModbusTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
-        super(EurothermModbusTests, self).setUp()
+        super().setUp()
         self._lewis.backdoor_run_function_on_device(
             "set_scaling", [sensors[0], 1.0 / float(SCALING)]
         )

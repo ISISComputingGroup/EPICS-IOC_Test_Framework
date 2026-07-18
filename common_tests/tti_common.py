@@ -5,7 +5,7 @@ from parameterized import parameterized
 from utils.testing import skip_if_recsim
 
 
-class TtiCommon(object, metaclass=abc.ABCMeta):
+class TtiCommon(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_off_state_name(self):
         pass

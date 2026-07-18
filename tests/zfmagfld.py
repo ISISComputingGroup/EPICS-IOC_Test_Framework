@@ -67,8 +67,8 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             None
 
         """
-        for axis in AXES.keys():
-            self.ca.set_pv_value("OFFSET:{}".format(axis), offset, sleep_after_set=0.0)
+        for axis in AXES:
+            self.ca.set_pv_value(f"OFFSET:{axis}", offset, sleep_after_set=0.0)
 
     def write_sensor_matrix(self, sensor_matrix):
         """
@@ -104,7 +104,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         """
 
         offset_applied_field = {}
-        for axis in AXES.keys():
+        for axis in AXES:
             offset_applied_field[axis] = simulated_field[axis] - offset
 
         return offset_applied_field
@@ -125,13 +125,11 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         """
 
-        for component in AXES.keys():
+        for component in AXES:
             self.ca.set_pv_value(
-                "SIM:DAQ:{}".format(component), simulated_field[component], sleep_after_set=0.0
+                f"SIM:DAQ:{component}", simulated_field[component], sleep_after_set=0.0
             )
-            self.ca.assert_that_pv_is_number(
-                "DAQ:{}:_RAW".format(component), simulated_field[component]
-            )
+            self.ca.assert_that_pv_is_number(f"DAQ:{component}:_RAW", simulated_field[component])
 
     def apply_offset_and_matrix_multiplication(self, simulated_field, offset, sensor_matrix):
         """
@@ -174,12 +172,12 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             level: Class attribute of ChannelAccess.Alarms (e.g. ca.Alarms.NONE). The severity level to set to the PV
 
         """
-        for axis in AXES.keys():
-            self.ca.set_pv_value("DAQ:{}:_RAW.SIMS".format(axis), level, sleep_after_set=0.0)
+        for axis in AXES:
+            self.ca.set_pv_value(f"DAQ:{axis}:_RAW.SIMS", level, sleep_after_set=0.0)
 
         # Wait for the raw PVs to process
-        for axis in AXES.keys():
-            self.ca.assert_that_pv_alarm_is("DAQ:{}:_RAW".format(axis), level)
+        for axis in AXES:
+            self.ca.assert_that_pv_alarm_is(f"DAQ:{axis}:_RAW", level)
 
     @parameterized.expand(parameterized_list(itertools.product(AXES.keys(), FIELD_STRENGTHS)))
     def test_GIVEN_field_offset_THEN_field_strength_read_back_with_offset_applied(
@@ -193,13 +191,13 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         field[hw_axis] = field_strength
 
         self.write_simulated_field_values(field)
-        self.ca.set_pv_value("SIM:DAQ:{}".format(hw_axis), field_strength, sleep_after_set=0.0)
+        self.ca.set_pv_value(f"SIM:DAQ:{hw_axis}", field_strength, sleep_after_set=0.0)
 
         # WHEN
         self.ca.process_pv("TAKEDATA")
 
         # THEN
-        self.ca.assert_that_pv_is_number("APPLYOFFSET:{}".format(hw_axis), field_strength - OFFSET)
+        self.ca.assert_that_pv_is_number(f"APPLYOFFSET:{hw_axis}", field_strength - OFFSET)
 
     def test_GIVEN_offset_corrected_field_WHEN_sensor_matrix_is_identity_THEN_input_field_returned_by_matrix_multiplier(
         self,
@@ -214,17 +212,15 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca.process_pv("TAKEDATA")
 
         # THEN
-        for hw_axis in AXES.keys():
+        for hw_axis in AXES:
             expected_value = offset_corrected_field[hw_axis]
             self.ca.assert_that_pv_is_number(
-                "CORRECTEDFIELD:{}".format(hw_axis),
+                f"CORRECTEDFIELD:{hw_axis}",
                 expected_value,
                 tolerance=0.1 * abs(expected_value),
             )
 
-            self.ca.assert_that_pv_alarm_is(
-                "CORRECTEDFIELD:{}".format(hw_axis), self.ca.Alarms.NONE
-            )
+            self.ca.assert_that_pv_alarm_is(f"CORRECTEDFIELD:{hw_axis}", self.ca.Alarms.NONE)
 
     @parameterized.expand(parameterized_list(["X", "Y", "Z"]))
     def test_GIVEN_sensor_matrix_with_only_one_nonzero_row_THEN_corrected_field_has_component_in_correct_dimension(
@@ -250,13 +246,13 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca.process_pv("TAKEDATA")
 
         # THEN
-        for component in AXES.keys():
+        for component in AXES:
             if component == hw_axis:
                 expected_value = sum(input_field.values())
             else:
                 expected_value = 0
 
-            self.ca.assert_that_pv_is_number("CORRECTEDFIELD:{}".format(component), expected_value)
+            self.ca.assert_that_pv_is_number(f"CORRECTEDFIELD:{component}", expected_value)
 
     def test_GIVEN_test_input_field_strengths_WHEN_corrections_applied_THEN_corrected_fields_agree_with_labview(
         self,
@@ -273,8 +269,8 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.write_simulated_field_values(input_field)
         self.write_sensor_matrix(sensor_matrix)
 
-        for axis in input_offsets.keys():
-            self.ca.set_pv_value("OFFSET:{}".format(axis), input_offsets[axis], sleep_after_set=0.0)
+        for axis_name, axis_value in input_offsets.items():
+            self.ca.set_pv_value(f"OFFSET:{axis_name}", axis_value, sleep_after_set=0.0)
 
         # WHEN
         self.ca.process_pv("TAKEDATA")
@@ -282,9 +278,9 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         # THEN
         labview_result = {"X": -6.58, "Y": -18.9542, "Z": -0.21857}
 
-        for component in AXES.keys():
+        for component in AXES:
             self.ca.assert_that_pv_is_number(
-                "CORRECTEDFIELD:{}".format(component), labview_result[component], tolerance=1e-4
+                f"CORRECTEDFIELD:{component}", labview_result[component], tolerance=1e-4
             )
 
     def test_GIVEN_measured_data_WHEN_corrections_applied_THEN_field_magnitude_read_back(self):
@@ -324,18 +320,16 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
             time.sleep(1)
 
-            for component in AXES.keys():
-                self.ca.assert_that_pv_is_not_number(
-                    "DAQ:{}".format(component), test_field[component]
-                )
+            for component in AXES:
+                self.ca.assert_that_pv_is_not_number(f"DAQ:{component}", test_field[component])
 
             # WHEN
             self.ca.process_pv("TAKEDATA")
 
             # THEN
-            for component in AXES.keys():
+            for component in AXES:
                 self.ca.assert_that_pv_is_number(
-                    "DAQ:{}".format(component),
+                    f"DAQ:{component}",
                     test_field[component],
                     tolerance=0.1 * test_field[component],
                 )
@@ -352,9 +346,9 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             self.write_simulated_field_values(test_field)
 
             # THEN
-            for component in AXES.keys():
+            for component in AXES:
                 self.ca.assert_that_pv_is_number(
-                    "DAQ:{}".format(component),
+                    f"DAQ:{component}",
                     test_field[component],
                     tolerance=0.1 * test_field[component],
                 )
@@ -373,9 +367,9 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self.ca.process_pv("TAKEDATA")
 
         # THEN
-        for component in AXES.keys():
+        for component in AXES:
             self.ca.assert_that_pv_is_number(
-                "MEASURED:{}".format(component), test_field[component] * factor
+                f"MEASURED:{component}", test_field[component] * factor
             )
 
     @parameterized.expand(parameterized_list(AXES.keys()))
@@ -421,8 +415,8 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
 
         # THEN
         self.ca.assert_that_pv_alarm_is("FIELDSTRENGTH", self.ca.Alarms.MAJOR)
-        for axis in AXES.keys():
-            self.ca.assert_that_pv_alarm_is("CORRECTEDFIELD:{}".format(axis), self.ca.Alarms.MAJOR)
+        for axis in AXES:
+            self.ca.assert_that_pv_alarm_is(f"CORRECTEDFIELD:{axis}", self.ca.Alarms.MAJOR)
 
     @parameterized.expand(
         parameterized_list(
@@ -440,14 +434,14 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         self, _, alarm, pv
     ):
         # GIVEN
-        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(f"{pv}.SEVR", self.ca.Alarms.NONE)
 
         self.write_simulated_alarm_level(alarm)
 
         self.ca.process_pv("TAKEDATA")
 
         # THEN
-        self.ca.assert_that_pv_alarm_is("{}.SEVR".format(pv), alarm)
+        self.ca.assert_that_pv_alarm_is(f"{pv}.SEVR", alarm)
 
     @parameterized.expand(parameterized_list(AXES.keys()))
     def test_GIVEN_smoothing_samples_WHEN_setting_field_THEN_average_field_is_given(self, _, axis):
@@ -458,13 +452,14 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
         full_averaging_time = number_samples * 0.1  # 0.1s is the update rate in sim mode.
 
         field_number = 100
-        pv = "DAQ:{}".format(axis)
-        with self._ioc.start_with_macros({"NUM_SAMPLES": number_samples}, pv_to_wait_for=pv):
+        pv = f"DAQ:{axis}"
+        assert isinstance(self._ioc, ProcServLauncher), "_ioc must be ProcServLauncher"
+        with self._ioc.start_with_macros({"NUM_SAMPLES": str(number_samples)}, pv_to_wait_for=pv):
             field = {"X": 0, "Y": 0, "Z": 0}
             self.write_simulated_field_values(field)
 
             # make sure the field is 0
-            self.ca.assert_that_pv_is_number("DAQ:{}:_RAW".format(axis), 0, full_averaging_time + 5)
+            self.ca.assert_that_pv_is_number(f"DAQ:{axis}:_RAW", 0, full_averaging_time + 5)
             self.ca.process_pv("TAKEDATA")
             self.ca.assert_that_pv_is_number(pv, 0)
 
@@ -473,7 +468,7 @@ class ZeroFieldMagFieldTests(unittest.TestCase):
             self.write_simulated_field_values(field)
 
             self.ca.assert_that_pv_value_is_increasing(
-                "DAQ:{}:_AVERAGE".format(axis), wait=full_averaging_time + 5
+                f"DAQ:{axis}:_AVERAGE", wait=full_averaging_time + 5
             )
 
             # Check the final value is correct

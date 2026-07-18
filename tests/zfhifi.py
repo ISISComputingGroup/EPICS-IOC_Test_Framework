@@ -7,7 +7,7 @@ from typing import Any
 
 from utils.channel_access import ChannelAccess
 from utils.emulator_launcher import EmulatorLauncher
-from utils.ioc_launcher import BaseLauncher, get_default_ioc_dir
+from utils.ioc_launcher import EPICS_TOP, BaseLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
@@ -30,7 +30,9 @@ def cryosms_macros(iocnum: int) -> dict[str, Any]:
         "MAX_VOLT": 5,
         "WRITE_UNIT": "AMPS",
         "DISPLAY_UNIT": "GAUSS",
-        "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\default.txt",
+        "RAMP_FILE": (
+            EPICS_TOP / "support" / "cryosms" / "master" / "ramps" / "default.txt"
+        ).as_posix(),
         "MID_TOLERANCE": 999999999,  # 0.1
         "TARGET_TOLERANCE": 999999999,  # 0.1
         "ALLOW_PERSIST": "No",
@@ -86,16 +88,9 @@ def group3_hall_probe_ioc(iocnum: int) -> dict[str, Any]:
         "directory": get_default_ioc_dir("G3HALLPR", iocnum=iocnum),
         "emulator": "group3hallprobe",
         "emulator_id": f"group3hallprobe_{iocnum}",
-        "lewis_additional_path": os.path.join(
-            "c:\\",
-            "Instrument",
-            "Apps",
-            "EPICS",
-            "support",
-            "group3hallprobe",
-            "master",
-            "system_tests",
-        ),
+        "lewis_additional_path": (
+            EPICS_TOP / "support" / "group3hallprobe" / "master" / "system_tests"
+        ).as_posix(),
         "macros": {
             "FIELD_SCAN_RATE": ".1 second",
             "TEMP_SCAN_RATE": ".1 second",

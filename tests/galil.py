@@ -20,7 +20,7 @@ IOCS = [
         "pv_for_existence": "AXIS1",
         "macros": {
             "MTRCTRL": "01",
-            "GALILADDR1": "127.0.0.11",
+            "GALILADDR": "127.0.0.11",
             "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
     },
@@ -88,16 +88,16 @@ class GalilTests(unittest.TestCase):
     num_motors = 8
 
     def zero_motors(self):
-        for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
-            self.pv.set_pv_value("MOT:MTR{}{}".format(self.controller, motor), 0)
-            self.pv.assert_that_pv_is("MOT:MTR{}{}".format(self.controller, motor), 0)
-            self.pv.assert_that_pv_is("MOT:MTR{}{}.RBV".format(self.controller, motor), 0)
+        for motor in [f"{mtr:02d}" for mtr in range(1, self.num_motors + 1)]:
+            self.pv.set_pv_value(f"MOT:MTR{self.controller}{motor}", 0)
+            self.pv.assert_that_pv_is(f"MOT:MTR{self.controller}{motor}", 0)
+            self.pv.assert_that_pv_is(f"MOT:MTR{self.controller}{motor}.RBV", 0)
 
     def stop_motors(self):
-        for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
-            self.pv.set_pv_value("MOT:MTR{}{}.STOP".format(self.controller, motor), 1)
-            self.pv.assert_that_pv_is("MOT:MTR{}{}.DMOV".format(self.controller, motor), 1)
-            self.pv.assert_that_pv_is("MOT:MTR{}{}.MOVN".format(self.controller, motor), 0)
+        for motor in [f"{mtr:02d}" for mtr in range(1, self.num_motors + 1)]:
+            self.pv.set_pv_value(f"MOT:MTR{self.controller}{motor}.STOP", 1)
+            self.pv.assert_that_pv_is(f"MOT:MTR{self.controller}{motor}.DMOV", 1)
+            self.pv.assert_that_pv_is(f"MOT:MTR{self.controller}{motor}.MOVN", 0)
 
     def setUp(self):
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
@@ -118,12 +118,12 @@ class GalilTests(unittest.TestCase):
         """
         check for real motors
         """
-        for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
-            self.pv.assert_that_pv_exists("MOT:MTR{}{}".format(self.controller, motor))
+        for motor in [f"{mtr:02d}" for mtr in range(1, self.num_motors + 1)]:
+            self.pv.assert_that_pv_exists(f"MOT:MTR{self.controller}{motor}")
 
     def test_GIVEN_ioc_started_THEN_axes_for_all_motors_exist(self):
         for motor in range(1, 8 + 1):
-            self.pv.assert_that_pv_exists("GALIL_01:AXIS{}".format(motor))
+            self.pv.assert_that_pv_exists(f"GALIL_01:AXIS{motor}")
 
     def test_GIVEN_motor_requested_to_move_THEN_motor_moves(self):
         self.zero_motors()
@@ -179,7 +179,7 @@ class GalilTests(unittest.TestCase):
             self.pv.set_pv_value(key.format(self.controller), value)
             self.pv.assert_that_pv_is(key.format(self.controller), value)
 
-        for motor in ["{:02d}".format(mtr) for mtr in range(1, self.num_motors + 1)]:
+        for motor in [f"{mtr:02d}" for mtr in range(1, self.num_motors + 1)]:
             for key, value in MOTOR_SETUP.items():
                 if isinstance(value, str):
                     value = value.format(ueip=ueip)

@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from genie_python.channel_access_exceptions import WriteAccessException
@@ -10,16 +9,7 @@ from utils.ioc_launcher import EPICS_TOP, IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import parameterized_list
 
-test_path = os.path.realpath(
-    os.path.join(
-        os.getenv("EPICS_KIT_ROOT"),
-        "support",
-        "motorExtensions",
-        "master",
-        "settings",
-        "sans2d_vacuum_tank",
-    )
-)
+test_path = EPICS_TOP / "support" / "motorExtensions" / "master" / "settings" / "sans2d_vacuum_tank"
 
 GALIL_ADDR1 = "127.0.0.11"
 GALIL_ADDR2 = "127.0.0.12"
@@ -34,8 +24,8 @@ IOCS = [
         "pv_for_existence": "HEARTBEAT",
         "macros": {
             "FINSCONFIGDIR": (
-                os.path.join(EPICS_TOP, "ioc", "master", "FINS", "exampleSettings", "SANS2D_vacuum")
-            ).replace("\\", "/"),
+                EPICS_TOP / "ioc" / "master" / "FINS" / "exampleSettings" / "SANS2D_vacuum"
+            ).as_posix(),
             "PLCIP": "127.0.0.1",
         },
     },
@@ -47,7 +37,7 @@ IOCS = [
         "macros": {
             "GALILADDR": GALIL_ADDR1,
             "MTRCTRL": "03",
-            "GALILCONFIGDIR": test_path.replace("\\", "/"),
+            "GALILCONFIGDIR": test_path.as_posix(),
         },
     },
     {
@@ -60,7 +50,7 @@ IOCS = [
             "GALILADDR1": GALIL_ADDR2,
             "MTRCTRL2": "05",
             "GALILADDR2": GALIL_ADDR3,
-            "GALILCONFIGDIR": test_path.replace("\\", "/"),
+            "GALILCONFIGDIR": test_path.as_posix(),
         },
     },
 ]
@@ -114,12 +104,12 @@ class Sans2dVacTankTests(unittest.TestCase):
         self.upper_inhibit_bound = 2
 
     def reset_axis_to_non_inhibit(self, axis):
-        self.ca.set_pv_value("{}:SP".format(axis), 0)
+        self.ca.set_pv_value(f"{axis}:SP", 0)
         self.ca.assert_that_pv_is_number(axis, 0, timeout=10)
 
     def reset_axes_to_non_inhibit(self, axis_one, axis_two):
-        axis_one_val = self.ca.get_pv_value("{}:SP".format(axis_one))
-        axis_two_val = self.ca.get_pv_value("{}:SP".format(axis_two))
+        axis_one_val = self.ca.get_pv_value(f"{axis_one}:SP")
+        axis_two_val = self.ca.get_pv_value(f"{axis_two}:SP")
         axis_one_inhibiting = (
             axis_one_val < self.lower_inhibit_bound or axis_one_val > self.upper_inhibit_bound
         )
@@ -128,9 +118,7 @@ class Sans2dVacTankTests(unittest.TestCase):
         )
         if axis_one_inhibiting and axis_two_inhibiting:
             self.fail(
-                "Both {} and {} are inhibiting each other, cannot reliably run test".format(
-                    axis_one, axis_two
-                )
+                f"Both {axis_one} and {axis_two} are inhibiting each other, cannot reliably run test"
             )
         elif axis_one_inhibiting:
             self.reset_axis_to_non_inhibit(axis_one)
@@ -145,15 +133,15 @@ class Sans2dVacTankTests(unittest.TestCase):
         self.reset_axes_to_non_inhibit(inhibited_axis, inhibiting_axis)
         try:
             # Act
-            self.ca.set_pv_value("{}:SP".format(inhibiting_axis), -3)
-            self.ca.assert_that_pv_is_number("{}:SP".format(inhibiting_axis), -3)
+            self.ca.set_pv_value(f"{inhibiting_axis}:SP", -3)
+            self.ca.assert_that_pv_is_number(f"{inhibiting_axis}:SP", -3)
             start_position = self.ca.get_pv_value(inhibited_axis)
             with self.assertRaises(
                 WriteAccessException, msg="DISP should be set on inhibited axis"
             ):
                 set_axis_moving(inhibited_axis)
             # Assert
-            self.ca.assert_that_pv_is("SANS2DVAC:INHIBIT_{}".format(inhibited_axis), 1)
+            self.ca.assert_that_pv_is(f"SANS2DVAC:INHIBIT_{inhibited_axis}", 1)
             end_position = self.ca.get_pv_value(inhibited_axis)
             self.assertEqual(start_position, end_position)
         finally:

@@ -58,13 +58,13 @@ class Jsco4180Tests(unittest.TestCase):
     def test_GIVEN_wrong_component_on_device_WHEN_running_THEN_retry_run_and_updates_component(
         self,
     ):
-        expected_value_A = 30
-        expected_value_B = 15
-        expected_value_C = 55
+        expected_value_a = 30
+        expected_value_b = 15
+        expected_value_c = 55
 
-        self.ca.set_pv_value("COMP:A:SP", expected_value_A)
-        self.ca.set_pv_value("COMP:B:SP", expected_value_B)
-        self.ca.set_pv_value("COMP:C:SP", expected_value_C)
+        self.ca.set_pv_value("COMP:A:SP", expected_value_a)
+        self.ca.set_pv_value("COMP:B:SP", expected_value_b)
+        self.ca.set_pv_value("COMP:C:SP", expected_value_c)
 
         self.ca.set_pv_value("START:SP", 1)
 
@@ -75,9 +75,9 @@ class Jsco4180Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("component_B", 10)
         self._lewis.backdoor_set_on_device("component_C", 14)
 
-        self.ca.assert_that_pv_is("COMP:A", expected_value_A, timeout=30)
-        self.ca.assert_that_pv_is("COMP:B", expected_value_B, timeout=30)
-        self.ca.assert_that_pv_is("COMP:C", expected_value_C, timeout=30)
+        self.ca.assert_that_pv_is("COMP:A", expected_value_a, timeout=30)
+        self.ca.assert_that_pv_is("COMP:B", expected_value_b, timeout=30)
+        self.ca.assert_that_pv_is("COMP:C", expected_value_c, timeout=30)
 
     # there was a previous problem where if setpoint and readback differed a sleep and resend was started,
     # but the old state machine did not look to see if a new sp was issued while it was asleep and so then
@@ -285,21 +285,19 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("PRESSURE", expected_value)
 
-    @parameterized.expand(
-        [("component_{}".format(suffix), suffix) for suffix in ["A", "B", "C", "D"]]
-    )
+    @parameterized.expand([(f"component_{suffix}", suffix) for suffix in ["A", "B", "C", "D"]])
     def test_GIVEN_an_ioc_WHEN_get_component_THEN_correct_component_returned(
         self, component, suffix
     ):
         expected_value = 10.0
         self._lewis.backdoor_set_on_device(component, expected_value)
 
-        self.ca.assert_that_pv_is("COMP:{}".format(suffix), expected_value)
+        self.ca.assert_that_pv_is(f"COMP:{suffix}", expected_value)
 
-    @parameterized.expand([("COMP:{}".format(suffix), suffix) for suffix in ["A", "B", "C"]])
+    @parameterized.expand([(f"COMP:{suffix}", suffix) for suffix in ["A", "B", "C"]])
     def test_GIVEN_an_ioc_WHEN_set_component_THEN_correct_component_set(self, component, suffix):
         expected_value = 100.0
-        self.ca.set_pv_value("COMP:{}:SP".format(suffix), expected_value)
+        self.ca.set_pv_value(f"COMP:{suffix}:SP", expected_value)
         if component == "COMP:A":
             self.ca.set_pv_value("COMP:B:SP", 0)
             self.ca.set_pv_value("COMP:C:SP", 0)
@@ -324,7 +322,7 @@ class Jsco4180Tests(unittest.TestCase):
 
         self.ca.assert_that_pv_is("ERROR", expected_value)
 
-    def test_GIVEN_ioc_in_error_state_WHEN_reset_error_THEN_error_reset(self):
+    def test_GIVEN_ioc_not_in_error_state_WHEN_reset_error_THEN_error_reset(self):
         expected_value = "No error"
         self._lewis.backdoor_set_on_device("error", ERROR_STATE_NO_ERROR)
         self.ca.set_pv_value("ERROR:SP", "Reset")

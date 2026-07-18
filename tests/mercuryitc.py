@@ -1,5 +1,5 @@
 import itertools
-import os
+import pathlib
 import unittest
 
 from parameterized import parameterized
@@ -37,25 +37,23 @@ def get_card_pv_prefix(card):
     """
     if card in TEMP_CARDS:
         assert card not in PRESSURE_CARDS and card not in LEVEL_CARDS
-        return "{}".format(
-            TEMP_CARDS.index(card) + 1
-        )  # Only a numeric prefix for temperature cards
+        return f"{TEMP_CARDS.index(card) + 1}"  # Only a numeric prefix for temperature cards
     elif card in PRESSURE_CARDS:
         assert card not in LEVEL_CARDS
-        return "PRESSURE:{}".format(PRESSURE_CARDS.index(card) + 1)
+        return f"PRESSURE:{PRESSURE_CARDS.index(card) + 1}"
     elif card in LEVEL_CARDS:
-        return "LEVEL:{}".format(LEVEL_CARDS.index(card) + 1)
+        return f"LEVEL:{LEVEL_CARDS.index(card) + 1}"
     else:
         raise ValueError("Unknown card")
 
 
 macros = {}
-macros.update({"TEMP_{}".format(key): val for key, val in enumerate(TEMP_CARDS, start=1)})
-macros.update({"PRESSURE_{}".format(key): val for key, val in enumerate(PRESSURE_CARDS, start=1)})
-macros.update({"LEVEL_{}".format(key): val for key, val in enumerate(LEVEL_CARDS, start=1)})
+macros.update({f"TEMP_{key}": val for key, val in enumerate(TEMP_CARDS, start=1)})
+macros.update({f"PRESSURE_{key}": val for key, val in enumerate(PRESSURE_CARDS, start=1)})
+macros.update({f"LEVEL_{key}": val for key, val in enumerate(LEVEL_CARDS, start=1)})
 
-macros["CALIB_BASE_DIR"] = EPICS_TOP.replace("\\", "/")
-macros["CALIB_DIR"] = os.path.join("support", "mercuryitc", "master", "settings").replace("\\", "/")
+macros["CALIB_BASE_DIR"] = EPICS_TOP.as_posix()
+macros["CALIB_DIR"] = pathlib.PurePath("support", "mercuryitc", "master", "settings").as_posix()
 
 
 DEVICE_PREFIX = "MERCURY_01"
@@ -63,9 +61,9 @@ DEVICE_PREFIX = "MERCURY_01"
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": os.path.join(
-            EPICS_TOP, "ioc", "master", "MERCURY_ITC", "iocBoot", "iocMERCURY-IOC-01"
-        ),
+        "directory": (
+            EPICS_TOP / "ioc" / "master" / "MERCURY_ITC" / "iocBoot" / "iocMERCURY-IOC-01"
+        ).as_posix(),
         "emulator": "mercuryitc",
         "macros": macros,
     },
@@ -137,7 +135,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis, self._ioc = get_running_lewis_and_ioc("mercuryitc", DEVICE_PREFIX)
         self._lewis.backdoor_set_on_device("connected", True)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=20)
-        card_pv_prefix = get_card_pv_prefix(TEMP_CARDS[0])
+        get_card_pv_prefix(TEMP_CARDS[0])
 
     @parameterized.expand(
         parameterized_list(
@@ -153,7 +151,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [card, param.lower(), test_value]
         )
-        self.ca.assert_that_pv_is("{}:{}".format(card_pv_prefix, param), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:{param}", test_value)
 
     @parameterized.expand(
         parameterized_list(
@@ -165,8 +163,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             test_value,
-            readback_pv="{}:{}".format(card_pv_prefix, param),
-            set_point_pv="{}:{}:SP".format(card_pv_prefix, param),
+            readback_pv=f"{card_pv_prefix}:{param}",
+            set_point_pv=f"{card_pv_prefix}:{param}:SP",
         )
 
     @parameterized.expand(
@@ -177,8 +175,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             test_value,
-            readback_pv="{}:PID:AUTO".format(card_pv_prefix),
-            set_point_pv="{}:PID:AUTO:SP".format(card_pv_prefix),
+            readback_pv=f"{card_pv_prefix}:PID:AUTO",
+            set_point_pv=f"{card_pv_prefix}:PID:AUTO:SP",
         )
 
     @parameterized.expand(
@@ -191,7 +189,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [card, "temperature", test_value]
         )
-        self.ca.assert_that_pv_is("{}:TEMP".format(card_pv_prefix), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:TEMP", test_value)
 
     @parameterized.expand(
         parameterized_list(itertools.product(TEMPERATURE_TEST_VALUES, PRESSURE_CARDS))
@@ -203,7 +201,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [card, "pressure", test_value]
         )
-        self.ca.assert_that_pv_is("{}:PRESSURE".format(card_pv_prefix), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:PRESSURE", test_value)
 
     @parameterized.expand(parameterized_list(itertools.product(RESISTANCE_TEST_VALUES, TEMP_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -213,7 +211,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [card, "resistance", test_value]
         )
-        self.ca.assert_that_pv_is("{}:RESISTANCE".format(card_pv_prefix), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:RESISTANCE", test_value)
 
     @parameterized.expand(
         parameterized_list(itertools.product(RESISTANCE_TEST_VALUES, PRESSURE_CARDS))
@@ -225,7 +223,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [card, "voltage", test_value]
         )
-        self.ca.assert_that_pv_is("{}:VOLT".format(card_pv_prefix), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:VOLT", test_value)
 
     @parameterized.expand(
         parameterized_list(itertools.product(TEMPERATURE_TEST_VALUES, TEMP_CARDS))
@@ -235,8 +233,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             test_value,
-            set_point_pv="{}:TEMP:SP".format(card_pv_prefix),
-            readback_pv="{}:TEMP:SP:RBV".format(card_pv_prefix),
+            set_point_pv=f"{card_pv_prefix}:TEMP:SP",
+            readback_pv=f"{card_pv_prefix}:TEMP:SP:RBV",
         )
 
     @parameterized.expand(
@@ -247,8 +245,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             test_value,
-            set_point_pv="{}:PRESSURE:SP".format(card_pv_prefix),
-            readback_pv="{}:PRESSURE:SP:RBV".format(card_pv_prefix),
+            set_point_pv=f"{card_pv_prefix}:PRESSURE:SP",
+            readback_pv=f"{card_pv_prefix}:PRESSURE:SP:RBV",
         )
 
     @parameterized.expand(
@@ -259,8 +257,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             mode,
-            set_point_pv="{}:HEATER:MODE:SP".format(card_pv_prefix),
-            readback_pv="{}:HEATER:MODE".format(card_pv_prefix),
+            set_point_pv=f"{card_pv_prefix}:HEATER:MODE:SP",
+            readback_pv=f"{card_pv_prefix}:HEATER:MODE",
         )
 
     @parameterized.expand(
@@ -271,8 +269,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             mode,
-            set_point_pv="{}:FLOW:STAT:SP".format(card_pv_prefix),
-            readback_pv="{}:FLOW:STAT".format(card_pv_prefix),
+            set_point_pv=f"{card_pv_prefix}:FLOW:STAT:SP",
+            readback_pv=f"{card_pv_prefix}:FLOW:STAT",
         )
 
     @parameterized.expand(
@@ -283,8 +281,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             mode,
-            set_point_pv="{}:FLOW:SP".format(card_pv_prefix),
-            readback_pv="{}:FLOW".format(card_pv_prefix),
+            set_point_pv=f"{card_pv_prefix}:FLOW:SP",
+            readback_pv=f"{card_pv_prefix}:FLOW",
         )
 
     @parameterized.expand(
@@ -297,8 +295,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             mode,
-            set_point_pv="{}:HEATER:SP".format(card_pv_prefix),
-            readback_pv="{}:HEATER".format(card_pv_prefix),
+            set_point_pv=f"{card_pv_prefix}:HEATER:SP",
+            readback_pv=f"{card_pv_prefix}:HEATER",
         )
 
     @parameterized.expand(
@@ -311,8 +309,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             mode,
-            set_point_pv="{}:HEATER:VOLT_LIMIT:SP".format(card_pv_prefix),
-            readback_pv="{}:HEATER:VOLT_LIMIT".format(card_pv_prefix),
+            set_point_pv=f"{card_pv_prefix}:HEATER:VOLT_LIMIT:SP",
+            readback_pv=f"{card_pv_prefix}:HEATER:VOLT_LIMIT",
         )
 
     @parameterized.expand(
@@ -324,12 +322,12 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_heater_power_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
         card_pv_prefix = get_card_pv_prefix(card)
 
-        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
+        heater_chan_name = self.ca.get_pv_value(f"{card_pv_prefix}:HTRCHAN")
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "power", test_value]
         )
-        self.ca.assert_that_pv_is("{}:HEATER:POWER".format(card_pv_prefix), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:HEATER:POWER", test_value)
 
     @parameterized.expand(
         parameterized_list(
@@ -340,12 +338,12 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_heater_curr_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
         card_pv_prefix = get_card_pv_prefix(card)
 
-        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
+        heater_chan_name = self.ca.get_pv_value(f"{card_pv_prefix}:HTRCHAN")
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "current", test_value]
         )
-        self.ca.assert_that_pv_is("{}:HEATER:CURR".format(card_pv_prefix), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:HEATER:CURR", test_value)
 
     @parameterized.expand(
         parameterized_list(
@@ -356,12 +354,12 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_heater_voltage_is_set_via_backdoor_THEN_pv_updates(self, _, test_value, card):
         card_pv_prefix = get_card_pv_prefix(card)
 
-        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
+        heater_chan_name = self.ca.get_pv_value(f"{card_pv_prefix}:HTRCHAN")
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "voltage", test_value]
         )
-        self.ca.assert_that_pv_is("{}:HEATER:VOLT".format(card_pv_prefix), test_value)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:HEATER:VOLT", test_value)
 
     @parameterized.expand(
         parameterized_list(
@@ -373,8 +371,8 @@ class MercuryTests(unittest.TestCase):
 
         self.ca.assert_setting_setpoint_sets_readback(
             test_value,
-            readback_pv="{}:NAME".format(card_pv_prefix),
-            set_point_pv="{}:NAME:SP".format(card_pv_prefix),
+            readback_pv=f"{card_pv_prefix}:NAME",
+            set_point_pv=f"{card_pv_prefix}:NAME:SP",
         )
 
     @parameterized.expand(parameterized_list(itertools.product(GAS_LEVEL_TEST_VALUES, LEVEL_CARDS)))
@@ -385,9 +383,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [card, "helium_level", test_value]
         )
-        self.ca.assert_that_pv_is_number(
-            "{}:HELIUM".format(card_pv_prefix), test_value, tolerance=0.01
-        )
+        self.ca.assert_that_pv_is_number(f"{card_pv_prefix}:HELIUM", test_value, tolerance=0.01)
 
     @parameterized.expand(parameterized_list(itertools.product(GAS_LEVEL_TEST_VALUES, LEVEL_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -397,9 +393,7 @@ class MercuryTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [card, "nitrogen_level", test_value]
         )
-        self.ca.assert_that_pv_is_number(
-            "{}:NITROGEN".format(card_pv_prefix), test_value, tolerance=0.01
-        )
+        self.ca.assert_that_pv_is_number(f"{card_pv_prefix}:NITROGEN", test_value, tolerance=0.01)
 
     @parameterized.expand(
         parameterized_list(itertools.product(TEMP_CARDS + PRESSURE_CARDS, HEATER_CARDS))
@@ -409,7 +403,7 @@ class MercuryTests(unittest.TestCase):
 
         with ManagerMode(ChannelAccess()):
             self.ca.assert_setting_setpoint_sets_readback(
-                associated_card, "{}:HTRCHAN".format(card_pv_prefix)
+                associated_card, f"{card_pv_prefix}:HTRCHAN"
             )
 
     @parameterized.expand(
@@ -419,14 +413,14 @@ class MercuryTests(unittest.TestCase):
         card_pv_prefix = get_card_pv_prefix(parent_card)
         with ManagerMode(ChannelAccess()):
             self.ca.assert_setting_setpoint_sets_readback(
-                associated_card, "{}:AUXCHAN".format(card_pv_prefix)
+                associated_card, f"{card_pv_prefix}:AUXCHAN"
             )
 
     @parameterized.expand(parameterized_list(itertools.product(HELIUM_READ_RATES, LEVEL_CARDS)))
     def test_WHEN_he_read_rate_is_set_THEN_pv_updates(self, _, test_value, card):
         card_pv_prefix = get_card_pv_prefix(card)
         self.ca.assert_setting_setpoint_sets_readback(
-            test_value, "{}:HELIUM:READ_RATE".format(card_pv_prefix)
+            test_value, f"{card_pv_prefix}:HELIUM:READ_RATE"
         )
 
     @parameterized.expand(
@@ -443,7 +437,9 @@ class MercuryTests(unittest.TestCase):
     @skip_if_recsim("Complex logic not tested in recsim")
     def test_WHEN_getting_catalog_it_contains_all_cards(self, _, pv, cards):
         for card in cards:
-            self.ca.assert_that_pv_value_causes_func_to_return_true(pv, lambda val: card in val)
+            self.ca.assert_that_pv_value_causes_func_to_return_true(
+                pv, lambda val, card=card: card in val
+            )
 
     @parameterized.expand(
         parameterized_list(itertools.product(MOCK_CALIB_FILES, TEMP_CARDS + PRESSURE_CARDS))
@@ -451,9 +447,7 @@ class MercuryTests(unittest.TestCase):
     def test_WHEN_setting_calibration_file_THEN_pv_updates(self, _, test_value, card):
         card_pv_prefix = get_card_pv_prefix(card)
         with ManagerMode(ChannelAccess()):
-            self.ca.assert_setting_setpoint_sets_readback(
-                test_value, "{}:CALFILE".format(card_pv_prefix)
-            )
+            self.ca.assert_setting_setpoint_sets_readback(test_value, f"{card_pv_prefix}:CALFILE")
 
     @parameterized.expand(parameterized_list(["O", "R"]))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -467,11 +461,11 @@ class MercuryTests(unittest.TestCase):
             [PRIMARY_TEMPERATURE_CHANNEL, "resistance", resistance_value],
         )
         self.ca.assert_that_pv_is(
-            "{}:RESISTANCE".format(get_card_pv_prefix(PRIMARY_TEMPERATURE_CHANNEL)),
+            f"{get_card_pv_prefix(PRIMARY_TEMPERATURE_CHANNEL)}:RESISTANCE",
             resistance_value,
         )
         self.ca.assert_that_pv_alarm_is(
-            "{}:RESISTANCE".format(get_card_pv_prefix(PRIMARY_TEMPERATURE_CHANNEL)),
+            f"{get_card_pv_prefix(PRIMARY_TEMPERATURE_CHANNEL)}:RESISTANCE",
             self.ca.Alarms.NONE,
         )
 
@@ -485,7 +479,7 @@ class MercuryTests(unittest.TestCase):
         new_percent = 40
 
         card_pv_prefix = get_card_pv_prefix(card)
-        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
+        heater_chan_name = self.ca.get_pv_value(f"{card_pv_prefix}:HTRCHAN")
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "voltage", original_voltage]
@@ -494,13 +488,13 @@ class MercuryTests(unittest.TestCase):
             "backdoor_set_channel_property", [heater_chan_name, "voltage_limit", voltage_limit]
         )
 
-        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), original_percent)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:HEATER:VOLT_PRCNT", original_percent)
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "voltage", new_voltage]
         )
 
-        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:HEATER:VOLT_PRCNT", new_percent)
 
     @parameterized.expand(parameterized_list(itertools.product(TEMP_CARDS + PRESSURE_CARDS)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -512,7 +506,7 @@ class MercuryTests(unittest.TestCase):
         new_percent = 50
 
         card_pv_prefix = get_card_pv_prefix(card)
-        heater_chan_name = self.ca.get_pv_value("{}:HTRCHAN".format(card_pv_prefix))
+        heater_chan_name = self.ca.get_pv_value(f"{card_pv_prefix}:HTRCHAN")
 
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_property", [heater_chan_name, "voltage", voltage]
@@ -521,8 +515,8 @@ class MercuryTests(unittest.TestCase):
             "backdoor_set_channel_property", [heater_chan_name, "voltage_limit", original_limit]
         )
 
-        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), original_percent)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:HEATER:VOLT_PRCNT", original_percent)
 
-        self.ca.set_pv_value("{}:HEATER:VOLT_LIMIT:SP".format(card_pv_prefix), new_limit)
+        self.ca.set_pv_value(f"{card_pv_prefix}:HEATER:VOLT_LIMIT:SP", new_limit)
 
-        self.ca.assert_that_pv_is("{}:HEATER:VOLT_PRCNT".format(card_pv_prefix), new_percent)
+        self.ca.assert_that_pv_is(f"{card_pv_prefix}:HEATER:VOLT_PRCNT", new_percent)

@@ -49,9 +49,9 @@ class MecfrfTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(itertools.product(SENSORS, TEST_LENGTHS)))
     @skip_if_recsim("Uses Lewis backdoor")
     def test_WHEN_value_is_written_to_emulator_THEN_record_updates(self, _, sensor, length):
-        self._lewis.backdoor_set_on_device("sensor{}".format(sensor), length * RAW_READING_SCALING)
-        self.ca.assert_that_pv_is("SENSOR{}".format(sensor), length)
-        self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
+        self._lewis.backdoor_set_on_device(f"sensor{sensor}", length * RAW_READING_SCALING)
+        self.ca.assert_that_pv_is(f"SENSOR{sensor}", length)
+        self.ca.assert_that_pv_alarm_is(f"SENSOR{sensor}", self.ca.Alarms.NONE)
 
     @skip_if_recsim("Uses Lewis backdoor")
     def test_WHEN_emulator_sends_corrupt_packets_THEN_records_go_into_alarm(self):
@@ -69,12 +69,12 @@ class MecfrfTests(unittest.TestCase):
     @skip_if_recsim("Uses Lewis backdoor")
     def test_WHEN_emulator_disconnected_THEN_records_go_into_alarm(self, _, sensor):
         self.ca.assert_that_pv_is("_READINGS_OUTDATED", "No")
-        self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(f"SENSOR{sensor}", self.ca.Alarms.NONE)
 
         with self._lewis.backdoor_simulate_disconnected_device():
             self.ca.assert_that_pv_is("_READINGS_OUTDATED", "Yes")
-            self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.INVALID)
+            self.ca.assert_that_pv_alarm_is(f"SENSOR{sensor}", self.ca.Alarms.INVALID)
 
         # Assert alarms clear on reconnection
         self.ca.assert_that_pv_is("_READINGS_OUTDATED", "No")
-        self.ca.assert_that_pv_alarm_is("SENSOR{}".format(sensor), self.ca.Alarms.NONE)
+        self.ca.assert_that_pv_alarm_is(f"SENSOR{sensor}", self.ca.Alarms.NONE)

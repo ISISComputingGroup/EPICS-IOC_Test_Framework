@@ -83,7 +83,7 @@ EXCITATIONA_PV = "EXCITATIONA"
 THRESHOLD_TEMP_PV = "THRESHOLDS:TEMP"
 THRESHOLDS_ERROR_PV = "THRESHOLDS:ERROR"
 THRESHOLDS_DELAY_CHANGE_PV = "THRESHOLDS:DELAY_CHANGE"
-THRESHOLD_FILES_DIR = EPICS_TOP + "/support/lakeshore340/master/excitation_thresholds/"
+THRESHOLD_FILES_DIR = EPICS_TOP / "support" / "lakeshore340" / "master" / "excitation_thresholds"
 
 
 class Lakeshore340Tests(unittest.TestCase):
@@ -101,14 +101,14 @@ class Lakeshore340Tests(unittest.TestCase):
     @parameterized.expand(parameterized_list(itertools.product(SENSORS, TEST_TEMPERATURES)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_temperature_set_via_backdoor_THEN_it_can_be_read_back(self, _, sensor, value):
-        self._lewis.backdoor_set_on_device("temp_{}".format(sensor.lower()), value)
-        self.ca.assert_that_pv_is_number("{}:TEMP".format(sensor.upper()), value)
+        self._lewis.backdoor_set_on_device(f"temp_{sensor.lower()}", value)
+        self.ca.assert_that_pv_is_number(f"{sensor.upper()}:TEMP", value)
 
     @parameterized.expand(parameterized_list(itertools.product(SENSORS, TEST_TEMPERATURES)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_measurement_set_via_backdoor_THEN_it_can_be_read_back(self, _, sensor, value):
-        self._lewis.backdoor_set_on_device("measurement_{}".format(sensor.lower()), value)
-        self.ca.assert_that_pv_is_number("{}:RDG".format(sensor.upper()), value)
+        self._lewis.backdoor_set_on_device(f"measurement_{sensor.lower()}", value)
+        self.ca.assert_that_pv_is_number(f"{sensor.upper()}:RDG", value)
 
     @parameterized.expand(parameterized_list(TEST_TEMPERATURES))
     def test_WHEN_tset_is_changed_THEN_readback_updates(self, _, val):
@@ -124,7 +124,7 @@ class Lakeshore340Tests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(value, setting)
 
     @parameterized.expand(parameterized_list(PID_MODES))
-    def test_WHEN_pid_settings_changed_THEN_can_be_read_back(self, _, mode):
+    def test_WHEN_pid_settings_changed_THEN_mode_be_read_back(self, _, mode):
         self.ca.assert_setting_setpoint_sets_readback(mode, "PIDMODE")
 
     @parameterized.expand(parameterized_list(LOOP_STATES))
@@ -156,7 +156,9 @@ class Lakeshore340Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("EXCITATIONA", excitation)
 
     def test_WHEN_use_valid_file_THEN_threshold_file_is_none(self):
-        self.ca.assert_that_pv_is_path(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + THRESHOLDS_FILE)
+        self.ca.assert_that_pv_is_path(
+            THRESHOLD_FILE_PV, (THRESHOLD_FILES_DIR / THRESHOLDS_FILE).as_posix()
+        )
         self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "No Error")
         self.ca.assert_that_pv_is("THRESHOLDS:USE", "YES")
 
@@ -173,7 +175,9 @@ class Lakeshore340Tests(unittest.TestCase):
             {"EXCITATION_THRESHOLD_FILE": filename, "USE_EXCITATION_THRESHOLD_FILE": "YES"},
             pv_to_wait_for=THRESHOLD_FILE_PV,
         ):
-            self.ca.assert_that_pv_is_path(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
+            self.ca.assert_that_pv_is_path(
+                THRESHOLD_FILE_PV, (THRESHOLD_FILES_DIR / filename).as_posix()
+            )
             self.ca.set_pv_value(THRESHOLD_FILE_PROC, 1)
             self.ca.assert_that_pv_is("THRESHOLDS:USE", "YES")
             self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "File Not Found")
@@ -184,7 +188,9 @@ class Lakeshore340Tests(unittest.TestCase):
             {"EXCITATION_THRESHOLD_FILE": filename, "USE_EXCITATION_THRESHOLD_FILE": "YES"},
             pv_to_wait_for=THRESHOLD_FILE_PV,
         ):
-            self.ca.assert_that_pv_is_path(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
+            self.ca.assert_that_pv_is_path(
+                THRESHOLD_FILE_PV, (THRESHOLD_FILES_DIR / filename).as_posix()
+            )
             self.ca.set_pv_value(THRESHOLD_FILE_PROC, 1)
             self.ca.assert_that_pv_is("THRESHOLDS:USE", "YES")
             self.ca.assert_that_pv_is(THRESHOLDS_ERROR_PV, "Invalid Lines In File")
@@ -264,7 +270,9 @@ class Lakeshore340Tests(unittest.TestCase):
         with self._ioc.start_with_macros(
             {"EXCITATION_THRESHOLD_FILE": filename}, pv_to_wait_for=THRESHOLD_FILE_PV
         ):
-            self.ca.assert_that_pv_is_path(THRESHOLD_FILE_PV, THRESHOLD_FILES_DIR + filename)
+            self.ca.assert_that_pv_is_path(
+                THRESHOLD_FILE_PV, (THRESHOLD_FILES_DIR / filename).as_posix()
+            )
             for temp_sp, temp, excitation in [
                 (5.2, 3.1, "30 nA"),
                 (16.4, 18.2, "100 nA"),

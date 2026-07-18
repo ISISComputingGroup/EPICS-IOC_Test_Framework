@@ -28,9 +28,7 @@ def set_calibration_file(channel_access: "ChannelAccess", filename: str, prefix:
         if channel_access.get_pv_value(f"{prefix}CAL:RBV") == filename:
             break
     else:
-        raise Exception(
-            "Couldn't set calibration file to '{}' after {} tries".format(filename, max_retries)
-        )
+        raise ValueError(f"Couldn't set calibration file to '{filename}' after {max_retries} tries")
 
 
 def reset_calibration_file(

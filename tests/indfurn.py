@@ -260,18 +260,18 @@ class IndfurnTests(unittest.TestCase):
     def test_GIVEN_thermocouple_1_fault_on_device_THEN_read_successfully(self):
         self._lewis.backdoor_set_on_device("thermocouple_1_fault", 0)
         for fault_pv in FAULTS:
-            self.ca.assert_that_pv_is("TC1FAULTS:{}".format(fault_pv), "OK")
+            self.ca.assert_that_pv_is(f"TC1FAULTS:{fault_pv}", "OK")
 
         for fault_pv, fault_number in FAULTS.items():
             self._lewis.backdoor_set_on_device("thermocouple_1_fault", fault_number)
-            self.ca.assert_that_pv_is("TC1FAULTS:{}".format(fault_pv), "FAULT")
+            self.ca.assert_that_pv_is(f"TC1FAULTS:{fault_pv}", "FAULT")
 
     @skip_if_recsim("Can't use lewis backdoor in recsim")
     def test_GIVEN_thermocouple_2_fault_on_device_THEN_read_successfully(self):
         self._lewis.backdoor_set_on_device("thermocouple_2_fault", 0)
         for fault_pv in FAULTS:
-            self.ca.assert_that_pv_is("TC2FAULTS:{}".format(fault_pv), "OK")
+            self.ca.assert_that_pv_is(f"TC2FAULTS:{fault_pv}", "OK")
 
         for fault_pv, fault_number in FAULTS.items():
             self._lewis.backdoor_set_on_device("thermocouple_2_fault", fault_number)
-            self.ca.assert_that_pv_is("TC2FAULTS:{}".format(fault_pv), "FAULT")
+            self.ca.assert_that_pv_is(f"TC2FAULTS:{fault_pv}", "FAULT")

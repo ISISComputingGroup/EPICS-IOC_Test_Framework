@@ -14,4 +14,4 @@ def format_value(value: Any) -> str:  # noqa: ANN401
     Returns:
         string: The formatted value.
     """
-    return "'{}' (type: '{}')".format(value, value.__class__.__name__)
+    return f"'{value}' (type: '{value.__class__.__name__}')"

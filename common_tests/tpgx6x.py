@@ -4,19 +4,19 @@ from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
 
 
-class UnitFlags(object):
+class UnitFlags:
     MBAR = 0
     TORR = 1
     PA = 2
 
 
-class UnitStrings(object):
+class UnitStrings:
     MBAR = "mbar"
     TORR = "Torr"
     PA = "Pa"
 
 
-class ErrorFlags(object):
+class ErrorFlags:
     NO_ERROR = 0
     UNDER_RANGE = 1
     OVER_RANGE = 2
@@ -26,7 +26,7 @@ class ErrorFlags(object):
     IDENTIFICATION_ERROR = 6
 
 
-class ErrorStrings(object):
+class ErrorStrings:
     NO_ERROR = "No Error"
     UNDER_RANGE = "Underrange"
     OVER_RANGE = "Overrange"
@@ -36,7 +36,7 @@ class ErrorStrings(object):
     IDENTIFICATION_ERROR = "Identification Error"
 
 
-class TpgBase(object, metaclass=abc.ABCMeta):
+class TpgBase(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_prefix(self):
         pass
@@ -54,14 +54,14 @@ class TpgBase(object, metaclass=abc.ABCMeta):
         self.channels = 2
 
     def _set_pressure(self, expected_pressure, channel):
-        pv = "SIM:{0:d}:PRESSURE".format(channel)
-        prop = "pressure%d" % channel
+        pv = f"SIM:{channel:d}:PRESSURE"
+        prop = f"pressure{channel}"
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
 
     def _set_error(self, expected_error, channel):
-        pv = "SIM:{0:d}:ERROR".format(channel)
-        prop = "error%d" % channel
+        pv = f"SIM:{channel:d}:ERROR"
+        prop = f"error{channel}"
         self._lewis.backdoor_set_on_device(prop, expected_error)
         self._ioc.set_simulated_value(pv, expected_error)
 
@@ -74,23 +74,23 @@ class TpgBase(object, metaclass=abc.ABCMeta):
             expected_pressure = 1.23
             self._set_pressure(expected_pressure, channel)
 
-            self.ca.assert_that_pv_is("{}:PRESSURE".format(channel), expected_pressure)
-            self.ca.assert_that_pv_alarm_is("{}:PRESSURE".format(channel), self.ca.Alarms.NONE)
-            self.ca.assert_that_pv_is("{}:ERROR".format(channel), "No Error")
+            self.ca.assert_that_pv_is(f"{channel}:PRESSURE", expected_pressure)
+            self.ca.assert_that_pv_alarm_is(f"{channel}:PRESSURE", self.ca.Alarms.NONE)
+            self.ca.assert_that_pv_is(f"{channel}:ERROR", "No Error")
 
     def test_GIVEN_negative_pressure_set_WHEN_read_THEN_pressure_is_as_expected(self):
         for channel in range(1, self.channels + 1):
             expected_pressure = -123.34
             self._set_pressure(expected_pressure, channel)
 
-            self.ca.assert_that_pv_is("{}:PRESSURE".format(channel), expected_pressure)
+            self.ca.assert_that_pv_is(f"{channel}:PRESSURE", expected_pressure)
 
     def test_GIVEN_pressure_with_no_decimal_places_set_WHEN_read_THEN_pressure_is_as_expected(self):
         for channel in range(1, self.channels + 1):
             expected_pressure = 7
             self._set_pressure(expected_pressure, channel)
 
-            self.ca.assert_that_pv_is("{}:PRESSURE".format(channel), expected_pressure)
+            self.ca.assert_that_pv_is(f"{channel}:PRESSURE", expected_pressure)
 
     def test_GIVEN_pressure_under_range_set_WHEN_read_THEN_error(self):
         for channel in range(1, self.channels + 1):
@@ -99,8 +99,8 @@ class TpgBase(object, metaclass=abc.ABCMeta):
             expected_alarm = self.ca.Alarms.MINOR
             self._set_error(expected_error, channel)
 
-            self.ca.assert_that_pv_is("{}:ERROR".format(channel), expected_error_str)
-            self.ca.assert_that_pv_alarm_is("{}:ERROR".format(channel), expected_alarm)
+            self.ca.assert_that_pv_is(f"{channel}:ERROR", expected_error_str)
+            self.ca.assert_that_pv_alarm_is(f"{channel}:ERROR", expected_alarm)
 
     def test_GIVEN_pressure_over_range_set_WHEN_read_THEN_error(self):
         for channel in range(1, self.channels + 1):
@@ -109,8 +109,8 @@ class TpgBase(object, metaclass=abc.ABCMeta):
             expected_alarm = self.ca.Alarms.MINOR
             self._set_error(expected_error, channel)
 
-            self.ca.assert_that_pv_is("{}:ERROR".format(channel), expected_error_str)
-            self.ca.assert_that_pv_alarm_is("{}:ERROR".format(channel), expected_alarm)
+            self.ca.assert_that_pv_is(f"{channel}:ERROR", expected_error_str)
+            self.ca.assert_that_pv_alarm_is(f"{channel}:ERROR", expected_alarm)
 
     def test_GIVEN_pressure_sensor_error_set_WHEN_read_THEN_error(self):
         for channel in range(1, self.channels + 1):
@@ -119,8 +119,8 @@ class TpgBase(object, metaclass=abc.ABCMeta):
             expected_alarm = self.ca.Alarms.MAJOR
             self._set_error(expected_error, channel)
 
-            self.ca.assert_that_pv_is("{}:ERROR".format(channel), expected_error_str)
-            self.ca.assert_that_pv_alarm_is("{}:ERROR".format(channel), expected_alarm)
+            self.ca.assert_that_pv_is(f"{channel}:ERROR", expected_error_str)
+            self.ca.assert_that_pv_alarm_is(f"{channel}:ERROR", expected_alarm)
 
     def test_GIVEN_pressure_sensor_off_set_WHEN_read_THEN_error(self):
         for channel in range(1, self.channels + 1):
@@ -129,8 +129,8 @@ class TpgBase(object, metaclass=abc.ABCMeta):
             expected_alarm = self.ca.Alarms.MAJOR
             self._set_error(expected_error, channel)
 
-            self.ca.assert_that_pv_is("{}:ERROR".format(channel), expected_error_str)
-            self.ca.assert_that_pv_alarm_is("{}:ERROR".format(channel), expected_alarm)
+            self.ca.assert_that_pv_is(f"{channel}:ERROR", expected_error_str)
+            self.ca.assert_that_pv_alarm_is(f"{channel}:ERROR", expected_alarm)
 
     def test_GIVEN_pressure_no_sensor_set_WHEN_read_THEN_error(self):
         for channel in range(1, self.channels + 1):
@@ -139,8 +139,8 @@ class TpgBase(object, metaclass=abc.ABCMeta):
             expected_alarm = self.ca.Alarms.MAJOR
             self._set_error(expected_error, channel)
 
-            self.ca.assert_that_pv_is("{}:ERROR".format(channel), expected_error_str)
-            self.ca.assert_that_pv_alarm_is("{}:ERROR".format(channel), expected_alarm)
+            self.ca.assert_that_pv_is(f"{channel}:ERROR", expected_error_str)
+            self.ca.assert_that_pv_alarm_is(f"{channel}:ERROR", expected_alarm)
 
     def test_GIVEN_pressure_identification_error_set_WHEN_read_THEN_error(self):
         for channel in range(1, self.channels + 1):
@@ -149,8 +149,8 @@ class TpgBase(object, metaclass=abc.ABCMeta):
             expected_alarm = self.ca.Alarms.MAJOR
             self._set_error(expected_error, channel)
 
-            self.ca.assert_that_pv_is("{}:ERROR".format(channel), expected_error_str)
-            self.ca.assert_that_pv_alarm_is("{}:ERROR".format(channel), expected_alarm)
+            self.ca.assert_that_pv_is(f"{channel}:ERROR", expected_error_str)
+            self.ca.assert_that_pv_alarm_is(f"{channel}:ERROR", expected_alarm)
 
     def test_GIVEN_units_set_WHEN_read_THEN_units_are_as_expected(self):
         expected_units = UnitFlags.PA

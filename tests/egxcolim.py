@@ -24,10 +24,9 @@ class EgxcolimTests(unittest.TestCase):
     Tests for the egxcolim IOC.
     """
 
-    directions = ["NORTH", "SOUTH"]
-    axes = ["X"]
-
     def setUp(self):
+        self.directions = ["NORTH", "SOUTH"]
+        self.axes = ["X"]
         self._ioc = IOCRegister.get_running(DEVICE_PREFIX)
 
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
@@ -39,6 +38,4 @@ class EgxcolimTests(unittest.TestCase):
     def test_WHEN_setpoint_is_set_THEN_readback_updates(self):
         for direction in self.directions:
             for axis in self.axes:
-                self.ca.assert_setting_setpoint_sets_readback(
-                    123, "{direction}:{axis}".format(direction=direction, axis=axis)
-                )
+                self.ca.assert_setting_setpoint_sets_readback(123, f"{direction}:{axis}")

@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from parameterized import parameterized
@@ -16,16 +15,16 @@ IOCS = [
         "pv_for_existence": "HEARTBEAT",
         "macros": {
             "FINSCONFIGDIR": (
-                os.path.join(EPICS_TOP, "ioc", "master", "FINS", "exampleSettings", "SANS2D_vacuum")
-            ).replace("\\", "/"),
+                EPICS_TOP / "ioc" / "master" / "FINS" / "exampleSettings" / "SANS2D_vacuum"
+            ).as_posix(),
             "PLCIP": "127.0.0.1",
         },
     },
     {
         "name": "RUNCTRL_01",
         "directory": (
-            os.path.join(EPICS_TOP, "ioc", "master", "RUNCTRL", "iocBoot", "iocRUNCTRL_01")
-        ).replace("\\", "/"),
+            EPICS_TOP / "ioc" / "master" / "RUNCTRL" / "iocBoot" / "iocRUNCTRL_01"
+        ).as_posix(),
         "custom_prefix": "CS:IOC:RUNCTRL_01",
         "pv_for_existence": "DEVIOS:HEARTBEAT",
     },
@@ -130,9 +129,9 @@ class Sans2dVacuumSystemTests(unittest.TestCase):
             int_state = state
         if expected_state is None:
             expected_state = state
-        self.ca.set_pv_value("{}:STATUS:SP".format(set_pv), int_state)
+        self.ca.set_pv_value(f"{set_pv}:STATUS:SP", int_state)
         self.ca.assert_that_pv_monitor_gets_values(
-            "{}:{}:SP".format(set_pv, expected_state), [expected_state, "..."]
+            f"{set_pv}:{expected_state}:SP", [expected_state, "..."]
         )
 
     def test_WHEN_opening_and_closing_shutter_THEN_propogates(self):

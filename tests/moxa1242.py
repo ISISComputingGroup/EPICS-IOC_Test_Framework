@@ -27,13 +27,13 @@ macros = {
 }
 
 for channel in range(NUMBER_OF_AI_CHANNELS):
-    macros["AICHAN{:1d}NAME".format(channel)] = CHANNEL_FORMAT.format(channel)
-    macros["CHAN{:1d}LOWLIMIT".format(channel)] = LOW_ALARM_LIMIT
-    macros["CHAN{:1d}HILIMIT".format(channel)] = HIGH_ALARM_LIMIT
-    macros["CHAN{:1d}SCLEFACTR".format(channel)] = SCALING_FACTOR
+    macros[f"AICHAN{channel:1d}NAME"] = str(CHANNEL_FORMAT.format(channel))
+    macros[f"CHAN{channel:1d}LOWLIMIT"] = str(LOW_ALARM_LIMIT)
+    macros[f"CHAN{channel:1d}HILIMIT"] = str(HIGH_ALARM_LIMIT)
+    macros[f"CHAN{channel:1d}SCLEFACTR"] = str(SCALING_FACTOR)
 
 for channel in range(NUMBER_OF_DI_CHANNELS):
-    macros["DICHAN{:1d}NAME".format(channel)] = CHANNEL_FORMAT.format(channel)
+    macros[f"DICHAN{channel:1d}NAME"] = CHANNEL_FORMAT.format(channel)
 
 
 IOCS = [
@@ -115,9 +115,7 @@ class Moxa1242AITestsFromBase(Moxa12XXBase, unittest.TestCase):
             )
 
             self.ca.assert_that_pv_is_number(
-                "CH{:01d}:AI:RBV".format(
-                    channel,
-                ),
+                f"CH{channel:01d}:AI:RBV",
                 test_value,
                 tolerance=0.1 * abs(test_value),
             )
@@ -147,22 +145,22 @@ class Moxa1242DITests(unittest.TestCase):
         We typically want to preserve our counter values for each channel even upon restart. For testing purposes
         this function will reset the counter values to 0.
         """
-        self.ca.set_pv_value("CH{:01d}:DI:CNT".format(channel), 0)
+        self.ca.set_pv_value(f"CH{channel:01d}:DI:CNT", 0)
 
-    @parameterized.expand([("CH{:01d}".format(channel), channel) for channel in DICHANNELS])
+    @parameterized.expand([(f"CH{channel:01d}", channel) for channel in DICHANNELS])
     def test_WHEN_DI_input_is_switched_on_THEN_only_that_channel_readback_changes_to_state_just_set(
         self, _, channel
     ):
         self._lewis.backdoor_run_function_on_device("set_di", (channel, (True,)))
 
-        self.ca.assert_that_pv_is("CH{:d}:DI".format(channel), "High")
+        self.ca.assert_that_pv_is(f"CH{channel:d}:DI", "High")
 
         # Test that all other channels are still off
         for test_channel in DICHANNELS:
             if test_channel == channel:
                 continue
 
-            self.ca.assert_that_pv_is("CH{:1d}:DI".format(test_channel), "Low")
+            self.ca.assert_that_pv_is(f"CH{test_channel:1d}:DI", "Low")
 
     # @parameterized.expand([ This needs to be fixed in #7963
     #    ("CH{:01d}:DI:CNT".format(channel), channel) for channel in DICHANNELS

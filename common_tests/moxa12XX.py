@@ -5,7 +5,7 @@ from utils.channel_access import ChannelAccess
 from utils.testing import get_running_lewis_and_ioc
 
 
-class Moxa12XXBase(object, metaclass=ABCMeta):
+class Moxa12XXBase(metaclass=ABCMeta):
     """
     Tests for a moxa ioLogik e1240. (8x DC Voltage/Current measurements)
     """
@@ -97,7 +97,7 @@ class Moxa12XXBase(object, metaclass=ABCMeta):
             expected_value = self.SCALING_FACTOR * test_value
 
             self.ca.assert_that_pv_is_number(
-                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
+                f"CH{channel:01d}:{self.get_PV_name()}",
                 expected_value,
                 tolerance=0.1 * abs(expected_value),
             )
@@ -116,13 +116,13 @@ class Moxa12XXBase(object, metaclass=ABCMeta):
             )
 
             self.ca.assert_that_pv_is_number(
-                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
+                f"CH{channel:01d}:{self.get_PV_name()}",
                 expected_value,
                 tolerance=0.1 * abs(expected_value),
             )
 
             self.ca.assert_that_pv_alarm_is(
-                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()), self.ca.Alarms.NONE
+                f"CH{channel:01d}:{self.get_PV_name()}", self.ca.Alarms.NONE
             )
 
     def test_WHEN_device_voltage_is_outside_user_limits_THEN_PV_shows_major_alarm(self):
@@ -139,13 +139,13 @@ class Moxa12XXBase(object, metaclass=ABCMeta):
             )
 
             self.ca.assert_that_pv_is_number(
-                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()),
+                f"CH{channel:01d}:{self.get_PV_name()}",
                 expected_value,
                 tolerance=0.1 * abs(expected_value),
             )
 
             self.ca.assert_that_pv_alarm_is(
-                "CH{:01d}:{PV}".format(channel, PV=self.get_PV_name()), self.ca.Alarms.MAJOR
+                f"CH{channel:01d}:{self.get_PV_name()}", self.ca.Alarms.MAJOR
             )
 
     def test_WHEN_a_channel_is_aliased_THEN_a_PV_with_that_alias_exists(self):

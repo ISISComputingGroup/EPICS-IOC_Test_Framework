@@ -159,10 +159,10 @@ class RikenFEPLCTests(unittest.TestCase):
     def test_GIVEN_pumpsets_state_THEN_pumpset_summary_has_correct_state(
         self, _, gh1, gh2, gh3, gh4, tp, bp, piv, pumpset, gh_state, other_state, expected_state
     ):
-        self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-3}:STAT", gh1)
-        self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-2}:STAT", gh2)
-        self.ca.set_pv_value(f"SIM:GH{(pumpset*4)-1}:STAT", gh3)
-        self.ca.set_pv_value(f"SIM:GH{pumpset*4}:STAT", gh4)
+        self.ca.set_pv_value(f"SIM:GH{(pumpset * 4) - 3}:STAT", gh1)
+        self.ca.set_pv_value(f"SIM:GH{(pumpset * 4) - 2}:STAT", gh2)
+        self.ca.set_pv_value(f"SIM:GH{(pumpset * 4) - 1}:STAT", gh3)
+        self.ca.set_pv_value(f"SIM:GH{pumpset * 4}:STAT", gh4)
 
         self.ca.assert_that_pv_is(f"PUMPSET:{pumpset}:GH", gh_state)
 

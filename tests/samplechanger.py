@@ -54,7 +54,7 @@ class SampleChangerTests(unittest.TestCase):
 
         self.ca.assert_that_pv_exists("SAMPCHNG:SLOT")
         for axis in AXES:
-            self.ca.assert_that_pv_exists("MOT:{}".format(axis))
+            self.ca.assert_that_pv_exists(f"MOT:{axis}")
 
         # Select one of the standard slots.
         self.ca.assert_setting_setpoint_sets_readback(readback_pv="SAMPCHNG:SLOT", value=SLOTS[0])
@@ -64,19 +64,19 @@ class SampleChangerTests(unittest.TestCase):
             [
                 {
                     "slot_name": "_ALL",
-                    "positions_exist": ["{}CB".format(n) for n in range(1, 14 + 1)]
-                    + ["{}CT".format(n) for n in range(1, 14 + 1)],
+                    "positions_exist": [f"{n}CB" for n in range(1, 14 + 1)]
+                    + [f"{n}CT" for n in range(1, 14 + 1)],
                     "positions_not_exist": [],
                 },
                 {
                     "slot_name": "CT",
-                    "positions_exist": ["{}CT".format(n) for n in range(1, 14 + 1)],
-                    "positions_not_exist": ["{}CB".format(n) for n in range(1, 14 + 1)],
+                    "positions_exist": [f"{n}CT" for n in range(1, 14 + 1)],
+                    "positions_not_exist": [f"{n}CB" for n in range(1, 14 + 1)],
                 },
                 {
                     "slot_name": "CB",
-                    "positions_exist": ["{}CB".format(n) for n in range(1, 14 + 1)],
-                    "positions_not_exist": ["{}CT".format(n) for n in range(1, 14 + 1)],
+                    "positions_exist": [f"{n}CB" for n in range(1, 14 + 1)],
+                    "positions_not_exist": [f"{n}CT" for n in range(1, 14 + 1)],
                 },
             ]
         )
@@ -90,19 +90,19 @@ class SampleChangerTests(unittest.TestCase):
 
         def pos_in_motion_set_point(position):
             self.ca.assert_that_pv_value_causes_func_to_return_true(
-                "LKUP:SAMPLE:POSITIONS", func=lambda val: pos in val
+                "LKUP:SAMPLE:POSITIONS", func=lambda val, position=position: position in val
             )
 
         for pos in settings["positions_exist"]:
             pos_in_motion_set_point(pos)
             self.ca.assert_that_pv_value_causes_func_to_return_true(
-                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val: pos in val
+                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val, pos=pos: pos in val
             )
 
         for pos in settings["positions_not_exist"]:
             pos_in_motion_set_point(pos)
             self.ca.assert_that_pv_value_causes_func_to_return_true(
-                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val: pos not in val
+                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val, pos=pos: pos not in val
             )
 
     def test_WHEN_invalid_slot_is_entered_THEN_old_slot_kept(self):
@@ -114,9 +114,9 @@ class SampleChangerTests(unittest.TestCase):
         self.ca.assert_that_pv_is("SAMPCHNG:SLOT", "CT")
         self.ca.assert_that_pv_value_is_unchanged("SAMPCHNG:SLOT", wait=3)
 
-        for pos in ["{}CT".format(n) for n in range(1, 14 + 1)]:
+        for pos in [f"{n}CT" for n in range(1, 14 + 1)]:
             self.ca.assert_that_pv_value_causes_func_to_return_true(
-                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val: pos in val
+                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val, pos=pos: pos in val
             )
 
     def test_available_slots_can_be_loaded(self):
@@ -221,9 +221,9 @@ class SampleChangerTests(unittest.TestCase):
             readback_pv="SAMPCHNG:SLOT", value="DURHAM_TOP"
         )
 
-        for pos in ["{}GT".format(n) for n in range(1, 12 + 1)]:
+        for pos in [f"{n}GT" for n in range(1, 12 + 1)]:
             self.ca.assert_that_pv_value_causes_func_to_return_true(
-                "LKUP:SAMPLE:POSITIONS", func=lambda val: pos in val
+                "LKUP:SAMPLE:POSITIONS", func=lambda val, pos=pos: pos in val
             )
 
     def test_GIVEN_a_different_slot_WHEN_a_position_is_selected_THEN_the_associated_slot_is_selected(
@@ -235,7 +235,7 @@ class SampleChangerTests(unittest.TestCase):
         self.ca.assert_that_pv_is("SAMPCHNG:SLOT:SP", "CT")
         self.ca.assert_that_pv_is("SAMPCHNG:SLOT", "CT")
 
-        for pos in ["{}CT".format(n) for n in range(1, 14 + 1)]:
+        for pos in [f"{n}CT" for n in range(1, 14 + 1)]:
             self.ca.assert_that_pv_value_causes_func_to_return_true(
-                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val: pos in val
+                "SAMPCHNG:AVAILABLE_IN_SLOT", func=lambda val, pos=pos: pos in val
             )

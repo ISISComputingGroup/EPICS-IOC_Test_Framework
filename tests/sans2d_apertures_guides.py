@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from parameterized import parameterized
@@ -8,24 +7,16 @@ from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
 from utils.test_modes import TestModes
 
-galil_settings_path = os.path.realpath(
-    os.path.join(
-        os.getenv("EPICS_KIT_ROOT"),
-        "support",
-        "motorExtensions",
-        "master",
-        "settings",
-        "sans2d_apertures_guides",
-    )
+galil_settings_path = (
+    EPICS_TOP / "support" / "motorExtensions" / "master" / "settings" / "sans2d_apertures_guides"
 )
 
 GALIL_ADDR1 = "127.0.0.11"
 GALIL_ADDR2 = "127.0.0.12"
 
 ioc_name = "FINS"
-fins_settings_path = os.path.join(
-    EPICS_TOP, "ioc", "master", ioc_name, "exampleSettings", "SANS2D_vacuum"
-)
+fins_settings_path = EPICS_TOP / "ioc" / "master" / ioc_name / "exampleSettings" / "SANS2D_vacuum"
+
 ioc_prefix = "FINS_VAC"
 
 IOCS = [
@@ -39,7 +30,7 @@ IOCS = [
             "GALILADDR1": GALIL_ADDR1,
             "MTRCTRL2": "02",
             "GALILADDR2": GALIL_ADDR2,
-            "GALILCONFIGDIR": galil_settings_path.replace("\\", "/"),
+            "GALILCONFIGDIR": galil_settings_path.as_posix(),
         },
     },
     {
@@ -47,15 +38,13 @@ IOCS = [
         "directory": get_default_ioc_dir(ioc_name),
         "custom_prefix": ioc_prefix,
         "pv_for_existence": "HEARTBEAT",
-        "macros": {"FINSCONFIGDIR": fins_settings_path.replace("\\", "/"), "PLCIP": "127.0.0.3"},
+        "macros": {"FINSCONFIGDIR": fins_settings_path.as_posix(), "PLCIP": "127.0.0.3"},
     },
 ]
 
 TEST_MODES = [TestModes.RECSIM]
 
-AXES_TO_STOP = ["APERTURE_{}".format(i) for i in range(1, 6)] + [
-    "GUIDE_{}".format(j) for j in range(1, 6)
-]
+AXES_TO_STOP = [f"APERTURE_{i}" for i in range(1, 6)] + [f"GUIDE_{j}" for j in range(1, 6)]
 
 
 class Sans2dAperturesGuidesTests(unittest.TestCase):

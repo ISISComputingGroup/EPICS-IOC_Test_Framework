@@ -15,7 +15,7 @@ DET_INIT_POS_AUTOSAVE = 1.0
 FAST_VELOCITY = 10
 
 ioc_number = 1
-DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
+DEVICE_PREFIX = f"REFL_{ioc_number:02d}"
 GALIL_PREFIX = "GALIL_01"
 test_config_path = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")
@@ -87,18 +87,20 @@ class ReflTests(unittest.TestCase):
         self.ca_galil.assert_that_pv_is("MTR0104", 0.0)
 
     def _check_param_pvs(self, param_name, expected_value):
-        self.ca.assert_that_pv_is_number("PARAM:%s" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP" % param_name, expected_value, 0.01)
-        self.ca.assert_that_pv_is_number("PARAM:%s:SP:RBV" % param_name, expected_value, 0.01)
+        self.ca.assert_that_pv_is_number(f"PARAM:{param_name}", expected_value, 0.01)
+        self.ca.assert_that_pv_is_number(f"PARAM:{param_name}:SP", expected_value, 0.01)
+        self.ca.assert_that_pv_is_number(f"PARAM:{param_name}:SP:RBV", expected_value, 0.01)
 
     @contextmanager
     def _assert_pv_monitors(self, param_name, expected_value):
-        with self.ca.assert_that_pv_monitor_is_number(
-            "PARAM:%s" % param_name, expected_value, 0.01
-        ), self.ca.assert_that_pv_monitor_is_number(
-            "PARAM:%s:SP" % param_name, expected_value, 0.01
-        ), self.ca.assert_that_pv_monitor_is_number(
-            "PARAM:%s:SP:RBV" % param_name, expected_value, 0.01
+        with (
+            self.ca.assert_that_pv_monitor_is_number(f"PARAM:{param_name}", expected_value, 0.01),
+            self.ca.assert_that_pv_monitor_is_number(
+                f"PARAM:{param_name}:SP", expected_value, 0.01
+            ),
+            self.ca.assert_that_pv_monitor_is_number(
+                f"PARAM:{param_name}:SP:RBV", expected_value, 0.01
+            ),
         ):
             yield
 

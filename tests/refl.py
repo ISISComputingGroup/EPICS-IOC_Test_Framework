@@ -26,7 +26,7 @@ SOFT_LIMIT_HI = 10000
 SOFT_LIMIT_LO = -10000
 
 ioc_number = 1
-DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
+DEVICE_PREFIX = f"REFL_{ioc_number:02d}"
 GALIL1_PREFIX = "GALIL_01"
 GALIL2_PREFIX_JAWS = "GALIL_02"
 GALIL3_PREFIX = "GALIL_03"
@@ -464,12 +464,12 @@ class ReflTests(unittest.TestCase):
 
         for param in test_in_mode_param_names:
             self.ca.assert_that_pv_monitor_is(
-                "{}{}{}".format(param_prefix, param, in_mode_suffix), expected_in_mode_value
+                f"{param_prefix}{param}{in_mode_suffix}", expected_in_mode_value
             )
 
         for param in test_out_of_mode_params:
             self.ca.assert_that_pv_monitor_is(
-                "{}{}{}".format(param_prefix, param, in_mode_suffix), expected_out_of_mode_value
+                f"{param_prefix}{param}{in_mode_suffix}", expected_out_of_mode_value
             )
 
     def test_GIVEN_jaws_set_to_value_WHEN_change_sp_at_low_level_THEN_jaws_sp_rbv_does_not_change(
@@ -504,10 +504,9 @@ class ReflTests(unittest.TestCase):
         self, _, param, value
     ):
         expected_value = "YES"
-        value = value
 
-        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
-        self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
+        self.ca.set_pv_value(f"PARAM:{param}:SP", value)
+        self.ca.assert_that_pv_is(f"PARAM:{param}:CHANGING", expected_value)
 
     @parameterized.expand(
         [
@@ -523,12 +522,11 @@ class ReflTests(unittest.TestCase):
         self, _, param, value
     ):
         expected_value = "NO"
-        value = value
 
-        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca.set_pv_value(f"PARAM:{param}:SP", value)
         stop_motors_with_retry(self.ca_cs, 5)
 
-        self.ca.assert_that_pv_is("PARAM:{}:CHANGING".format(param), expected_value)
+        self.ca.assert_that_pv_is(f"PARAM:{param}:CHANGING", expected_value)
 
     @parameterized.expand(
         [
@@ -543,12 +541,11 @@ class ReflTests(unittest.TestCase):
         self, _, param, value
     ):
         expected_value = "NO"
-        value = value
 
-        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca.set_pv_value(f"PARAM:{param}:SP", value)
         stop_motors_with_retry(self.ca_cs, 5)
 
-        self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
+        self.ca.assert_that_pv_is(f"PARAM:{param}:RBV:AT_SP", expected_value)
 
     @parameterized.expand(
         [
@@ -563,12 +560,11 @@ class ReflTests(unittest.TestCase):
         self, _, param, value
     ):
         expected_value = "YES"
-        value = value
 
-        self.ca.set_pv_value("PARAM:{}:SP".format(param), value)
+        self.ca.set_pv_value(f"PARAM:{param}:SP", value)
         stop_motors_with_retry(self.ca_cs, 5)
 
-        self.ca.assert_that_pv_is("PARAM:{}:RBV:AT_SP".format(param), expected_value)
+        self.ca.assert_that_pv_is(f"PARAM:{param}:RBV:AT_SP", expected_value)
 
     def test_GIVEN_a_low_level_beamline_change_WHEN_values_changed_THEN_high_level_parameters_updated(
         self,
@@ -765,32 +761,30 @@ class ReflTests(unittest.TestCase):
     ):
         offset = 10
         new_position = 2
-        self.ca.set_pv_value("PARAM:{}:SP".format(param_name), offset)
+        self.ca.set_pv_value(f"PARAM:{param_name}:SP", offset)
         self.ca_galil.set_pv_value("MTR0104.FOFF", initial_foff)
         self.ca_galil.set_pv_value("MTR0104.OFF", 0)
         self.ca.assert_that_pv_is_number(
-            "PARAM:{}".format(param_name), offset, tolerance=MOTOR_TOLERANCE, timeout=30
+            f"PARAM:{param_name}", offset, tolerance=MOTOR_TOLERANCE, timeout=30
         )
         self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=30)
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_position)
+            self.ca.set_pv_value(f"PARAM:{param_name}:DEFINE_POS_SP", new_position)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
-        self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
-        self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), new_position)
-        self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), new_position)
-        self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
-        self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), initial_foff)
-        self.ca_galil.assert_that_pv_is_number(
-            "{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE
-        )
+        self.ca_galil.assert_that_pv_is(f"{motor_name}.DMOV", 1, timeout=1)
+        self.ca_galil.assert_that_pv_is(f"{motor_name}.RBV", new_position)
+        self.ca_galil.assert_that_pv_is(f"{motor_name}.VAL", new_position)
+        self.ca_galil.assert_that_pv_is(f"{motor_name}.SET", "Use")
+        self.ca_galil.assert_that_pv_is(f"{motor_name}.FOFF", initial_foff)
+        self.ca_galil.assert_that_pv_is_number(f"{motor_name}.OFF", 0.0, tolerance=MOTOR_TOLERANCE)
 
-        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_position)
-        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_position)
-        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_position)
-        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}", new_position)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP", new_position)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP_NO_ACTION", new_position)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:CHANGED", "NO")
         self.ca.assert_that_pv_is("PARAM:THETA", 0)
         self.ca.assert_that_pv_is("PARAM:THETA:SP", 0)
         self.ca.assert_that_pv_is("PARAM:THETA:SP:RBV", 0)
@@ -814,33 +808,33 @@ class ReflTests(unittest.TestCase):
             initial_centre, "PARAM:S1VC", expected_alarm=None, timeout=30
         )
         for motor_name in jaw_motors:
-            self.ca_galil.set_pv_value("{}.FOFF".format(motor_name), "Frozen")
-            self.ca_galil.set_pv_value("{}.OFF".format(motor_name), 0)
+            self.ca_galil.set_pv_value(f"{motor_name}.FOFF", "Frozen")
+            self.ca_galil.set_pv_value(f"{motor_name}.OFF", 0)
         for motor_name in jaw_motors:
-            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.DMOV", 1, timeout=30)
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_gap)
+            self.ca.set_pv_value(f"PARAM:{param_name}:DEFINE_POS_SP", new_gap)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
         for motor_name in jaw_motors:
-            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.DMOV", 1, timeout=1)
 
         for motor_name in jaw_motors:
             # jaws are open to half the gap
-            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), expected_pos[motor_name])
-            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), expected_pos[motor_name])
-            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
-            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.RBV", expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.VAL", expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.SET", "Use")
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.FOFF", "Frozen")
             self.ca_galil.assert_that_pv_is_number(
-                "{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE
+                f"{motor_name}.OFF", 0.0, tolerance=MOTOR_TOLERANCE
             )
 
-        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_gap)
-        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_gap)
-        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_gap)
-        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}", new_gap)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP", new_gap)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP_NO_ACTION", new_gap)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:CHANGED", "NO")
 
     def test_GIVEN_jaws_not_at_zero_WHEN_define_motor_position_for_jaw_centres_THEN_jaws_position_are_changed_without_move(
         self,
@@ -861,33 +855,33 @@ class ReflTests(unittest.TestCase):
             initial_centre, "PARAM:S1HC", expected_alarm=None, timeout=30
         )
         for motor_name in jaw_motors:
-            self.ca_galil.set_pv_value("{}.FOFF".format(motor_name), "Frozen")
-            self.ca_galil.set_pv_value("{}.OFF".format(motor_name), 0)
+            self.ca_galil.set_pv_value(f"{motor_name}.FOFF", "Frozen")
+            self.ca_galil.set_pv_value(f"{motor_name}.OFF", 0)
         for motor_name in jaw_motors:
-            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=30)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.DMOV", 1, timeout=30)
 
         with ManagerMode(self.ca_no_prefix):
-            self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_centre)
+            self.ca.set_pv_value(f"PARAM:{param_name}:DEFINE_POS_SP", new_centre)
 
         # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
         # is very quick
         for motor_name in jaw_motors:
-            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.DMOV", 1, timeout=1)
 
         for motor_name in jaw_motors:
             # jaws are open to half the gap
-            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), expected_pos[motor_name])
-            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), expected_pos[motor_name])
-            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
-            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), "Frozen")
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.RBV", expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.VAL", expected_pos[motor_name])
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.SET", "Use")
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.FOFF", "Frozen")
             self.ca_galil.assert_that_pv_is_number(
-                "{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE
+                f"{motor_name}.OFF", 0.0, tolerance=MOTOR_TOLERANCE
             )
 
-        self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_centre)
-        self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_centre)
-        self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_centre)
-        self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}", new_centre)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP", new_centre)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP_NO_ACTION", new_centre)
+        self.ca.assert_that_pv_is(f"PARAM:{param_name}:CHANGED", "NO")
 
     @parameterized.expand(
         parameterized_list(
@@ -910,34 +904,34 @@ class ReflTests(unittest.TestCase):
         param_name = "DET_POS"
         motor_name = "MTR0104"
         initial_foff = "Frozen"
-        self.ca.set_pv_value("PARAM:{}:SP".format(param_name), 0)
+        self.ca.set_pv_value(f"PARAM:{param_name}:SP", 0)
         self.ca_galil.set_pv_value("MTR0104.FOFF", initial_foff)
         self.ca_galil.set_pv_value("MTR0104.OFF", 0)
         self.ca.assert_that_pv_is_number(
-            "PARAM:{}".format(param_name), 0, tolerance=MOTOR_TOLERANCE, timeout=30
+            f"PARAM:{param_name}", 0, tolerance=MOTOR_TOLERANCE, timeout=30
         )
         self.ca_galil.assert_that_pv_is("MTR0104.DMOV", 1, timeout=30)
 
         for i in range(20):
             new_position = i - 5
             with ManagerMode(self.ca_no_prefix):
-                self.ca.set_pv_value("PARAM:{}:DEFINE_POS_SP".format(param_name), new_position)
+                self.ca.set_pv_value(f"PARAM:{param_name}:DEFINE_POS_SP", new_position)
 
             # soon after change there should be no movement, ie a move is triggered but the motor itself does not move so it
             # is very quick
-            self.ca_galil.assert_that_pv_is("{}.DMOV".format(motor_name), 1, timeout=1)
-            self.ca_galil.assert_that_pv_is("{}.RBV".format(motor_name), new_position)
-            self.ca_galil.assert_that_pv_is("{}.VAL".format(motor_name), new_position)
-            self.ca_galil.assert_that_pv_is("{}.SET".format(motor_name), "Use")
-            self.ca_galil.assert_that_pv_is("{}.FOFF".format(motor_name), initial_foff)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.DMOV", 1, timeout=1)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.RBV", new_position)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.VAL", new_position)
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.SET", "Use")
+            self.ca_galil.assert_that_pv_is(f"{motor_name}.FOFF", initial_foff)
             self.ca_galil.assert_that_pv_is_number(
-                "{}.OFF".format(motor_name), 0.0, tolerance=MOTOR_TOLERANCE
+                f"{motor_name}.OFF", 0.0, tolerance=MOTOR_TOLERANCE
             )
 
-            self.ca.assert_that_pv_is("PARAM:{}".format(param_name), new_position)
-            self.ca.assert_that_pv_is("PARAM:{}:SP".format(param_name), new_position)
-            self.ca.assert_that_pv_is("PARAM:{}:SP_NO_ACTION".format(param_name), new_position)
-            self.ca.assert_that_pv_is("PARAM:{}:CHANGED".format(param_name), "NO")
+            self.ca.assert_that_pv_is(f"PARAM:{param_name}", new_position)
+            self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP", new_position)
+            self.ca.assert_that_pv_is(f"PARAM:{param_name}:SP_NO_ACTION", new_position)
+            self.ca.assert_that_pv_is(f"PARAM:{param_name}:CHANGED", "NO")
 
     def test_GIVEN_parameter_not_in_manager_mode_WHEN_define_position_THEN_position_is_not_defined(
         self,
@@ -967,7 +961,7 @@ class ReflTests(unittest.TestCase):
         param_pv = "CONST:TEN"
 
         self.ca.assert_that_pv_is(param_pv, 10)
-        self.ca.assert_that_pv_is("{}.DESC".format(param_pv), "The value 10")
+        self.ca.assert_that_pv_is(f"{param_pv}.DESC", "The value 10")
 
     def test_GIVEN_bool_parameter_WHEN_read_THEN_value_returned(self):
         param_pv = "CONST:YES"

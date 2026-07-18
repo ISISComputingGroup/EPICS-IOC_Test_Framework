@@ -1,10 +1,10 @@
-from contextlib import ExitStack, contextmanager
-from typing import ContextManager, Generator, Optional
+from collections.abc import Generator
+from contextlib import AbstractContextManager, ExitStack, contextmanager
 
 
 @contextmanager
 def device_launcher(
-    ioc: ContextManager, lewis: Optional[ContextManager]
+    ioc: AbstractContextManager, lewis: AbstractContextManager | None
 ) -> Generator[None, None, None]:
     """
     Context manager that launches an ioc and emulator pair
@@ -20,7 +20,9 @@ def device_launcher(
 
 
 @contextmanager
-def device_collection_launcher(devices: list[ContextManager]) -> Generator[None, None, None]:
+def device_collection_launcher(
+    devices: list[AbstractContextManager],
+) -> Generator[None, None, None]:
     """
     Context manager that launches a list of devices
     :param devices: list of context managers representing the devices to launch

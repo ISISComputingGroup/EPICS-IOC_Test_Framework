@@ -1,4 +1,3 @@
-import os
 import time
 import unittest
 from contextlib import contextmanager
@@ -26,8 +25,8 @@ OUT_OF_RANGE_PVTWO_VAL = 2.0 * PVTWO_MAX
 SAFE_VALUE = 11
 
 tizr_macros = {
-    "PVONE": "{prefix}{pv}".format(prefix=DEVICE_PREFIX, pv=SIMPLE_VALUE_ONE),
-    "PVTWO": "{prefix}{pv}".format(prefix=DEVICE_PREFIX, pv=SIMPLE_VALUE_TWO),
+    "PVONE": f"{DEVICE_PREFIX}{SIMPLE_VALUE_ONE}",
+    "PVTWO": f"{DEVICE_PREFIX}{SIMPLE_VALUE_TWO}",
     "PVONE_MAX": PVONE_MAX,
     "PVTWO_MAX": PVTWO_MAX,
     "SAFE_VALUE": SAFE_VALUE,
@@ -44,13 +43,15 @@ IOCS = [
     },
     {
         "name": "SIMPLE",
-        "directory": os.path.join(EPICS_TOP, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple"),
+        "directory": (
+            EPICS_TOP / "ISIS" / "SimpleIoc" / "master" / "iocBoot" / "iocsimple"
+        ).as_posix(),
         "macros": {},
     },
 ]
 
-WARNING_PV = "{}:TIZRWARNING".format(IOC_PREFIX)
-MONITORING_ON_PV = "{}:MONITORING_ON".format(IOC_PREFIX)
+WARNING_PV = f"{IOC_PREFIX}:TIZRWARNING"
+MONITORING_ON_PV = f"{IOC_PREFIX}:MONITORING_ON"
 
 TEST_MODES = [TestModes.RECSIM]
 

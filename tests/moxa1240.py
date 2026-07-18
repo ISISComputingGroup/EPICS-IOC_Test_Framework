@@ -22,10 +22,10 @@ macros = {
     "MODELNO": "1240",
 }
 for channel in range(NUMBER_OF_CHANNELS):
-    macros["CHAN{:1d}NAME".format(channel)] = CHANNEL_FORMAT.format(channel)
-    macros["CHAN{:1d}LOWLIMIT".format(channel)] = LOW_ALARM_LIMIT
-    macros["CHAN{:1d}HILIMIT".format(channel)] = HIGH_ALARM_LIMIT
-    macros["CHAN{:1d}SCLEFACTR".format(channel)] = SCALING_FACTOR
+    macros[f"CHAN{channel:1d}NAME"] = str(CHANNEL_FORMAT.format(channel))
+    macros[f"CHAN{channel:1d}LOWLIMIT"] = str(LOW_ALARM_LIMIT)
+    macros[f"CHAN{channel:1d}HILIMIT"] = str(HIGH_ALARM_LIMIT)
+    macros[f"CHAN{channel:1d}SCLEFACTR"] = str(SCALING_FACTOR)
 
 IOCS = [
     {
@@ -105,9 +105,7 @@ class Moxa1240TestsFromBase(Moxa12XXBase, unittest.TestCase):
             )
 
             self.ca.assert_that_pv_is_number(
-                "CH{:01d}:AI:RBV".format(
-                    channel,
-                ),
+                f"CH{channel:01d}:AI:RBV",
                 test_value,
                 tolerance=0.1 * abs(test_value),
             )

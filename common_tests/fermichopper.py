@@ -13,7 +13,7 @@ from utils.testing import (
 )
 
 
-class ErrorStrings(object):
+class ErrorStrings:
     """
     Error messages that we expect to appear in the IOC log in various situations.
     """
@@ -34,21 +34,10 @@ class ErrorStrings(object):
     CONTROLLER_OVERSPEED = "Controller reports speed limit exceeded"
 
 
-class FermichopperBase(object, metaclass=ABCMeta):
+class FermichopperBase(metaclass=ABCMeta):
     """
     Tests for the Fermi Chopper IOC.
     """
-
-    valid_commands = ["0001", "0002", "0003", "0004", "0005"]
-
-    # Values that will be tested in the parametrized tests.
-    test_chopper_speeds = [100, 350, 600]
-    test_delay_durations = [0, 2.5, 18]
-    test_gatewidth_values = [0, 0.5, 5]
-    test_temperature_values = [20.0, 25.0, 37.5, 47.5]
-    test_current_values = [0, 1.37, 2.22]
-    test_voltage_values = [0, 282.9, 333.3]
-    test_autozero_values = [-5.0, -2.22, 0, 1.23, 5]
 
     @abstractmethod
     def _get_device_prefix(self):
@@ -69,6 +58,17 @@ class FermichopperBase(object, metaclass=ABCMeta):
 
         if not IOCRegister.uses_rec_sim:
             self._lewis.backdoor_run_function_on_device("reset")
+
+        self.valid_commands = ["0001", "0002", "0003", "0004", "0005"]
+
+        # Values that will be tested in the parametrized tests.
+        self.test_chopper_speeds = [100, 350, 600]
+        self.test_delay_durations = [0, 2.5, 18]
+        self.test_gatewidth_values = [0, 0.5, 5]
+        self.test_temperature_values = [20.0, 25.0, 37.5, 47.5]
+        self.test_current_values = [0, 1.37, 2.22]
+        self.test_voltage_values = [0, 282.9, 333.3]
+        self.test_autozero_values = [-5.0, -2.22, 0, 1.23, 5]
 
     def is_device_broken(self):
         if IOCRegister.uses_rec_sim:
@@ -105,7 +105,7 @@ class FermichopperBase(object, metaclass=ABCMeta):
     @skip_if_recsim("Recsim does not handle this")
     def test_WHEN_speed_setpoint_is_set_via_gui_pv_THEN_readback_updates(self):
         for speed in self.test_chopper_speeds:
-            self.ca.set_pv_value("SPEED:SP:GUI", "{} Hz".format(speed))
+            self.ca.set_pv_value("SPEED:SP:GUI", f"{speed} Hz")
             self.ca.assert_that_pv_is("SPEED:SP", speed)
             self.ca.assert_that_pv_alarm_is("SPEED:SP", self.ca.Alarms.NONE)
             self.ca.assert_that_pv_is("SPEED:SP:RBV", speed)
@@ -132,14 +132,12 @@ class FermichopperBase(object, metaclass=ABCMeta):
         for number, boundary, value in itertools.product(
             [1, 2], ["upper", "lower"], self.test_autozero_values
         ):
-            self._lewis.backdoor_set_on_device(
-                "autozero_{n}_{b}".format(n=number, b=boundary), value
-            )
+            self._lewis.backdoor_set_on_device(f"autozero_{number}_{boundary}", value)
             self.ca.assert_that_pv_is_number(
-                "AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), value, tolerance=0.05
+                f"AUTOZERO:{number}:{boundary.upper()}", value, tolerance=0.05
             )
             self.ca.assert_that_pv_alarm_is(
-                "AUTOZERO:{n}:{b}".format(n=number, b=boundary.upper()), self.ca.Alarms.NONE
+                f"AUTOZERO:{number}:{boundary.upper()}", self.ca.Alarms.NONE
             )
 
     @skip_if_recsim("In rec sim this test fails")
@@ -256,28 +254,26 @@ class FermichopperBase(object, metaclass=ABCMeta):
                 self._ioc, in_time=2, must_contain=ErrorStrings.CONTROLLER_AUTOZERO_OUT_OF_RANGE
             ):
                 # Set autozero voltage too high
-                self._lewis.backdoor_set_on_device(
-                    "autozero_{n}_{p}".format(n=number, p=position), 3.2
-                )
+                self._lewis.backdoor_set_on_device(f"autozero_{number}_{position}", 3.2)
                 # Assert
                 self.ca.assert_that_pv_is("AUTOZERO:RANGECHECK", 1)
 
             # Reset relevant autozero voltage back to zero
-            self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+            self._lewis.backdoor_set_on_device(f"autozero_{number}_{position}", 0)
             self.ca.assert_that_pv_is_number(
-                "AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1
+                f"AUTOZERO:{number}:{position.upper()}", 0, tolerance=0.1
             )
 
     @contextmanager
     def _lie_about(self, lie):
         if IOCRegister.uses_rec_sim:
-            raise IOError("Can't use lewis backdoor in recsim!")
+            raise OSError("Can't use lewis backdoor in recsim!")
 
-        self._lewis.backdoor_set_on_device("is_lying_about_{}".format(lie), True)
+        self._lewis.backdoor_set_on_device(f"is_lying_about_{lie}", True)
         try:
             yield
         finally:
-            self._lewis.backdoor_set_on_device("is_lying_about_{}".format(lie), False)
+            self._lewis.backdoor_set_on_device(f"is_lying_about_{lie}", False)
 
     def _lie_about_delay_setpoint_readback(self):
         return self._lie_about("delay_sp_rbv")
@@ -440,16 +436,14 @@ class FermichopperBase(object, metaclass=ABCMeta):
                 self._ioc, in_time=2, must_contain=ErrorStrings.SOFTWARE_AUTOZERO_OUT_OF_RANGE
             ):
                 # Set autozero voltage too high and set device moving
-                self._lewis.backdoor_set_on_device(
-                    "autozero_{n}_{p}".format(n=number, p=position), 3.2
-                )
+                self._lewis.backdoor_set_on_device(f"autozero_{number}_{position}", 3.2)
                 self._lewis.backdoor_set_on_device("speed", 7)
 
                 # Assert that "switch drive on and stop" was sent
                 self.ca.assert_that_pv_is("LASTCOMMAND", "0001")
 
             # Reset relevant autozero voltage back to zero
-            self._lewis.backdoor_set_on_device("autozero_{n}_{p}".format(n=number, p=position), 0)
+            self._lewis.backdoor_set_on_device(f"autozero_{number}_{position}", 0)
             self.ca.assert_that_pv_is_number(
-                "AUTOZERO:{n}:{p}".format(n=number, p=position.upper()), 0, tolerance=0.1
+                f"AUTOZERO:{number}:{position.upper()}", 0, tolerance=0.1
             )

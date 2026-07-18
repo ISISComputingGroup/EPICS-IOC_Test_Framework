@@ -31,9 +31,6 @@ class DMA4500MTests(unittest.TestCase):
     Tests for the DMA4500M density meter
     """
 
-    PVS_ENABLED_OUTSIDE_MEASUREMENT = ["TEMPERATURE:SP", "START"]
-    PVS_DISABLED_DURING_MEASUREMENT = ["TEMPERATURE:SP", "START", "AUTOMEASURE"]
-
     def _reset_ioc(self):
         self.ca.set_pv_value("MEASUREMENT", "ready")
         self.ca.set_pv_value("TEMPERATURE", 0)
@@ -47,15 +44,14 @@ class DMA4500MTests(unittest.TestCase):
         for pv in pvs:
             self.ca.process_pv(pv)
             if disabled:
-                self.ca.assert_that_pv_is("{0}.STAT".format(pv), "DISABLE")
+                self.ca.assert_that_pv_is(f"{pv}.STAT", "DISABLE")
             else:
-                self.ca.assert_that_pv_is_not("{0}.STAT".format(pv), "DISABLE")
+                self.ca.assert_that_pv_is_not(f"{pv}.STAT", "DISABLE")
 
     def _start_instant_measurement(self):
         self._start_measurement(0)
 
     def _start_measurement(self, measurement_time=10):
-        measurement_time = measurement_time
         self._lewis.backdoor_set_on_device("measurement_time", measurement_time * LEWIS_SPEED)
         self.ca.set_pv_value("START", 1)
 
@@ -67,6 +63,8 @@ class DMA4500MTests(unittest.TestCase):
         self.ca.set_pv_value("AUTOMEASURE:ENABLED", 0)
 
     def setUp(self):
+        self.PVS_ENABLED_OUTSIDE_MEASUREMENT = ["TEMPERATURE:SP", "START"]
+        self.PVS_DISABLED_DURING_MEASUREMENT = ["TEMPERATURE:SP", "START", "AUTOMEASURE"]
         self._lewis, self._ioc = get_running_lewis_and_ioc(_EMULATOR_NAME, DEVICE_PREFIX)
         self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=15)
         self._lewis.backdoor_run_function_on_device("reset")

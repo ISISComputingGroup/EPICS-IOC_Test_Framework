@@ -8,7 +8,7 @@ DEVICE_PREFIX = "DAQMXTEST"
 ICPCONFIGNAME = "DAQMX"
 
 
-class DAQmxTests(object):
+class DAQmxTests:
     """
     General tests for the DAQmx.
     """

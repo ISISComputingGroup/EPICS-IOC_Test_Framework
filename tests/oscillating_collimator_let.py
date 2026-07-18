@@ -66,7 +66,8 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
 
         # Set to 0 so stability buffer contents are consistent & known for each test
         # Takes 10 seconds for buffer to have consistent contents, so to be certain sleep for 11
-        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 0, sleep_after_set=11)
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS:SIM", 1)
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS:SIM:VAL", 0, sleep_after_set=11)
 
     @parameterized.expand(
         # [(angle, frequency, radius), (expected distance, expected velocity)
@@ -119,7 +120,7 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
         self.ca.assert_that_pv_is("MOVING", "Not Moving", timeout=30)
         self.ca.assert_that_pv_value_is_unchanged("MOVING", 5)
         # Give laser new value
-        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 1)
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS:SIM:VAL", 1)
 
         # Assert
         # Check PV is now moving
@@ -129,7 +130,7 @@ class OscillatingCollimatorTests(OscillatingCollimatorBase, unittest.TestCase):
 
     def test_WHEN_laser_stable_THEN_collimator_is_reported_not_moving(self):
         # Act
-        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS", 1)
+        self.ca_mot.set_pv_value("DMC01:Galil0Bi5_STATUS:SIM:VAL", 1)
 
         # Assert
         # Check that PV was moving after laser change, then stops moving after buffer clears

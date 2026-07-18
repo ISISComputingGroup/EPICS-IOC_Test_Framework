@@ -14,7 +14,7 @@ def _custom_name_func(testcase_func, param_num, param):
     return "{}_ang_{}_freq_{}_rad_{}".format(testcase_func.__name__, *param.args[0])
 
 
-class OscillatingCollimatorBase(object):
+class OscillatingCollimatorBase:
     def test_WHEN_angle_set_negative_THEN_angle_is_zero(self):
         self.ca.set_pv_value(ANGLE, -1.0)
         self.ca.assert_that_pv_is_number(ANGLE, 0.0)

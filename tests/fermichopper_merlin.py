@@ -59,11 +59,11 @@ class MerlinFermiChopperTests(FermichopperBase, unittest.TestCase):
             self.ca.assert_that_pv_is("STATUS.B3", "0")
 
             self.ca.set_pv_value("COMMAND:SP", command_number)
-            self.ca.assert_that_pv_is("LASTCOMMAND", "000{}".format(command_number))
+            self.ca.assert_that_pv_is("LASTCOMMAND", f"000{command_number}")
 
-            self.ca.assert_that_pv_is("STATUS.B6", "{}".format(b6))
-            self.ca.assert_that_pv_is("STATUS.B8", "{}".format(b8))
-            self.ca.assert_that_pv_is("STATUS.B9", "{}".format(b9))
+            self.ca.assert_that_pv_is("STATUS.B6", f"{b6}")
+            self.ca.assert_that_pv_is("STATUS.B8", f"{b8}")
+            self.ca.assert_that_pv_is("STATUS.B9", f"{b9}")
 
     @skip_if_recsim("Uses lewis backdoor")
     def test_WHEN_electronics_temperature_is_too_high_THEN_over_temperature_is_true(self):

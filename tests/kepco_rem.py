@@ -34,7 +34,7 @@ class KepcoRemTests(KepcoTests, unittest.TestCase):
     """
 
     def setUp(self):
-        super(KepcoRemTests, self).setUp()
+        super().setUp()
         self._set_IDN(IDN_REM[0], IDN_REM[1])
 
     @parameterized.expand(

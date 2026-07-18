@@ -15,7 +15,7 @@ GALIL_PREFIX_JAWS = "GALIL_02"
 
 
 ioc_number = 1
-DEVICE_PREFIX = "REFL_{:02d}".format(ioc_number)
+DEVICE_PREFIX = f"REFL_{ioc_number:02d}"
 test_config_path = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "good_for_refl")
 )
@@ -95,34 +95,34 @@ class ReflTests(unittest.TestCase):
         )
 
     def test_WHEN_server_message_exceeds_character_limit_THEN_message_truncated_correctly(self):
-        SERVER_MESSAGE_MAX_SIZE = 400
+        server_message_max_size = 400
         self.ca.set_pv_value("PARAM:INBEAM:SP", 0, wait=True)
         self.ca.assert_that_pv_value_causes_func_to_return_true(
             "MSG", lambda val: val.endswith("<truncated>")
         )
         self.ca.assert_that_pv_value_causes_func_to_return_true(
-            "MSG", lambda val: len(val) == SERVER_MESSAGE_MAX_SIZE
+            "MSG", lambda val: len(val) == server_message_max_size
         )
 
     def test_WHEN_log_error_messages_exceed_character_limit_THEN_log_truncated_correctly(self):
-        ERROR_LOG_MAX_SIZE = 10_000
-        ERROR_MESSAGE = "Error: PV FOOTPRINT_INFO is read only"
-        NUM_ERROR_MESSAGES = int((ERROR_LOG_MAX_SIZE / len(ERROR_MESSAGE)) * 1.2)
+        error_log_max_size = 10_000
+        error_message = "Error: PV FOOTPRINT_INFO is read only"
+        num_error_messages = int((error_log_max_size / len(error_message)) * 1.2)
 
         with assert_log_messages(self._ioc, in_time=20) as cm:
-            for _ in range(NUM_ERROR_MESSAGES):
+            for _ in range(num_error_messages):
                 self.ca.set_pv_value("FOOTPRINT_INFO", "")
 
         count = 0
         for message in cm.messages:
-            if ERROR_MESSAGE in message:
+            if error_message in message:
                 count += 1
         self.assertEqual(
             count,
-            NUM_ERROR_MESSAGES,
-            f"Expected {NUM_ERROR_MESSAGES} got {count} number of error messages.",
+            num_error_messages,
+            f"Expected {num_error_messages} got {count} number of error messages.",
         )
 
         self.ca.assert_that_pv_value_causes_func_to_return_true(
-            "LOG", lambda val: len(val) == ERROR_LOG_MAX_SIZE
+            "LOG", lambda val: len(val) == error_log_max_size
         )

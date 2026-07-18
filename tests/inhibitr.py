@@ -15,8 +15,8 @@ test_config_path = os.path.abspath(
 
 IOC_PREFIX = "INHIBITR_01"
 DEVICE_PREFIX = g.my_pv_prefix
-SIMPLE_VALUE_ONE = "{}SIMPLE:VALUE1:SP".format(DEVICE_PREFIX)
-SIMPLE_VALUE_TWO = "{}SIMPLE:VALUE2:SP".format(DEVICE_PREFIX)
+SIMPLE_VALUE_ONE = f"{DEVICE_PREFIX}SIMPLE:VALUE1:SP"
+SIMPLE_VALUE_TWO = f"{DEVICE_PREFIX}SIMPLE:VALUE2:SP"
 
 IOCS = [
     {
@@ -30,7 +30,9 @@ IOCS = [
     },
     {
         "name": "SIMPLE",
-        "directory": os.path.join(EPICS_TOP, "ISIS", "SimpleIoc", "master", "iocBoot", "iocsimple"),
+        "directory": (
+            EPICS_TOP / "ISIS" / "SimpleIoc" / "master" / "iocBoot" / "iocsimple"
+        ).as_posix(),
         "macros": {},
     },
 ]
@@ -63,7 +65,7 @@ class InhibitrTests(unittest.TestCase):
 
     def test_GIVEN_both_inputs_are_zero_WHEN_setting_either_input_THEN_this_is_allowed(self):
         for val in self.values:
-            self.ca.assert_that_pv_is("{}.DISP".format(val), "0")
+            self.ca.assert_that_pv_is(f"{val}.DISP", "0")
 
     @unstable_test()
     def test_GIVEN_one_input_is_one_WHEN_setting_other_value_to_one_THEN_this_is_not_allowed(self):

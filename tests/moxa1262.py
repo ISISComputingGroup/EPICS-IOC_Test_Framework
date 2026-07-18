@@ -21,9 +21,9 @@ macros = {
     "MODELNO": "1262",
 }
 for channel in range(NUMBER_OF_CHANNELS):
-    macros["CHAN{:1d}NAME".format(channel)] = CHANNEL_FORMAT.format(channel)
-    macros["CHAN{:1d}LOWLIMIT".format(channel)] = LOW_ALARM_LIMIT
-    macros["CHAN{:1d}HILIMIT".format(channel)] = HIGH_ALARM_LIMIT
+    macros[f"CHAN{channel:1d}NAME"] = str(CHANNEL_FORMAT.format(channel))
+    macros[f"CHAN{channel:1d}LOWLIMIT"] = str(LOW_ALARM_LIMIT)
+    macros[f"CHAN{channel:1d}HILIMIT"] = str(HIGH_ALARM_LIMIT)
 
 IOCS = [
     {

@@ -10,11 +10,6 @@ from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import ManagerMode, parameterized_list
 
-try:
-    from contextlib import nullcontext
-except ImportError:
-    pass
-
 test_path = os.path.realpath(
     os.path.join(
         os.getenv("EPICS_KIT_ROOT"),
@@ -70,7 +65,7 @@ TEST_MODES = [TestModes.RECSIM]
 ERRORS = {"FDFB": "FDFB Collision", "FBRB": "FBRB Collision", "RBRD": "RBRD Collision"}
 
 
-class AxisPair(object):
+class AxisPair:
     def __init__(self, front_axis, rear_axis, name, interval_setpoint_name, minimum_interval):
         self.front_axis = front_axis
         self.front_axis_sp = front_axis + ":SP"
@@ -81,7 +76,7 @@ class AxisPair(object):
         self.minimum_interval = minimum_interval
 
     def __repr__(self):
-        return "Interval between {} and {}".format(self.front_axis, self.rear_axis)
+        return f"Interval between {self.front_axis} and {self.rear_axis}"
 
 
 AXIS_PAIRS = [
@@ -136,9 +131,9 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
                 self.set_motor_speed_settings(axis, TEST_SPEED, TEST_SPEED, TEST_ACCELERATION)
 
     def set_motor_speed_settings(self, axis, velocity, max_velocity, acceleration):
-        self.ca.set_pv_value("{}:MTR.VMAX".format(axis), max_velocity)
-        self.ca.set_pv_value("{}:MTR.VELO".format(axis), velocity)
-        self.ca.set_pv_value("{}:MTR.ACCL".format(axis), acceleration)
+        self.ca.set_pv_value(f"{axis}:MTR.VMAX", max_velocity)
+        self.ca.set_pv_value(f"{axis}:MTR.VELO", velocity)
+        self.ca.set_pv_value(f"{axis}:MTR.ACCL", acceleration)
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
     def test_GIVEN_setpoint_for_each_axis_THEN_axis_not_moved(self, _, axis_pair):
@@ -163,7 +158,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         ) + 50
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position)
 
-        error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
+        error_message = self.ca.get_pv_value(f"SANS2DVAC:{axis_pair.name}_COLLISION")
         self.assertEqual(error_message, ERRORS[axis_pair.name])
 
     @parameterized.expand(parameterized_list(AXIS_PAIRS))
@@ -175,7 +170,7 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         ) - 51
         self.ca.set_pv_value(axis_pair.front_axis_sp, front_axis_new_position, sleep_after_set=1)
 
-        error_message = self.ca.get_pv_value("SANS2DVAC:{}_COLLISION".format(axis_pair.name))
+        error_message = self.ca.get_pv_value(f"SANS2DVAC:{axis_pair.name}_COLLISION")
         self.assertEqual(error_message, "")
 
     def test_GIVEN_all_positions_valid_WHEN_move_all_THEN_all_axes_moved(self):
@@ -190,8 +185,8 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
             self.ca.set_pv_value(axis_pair.rear_axis_sp, rear_axis_pos)
 
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=10)
-        for key in end_values.keys():
-            self.assertEqual(end_values[key], self.ca.get_pv_value(key))
+        for key, value in end_values.items():
+            self.assertEqual(value, self.ca.get_pv_value(key))
 
     def test_GIVEN_positions_invalid_WHEN_move_all_THEN_axes_movement_is_inhibited(self):
         for axis_pair in AXIS_PAIRS:
@@ -214,16 +209,16 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
 
     def test_GIVEN_some_axis_are_moving_THEN_not_possible_to_change_SP(self):
         positions = {"FRONTDETZ": 5000, "FRONTBAFFLEZ": 6100, "REARBAFFLEZ": 7500, "REARDETZ": 8000}
-        for axis_position in positions:
-            self.ca.set_pv_value(axis_position + ":SP", positions[axis_position])
+        for axis_pv, axis_position in positions.items():
+            self.ca.set_pv_value(axis_pv + ":SP", axis_position)
 
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1)
 
-        for axis_position in positions:
+        for axis_pv, axis_position in positions.items():
             with self.assertRaises(
                 WriteAccessException, msg="DISP should be set on inhibited axis"
             ):
-                self.ca.set_pv_value(axis_position + ":SP", positions[axis_position])
+                self.ca.set_pv_value(axis_pv + ":SP", axis_position)
 
     @parameterized.expand(parameterized_list(BAFFLES_AND_DETECTORS_Z_AXES))
     def test_GIVEN_some_axes_have_stopped_moving_THEN_stopped_axes_are_set_to_PAUSE(self, _, axis):
@@ -241,14 +236,14 @@ class Sans2dVacCollisionAvoidanceTests(unittest.TestCase):
         self.ca.set_pv_value("SANS2DVAC:MOVE_ALL.PROC", 1, sleep_after_set=5)
 
         for tank_axis in BAFFLES_AND_DETECTORS_Z_AXES:
-            movn = self.ca.get_pv_value("{}:MTR.MOVN".format(tank_axis))
-            spmg = self.ca.get_pv_value("{}:MTR.SPMG".format(tank_axis))
+            movn = self.ca.get_pv_value(f"{tank_axis}:MTR.MOVN")
+            spmg = self.ca.get_pv_value(f"{tank_axis}:MTR.SPMG")
             # we have a potential race condition in that motor may stop after we have read movn
             # but before we read spmg. So re-read movn if mismatch. Because of sleep_after_set
             # we should only need to worry about a motor stopping and not one starting
             if movn and spmg == "Pause":
                 print("Re-reading MOVN to workaround race condition")
-                movn = self.ca.get_pv_value("{}:MTR.MOVN".format(tank_axis))
+                movn = self.ca.get_pv_value(f"{tank_axis}:MTR.MOVN")
             if movn:
                 self.assertEqual(spmg, "Move")
             else:
