@@ -1,6 +1,7 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
+from utils.emulator_launcher import EmulatorLauncher
 from utils.ioc_launcher import get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, skip_if_recsim
@@ -34,12 +35,14 @@ class Lksh218Tests(unittest.TestCase):
         self._lewis.backdoor_set_on_device("connected", True)
 
     def _set_temperature(self, number, temperature):
-        pv = "SIM:TEMP{}".format(number)
+        pv = f"SIM:TEMP{number}"
+        assert isinstance(self._lewis, EmulatorLauncher), "_lewis must be an EmulatorLauncher"
         self._lewis.backdoor_run_function_on_device("set_temp", [number, temperature])
         self._ioc.set_simulated_value(pv, temperature)
 
     def _set_sensor(self, number, value):
-        pv = "SIM:SENSOR{}".format(number)
+        assert isinstance(self._lewis, EmulatorLauncher), "_lewis must be an EmulatorLauncher"
+        pv = f"SIM:SENSOR{number}"
         self._lewis.backdoor_run_function_on_device("set_sensor", [number, value])
         self._ioc.set_simulated_value(pv, value)
 
@@ -50,7 +53,7 @@ class Lksh218Tests(unittest.TestCase):
         expected_value = 10.586
 
         for index in range(1, 9):
-            pv = "TEMP{}".format(index)
+            pv = f"TEMP{index}"
             self._set_temperature(index, expected_value)
             self.ca.assert_that_pv_is(pv, expected_value)
 
@@ -58,7 +61,7 @@ class Lksh218Tests(unittest.TestCase):
         expected_value = 11.386
 
         for index in range(1, 9):
-            pv = "SENSOR{}".format(index)
+            pv = f"SENSOR{index}"
             self._set_sensor(index, expected_value)
             self.ca.assert_that_pv_is(pv, expected_value)
 
@@ -84,8 +87,8 @@ class Lksh218Tests(unittest.TestCase):
         correct state
         """
         for i in range(1, 9):
-            self.ca.assert_that_pv_alarm_is("TEMP{}".format(i), alarm_mode, timeout=30)
-            self.ca.assert_that_pv_alarm_is("SENSOR{}".format(i), alarm_mode, timeout=30)
+            self.ca.assert_that_pv_alarm_is(f"TEMP{i}", alarm_mode, timeout=30)
+            self.ca.assert_that_pv_alarm_is(f"SENSOR{i}", alarm_mode, timeout=30)
 
     @skip_if_recsim("Recsim is unable to simulate a disconnected device.")
     def test_that_WHEN_the_emulator_is_disconnected_THEN_an_alarm_is_raised_on_TEMP_and_SENSOR(

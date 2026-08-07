@@ -114,7 +114,7 @@ class SkfMB350ChopperTests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_interlock_state", interlock, "True" if on else "False"]
             )
-            self.ca.assert_that_pv_is("ILK:{}".format(interlock), "Active" if on else "Inactive")
+            self.ca.assert_that_pv_is(f"ILK:{interlock}", "Active" if on else "Inactive")
 
         for interlock in INTERLOCKS:
             _set_and_assert_interlock_state(interlock, True)

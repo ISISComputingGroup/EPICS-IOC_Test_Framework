@@ -4,6 +4,4 @@ class UnableToConnectToEmulatorException(IOError):  # noqa: N818 (historic name)
     """
 
     def __init__(self, emulator_name: str, err: str | BaseException) -> None:
-        super(UnableToConnectToEmulatorException, self).__init__(
-            "Unable to connect to Emnulator {0}: {1}".format(emulator_name, err)
-        )
+        super().__init__(f"Unable to connect to Emnulator {emulator_name}: {err}")

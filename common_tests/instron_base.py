@@ -26,7 +26,7 @@ LOTS_OF_CYCLES = 999999
 CHANNELS = {"Position": 1, "Stress": 2, "Strain": 3}
 
 
-class InstronBase(object, metaclass=abc.ABCMeta):
+class InstronBase(metaclass=abc.ABCMeta):
     """
     Tests for the Instron IOC.
     """
@@ -36,7 +36,7 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         pass
 
     def add_prefix(self, prefix, root):
-        return "{0}:{1}".format(prefix, root)
+        return f"{prefix}:{root}"
 
     def wave_prefixed(self, val):
         return self.add_prefix("WAVE", val)
@@ -137,9 +137,7 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
             self._lewis.backdoor_set_on_device("status", code_val)
 
-            self.ca.assert_that_pv_is(
-                "STAT:DISP", error, msg="code set {0} = {code_val}".format(code, code_val=code_val)
-            )
+            self.ca.assert_that_pv_is("STAT:DISP", error, msg=f"code set {code} = {code_val}")
             self.ca.assert_that_pv_alarm_is("STAT:DISP", ChannelAccess.Alarms.MAJOR)
 
     def test_WHEN_the_rig_is_initialized_THEN_it_is_not_going(self):
@@ -156,12 +154,12 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
     def test_WHEN_init_sequence_run_THEN_waveform_ramp_is_set_the_status_is_ok(self):
         for chan in POS_STRESS_STRAIN:
-            self.ca.set_pv_value("{0}:RAMP:WFTYP:SP".format(chan), 0)
+            self.ca.set_pv_value(f"{chan}:RAMP:WFTYP:SP", 0)
 
         self.ca.set_pv_value("INIT", 1)
 
         for chan in POS_STRESS_STRAIN:
-            self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), RAMP_WAVEFORM_TYPES[3])
+            self.ca.assert_that_pv_is(f"{chan}:RAMP:WFTYP", RAMP_WAVEFORM_TYPES[3])
 
     @skip_if_recsim("In rec sim this test fails")
     def test_WHEN_arbitrary_command_Q22_is_sent_THEN_the_response_is_a_status_code(self):
@@ -188,7 +186,7 @@ class InstronBase(object, metaclass=abc.ABCMeta):
     def test_WHEN_the_control_channel_is_set_THEN_the_readback_contains_the_value_that_was_just_set(
         self,
     ):
-        for channel in CHANNELS.keys():
+        for channel in CHANNELS:
             # change channel function contains the relevant assertions.
             self._change_channel(channel)
 
@@ -488,10 +486,8 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         def _set_and_check(set_value, return_value):
             self.ca.set_pv_value("AXES:RAMP:WFTYP:SP", set_value)
             for chan in POS_STRESS_STRAIN:
-                self.ca.assert_that_pv_is("{0}:RAMP:WFTYP".format(chan), return_value)
-                self.ca.assert_that_pv_alarm_is(
-                    "{0}:RAMP:WFTYP".format(chan), ChannelAccess.Alarms.NONE
-                )
+                self.ca.assert_that_pv_is(f"{chan}:RAMP:WFTYP", return_value)
+                self.ca.assert_that_pv_alarm_is(f"{chan}:RAMP:WFTYP", ChannelAccess.Alarms.NONE)
 
         for set_value, return_value in enumerate(RAMP_WAVEFORM_TYPES):
             _set_and_check(set_value, return_value)
@@ -509,7 +505,7 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
             self.ca.assert_that_pv_is("" + chan_name + ":TYPE:CHECK", "FAIL")
             self.ca.assert_that_pv_is(
-                "CHANNEL:SP.{}ST".format(index_as_name), "{0} - disabled".format(channel_as_name)
+                f"CHANNEL:SP.{index_as_name}ST", f"{channel_as_name} - disabled"
             )
 
             self.ca.set_pv_value("CHANNEL:SP", index)
@@ -530,10 +526,8 @@ class InstronBase(object, metaclass=abc.ABCMeta):
 
             self.ca.assert_that_pv_is("" + chan_name + ":TYPE:CHECK", "PASS", timeout=30)
 
-            self.ca.assert_that_pv_is("CHANNEL:SP.{}ST".format(index_as_name), channel_as_name)
-            self.ca.assert_that_pv_is(
-                "CHANNEL:SP.{}SV".format(index_as_name), ChannelAccess.Alarms.NONE
-            )
+            self.ca.assert_that_pv_is(f"CHANNEL:SP.{index_as_name}ST", channel_as_name)
+            self.ca.assert_that_pv_is(f"CHANNEL:SP.{index_as_name}SV", ChannelAccess.Alarms.NONE)
 
             self.ca.set_pv_value("CHANNEL:SP", index)
             self.ca.assert_that_pv_alarm_is("CHANNEL:SP", ChannelAccess.Alarms.NONE)
@@ -679,7 +673,7 @@ class InstronBase(object, metaclass=abc.ABCMeta):
         ]
 
         for i in range(len(conversion_factors)):
-            self.assertNotEqual(0, conversion_factors[i], "Factor {} was zero".format(i))
+            self.assertNotEqual(0, conversion_factors[i], f"Factor {i} was zero")
 
         expected_values = [
             input_values[i] / conversion_factors[i] for i in range(NUMBER_OF_CHANNELS)

@@ -58,12 +58,16 @@ MAX_TIME_TO_WAIT_FOR_IOC_TO_START = 300
 
 
 def write_through_cmd(address, new_val):
-    null_file = open(os.devnull, "w")
-    subprocess.call(
-        ["caput", "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, address), str(new_val)],
-        stdout=null_file,
-        stderr=subprocess.STDOUT,
-    )
+    with open(os.devnull, "w") as null_file:
+        subprocess.call(
+            [
+                "caput",
+                "{}{}:{}".format(os.environ["MYPVPREFIX"], DEVICE_PREFIX, address),
+                str(new_val),
+            ],
+            stdout=null_file,
+            stderr=subprocess.STDOUT,
+        )
 
 
 class SimpleTests(unittest.TestCase):
@@ -79,7 +83,7 @@ class SimpleTests(unittest.TestCase):
 
         # Some of the ca test PVs seem to take a while to appear on build server.
         for protection, record in itertools.product(PROTECTION_TYPES, RECORD_TYPES):
-            self.ca.assert_that_pv_exists("CATEST:{}:{}".format(record, protection), timeout=120)
+            self.ca.assert_that_pv_exists(f"CATEST:{record}:{protection}", timeout=120)
 
         self.set_auto_restart_to_true()
 
@@ -129,13 +133,11 @@ class SimpleTests(unittest.TestCase):
                 pass
             return val_before != self.ca.get_pv_value(addr)
 
-        address = "CATEST:{}:{}".format(record, protection)
+        address = f"CATEST:{record}:{protection}"
         self.ca.assert_that_pv_exists(address)
         if check_write_through_python(address, record):
             self.fail(
-                "Could (wrongly) use python to write to {} pvs {}".format(
-                    record, protection_dict[protection]
-                )
+                f"Could (wrongly) use python to write to {record} pvs {protection_dict[protection]}"
             )
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
@@ -148,23 +150,21 @@ class SimpleTests(unittest.TestCase):
             write_through_cmd(addr, new_val)
             return val_before != self.ca.get_pv_value(addr)
 
-        address = "CATEST:{}:{}".format(record, protection)
+        address = f"CATEST:{record}:{protection}"
         self.ca.assert_that_pv_exists(address)
         if check_write_through_cmd(address):
             self.fail(
-                "Could (wrongly) use cmd to write to {} pvs {}".format(
-                    record, protection_dict[protection]
-                )
+                f"Could (wrongly) use cmd to write to {record} pvs {protection_dict[protection]}"
             )
 
     @parameterized.expand(parameterized_list(RECORD_TYPES))
     @unstable_test(max_retries=5, wait_between_runs=10)
     def test_GIVEN_PV_in_hidden_mode_WHEN_read_attempted_THEN_get_error(self, _, record):
-        address = "CATEST:{}:HIDDEN".format(record)
+        address = f"CATEST:{record}:HIDDEN"
         self.ca.assert_that_pv_exists(address)
         try:
             self.ca.get_pv_value(address)
-            self.fail("{} pv could be read in hidden mode".format(record))
+            self.fail(f"{record} pv could be read in hidden mode")
         except ReadAccessException:
             pass
 
@@ -173,16 +173,14 @@ class SimpleTests(unittest.TestCase):
     def test_GIVEN_PV_in_READONLY_mode_or_with_disp_true_WHEN_linked_to_THEN_link_successful(
         self, _, protection, record
     ):
-        address = "CATEST:{}:{}".format(record, protection)
-        address_out = "{}:OUT".format(address)
+        address = f"CATEST:{record}:{protection}"
+        address_out = f"{address}:OUT"
         self.ca.assert_that_pv_exists(address)
         val_before, new_val = self.get_toggle_value(address)
         write_through_cmd(address_out, new_val)
         if val_before == self.ca.get_pv_value(address):
             self.fail(
-                "OUT field failed to forward value to {} pvs {}".format(
-                    record, protection_dict[protection]
-                )
+                f"OUT field failed to forward value to {record} pvs {protection_dict[protection]}"
             )
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
@@ -202,13 +200,11 @@ class SimpleTests(unittest.TestCase):
                 self.ca.get_pv_value(addr + ":PROC") == "1"
             )  # starts off as 0, goes to 1 when processed (fail)
 
-        address = "CATEST:{}:{}".format(record, protection)
+        address = f"CATEST:{record}:{protection}"
         self.ca.assert_that_pv_exists(address)
         if check_write_through_python(address):
             self.fail(
-                "Could (wrongly) use python to process protected pvs using {} pvs {}".format(
-                    record, protection_dict[protection]
-                )
+                f"Could (wrongly) use python to process protected pvs using {record} pvs {protection_dict[protection]}"
             )
 
     @parameterized.expand(parameterized_list(itertools.product(PROTECTION_TYPES, RECORD_TYPES)))
@@ -222,13 +218,11 @@ class SimpleTests(unittest.TestCase):
                 self.ca.get_pv_value(addr + ":PROC") == "1"
             )  # starts off as 0, goes to 1 when processed (fail)
 
-        address = "CATEST:{}:{}".format(record, protection)
+        address = f"CATEST:{record}:{protection}"
         self.ca.assert_that_pv_exists(address)
         if check_write_through_cmd(address):
             self.fail(
-                "Could (wrongly) use cmd to process protected pvs using {} pvs {}".format(
-                    record, protection_dict[protection]
-                )
+                f"Could (wrongly) use cmd to process protected pvs using {record} pvs {protection_dict[protection]}"
             )
 
     def test_GIVEN_PV_WHEN_written_and_read_million_times_THEN_value_read_correctly(self):

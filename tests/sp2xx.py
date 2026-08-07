@@ -128,7 +128,7 @@ class StopCommandTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
 
-class ErrorType(object):
+class ErrorType:
     """
     Error Type.
 
@@ -197,12 +197,13 @@ class ErrorTests(unittest.TestCase):
         self.ca.assert_that_pv_is("STATUS", "Stopped")
 
 
+MODES = ["Infusion/Withdrawal", "Withdrawal/Infusion", "Infusion", "Withdrawal", "Continuous"]
+
+
 class ModeSwitchingTests(unittest.TestCase):
     def setUp(self):
         # Given
         self._lewis, self._ioc, self.ca = _reset_device()
-
-    MODES = ["Infusion/Withdrawal", "Withdrawal/Infusion", "Infusion", "Withdrawal", "Continuous"]
 
     def test_that_GIVEN_an_initialized_pump_THEN_the_mode_is_set_to_infusing(self):
         # Then:

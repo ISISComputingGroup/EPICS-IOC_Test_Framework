@@ -21,20 +21,21 @@ test_path = os.path.realpath(
         "motorExtensions",
         "master",
         "settings",
-        "polaris_jaws",
+        "POLARIS",
+        "galil",
     )
 )
 
 # Create 3 Galils
 IOCS = [
     {
-        "name": "GALIL_0{}".format(i),
+        "name": f"GALIL_0{i}",
         "directory": get_default_ioc_dir("GALIL", i),
         "custom_prefix": "MOT",
-        "pv_for_existence": "MTR0{}01".format(i),
+        "pv_for_existence": f"MTR0{i}01",
         "macros": {
             "GALILADDR": GALIL_ADDR,
-            "MTRCTRL": "0{}".format(i),
+            "MTRCTRL": f"0{i}",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     }
@@ -65,7 +66,7 @@ class PolarisJawsManagerTests(JawsManagerBase, unittest.TestCase):
     """
 
     def setUp(self):
-        super(PolarisJawsManagerTests, self).setUp()
+        super().setUp()
         with ManagerMode(self.ca):
             # Use a retry loop here in case the IOC has not connected to the manager mode PV yet
             for _ in range(10):

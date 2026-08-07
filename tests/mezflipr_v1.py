@@ -21,15 +21,15 @@ IOCS = [
         "emulator_launcher_class": CommandLineEmulatorLauncher,
         "emulator_command_line": "{} {} --port {{port}}".format(
             os.path.join(DEFAULT_PY_PATH, "python.exe"),
-            os.path.join(
-                EPICS_TOP,
-                "support",
-                "deviceemulator",
-                "master",
-                "other_emulators",
-                "mezei_flipper",
-                "flipper_emulator.py",
-            ),
+            (
+                EPICS_TOP
+                / "support"
+                / "deviceemulator"
+                / "master"
+                / "other_emulators"
+                / "mezei_flipper"
+                / "flipper_emulator.py"
+            ).as_posix(),
         ),
         "macros": {
             "POLARISERPRESENT": "yes",
@@ -60,34 +60,30 @@ class MezfliprTests(unittest.TestCase):
     @parameterized.expand(["ANALYSER", "POLARISER"])
     def test_GIVEN_amplitude_is_set_THEN_amplitude_can_be_read_back(self, flipper):
         for val in [0.0, 0.12, 2.99]:  # Amplitude should be limited to 3A
-            self.ca.assert_setting_setpoint_sets_readback(
-                val, readback_pv="{}:AMPLITUDE".format(flipper)
-            )
+            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=f"{flipper}:AMPLITUDE")
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
     def test_GIVEN_compensation_is_set_THEN_compensation_can_be_read_back(self, flipper):
         for val in [0.0, 0.12, 5000.5]:
             self.ca.assert_setting_setpoint_sets_readback(
-                val, readback_pv="{}:COMPENSATION".format(flipper)
+                val, readback_pv=f"{flipper}:COMPENSATION"
             )
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
     def test_GIVEN_dt_is_set_THEN_dt_can_be_read_back(self, flipper):
         for val in [0.0, -0.12, -5000.5]:  # DT only accepts negative values.
-            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv="{}:DT".format(flipper))
+            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=f"{flipper}:DT")
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
     def test_GIVEN_constant_is_set_THEN_constant_can_be_read_back(self, flipper):
         for val in [0.0, 0.12, 5000.5]:
-            self.ca.assert_setting_setpoint_sets_readback(
-                val, readback_pv="{}:CONSTANT".format(flipper)
-            )
+            self.ca.assert_setting_setpoint_sets_readback(val, readback_pv=f"{flipper}:CONSTANT")
 
     @parameterized.expand(["ANALYSER", "POLARISER"])
-    def test_GIVEN_constant_is_set_THEN_constant_can_be_read_back(self, flipper):
+    def test_GIVEN_filename_is_set_THEN_filename_can_be_read_back(self, flipper):
         for filename in [r"C:\a.txt", r"C:\b.txt"]:
             self.ca.assert_setting_setpoint_sets_readback(
-                filename, readback_pv="{}:FILENAME".format(flipper)
+                filename, readback_pv=f"{flipper}:FILENAME"
             )
 
     @parameterized.expand(

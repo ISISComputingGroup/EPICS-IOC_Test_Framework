@@ -8,9 +8,9 @@ import operator
 import os
 import time
 from abc import abstractmethod
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import partial, partialmethod
-from typing import Callable, Generator, Optional
 
 from genie_python.genie import PVValue
 from genie_python.genie_cachannel_wrapper import (
@@ -37,7 +37,7 @@ class _MonitorAssertion(_ValueSource):
     """
 
     def __init__(
-        self, channel_access: "ChannelAccess", pv: str, pv_access: Optional[bool] = None
+        self, channel_access: "ChannelAccess", pv: str, pv_access: bool | None = None
     ) -> None:
         """
         Initialise.
@@ -71,12 +71,12 @@ class _MonitorAssertion(_ValueSource):
         return self.latest_value
 
 
-class ChannelAccess(object):
+class ChannelAccess:
     """
     Provides the required channel access commands.
     """
 
-    class Alarms(object):
+    class Alarms:
         """
         Possible alarm states that a PV can be in.
         """
@@ -90,9 +90,9 @@ class ChannelAccess(object):
     def __init__(
         self,
         default_timeout: float = 5,
-        device_prefix: Optional[str] = None,
+        device_prefix: str | None = None,
         default_wait_time: float = 1.0,
-        pv_access: Optional[bool] = None,
+        pv_access: bool | None = None,
     ) -> None:
         """
         Initializes this ChannelAccess object.
@@ -121,7 +121,7 @@ class ChannelAccess(object):
         try:
             hcom = ctypes.cdll.LoadLibrary("COM.DLL")
             hcom.eltc(ctypes.c_int(0))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print("Unable to disable CA errors: ", e)
 
         self.host_prefix = os.environ["testing_prefix"]
@@ -137,9 +137,9 @@ class ChannelAccess(object):
         self,
         pv: str,
         value: PVValue,
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
         wait: bool = False,
-        sleep_after_set: Optional[float] = None,
+        sleep_after_set: float | None = None,
     ) -> None:
         """
         Sets the specified PV to the supplied value.
@@ -196,7 +196,7 @@ class ChannelAccess(object):
         Args:
             pv: the EPICS PV name
         """
-        pv_proc = "{}.PROC".format(self.create_pv_with_prefix(pv))
+        pv_proc = f"{self.create_pv_with_prefix(pv)}.PROC"
         return self.ca.set_pv_value(pv_proc, 1)
 
     @contextmanager
@@ -213,8 +213,8 @@ class ChannelAccess(object):
         """
 
         def _set_and_check_simulated_alarm(set_check_pv: str, set_check_alarm: str) -> None:
-            self.set_pv_value("{}.SIMS".format(set_check_pv), set_check_alarm)
-            self.assert_that_pv_alarm_is("{}".format(set_check_pv), set_check_alarm)
+            self.set_pv_value(f"{set_check_pv}.SIMS", set_check_alarm)
+            self.assert_that_pv_alarm_is(f"{set_check_pv}", set_check_alarm)
 
         try:
             _set_and_check_simulated_alarm(pv, alarm)
@@ -231,10 +231,10 @@ class ChannelAccess(object):
         Returns:
             pv name with prefix
         """
-        return "{prefix}{pv}".format(prefix=self.prefix, pv=pv)
+        return f"{self.prefix}{pv}"
 
     def _wait_for_pv_lambda(
-        self, wait_for_lambda: Callable[[], PVValue], timeout: Optional[float] = None
+        self, wait_for_lambda: Callable[[], PVValue], timeout: float | None = None
     ) -> PVValue:
         """
         Wait for a lambda containing a pv to become None; return value or timeout and return actual
@@ -270,9 +270,9 @@ class ChannelAccess(object):
         self,
         pv: str,
         func: Callable[[PVValue], bool],
-        timeout: Optional[float] = None,
-        message: Optional[str] = None,
-        pv_value_source: Optional[_ValueSource] = None,
+        timeout: float | None = None,
+        message: str | None = None,
+        pv_value_source: _ValueSource | None = None,
     ) -> None:
         """
         Check that a PV satisfies a given function within some timeout.
@@ -296,7 +296,7 @@ class ChannelAccess(object):
                 value = pv_value_source.value
             try:
                 return_value = func(value)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 return (
                     f"Exception was thrown while evaluating function '{func.__name__}' on pv"
                     f" value {format_value(value)}. Exception was: {e.__class__.__name__} {e}"
@@ -305,16 +305,17 @@ class ChannelAccess(object):
                 return None
             else:
                 return "Exception date time: {}{}{}{}{}".format(
-                    datetime.datetime.now(),
+                    datetime.datetime.now(tz=datetime.timezone.utc),
                     os.linesep,
                     message,
                     os.linesep,
-                    "Final PV value was {}".format(format_value(value)),
+                    f"Final PV value was {format_value(value)}",
                 )
 
         if message is None:
-            message = "Expected function '{}' to evaluate to True when reading PV '{}'.".format(
-                func.__name__, self.create_pv_with_prefix(pv)
+            message = (
+                f"Expected function '{func.__name__}' to evaluate to True "
+                f"when reading PV '{self.create_pv_with_prefix(pv)}'."
             )
 
         err = self._wait_for_pv_lambda(partial(_wrapper, message), timeout)
@@ -325,9 +326,9 @@ class ChannelAccess(object):
         self,
         pv: str,
         expected_value: PVValue,
-        timeout: Optional[float] = None,
-        msg: Optional[str] = None,
-        pv_value_source: Optional[_ValueSource] | None = None,
+        timeout: float | None = None,
+        msg: str | None = None,
+        pv_value_source: _ValueSource | None = None,
     ) -> None:
         """
         Assert that the pv has the expected value or that it becomes the expected value within the
@@ -346,8 +347,9 @@ class ChannelAccess(object):
         """
 
         if msg is None:
-            msg = "Expected PV, '{}' to have value {}.".format(
-                self.create_pv_with_prefix(pv), format_value(expected_value)
+            msg = (
+                f"Expected PV, '{self.create_pv_with_prefix(pv)}' to "
+                f"have value {format_value(expected_value)}."
             )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
@@ -375,9 +377,9 @@ class ChannelAccess(object):
         self,
         pv: str,
         expected_path: str,
-        timeout: Optional[float] = None,
-        msg: Optional[str] = None,
-        pv_value_source: Optional[_ValueSource] = None,
+        timeout: float | None = None,
+        msg: str | None = None,
+        pv_value_source: _ValueSource | None = None,
     ) -> None:
         """
         Assert that a pv is a path that when normalised matches the expected path.
@@ -395,8 +397,9 @@ class ChannelAccess(object):
         """
         normalised_expected_path = self._normalise_path(expected_path)
         if msg is None:
-            msg = "Expected PV, '{}' to have path {}.".format(
-                self.create_pv_with_prefix(pv), format_value(normalised_expected_path)
+            msg = (
+                f"Expected PV, '{self.create_pv_with_prefix(pv)}' to have "
+                f"path {format_value(normalised_expected_path)}."
             )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
@@ -411,8 +414,8 @@ class ChannelAccess(object):
         self,
         pv: str,
         expected_value: PVValue,
-        timeout: Optional[float] = None,
-        msg: Optional[str] = None,
+        timeout: float | None = None,
+        msg: str | None = None,
     ) -> None:
         """
         Assert that the pv has the expected value after the pv is processed
@@ -435,8 +438,8 @@ class ChannelAccess(object):
         self,
         pv: str,
         restricted_value: PVValue,
-        timeout: Optional[float] = None,
-        msg: Optional[str] = None,
+        timeout: float | None = None,
+        msg: str | None = None,
     ) -> None:
         """
         Assert that the pv does not have a particular value and optionally it does not become that
@@ -452,7 +455,7 @@ class ChannelAccess(object):
             UnableToConnectToPVException: if pv does not exist within timeout
         """
         if msg is None:
-            msg = "Expected PV to not have value {}.".format(format_value(restricted_value))
+            msg = f"Expected PV to not have value {format_value(restricted_value)}."
 
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda val: val != restricted_value, timeout, message=msg
@@ -482,8 +485,8 @@ class ChannelAccess(object):
         pv: str,
         expected: float,
         tolerance: float = 0.0,
-        timeout: Optional[float] = None,
-        pv_value_source: Optional[_ValueSource] = None,
+        timeout: float | None = None,
+        pv_value_source: _ValueSource | None = None,
     ) -> None:
         """
         Assert that the pv has the expected value or that it becomes the expected value within the
@@ -499,8 +502,9 @@ class ChannelAccess(object):
             AssertionError: if value does not become requested value
             UnableToConnectToPVException: if pv does not exist within timeout
         """
-        message = "Expected PV '{}' value to be equal to {} (tolerance: {})".format(
-            self.create_pv_with_prefix(pv), format_value(expected), format_value(tolerance)
+        message = (
+            f"Expected PV '{self.create_pv_with_prefix(pv)}' value to be equal "
+            f"to {format_value(expected)} (tolerance: {format_value(tolerance)})"
         )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
@@ -512,7 +516,7 @@ class ChannelAccess(object):
         )
 
     def assert_that_pv_is_not_number(
-        self, pv: str, restricted: float, tolerance: float = 0, timeout: Optional[float] = None
+        self, pv: str, restricted: float, tolerance: float = 0, timeout: float | None = None
     ) -> None:
         """
         Assert that the pv is at least tolerance from the restricted value within the timeout
@@ -526,8 +530,9 @@ class ChannelAccess(object):
              AssertionError: if value does not enter the desired range
              UnableToConnectToPVException: if pv does not exist within timeout
         """
-        message = "Expected PV value to be not equal to {} (tolerance: {})".format(
-            format_value(restricted), format_value(tolerance)
+        message = (
+            f"Expected PV value to be not equal to {format_value(restricted)} "
+            f"(tolerance: {format_value(tolerance)})"
         )
 
         return self.assert_that_pv_value_causes_func_to_return_true(
@@ -542,7 +547,7 @@ class ChannelAccess(object):
         pv: str,
         expected_value: float,
         tolerance: float = 0.0,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None:
         """
         Assert that the pv has the expected number value after the pv is processed
@@ -563,7 +568,7 @@ class ChannelAccess(object):
         return self.assert_that_pv_is_number(pv, expected_value, tolerance=tolerance, timeout=None)
 
     def assert_that_pv_is_one_of(
-        self, pv: str, expected_values: list[PVValue], timeout: Optional[float] = None
+        self, pv: str, expected_values: list[PVValue], timeout: float | None = None
     ) -> None:
         """
         Assert that the pv has one of the expected values or that it becomes one of the expected
@@ -581,7 +586,7 @@ class ChannelAccess(object):
         def _condition(val: PVValue) -> bool:
             return val in expected_values
 
-        message = "Expected PV value to be in {}".format(expected_values)
+        message = f"Expected PV value to be in {expected_values}"
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, _condition, timeout, message
         )
@@ -589,9 +594,9 @@ class ChannelAccess(object):
     def assert_that_pv_is_within_range(
         self,
         pv: str,
-        min_value: int | float,
-        max_value: int | float,
-        timeout: Optional[float] = None,
+        min_value: float,
+        max_value: float,
+        timeout: float | None = None,
     ) -> None:
         """
         Assert that the pv is within or at the bounds of the ranges  between a minimum and maximum
@@ -611,12 +616,12 @@ class ChannelAccess(object):
             assert isinstance(val, (int, float, str))
             return min_value <= float(val) <= max_value
 
-        message = "Expected PV value to between {} and {}".format(min_value, max_value)
+        message = f"Expected PV value to between {min_value} and {max_value}"
         return self.assert_that_pv_value_causes_func_to_return_true(
             pv, _condition, timeout, message
         )
 
-    def assert_that_pv_exists(self, pv: str, timeout: Optional[float] = None) -> None:
+    def assert_that_pv_exists(self, pv: str, timeout: float | None = None) -> None:
         """
         Wait for pv to be available or timeout and throw UnableToConnectToPVException.
 
@@ -638,10 +643,8 @@ class ChannelAccess(object):
             # Last try.
             if not self.ca.pv_exists(pv, timeout=1.0):
                 raise AssertionError(
-                    "Exception date time: {time}\n"
-                    "PV {pv} does not exist after {timeout} seconds".format(
-                        time=datetime.datetime.now(), pv=pv, timeout=timeout
-                    )
+                    f"Exception date time: {datetime.datetime.now(tz=datetime.timezone.utc)}\n"
+                    f"PV {pv} does not exist after {timeout} seconds"
                 )
 
     def assert_that_pv_does_not_exist(self, pv: str, timeout: float = 2) -> None:
@@ -659,10 +662,10 @@ class ChannelAccess(object):
         except AssertionError:
             return
         else:
-            raise AssertionError("PV {pv} exists".format(pv=self.create_pv_with_prefix(pv)))
+            raise AssertionError(f"PV {self.create_pv_with_prefix(pv)} exists")
 
     def assert_that_pv_alarm_is_not(
-        self, pv: str, alarm: str, timeout: Optional[float] = None
+        self, pv: str, alarm: str, timeout: float | None = None
     ) -> None:
         """
         Assert that a pv is not in alarm state given or timeout.
@@ -675,9 +678,9 @@ class ChannelAccess(object):
              AssertionError: if alarm is requested value
              UnableToConnectToPVException: if pv does not exist within timeout
         """
-        return self.assert_that_pv_is_not("{}.SEVR".format(pv), alarm, timeout=timeout)
+        return self.assert_that_pv_is_not(f"{pv}.SEVR", alarm, timeout=timeout)
 
-    def assert_that_pv_alarm_is(self, pv: str, alarm: str, timeout: Optional[float] = None) -> None:
+    def assert_that_pv_alarm_is(self, pv: str, alarm: str, timeout: float | None = None) -> None:
         """
         Assert that a pv is in alarm state given or timeout.
         Checks the SERV of the pv name with any field name removed.
@@ -691,16 +694,16 @@ class ChannelAccess(object):
              UnableToConnectToPVException: if pv does not exist within timeout
         """
         pv_no_field = pv.rsplit(".", 1)[0]
-        return self.assert_that_pv_is("{}.SEVR".format(pv_no_field), alarm, timeout=timeout)
+        return self.assert_that_pv_is(f"{pv_no_field}.SEVR", alarm, timeout=timeout)
 
     def assert_setting_setpoint_sets_readback(
         self,
         value: PVValue,
         readback_pv: str,
-        set_point_pv: Optional[str] = None,
+        set_point_pv: str | None = None,
         expected_value: PVValue = None,
-        expected_alarm: Optional[str] = Alarms.NONE,
-        timeout: Optional[float] = None,
+        expected_alarm: str | None = Alarms.NONE,
+        timeout: float | None = None,
     ) -> None:
         """
         Set a pv to a value and check that the readback has the expected value and alarm state.
@@ -718,7 +721,7 @@ class ChannelAccess(object):
              UnableToConnectToPVException: if a pv does not exist within timeout
         """
         if set_point_pv is None:
-            set_point_pv = "{}:SP".format(readback_pv)
+            set_point_pv = f"{readback_pv}:SP"
         if expected_value is None:
             expected_value = value
 
@@ -745,8 +748,9 @@ class ChannelAccess(object):
         initial_value = self.get_pv_value(pv)
         time.sleep(wait)
 
-        message = "Expected value trend to satisfy comparator '{}'. Initial value was {}.".format(
-            comparator.__name__, format_value(initial_value)
+        message = (
+            f"Expected value trend to satisfy comparator '{comparator.__name__}'. "
+            f"Initial value was {format_value(initial_value)}."
         )
 
         def _condition(val: PVValue) -> bool:
@@ -868,7 +872,7 @@ class ChannelAccess(object):
             pv=pv_with_prefix,
             func=lambda val: val != time_before,
             pv_value_source=PvUpdateTimeValueSource(),
-            message="PV {} was not processed".format(pv),
+            message=f"PV {pv} was not processed",
         )
 
     @contextmanager
@@ -899,7 +903,7 @@ class ChannelAccess(object):
             pv=pv_with_prefix,
             func=lambda val: val == time_before,
             pv_value_source=PvUpdateTimeValueSource(),
-            message="PV {} was processed".format(pv),
+            message=f"PV {pv} was processed",
         )
 
     def assert_dict_of_pvs_have_given_values(self, pvs_and_values_dict: dict[str, PVValue]) -> None:

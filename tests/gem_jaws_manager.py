@@ -1,10 +1,9 @@
-import os
 import unittest
 
 from parameterized.parameterized import parameterized
 
 from common_tests.jaws_manager_utils import MOD_GAP, JawsManagerBase
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
 
 # IP address of device
 from utils.test_modes import TestModes
@@ -12,23 +11,19 @@ from utils.testing import parameterized_list
 
 GALIL_ADDR = "127.0.0.11"
 
-test_path = os.path.realpath(
-    os.path.join(
-        os.getenv("EPICS_KIT_ROOT"), "support", "motorExtensions", "master", "settings", "gem_jaws"
-    )
-)
+test_path = EPICS_TOP / "support" / "motorExtensions" / "master" / "settings" / "GEM" / "galil"
 
 # Create 3 Galils
 IOCS = [
     {
-        "name": "GALIL_0{}".format(i),
+        "name": f"GALIL_0{i}",
         "directory": get_default_ioc_dir("GALIL", i),
         "custom_prefix": "MOT",
-        "pv_for_existence": "MTR0{}01".format(i),
+        "pv_for_existence": f"MTR0{i}01",
         "macros": {
             "GALILADDR": GALIL_ADDR,
-            "MTRCTRL": "0{}".format(i),
-            "GALILCONFIGDIR": test_path.replace("\\", "/"),
+            "MTRCTRL": f"0{i}",
+            "GALILCONFIGDIR": test_path.as_posix(),
         },
     }
     for i in range(1, 4)

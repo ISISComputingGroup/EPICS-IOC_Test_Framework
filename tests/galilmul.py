@@ -36,22 +36,22 @@ class GalilmulTests(unittest.TestCase):
 
     def test_GIVEN_ioc_started_THEN_pvs_for_all_motors_exist(self):
         for controller in ("01", "02"):
-            for motor in ["{:02d}".format(mtr) for mtr in range(1, 8 + 1)]:
-                self.ca.assert_that_pv_exists("MOT:MTR{}{}".format(controller, motor))
+            for motor in [f"{mtr:02d}" for mtr in range(1, 8 + 1)]:
+                self.ca.assert_that_pv_exists(f"MOT:MTR{controller}{motor}")
 
     def test_GIVEN_ioc_started_THEN_axes_for_all_motors_exist(self):
         for controller in (1, 2):
             for motor in range(1, 8 + 1):
-                self.ca.assert_that_pv_exists("GALILMUL_01:{}:AXIS{}".format(controller, motor))
+                self.ca.assert_that_pv_exists(f"GALILMUL_01:{controller}:AXIS{motor}")
 
     def test_GIVEN_axis_moved_THEN_other_axes_do_not_move(self):
         # This is to check that axes are independent, i.e. they're not accidentally using the same underlying driver
 
         # Set all motors to zero
         for controller in ("01", "02"):
-            for motor in ["{:02d}".format(mtr) for mtr in range(1, 8 + 1)]:
-                self.ca.set_pv_value("MOT:MTR{}{}".format(controller, motor), 0)
-                self.ca.assert_that_pv_is("MOT:MTR{}{}".format(controller, motor), 0)
+            for motor in [f"{mtr:02d}" for mtr in range(1, 8 + 1)]:
+                self.ca.set_pv_value(f"MOT:MTR{controller}{motor}", 0)
+                self.ca.assert_that_pv_is(f"MOT:MTR{controller}{motor}", 0)
 
         # Move motor 0101
         self.ca.set_pv_value("MOT:MTR0101", 20)
@@ -59,7 +59,7 @@ class GalilmulTests(unittest.TestCase):
 
         # Check all other motors are still at zero
         for controller in ("01", "02"):
-            for motor in ["{:02d}".format(mtr) for mtr in range(1, 8 + 1)]:
+            for motor in [f"{mtr:02d}" for mtr in range(1, 8 + 1)]:
                 if controller == "01" and motor == "01":
                     continue
-                self.ca.assert_that_pv_is("MOT:MTR{}{}".format(controller, motor), 0)
+                self.ca.assert_that_pv_is(f"MOT:MTR{controller}{motor}", 0)

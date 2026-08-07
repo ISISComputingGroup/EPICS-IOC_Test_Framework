@@ -73,7 +73,7 @@ class Tpgx00Base:
         self._connect_emulator()
 
     def _set_pressure(self, expected_pressure, channel):
-        prop = "pressure_{}".format(channel.lower())
+        prop = f"pressure_{channel.lower()}"
         pv = "SIM:PRESSURE"
         self._lewis.backdoor_set_on_device(prop, expected_pressure)
         self._ioc.set_simulated_value(pv, expected_pressure)
@@ -141,7 +141,7 @@ class Tpgx00Base:
     def test_that_GIVEN_a_connected_emulator_and_pressure_value_WHEN_set_pressure_is_set_THEN_the_ioc_is_updated(
         self, _, expected_pressure, channel
     ):
-        pv = "PRESSURE_{}".format(channel)
+        pv = f"PRESSURE_{channel}"
         self._set_pressure(expected_pressure, channel)
         self.ca.assert_that_pv_is(pv, expected_pressure)
 
@@ -150,7 +150,7 @@ class Tpgx00Base:
     def test_that_GIVEN_a_disconnected_emulator_WHEN_getting_pressure_THEN_INVALID_alarm_shows(
         self, _, channel
     ):
-        pv = "PRESSURE_{}".format(channel)
+        pv = f"PRESSURE_{channel}"
         self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.NONE)
         with self._disconnect_device():
             self.ca.assert_that_pv_alarm_is(pv, self.ca.Alarms.INVALID)

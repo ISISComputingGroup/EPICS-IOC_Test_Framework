@@ -28,7 +28,7 @@ IOCS = [
 TEST_MODES = [TestModes.DEVSIM, TestModes.RECSIM]
 
 
-class UnitStrings(object):
+class UnitStrings:
     GAUSS = "G"
     TESLA = "T"
     ON = "ON"
@@ -41,7 +41,7 @@ class UnitStrings(object):
     CHANNEL_OFF = "OFF"
 
 
-class UnitFlags(object):
+class UnitFlags:
     GAUSS = 0
     TESLA = 1
     OFF = 0
@@ -85,7 +85,7 @@ class Lakeshore460Tests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_channel_param", chan, "field_reading", str(set_field_reading)]
             )
-            self.ca.assert_that_pv_is("{}:FIELD:RAW".format(chan), set_field_reading)
+            self.ca.assert_that_pv_is(f"{chan}:FIELD:RAW", set_field_reading)
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_prms_set_peak_WHEN_read_THEN_prms_is_peak(self):
@@ -93,13 +93,11 @@ class Lakeshore460Tests(unittest.TestCase):
             set_prms = UnitFlags.PEAK
             expected_prms = UnitStrings.PEAK
             self.ca.assert_setting_setpoint_sets_readback(
-                set_prms, "{}:PRMS".format(chan), expected_value=expected_prms, timeout=15
+                set_prms, f"{chan}:PRMS", expected_value=expected_prms, timeout=15
             )
 
     def test_GIVEN_source_set_WHEN_read_THEN_source_is_set_value(self):
-        for key in vectors:
-            set_value = key
-            expected_value = vectors[key]
+        for set_value, expected_value in vectors.items():
             self.ca.assert_setting_setpoint_sets_readback(
                 set_value, "SOURCE", expected_value=expected_value
             )
@@ -113,7 +111,7 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                unit_flag, "{}:MODE".format(chan), expected_value=unit_string
+                unit_flag, f"{chan}:MODE", expected_value=unit_string
             )
 
     @skip_if_recsim("In rec sim this test fails")
@@ -122,7 +120,7 @@ class Lakeshore460Tests(unittest.TestCase):
             set_prms = UnitFlags.RMS
             expected_prms = UnitStrings.RMS
             self.ca.assert_setting_setpoint_sets_readback(
-                set_prms, "{}:PRMS".format(chan), expected_value=expected_prms, timeout=15
+                set_prms, f"{chan}:PRMS", expected_value=expected_prms, timeout=15
             )
 
     @parameterized.expand(
@@ -134,7 +132,7 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                unit_flag, "{}:FILTER".format(chan), expected_value=unit_string
+                unit_flag, f"{chan}:FILTER", expected_value=unit_string
             )
 
     @parameterized.expand(
@@ -146,7 +144,7 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                unit_flag, "{}:RELMODE".format(chan), expected_value=unit_string
+                unit_flag, f"{chan}:RELMODE", expected_value=unit_string
             )
 
     @parameterized.expand(parameterized_list([10.4, 20, 3]))
@@ -155,7 +153,7 @@ class Lakeshore460Tests(unittest.TestCase):
         self, _, value
     ):
         for chan in channels:
-            self.ca.assert_setting_setpoint_sets_readback(value, "{}:RELMODESET".format(chan))
+            self.ca.assert_setting_setpoint_sets_readback(value, f"{chan}:RELMODESET")
 
     @parameterized.expand(
         [("ON", UnitFlags.ON, UnitStrings.ON), ("OFF", UnitFlags.OFF, UnitStrings.OFF)]
@@ -166,7 +164,7 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                unit_flag, "{}:AUTO".format(chan), expected_value=unit_string
+                unit_flag, f"{chan}:AUTO", expected_value=unit_string
             )
 
     @parameterized.expand(
@@ -178,7 +176,7 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                unit_flag, "{}:MAXHOLD".format(chan), expected_value=unit_string
+                unit_flag, f"{chan}:MAXHOLD", expected_value=unit_string
             )
 
     @parameterized.expand(
@@ -193,7 +191,7 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                unit_flag, "{}:STATUS".format(chan), expected_value=unit_string
+                unit_flag, f"{chan}:STATUS", expected_value=unit_string
             )
 
     @parameterized.expand([("11_alarm_major", 11, "MAJOR"), ("4_no_alarm", 4, "NO_ALARM")])
@@ -203,7 +201,7 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                filter_windows, "{}:FWIN".format(chan), expected_alarm=exp_alarm
+                filter_windows, f"{chan}:FWIN", expected_alarm=exp_alarm
             )
 
     @parameterized.expand([("65_alarm_major", 65, "MAJOR"), ("10_no_alarm", 10, "NO_ALARM")])
@@ -213,15 +211,14 @@ class Lakeshore460Tests(unittest.TestCase):
     ):
         for chan in channels:
             self.ca.assert_setting_setpoint_sets_readback(
-                filter_points, "{}:FNUM".format(chan), expected_alarm=exp_alarm
+                filter_points, f"{chan}:FNUM", expected_alarm=exp_alarm
             )
 
     @skip_if_recsim("In rec sim this test fails")
     def test_GIVEN_range_set_WHEN_read_THEN_range_is_set_value(self):
         for chan in channels:
-            for key in ranges:
+            for key, value in ranges.items():
                 set_range = key
-                expected_range = ranges[key]
                 self.ca.assert_setting_setpoint_sets_readback(
-                    set_range, "{}:RANGE".format(chan), expected_value=expected_range
+                    set_range, f"{chan}:RANGE", expected_value=value
                 )

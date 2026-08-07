@@ -76,8 +76,8 @@ class Itc503Tests(unittest.TestCase):
         if self.ca.get_pv_value("FAN1.SCAN") != ".1 second":
             for i in range(1, 8 + 1):
                 # Ensure all DLY links are 0 in both FAN records
-                self.ca.set_pv_value("FAN1.DLY{}".format(i), 0)
-                self.ca.set_pv_value("FAN2.DLY{}".format(i), 0)
+                self.ca.set_pv_value(f"FAN1.DLY{i}", 0)
+                self.ca.set_pv_value(f"FAN2.DLY{i}", 0)
 
             # Set the scan rate to .1 second (setting string does not work, have to use numeric value)
             self.ca.set_pv_value("FAN1.SCAN", 9)
@@ -87,7 +87,7 @@ class Itc503Tests(unittest.TestCase):
 
     @parameterized.expand((pv, val) for pv, val in itertools.product(["P", "I", "D"], TEST_VALUES))
     def test_WHEN_setting_pid_settings_THEN_can_be_read_back(self, pv, val):
-        self.ca.set_pv_value("{}:SP".format(pv), val)
+        self.ca.set_pv_value(f"{pv}:SP", val)
         self.ca.assert_that_pv_is_number(pv, val, tolerance=0.1)  # Only comes back to 1dp
 
     @parameterized.expand(val for val in parameterized_list(TEST_VALUES))
@@ -153,7 +153,7 @@ class Itc503Tests(unittest.TestCase):
     @skip_if_recsim("Comes back via record redirection which recsim can't handle easily")
     def test_WHEN_control_command_sent_THEN_remote_unlocked_set(self, _, control_pv, set_value):
         self.ca.set_pv_value("CTRL", "Locked")
-        self.ca.set_pv_value("{}:SP".format(control_pv), set_value)
+        self.ca.set_pv_value(f"{control_pv}:SP", set_value)
         self.ca.assert_that_pv_is("CTRL", "Local and remote")
         self.ca.set_pv_value("CTRL", "Locked")
 

@@ -23,6 +23,7 @@ IOCS = [
         "pv_for_existence": "AXIS1",
         "macros": {
             "MTRCTRL": "01",
+            "GALILADDR": "127.0.0.1",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     },
@@ -32,6 +33,7 @@ IOCS = [
         "pv_for_existence": "AXIS1",
         "macros": {
             "MTRCTRL": "02",
+            "GALILADDR": "127.0.0.1",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     },

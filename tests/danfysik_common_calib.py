@@ -36,8 +36,8 @@ class DanfysikCommonCalibTests(DanfysikBase, unittest.TestCase):
 
     def test_GIVEN_local_calib_macro_set_to_no_THEN_calib_base_dir_is_common_dir(self):
         for pv in ["FIELD:CALIB", "FIELD:SP:CALIB"]:
-            self.ca.assert_that_pv_is("{}.TDIR".format(pv), r"magnets")
-            self.ca.assert_that_pv_is("{}.BDIR".format(pv), r"C:/Instrument/Settings/config/common")
+            self.ca.assert_that_pv_is(f"{pv}.TDIR", r"magnets")
+            self.ca.assert_that_pv_is(f"{pv}.BDIR", r"C:/Instrument/Settings/config/common")
 
     def test_GIVEN_a_requested_current_which_is_too_big_WHEN_calibrated_THEN_current_setpoint_sent_to_danfysik_is_not_bigger_than_max(
         self,

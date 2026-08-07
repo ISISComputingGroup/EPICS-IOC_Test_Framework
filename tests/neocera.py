@@ -42,10 +42,10 @@ class NeoceraTests(unittest.TestCase):
         for sensor, value in itertools.product(SENSORS, TEST_VALUES):
             self.ca.assert_setting_setpoint_sets_readback(
                 value,
-                set_point_pv="{}:TEMP:SP".format(sensor),
-                readback_pv="{}:TEMP:SP:RBV".format(sensor),
+                set_point_pv=f"{sensor}:TEMP:SP",
+                readback_pv=f"{sensor}:TEMP:SP:RBV",
             )
 
     def test_WHEN_pid_settings_are_set_THEN_readbacks_update_to_the_values_just_set(self):
         for sensor, value, control in itertools.product(SENSORS, TEST_VALUES, ["P", "I", "D"]):
-            self.ca.assert_setting_setpoint_sets_readback(value, "{}:{}".format(sensor, control))
+            self.ca.assert_setting_setpoint_sets_readback(value, f"{sensor}:{control}")

@@ -1,8 +1,9 @@
 import functools
 import unittest
+from collections.abc import Callable
 from time import sleep
 from types import TracebackType
-from typing import TYPE_CHECKING, Callable, Concatenate, ParamSpec, Self, Type, TypeVar, overload
+from typing import TYPE_CHECKING, ClassVar, Concatenate, ParamSpec, Self, TypeVar, overload
 
 from utils.emulator_launcher import EmulatorRegister
 from utils.ioc_launcher import IOCRegister
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from utils.log_file import LogFileManager
 
 
-class ManagerMode(object):
+class ManagerMode:
     """A context manager for switching manager mode on."""
 
     MANAGER_MODE_PV = "CS:MANAGER"
@@ -34,7 +35,7 @@ class ManagerMode(object):
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
@@ -42,10 +43,10 @@ class ManagerMode(object):
         self.channel_access.assert_that_pv_is(self.MANAGER_MODE_PV, "No", timeout=5)
 
 
-class _AssertLogContext(object):
+class _AssertLogContext:
     """A context manager used to implement assert_log_messages."""
 
-    messages = []
+    messages: ClassVar[list[str]] = []
     first_message = 0
 
     def __init__(
@@ -82,7 +83,7 @@ class _AssertLogContext(object):
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> bool:
@@ -149,13 +150,11 @@ def get_running_lewis_and_ioc(
     ioc = IOCRegister.get_running(ioc_name)
 
     if ioc is None and (lewis is None and emulator_name is not None):
-        raise AssertionError(
-            "Emulator ({}) and IOC ({}) are not running".format(emulator_name, ioc_name)
-        )
+        raise AssertionError(f"Emulator ({emulator_name}) and IOC ({ioc_name}) are not running")
     if ioc is None:
-        raise AssertionError("IOC ({}) is not running".format(ioc_name))
+        raise AssertionError(f"IOC ({ioc_name}) is not running")
     if lewis is None and emulator_name is not None:
-        raise AssertionError("Emulator ({}) is not running".format(emulator_name))
+        raise AssertionError(f"Emulator ({emulator_name}) is not running")
 
     return lewis, ioc
 
@@ -250,7 +249,7 @@ skip_if_nosim = functools.partial(
 skip_always = functools.partial(skip_if_condition, lambda: True)
 
 
-def add_method(method: Callable[P, T]) -> Callable[[Type[CT]], Type[CT]]:
+def add_method(method: Callable[P, T]) -> Callable[[type[CT]], type[CT]]:
     """
     Class decorator which adds the method to the decorated class.
 
@@ -263,7 +262,7 @@ def add_method(method: Callable[P, T]) -> Callable[[Type[CT]], Type[CT]]:
         method (func): The method to add to the class decorated. Should be callable.
     """
 
-    def wrapper(class_to_decorate: Type[CT]) -> Type[CT]:
+    def wrapper(class_to_decorate: type[CT]) -> type[CT]:
         setattr(class_to_decorate, method.__name__, method)
         return class_to_decorate
 
@@ -299,7 +298,7 @@ def parameterized_list(cases: list[T]) -> list[tuple[str, T]]:
 
 def unstable_test(
     max_retries: int = 2,
-    error_class: Type[BaseException] | tuple[Type[BaseException], ...] = AssertionError,
+    error_class: type[BaseException] | tuple[type[BaseException], ...] = AssertionError,
     wait_between_runs: float = 0,
 ) -> Callable[
     [Callable[Concatenate[unittest.TestCase, P], T]], Callable[Concatenate[unittest.TestCase, P], T]
@@ -333,8 +332,11 @@ def unstable_test(
                         last_error = e
                     finally:
                         self.tearDown()  # Rerun tearDown regardless of success or not
-                else:
+                if last_error is not None:
                     raise last_error
+                raise AssertionError(
+                    "Retry decorator exhausted without capturing a retryable exception"
+                )
 
         return wrapper
 

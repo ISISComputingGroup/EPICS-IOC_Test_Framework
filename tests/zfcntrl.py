@@ -40,10 +40,10 @@ IOCS = [
             "OUTPUT_Y_MAX": DEFAULT_HIGH_OUTPUT_LIMIT,
             "OUTPUT_Z_MIN": DEFAULT_LOW_OUTPUT_LIMIT,
             "OUTPUT_Z_MAX": DEFAULT_HIGH_OUTPUT_LIMIT,
-            "PSU_X": r"$(MYPVPREFIX){}".format(X_KEPCO_DEVICE_PREFIX),
-            "PSU_Y": r"$(MYPVPREFIX){}".format(Y_KEPCO_DEVICE_PREFIX),
-            "PSU_Z": r"$(MYPVPREFIX){}".format(Z_KEPCO_DEVICE_PREFIX),
-            "MAGNETOMETER": r"$(MYPVPREFIX){}".format(MAGNETOMETER_DEVICE_PREFIX),
+            "PSU_X": rf"$(MYPVPREFIX){X_KEPCO_DEVICE_PREFIX}",
+            "PSU_Y": rf"$(MYPVPREFIX){Y_KEPCO_DEVICE_PREFIX}",
+            "PSU_Z": rf"$(MYPVPREFIX){Z_KEPCO_DEVICE_PREFIX}",
+            "MAGNETOMETER": rf"$(MYPVPREFIX){MAGNETOMETER_DEVICE_PREFIX}",
             "FEEDBACK": "1",
             "AMPS_PER_MG_X": "1",
             "AMPS_PER_MG_Y": "1",
@@ -72,7 +72,7 @@ IOCS = [
             "OFFSET_X": 0,
             "OFFSET_Y": 0,
             "OFFSET_Z": 0,
-            "SQNCR": r"$(MYPVPREFIX){}:INPUTS_UPDATED.PROC CA".format(ZF_DEVICE_PREFIX),
+            "SQNCR": rf"$(MYPVPREFIX){ZF_DEVICE_PREFIX}:INPUTS_UPDATED.PROC CA",
             "RANGE": 1,
         },
     },
@@ -124,12 +124,10 @@ def _update_fields_continuously(psu_amps_at_measured_zero):
         }
 
         for axis in FIELD_AXES:
-            magnetometer_ca.set_pv_value(
-                "SIM:DAQ:{}".format(axis), measured[axis], sleep_after_set=0
-            )
+            magnetometer_ca.set_pv_value(f"SIM:DAQ:{axis}", measured[axis], sleep_after_set=0)
 
 
-class Statuses(object):
+class Statuses:
     NO_ERROR = ("No error", ChannelAccess.Alarms.NONE)
     MAGNETOMETER_READ_ERROR = ("No new magnetometer data", ChannelAccess.Alarms.INVALID)
     MAGNETOMETER_OVERLOAD = ("Magnetometer overloaded", ChannelAccess.Alarms.MAJOR)
@@ -141,7 +139,7 @@ class Statuses(object):
     PSU_SP_RBV_OUT_OF_LIMITS = ("PSU sp_rbv out of range", ChannelAccess.Alarms.MAJOR)
 
 
-class AtSetpointStatuses(object):
+class AtSetpointStatuses:
     TRUE = "Yes"
     FALSE = "No"
     NA = "N/A"
@@ -161,9 +159,7 @@ class ZeroFieldTests(unittest.TestCase):
             wait_for_update (bool): whether to wait for the statemachine to pick up the new readings
         """
         for axis in FIELD_AXES:
-            self.magnetometer_ca.set_pv_value(
-                "SIM:DAQ:{}".format(axis), fields[axis], sleep_after_set=0
-            )
+            self.magnetometer_ca.set_pv_value(f"SIM:DAQ:{axis}", fields[axis], sleep_after_set=0)
 
         # Just overwrite the calculation to return a constant as we are not interested in testing the
         # overload logic in the magnetometer in these tests (that logic is tested separately).
@@ -173,8 +169,8 @@ class ZeroFieldTests(unittest.TestCase):
 
         if wait_for_update:
             for axis in FIELD_AXES:
-                self.zfcntrl_ca.assert_that_pv_is("FIELD:{}".format(axis), fields[axis])
-                self.zfcntrl_ca.assert_that_pv_is("FIELD:{}:MEAS".format(axis), fields[axis])
+                self.zfcntrl_ca.assert_that_pv_is(f"FIELD:{axis}", fields[axis])
+                self.zfcntrl_ca.assert_that_pv_is(f"FIELD:{axis}:MEAS", fields[axis])
 
     def _set_user_setpoints(self, fields):
         """
@@ -183,9 +179,7 @@ class ZeroFieldTests(unittest.TestCase):
               required fields
         """
         for axis in FIELD_AXES:
-            self.zfcntrl_ca.set_pv_value(
-                "FIELD:{}:SP".format(axis), fields[axis], sleep_after_set=0
-            )
+            self.zfcntrl_ca.set_pv_value(f"FIELD:{axis}:SP", fields[axis], sleep_after_set=0)
 
     def _set_simulated_power_supply_currents(self, currents, wait_for_update=True):
         """
@@ -200,15 +194,13 @@ class ZeroFieldTests(unittest.TestCase):
 
         for axis in FIELD_AXES:
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR:SP".format(axis), currents[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:CURR:SP", currents[axis], sleep_after_set=0
             )
 
         if wait_for_update:
             for axis in FIELD_AXES:
-                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:CURR".format(axis), currents[axis])
-                self.zfcntrl_ca.assert_that_pv_is(
-                    "OUTPUT:{}:CURR:SP:RBV".format(axis), currents[axis]
-                )
+                self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:CURR", currents[axis])
+                self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:CURR:SP:RBV", currents[axis])
 
     def _set_simulated_power_supply_voltages(self, voltages, wait_for_update=True):
         """
@@ -219,15 +211,13 @@ class ZeroFieldTests(unittest.TestCase):
         """
         for axis in FIELD_AXES:
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:VOLT:SP".format(axis), voltages[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:VOLT:SP", voltages[axis], sleep_after_set=0
             )
 
         if wait_for_update:
             for axis in FIELD_AXES:
-                self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:VOLT".format(axis), voltages[axis])
-                self.zfcntrl_ca.assert_that_pv_is(
-                    "OUTPUT:{}:VOLT:SP:RBV".format(axis), voltages[axis]
-                )
+                self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:VOLT", voltages[axis])
+                self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:VOLT:SP:RBV", voltages[axis])
 
     def _assert_at_setpoint(self, status):
         """
@@ -281,30 +271,30 @@ class ZeroFieldTests(unittest.TestCase):
         """
         for axis in FIELD_AXES:
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR:SP.DRVL".format(axis), lower_limits[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:CURR:SP.DRVL", lower_limits[axis], sleep_after_set=0
             )
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR:SP.LOLO".format(axis), lower_limits[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:CURR:SP.LOLO", lower_limits[axis], sleep_after_set=0
             )
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR:SP.DRVH".format(axis), upper_limits[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:CURR:SP.DRVH", upper_limits[axis], sleep_after_set=0
             )
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR:SP.HIHI".format(axis), upper_limits[axis], sleep_after_set=0
-            )
-
-            self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR.LOLO".format(axis), lower_limits[axis], sleep_after_set=0
-            )
-            self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR.HIHI".format(axis), upper_limits[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:CURR:SP.HIHI", upper_limits[axis], sleep_after_set=0
             )
 
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR:SP:RBV.LOLO".format(axis), lower_limits[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:CURR.LOLO", lower_limits[axis], sleep_after_set=0
             )
             self.zfcntrl_ca.set_pv_value(
-                "OUTPUT:{}:CURR:SP:RBV.HIHI".format(axis), upper_limits[axis], sleep_after_set=0
+                f"OUTPUT:{axis}:CURR.HIHI", upper_limits[axis], sleep_after_set=0
+            )
+
+            self.zfcntrl_ca.set_pv_value(
+                f"OUTPUT:{axis}:CURR:SP:RBV.LOLO", lower_limits[axis], sleep_after_set=0
+            )
+            self.zfcntrl_ca.set_pv_value(
+                f"OUTPUT:{axis}:CURR:SP:RBV.HIHI", upper_limits[axis], sleep_after_set=0
             )
 
     @contextlib.contextmanager
@@ -325,7 +315,7 @@ class ZeroFieldTests(unittest.TestCase):
         """
         for axis in FIELD_AXES:
             self.magnetometer_ca.set_pv_value(
-                "DAQ:{}:_RAW.SIMS".format(axis),
+                f"DAQ:{axis}:_RAW.SIMS",
                 self.magnetometer_ca.Alarms.INVALID,
                 sleep_after_set=0,
             )
@@ -333,21 +323,21 @@ class ZeroFieldTests(unittest.TestCase):
         # Wait for RAW PVs to process
         for axis in FIELD_AXES:
             self.magnetometer_ca.assert_that_pv_alarm_is(
-                "DAQ:{}:_RAW.SEVR".format(axis), self.magnetometer_ca.Alarms.INVALID
+                f"DAQ:{axis}:_RAW.SEVR", self.magnetometer_ca.Alarms.INVALID
             )
         try:
             yield
         finally:
             for axis in FIELD_AXES:
                 self.magnetometer_ca.set_pv_value(
-                    "DAQ:{}:_RAW.SIMS".format(axis),
+                    f"DAQ:{axis}:_RAW.SIMS",
                     self.magnetometer_ca.Alarms.NONE,
                     sleep_after_set=0,
                 )
             # Wait for RAW PVs to process
             for axis in FIELD_AXES:
                 self.magnetometer_ca.assert_that_pv_alarm_is(
-                    "DAQ:{}:_RAW.SEVR".format(axis), self.magnetometer_ca.Alarms.NONE
+                    f"DAQ:{axis}:_RAW.SEVR", self.magnetometer_ca.Alarms.NONE
                 )
 
     @contextlib.contextmanager
@@ -369,7 +359,7 @@ class ZeroFieldTests(unittest.TestCase):
             (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs_to_make_invalid
         ):
             # 3 is the Enum value for an invalid alarm
-            ca.set_pv_value("{}.SIMS".format(pv), 3, sleep_after_set=0)
+            ca.set_pv_value(f"{pv}.SIMS", 3, sleep_after_set=0)
 
         # Use a separate loop to avoid needing to wait for a 1-second scan 6 times.
         for ca, pv in itertools.product(
@@ -383,7 +373,7 @@ class ZeroFieldTests(unittest.TestCase):
             for ca, pv in itertools.product(
                 (self.x_psu_ca, self.y_psu_ca, self.z_psu_ca), pvs_to_make_invalid
             ):
-                ca.set_pv_value("{}.SIMS".format(pv), 0, sleep_after_set=0)
+                ca.set_pv_value(f"{pv}.SIMS", 0, sleep_after_set=0)
 
             # Use a separate loop to avoid needing to wait for a 1-second scan 6 times.
             for ca, pv in itertools.product(
@@ -446,8 +436,8 @@ class ZeroFieldTests(unittest.TestCase):
             ca.assert_that_pv_exists("CURRENT:SP:RBV")
 
         for axis in FIELD_AXES:
-            self.zfcntrl_ca.assert_that_pv_exists("FIELD:{}".format(axis))
-            self.magnetometer_ca.assert_that_pv_exists("CORRECTEDFIELD:{}".format(axis))
+            self.zfcntrl_ca.assert_that_pv_exists(f"FIELD:{axis}")
+            self.magnetometer_ca.assert_that_pv_exists(f"CORRECTEDFIELD:{axis}")
 
     def setUp(self):
         _, self._ioc = get_running_lewis_and_ioc(None, ZF_DEVICE_PREFIX)
@@ -470,7 +460,7 @@ class ZeroFieldTests(unittest.TestCase):
         # Set the magnetometer calibration to the 3x3 identity matrix
         for x, y in itertools.product(range(1, 3 + 1), range(1, 3 + 1)):
             self.magnetometer_ca.set_pv_value(
-                "SENSORMATRIX:{}{}".format(x, y), 1 if x == y else 0, sleep_after_set=0
+                f"SENSORMATRIX:{x}{y}", 1 if x == y else 0, sleep_after_set=0
             )
 
         self._set_simulated_measured_fields(ZERO_FIELD, overload=False)
@@ -506,7 +496,7 @@ class ZeroFieldTests(unittest.TestCase):
         self._set_user_setpoints(fields)
 
         # Set one of the parameters to a completely different value
-        self.zfcntrl_ca.set_pv_value("FIELD:{}:SP".format(axis_to_vary), 100, sleep_after_set=0)
+        self.zfcntrl_ca.set_pv_value(f"FIELD:{axis_to_vary}:SP", 100, sleep_after_set=0)
 
         self._assert_at_setpoint(AtSetpointStatuses.NA)
         self._assert_status(Statuses.NO_ERROR)
@@ -560,20 +550,18 @@ class ZeroFieldTests(unittest.TestCase):
             self._assert_status(Statuses.MAGNETOMETER_READ_ERROR)
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_alarm_is(
-                    "FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID
+                    f"FIELD:{axis}", self.zfcntrl_ca.Alarms.INVALID
                 )
                 self.zfcntrl_ca.assert_that_pv_alarm_is(
-                    "FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID
+                    f"FIELD:{axis}:MEAS", self.zfcntrl_ca.Alarms.INVALID
                 )
 
         # Now simulate recovery and assert error gets cleared correctly
         self._assert_status(Statuses.NO_ERROR)
         for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_alarm_is(f"FIELD:{axis}", self.zfcntrl_ca.Alarms.NONE)
             self.zfcntrl_ca.assert_that_pv_alarm_is(
-                "FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE
-            )
-            self.zfcntrl_ca.assert_that_pv_alarm_is(
-                "FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE
+                f"FIELD:{axis}:MEAS", self.zfcntrl_ca.Alarms.NONE
             )
 
     def test_WHEN_magnetometer_ioc_readings_are_invalid_THEN_status_is_magnetometer_invalid(self):
@@ -585,20 +573,18 @@ class ZeroFieldTests(unittest.TestCase):
             self._assert_status(Statuses.MAGNETOMETER_DATA_INVALID)
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_alarm_is(
-                    "FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.INVALID
+                    f"FIELD:{axis}", self.zfcntrl_ca.Alarms.INVALID
                 )
                 self.zfcntrl_ca.assert_that_pv_alarm_is(
-                    "FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.INVALID
+                    f"FIELD:{axis}:MEAS", self.zfcntrl_ca.Alarms.INVALID
                 )
 
         # Now simulate recovery and assert error gets cleared correctly
         self._assert_status(Statuses.NO_ERROR)
         for axis in FIELD_AXES:
+            self.zfcntrl_ca.assert_that_pv_alarm_is(f"FIELD:{axis}", self.zfcntrl_ca.Alarms.NONE)
             self.zfcntrl_ca.assert_that_pv_alarm_is(
-                "FIELD:{}".format(axis), self.zfcntrl_ca.Alarms.NONE
-            )
-            self.zfcntrl_ca.assert_that_pv_alarm_is(
-                "FIELD:{}:MEAS".format(axis), self.zfcntrl_ca.Alarms.NONE
+                f"FIELD:{axis}:MEAS", self.zfcntrl_ca.Alarms.NONE
             )
 
     def test_WHEN_power_supplies_are_invalid_THEN_status_is_power_supplies_invalid(self):
@@ -686,9 +672,9 @@ class ZeroFieldTests(unittest.TestCase):
 
         for axis in FIELD_AXES:
             self.zfcntrl_ca.assert_that_pv_is_number(
-                "OUTPUT:{}:CURR".format(axis), outputs[axis], tolerance=0.0001
+                f"OUTPUT:{axis}:CURR", outputs[axis], tolerance=0.0001
             )
-            self.zfcntrl_ca.assert_that_pv_value_is_unchanged("OUTPUT:{}:CURR".format(axis), wait=5)
+            self.zfcntrl_ca.assert_that_pv_value_is_unchanged(f"OUTPUT:{axis}:CURR", wait=5)
 
     @parameterized.expand(
         parameterized_list(
@@ -740,7 +726,7 @@ class ZeroFieldTests(unittest.TestCase):
 
         for axis in FIELD_AXES:
             self.zfcntrl_ca.assert_that_pv_value_over_time_satisfies_comparator(
-                "OUTPUT:{}:CURR".format(axis), wait=5, comparator=output_comparator
+                f"OUTPUT:{axis}:CURR", wait=5, comparator=output_comparator
             )
 
         # In this happy-path case, we shouldn't be hitting any long timeouts, so loop times should remain fairly quick
@@ -764,10 +750,10 @@ class ZeroFieldTests(unittest.TestCase):
         self._assert_status(Statuses.PSU_ON_LIMITS)
         for axis in FIELD_AXES:
             # Value should be on one of the limits
-            self.zfcntrl_ca.assert_that_pv_is_one_of("OUTPUT:{}:CURR:SP".format(axis), [-0.1, 0.1])
+            self.zfcntrl_ca.assert_that_pv_is_one_of(f"OUTPUT:{axis}:CURR:SP", [-0.1, 0.1])
             # ...and in alarm
             self.zfcntrl_ca.assert_that_pv_alarm_is(
-                "OUTPUT:{}:CURR:SP".format(axis), self.zfcntrl_ca.Alarms.MAJOR
+                f"OUTPUT:{axis}:CURR:SP", self.zfcntrl_ca.Alarms.MAJOR
             )
 
     def test_GIVEN_limits_wrong_way_around_THEN_appropriate_error_raised(self):
@@ -806,13 +792,13 @@ class ZeroFieldTests(unittest.TestCase):
             self._set_autofeedback(True)
             for axis in FIELD_AXES:
                 self.zfcntrl_ca.assert_that_pv_is_number(
-                    "OUTPUT:{}:CURR:SP:RBV".format(axis),
+                    f"OUTPUT:{axis}:CURR:SP:RBV",
                     psu_amps_at_zero_field[axis],
                     tolerance=STABILITY_TOLERANCE * 0.001,
                     timeout=60,
                 )
                 self.zfcntrl_ca.assert_that_pv_is_number(
-                    "FIELD:{}".format(axis), 0.0, tolerance=STABILITY_TOLERANCE
+                    f"FIELD:{axis}", 0.0, tolerance=STABILITY_TOLERANCE
                 )
 
             self._assert_at_setpoint(AtSetpointStatuses.TRUE)
@@ -823,43 +809,39 @@ class ZeroFieldTests(unittest.TestCase):
     def test_GIVEN_output_is_off_WHEN_autofeedback_switched_on_THEN_psu_is_switched_back_on(
         self, _, axis
     ):
-        self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
-            "Off", "OUTPUT:{}:STATUS".format(axis)
-        )
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", f"OUTPUT:{axis}:STATUS")
         self._set_autofeedback(True)
-        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
+        self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:STATUS", "On")
 
     @parameterized.expand(parameterized_list(FIELD_AXES))
     def test_GIVEN_output_mode_is_voltage_WHEN_autofeedback_switched_on_THEN_psu_is_switched_to_current_mode(
         self, _, axis
     ):
         self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
-            "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR
+            "Voltage", f"OUTPUT:{axis}:MODE", expected_alarm=self.zfcntrl_ca.Alarms.MAJOR
         )
         self._set_autofeedback(True)
-        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
+        self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:MODE", "Current")
 
     @parameterized.expand(parameterized_list(FIELD_AXES))
     def test_GIVEN_output_is_off_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(
         self, _, axis
     ):
-        self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
-            "Off", "OUTPUT:{}:STATUS".format(axis)
-        )
+        self.zfcntrl_ca.assert_setting_setpoint_sets_readback("Off", f"OUTPUT:{axis}:STATUS")
         with self._simulate_failing_power_supply_writes():
             self._set_autofeedback(True)
             self._assert_status(Statuses.PSU_WRITE_FAILED)
 
         # Check it can recover when writes work again
         self._assert_status(Statuses.NO_ERROR)
-        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:STATUS".format(axis), "On")
+        self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:STATUS", "On")
 
     @parameterized.expand(parameterized_list(FIELD_AXES))
     def test_GIVEN_output_mode_is_voltage_and_cannot_write_to_psu_WHEN_autofeedback_switched_on_THEN_get_psu_write_error(
         self, _, axis
     ):
         self.zfcntrl_ca.assert_setting_setpoint_sets_readback(
-            "Voltage", "OUTPUT:{}:MODE".format(axis), expected_alarm=self.zfcntrl_ca.Alarms.MAJOR
+            "Voltage", f"OUTPUT:{axis}:MODE", expected_alarm=self.zfcntrl_ca.Alarms.MAJOR
         )
 
         with self._simulate_failing_power_supply_writes():
@@ -868,7 +850,7 @@ class ZeroFieldTests(unittest.TestCase):
 
         # Check it can recover when writes work again
         self._assert_status(Statuses.NO_ERROR)
-        self.zfcntrl_ca.assert_that_pv_is("OUTPUT:{}:MODE".format(axis), "Current")
+        self.zfcntrl_ca.assert_that_pv_is(f"OUTPUT:{axis}:MODE", "Current")
 
     @parameterized.expand(
         parameterized_list(

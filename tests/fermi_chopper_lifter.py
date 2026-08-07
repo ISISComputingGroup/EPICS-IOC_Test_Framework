@@ -16,7 +16,8 @@ test_path = os.path.realpath(
         "motorExtensions",
         "master",
         "settings",
-        "emma_chopper_lifter",
+        "EMMA-A",
+        "galil",
     )
 )
 
@@ -27,7 +28,7 @@ IOCS = [
         "pv_for_existence": "AXIS1",
         "macros": {
             "MTRCTRL": "01",
-            "GALILADDR01": GALIL_ADDR,
+            "GALILADDR": GALIL_ADDR,
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     },

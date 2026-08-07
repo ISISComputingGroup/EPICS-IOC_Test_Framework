@@ -11,9 +11,10 @@ from utils.testing import parameterized_list
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 ioc_number = 1
-DEVICE_PREFIX = "LSICORR_{:02d}".format(ioc_number)
+DEVICE_PREFIX = f"LSICORR_{ioc_number:02d}"
 
-LSICORR_PATH = os.path.join(EPICS_TOP, "support", "lsicorr", "master")
+LSICORR_PATH = EPICS_TOP / "support" / "lsicorr" / "master"
+
 IOCS = [
     {
         "ioc_launcher_class": ProcServLauncher,
@@ -167,7 +168,7 @@ class LSITests(unittest.TestCase):
     def test_GIVEN_pv_with_unit_WHEN_EGU_field_read_from_THEN_unit_returned(
         self, pv, expected_unit
     ):
-        self.ca.assert_that_pv_is("{pv}.EGU".format(pv=pv), expected_unit)
+        self.ca.assert_that_pv_is(f"{pv}.EGU", expected_unit)
 
     @parameterized.expand(
         [
@@ -178,7 +179,7 @@ class LSITests(unittest.TestCase):
     def test_GIVEN_array_pv_WHEN_NELM_field_read_THEN_length_of_array_returned(
         self, pv, expected_length
     ):
-        self.ca.assert_that_pv_is_number("{pv}.NELM".format(pv=pv), expected_length)
+        self.ca.assert_that_pv_is_number(f"{pv}.NELM", expected_length)
 
     @parameterized.expand(parameterized_list(SETTING_PVS))
     def test_GIVEN_pv_name_THEN_setpoint_exists_for_that_pv(self, _, pv, value):
@@ -186,7 +187,7 @@ class LSITests(unittest.TestCase):
 
     @parameterized.expand(parameterized_list(PV_NAMES))
     def test_GIVEN_pv_name_THEN_val_field_exists_for_that_pv(self, _, pv):
-        self.ca.assert_that_pv_is("{pv}.VAL".format(pv=pv), self.ca.get_pv_value(pv))
+        self.ca.assert_that_pv_is(f"{pv}.VAL", self.ca.get_pv_value(pv))
 
     @parameterized.expand(parameterized_list(PV_NAMES))
     def test_GIVEN_pv_WHEN_pv_read_THEN_pv_has_no_alarms(self, _, pv):
@@ -199,7 +200,8 @@ class LSITests(unittest.TestCase):
         self.ca.assert_setting_setpoint_sets_readback(0, "MIN_TIME_LAG")
         self.ca.assert_that_pv_is("TAKING_DATA", "NO", timeout=10)
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
-        array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
+        array_size = self.ca.get_pv_value(f"{pv}.NELM")
+        assert isinstance(array_size, int), "array_size must be integer"
         test_data = np.linspace(0, array_size, array_size)
         self.ca.assert_that_pv_value_causes_func_to_return_true(
             pv, lambda pv_value: np.allclose(pv_value, test_data)
@@ -217,7 +219,8 @@ class LSITests(unittest.TestCase):
         # Act
         self.ca.set_pv_value("START", 1, sleep_after_set=0.0)
         # Assert
-        array_size = self.ca.get_pv_value("{pv}.NELM".format(pv=pv))
+        array_size = self.ca.get_pv_value(f"{pv}.NELM")
+        assert isinstance(array_size, int), "array_size must be int"
         test_data = np.linspace(0, array_size, array_size)
         # Scale minimum time lag from nanoseconds to seconds before comparison with test data
         min_time_lag_seconds = min_time_lag / 1e9

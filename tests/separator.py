@@ -1,6 +1,7 @@
 import threading
 import unittest
 from time import perf_counter, sleep
+from typing import ClassVar
 
 from numpy import dot
 from parameterized import parameterized
@@ -240,8 +241,6 @@ def shared_setup(ca):
     current_set_up(ca)
     stability_set_up(ca)
 
-    return None
-
 
 def apply_average_filter(unfiltered_data, stride=1):
     """
@@ -255,7 +254,7 @@ def apply_average_filter(unfiltered_data, stride=1):
     """
     data = [
         0.5 * (unfiltered_data[i] + unfiltered_data[i + stride])
-        for i in range(0, len(unfiltered_data) - stride)
+        for i in range(len(unfiltered_data) - stride)
     ]
     return data
 
@@ -354,8 +353,13 @@ class PowerStatusTests(unittest.TestCase):
 
 
 class VoltageTests(unittest.TestCase):
-    voltage_values = [0, 10.1111111, 10e1, 20e-2, 200]
-    voltage_values_which_give_alarms = [-50, MIN_SEPARATOR_VOLT, MAX_SEPARATOR_VOLT, 250]
+    voltage_values: ClassVar[list[float]] = [0, 10.1111111, 10e1, 20e-2, 200]
+    voltage_values_which_give_alarms: ClassVar[list[float]] = [
+        -50,
+        MIN_SEPARATOR_VOLT,
+        MAX_SEPARATOR_VOLT,
+        250,
+    ]
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)
@@ -449,8 +453,8 @@ class VoltageTests(unittest.TestCase):
 
 class CurrentTests(unittest.TestCase):
     # These current testing values are uncalibrated values from the DAQ lying between 0 and 10.
-    current_values = [0, 1.33333, 5e1, 10e-3, 10]
-    current_values_which_give_alarms = [10, 11]
+    current_values: ClassVar[list[float]] = [0, 1.33333, 5e1, 10e-3, 10]
+    current_values_which_give_alarms: ClassVar[list[float]] = [10, 11]
 
     def setUp(self):
         self.ca = ChannelAccess(20, device_prefix=DEVICE_PREFIX)

@@ -50,13 +50,13 @@ def _reset_ioc(ca):
 
 def _reset_channels(ca):
     for channel in CHANNEL_LIST:
-        pv = "CHAN:{:02d}:ACTIVE".format(channel)
+        pv = f"CHAN:{channel:02d}:ACTIVE"
         ca.assert_setting_setpoint_sets_readback("INACTIVE", pv, set_point_pv=pv)
 
 
 def _reset_units(ca):
     for channel in CHANNEL_LIST:
-        pv = "CHAN:{:02d}:UNIT:RAW.AA".format(channel)
+        pv = f"CHAN:{channel:02d}:UNIT:RAW.AA"
         ca.assert_setting_setpoint_sets_readback("", pv, set_point_pv=pv)
 
 
@@ -83,7 +83,7 @@ def _setup_channel_to_test(ca, lewis, channel, value=None):
 
 
 def _set_active_channel(ca, channel):
-    pv = "CHAN:{0:02d}:ACTIVE".format(channel)
+    pv = f"CHAN:{channel:02d}:ACTIVE"
     ca.assert_setting_setpoint_sets_readback("ACTIVE", pv, set_point_pv=pv)
 
 
@@ -93,6 +93,8 @@ def _connect_device(lewis):
 
 @setup_tests
 class InitTests(unittest.TestCase):
+    ca: ChannelAccess
+
     def test_that_GIVEN_a_reset_IOC_THEN_it_is_set_up(self):
         # Given:
         self.ca.set_pv_value("RESET:FLAG", 1)
@@ -145,10 +147,13 @@ class InitTests(unittest.TestCase):
 
 @setup_tests
 class SingleShotTests(unittest.TestCase):
+    ca: ChannelAccess
+
     def _simulate_readings(self, channel, value, unit):
         if IOCRegister.uses_rec_sim:
-            simulated_reading = ["{:.7E}{}".format(value, unit), "{0:02d}INTCHAN".format(channel)]
-            self.ca.set_pv_value("READINGS", simulated_reading)
+            simulated_reading = [f"{value:.7E}{unit}", f"{channel:02d}INTCHAN"]
+            # type hint in genie python cachannel not allowing list[str]
+            self.ca.set_pv_value("READINGS", simulated_reading)  # pyright: ignore
         else:
             self._lewis.backdoor_run_function_on_device(
                 "set_channel_value_via_the_backdoor", [channel, value, unit]
@@ -164,10 +169,10 @@ class SingleShotTests(unittest.TestCase):
         self._simulate_readings(channel, expected_value, "VDC")
 
         # Then:
-        self.ca.assert_that_pv_is("CHAN:{0:02d}:READ".format(channel), expected_value)
+        self.ca.assert_that_pv_is(f"CHAN:{channel:02d}:READ", expected_value)
 
     @parameterized.expand(parameterized_list([1, 5, 10]))
-    def test_that_GIVEN_one_channel_set_to_active_THEN_the_measurement_units_for_that_channel_are_read(
+    def test_that_GIVEN_one_channel_set_to_active_THEN_the_measurement_units_for_that_channel_are_read_vdc(
         self, _, channel
     ):
         # Given:
@@ -177,10 +182,10 @@ class SingleShotTests(unittest.TestCase):
 
         # Then:
         expected_unit = "VDC"
-        self.ca.assert_that_pv_is("CHAN:{0:02d}:UNIT".format(channel), expected_unit)
+        self.ca.assert_that_pv_is(f"CHAN:{channel:02d}:UNIT", expected_unit)
 
     @parameterized.expand(parameterized_list([1, 5, 10]))
-    def test_that_GIVEN_one_channel_set_to_active_THEN_the_measurement_units_for_that_channel_are_read(
+    def test_that_GIVEN_one_channel_set_to_active_THEN_the_measurement_units_for_that_channel_are_read_mvdc(
         self, _, channel
     ):
         # Given:
@@ -190,18 +195,20 @@ class SingleShotTests(unittest.TestCase):
 
         # Then:
         expected_unit = "mVDC"
-        self.ca.assert_that_pv_is("CHAN:{0:02d}:UNIT".format(channel), expected_unit)
+        self.ca.assert_that_pv_is(f"CHAN:{channel:02d}:UNIT", expected_unit)
 
 
 @setup_tests
 class ScanningSetupTests(unittest.TestCase):
+    ca: ChannelAccess
+
     def test_that_GIVEN_two_active_channels_WHEN_scanning_on_two_channels_THEN_the_buffer_size_is_set_to_two(
         self,
     ):
         # Given:
         channels = (1, 2)
         for channel in channels:
-            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value(f"CHAN:{channel:02d}:ACTIVE", 1)
 
         # Then:
         self.ca.assert_that_pv_after_processing_is("BUFF:SIZE", len(channels))
@@ -212,7 +219,7 @@ class ScanningSetupTests(unittest.TestCase):
         # Given:
         channels = (1, 2)
         for channel in channels:
-            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value(f"CHAN:{channel:02d}:ACTIVE", 1)
 
         # Then:
         self.ca.assert_that_pv_after_processing_is("SCAN:MEAS:COUNT", len(channels))
@@ -222,7 +229,7 @@ class ScanningSetupTests(unittest.TestCase):
         # Given:
         channels = (1, 2)
         for channel in channels:
-            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
+            self.ca.set_pv_value(f"CHAN:{channel:02d}:ACTIVE", 1)
 
         # Then:
         number_of_times_buffer_has_been_cleared = int(
@@ -238,8 +245,8 @@ class ScanningSetupTests(unittest.TestCase):
     ):
         # Given:
         for channel in active_channels:
-            self.ca.set_pv_value("CHAN:{:02d}:ACTIVE".format(channel), 1)
-            self.ca.assert_that_pv_is("CHAN:{:02d}:ACTIVE".format(channel), "ACTIVE")
+            self.ca.set_pv_value(f"CHAN:{channel:02d}:ACTIVE", 1)
+            self.ca.assert_that_pv_is(f"CHAN:{channel:02d}:ACTIVE", "ACTIVE")
 
         # Then:
         expected_channel_string = ",".join([str(i) for i in active_channels])
@@ -248,13 +255,13 @@ class ScanningSetupTests(unittest.TestCase):
 
 @setup_tests
 class ScanningTests(unittest.TestCase):
+    ca: ChannelAccess
+
     def _simulate_readings(self, values, channels, unit):
         if IOCRegister.uses_rec_sim:
             simulated_readings = []
             for value, channel in zip(values, channels):
-                simulated_readings.extend(
-                    ["{:.7E}{}".format(value, unit), "{0:02d}INTCHAN".format(channel)]
-                )
+                simulated_readings.extend([f"{value:.7E}{unit}", f"{channel:02d}INTCHAN"])
             self.ca.set_pv_value("READINGS", simulated_readings)
         else:
             for value, channel in zip(values, channels):
@@ -273,7 +280,7 @@ class ScanningTests(unittest.TestCase):
 
         # Then:
         for expected_value, channel in zip(expected_values, channels):
-            self.ca.assert_that_pv_is("CHAN:{0:02d}:READ".format(channel), expected_value)
+            self.ca.assert_that_pv_is(f"CHAN:{channel:02d}:READ", expected_value)
 
     @parameterized.expand(parameterized_list([[1, 2], [1, 2, 3, 4], [1, 5, 10]]))
     def test_that_GIVEN_two_or_more_active_channels_THEN_VDC_is_parsed_into_the_unit_records(
@@ -287,7 +294,7 @@ class ScanningTests(unittest.TestCase):
         # Then:
         expected_unit = "VDC"
         for expected_value, channel in zip(expected_values, channels):
-            self.ca.assert_that_pv_is("CHAN:{0:02d}:UNIT".format(channel), expected_unit)
+            self.ca.assert_that_pv_is(f"CHAN:{channel:02d}:UNIT", expected_unit)
 
     @parameterized.expand(parameterized_list([[1, 2], [1, 2, 3, 4], [1, 5, 10]]))
     def test_that_GIVEN_two_or_more_active_channels_THEN_mVDC_is_parsed_into_the_unit_records(
@@ -301,11 +308,13 @@ class ScanningTests(unittest.TestCase):
         # Then:
         expected_unit = "mVDC"
         for expected_value, channel in zip(expected_values, channels):
-            self.ca.assert_that_pv_is("CHAN:{0:02d}:UNIT".format(channel), expected_unit)
+            self.ca.assert_that_pv_is(f"CHAN:{channel:02d}:UNIT", expected_unit)
 
 
 @setup_tests
 class ErrorTests(unittest.TestCase):
+    ca: ChannelAccess
+
     def _simulate_error(self, error_code, error_message):
         if IOCRegister.uses_rec_sim:
             self.ca.set_pv_value("SIM:ERROR:RAW", [str(error_code), error_message])
@@ -392,6 +401,8 @@ class ErrorTests(unittest.TestCase):
 
 @setup_tests
 class DisconnectedTests(unittest.TestCase):
+    ca: ChannelAccess
+
     def _disconnect_device(self):
         self._lewis.backdoor_run_function_on_device("disconnect")
 
@@ -420,12 +431,12 @@ class DisconnectedTests(unittest.TestCase):
         # When/Then:
         map(
             self.ca.assert_that_pv_alarm_is,
-            ["CHAN:0{}:UNIT".format(i) for i in range(1, 3 + 1)],
+            [f"CHAN:0{i}:UNIT" for i in range(1, 3 + 1)],
             [self.ca.Alarms.INVALID] * 3,
         )
         map(
             self.ca.assert_that_pv_alarm_is,
-            ["CHAN:0{}:READ".format(i) for i in range(1, 3 + 1)],
+            [f"CHAN:0{i}:READ" for i in range(1, 3 + 1)],
             [self.ca.Alarms.INVALID] * 3,
         )
 
@@ -441,7 +452,7 @@ class DisconnectedTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "set_channel_value_via_the_backdoor", [channel, value, "VDC"]
         )
-        self.ca.assert_that_pv_is("CHAN:0{}:READ".format(channel), value)
+        self.ca.assert_that_pv_is(f"CHAN:0{channel}:READ", value)
 
         # When:
         self._disconnect_device()
@@ -454,6 +465,8 @@ class DisconnectedTests(unittest.TestCase):
 
 @setup_tests
 class IOCResetTests(unittest.TestCase):
+    ca: ChannelAccess
+
     @skip_if_recsim("Can't replicate resetting the device in RECSIM")
     def test_that_GIVEN_a_device_WHEN_reset_THEN_the_IOC_has_been_reinitalized(self):
         # Given:

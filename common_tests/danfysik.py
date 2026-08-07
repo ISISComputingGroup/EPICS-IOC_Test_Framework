@@ -30,7 +30,7 @@ TEST_VOLTAGES = TEST_CURRENTS
 HAS_TRIPPED = {True: "Tripped", False: "OK"}
 
 
-class DanfysikBase(object):
+class DanfysikBase:
     """
     Tests for danfysik.
     """
@@ -87,70 +87,69 @@ class DanfysikCommon(DanfysikBase):
         """
         Most danfysiks have interlocks deactivated on startup anyway
         """
-        pass
 
     @parameterized.expand(parameterized_list(["VOLT", "CURR"]))
     @skip_if_recsim("Can not test disconnection in rec sim")
     def test_GIVEN_device_not_connected_WHEN_pv_checked_THEN_pv_in_alarm(self, _, pv):
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_alarm_is_not(
-                "{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30
+                f"{id_prefix}{pv}", ChannelAccess.Alarms.INVALID, timeout=30
             )
 
         with self._lewis.backdoor_simulate_disconnected_device():
             for id_prefix in self.id_prefixes:
                 self.ca.assert_that_pv_alarm_is(
-                    "{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30
+                    f"{id_prefix}{pv}", ChannelAccess.Alarms.INVALID, timeout=30
                 )
 
         for id_prefix in self.id_prefixes:
             self.ca.assert_that_pv_alarm_is_not(
-                "{}{}".format(id_prefix, pv), ChannelAccess.Alarms.INVALID, timeout=30
+                f"{id_prefix}{pv}", ChannelAccess.Alarms.INVALID, timeout=30
             )
 
     def test_WHEN_polarity_setpoint_is_set_THEN_readback_updates_with_set_value(self):
         for id_prefix in self.id_prefixes:
             for pol in POLARITIES:
-                self.ca.assert_setting_setpoint_sets_readback(pol, "{}POL".format(id_prefix))
+                self.ca.assert_setting_setpoint_sets_readback(pol, f"{id_prefix}POL")
 
     def test_WHEN_polarity_setpoint_is_set_with_number_THEN_readback_updates_with_set_value(self):
         for id_prefix in self.id_prefixes:
             for pol_num, pol in enumerate(POLARITIES):
                 self.ca.assert_setting_setpoint_sets_readback(
-                    pol_num, "{}POL".format(id_prefix), "{}POL:SP".format(id_prefix), pol
+                    pol_num, f"{id_prefix}POL", f"{id_prefix}POL:SP", pol
                 )
 
     @skip_if_recsim("Recsim is not set up properly for this test to work")
     def test_WHEN_power_setpoint_is_set_THEN_readback_updates_with_set_value(self):
         for id_prefix in self.id_prefixes:
             for state in POWER_STATES:
-                self.ca.assert_setting_setpoint_sets_readback(state, "{}POWER".format(id_prefix))
+                self.ca.assert_setting_setpoint_sets_readback(state, f"{id_prefix}POWER")
 
     @skip_if_recsim("Recsim is not set up properly for this test to work")
-    def test_WHEN_power_setpoint_is_set_THEN_readback_updates_with_set_value(self):
+    def test_WHEN_power_setpoint_is_set_THEN_readback_updates_with_set_value_sp(self):
         for id_prefix in self.id_prefixes:
             for state_num, state in enumerate(POWER_STATES):
                 self.ca.assert_setting_setpoint_sets_readback(
-                    state_num, "{}POWER".format(id_prefix), "{}POWER:SP".format(id_prefix), state
+                    state_num, f"{id_prefix}POWER", f"{id_prefix}POWER:SP", state
                 )
 
     def test_WHEN_current_setpoint_is_set_THEN_current_readback_updates_to_set_value(self):
         for id_prefix in self.id_prefixes:
             for curr in TEST_CURRENTS:
-                self.ca.set_pv_value("{}CURR:SP".format(id_prefix), curr)
+                self.ca.set_pv_value(f"{id_prefix}CURR:SP", curr)
                 expected_value = (
                     curr * self.current_readback_factor if IOCRegister.uses_rec_sim else curr
                 )
                 self.ca.assert_that_pv_is_number(
-                    "{}CURR".format(id_prefix), expected_value, tolerance=0.5
+                    f"{id_prefix}CURR", expected_value, tolerance=0.5
                 )  # Tolerance 0.5 because readback is integer
 
     @skip_if_devsim("In dev sim this test fails as the simulated records are not used")
     def test_GIVEN_emulator_not_in_use_WHEN_voltage_is_read_THEN_value_is_as_expected(self):
         expected_value = 12
         for id_prefix in self.id_prefixes:
-            self.ca.set_pv_value("{}SIM:VOLT".format(id_prefix), expected_value)
-            self.ca.assert_that_pv_is("{}VOLT".format(id_prefix), expected_value)
+            self.ca.set_pv_value(f"{id_prefix}SIM:VOLT", expected_value)
+            self.ca.assert_that_pv_is(f"{id_prefix}VOLT", expected_value)
 
     @skip_if_recsim("Recsim is unable to simulate comms being uninitialized")
     def test_GIVEN_power_supply_comms_become_uninitialized_THEN_ioc_recovers(self):
@@ -161,7 +160,7 @@ class DanfysikCommon(DanfysikBase):
                 for id_prefix in self.id_prefixes:
                     # Should be able to re-initialize comms and read the new voltage
                     self.ca.assert_that_pv_is_number(
-                        "{}VOLT".format(id_prefix), volt, tolerance=0.5, timeout=30
+                        f"{id_prefix}VOLT", volt, tolerance=0.5, timeout=30
                     )
 
         finally:
@@ -171,7 +170,7 @@ class DanfysikCommon(DanfysikBase):
     def test_GIVEN_no_interlocks_active_WHEN_getting_overall_interlock_status_THEN_it_is_ok(self):
         self._deactivate_interlocks()
         for id_prefix in self.id_prefixes:
-            self.ca.assert_that_pv_is("{}ILK".format(id_prefix), HAS_TRIPPED[False])
+            self.ca.assert_that_pv_is(f"{id_prefix}ILK", HAS_TRIPPED[False])
 
     @skip_if_recsim(
         "In rec sim this test fails as recsim does not set any of the related values "
@@ -179,11 +178,11 @@ class DanfysikCommon(DanfysikBase):
     )
     def test_WHEN_reset_is_sent_THEN_readbacks_and_power_are_off(self):
         for id_prefix in self.id_prefixes:
-            self.ca.set_pv_value("{}CURR:SP".format(id_prefix), 5)
-            self.ca.set_pv_value("{}RESET".format(id_prefix), 1)
-            self.ca.assert_that_pv_is("{}POWER".format(id_prefix), "Off")
-            self.ca.assert_that_pv_is("{}CURR".format(id_prefix), 0)
-            self.ca.assert_that_pv_is("{}VOLT".format(id_prefix), 0)
+            self.ca.set_pv_value(f"{id_prefix}CURR:SP", 5)
+            self.ca.set_pv_value(f"{id_prefix}RESET", 1)
+            self.ca.assert_that_pv_is(f"{id_prefix}POWER", "Off")
+            self.ca.assert_that_pv_is(f"{id_prefix}CURR", 0)
+            self.ca.assert_that_pv_is(f"{id_prefix}VOLT", 0)
 
     def test_GIVEN_power_on_and_zero_sp_WHEN_enabling_auto_onoff_THEN_device_is_powered_off(self):
         self.set_autoonoff(False)

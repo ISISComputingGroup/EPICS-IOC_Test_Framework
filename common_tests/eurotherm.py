@@ -1,9 +1,8 @@
 import abc
-import os
+import contextlib
 import time
 import typing
 import unittest
-from typing import ContextManager
 
 from parameterized import parameterized
 
@@ -49,7 +48,7 @@ class EurothermBaseTests(
         pass
 
     @abc.abstractmethod
-    def _get_temperature_setter_wrapper(self) -> ContextManager:
+    def _get_temperature_setter_wrapper(self) -> contextlib.AbstractContextManager:
         pass
 
     @abc.abstractmethod
@@ -57,7 +56,7 @@ class EurothermBaseTests(
         pass
 
     def get_prefix(self) -> str:
-        return "{}:A01".format(self.get_device())
+        return f"{self.get_device()}:A01"
 
     def setUp(self):
         self._setup_lewis_and_channel_access()
@@ -274,12 +273,10 @@ class EurothermBaseTests(
 
     def _assert_using_mock_table_location(self):
         for pv in ["A01:TEMP", "A01:TEMP:SP:CONV", "A01:TEMP:SP:RBV:CONV"]:
-            self.ca.assert_that_pv_is(
-                "{}.TDIR".format(pv), r"eurotherm2k/master/example_temp_sensor"
-            )
+            self.ca.assert_that_pv_is(f"{pv}.TDIR", r"eurotherm2k/master/example_temp_sensor")
             self.ca.assert_that_pv_is_path(
-                "{}.BDIR".format(pv),
-                os.path.join(EPICS_TOP, "support").replace("\\", "/"),
+                f"{pv}.BDIR",
+                (EPICS_TOP / "support").as_posix(),
             )
 
     def test_WHEN_calibration_file_is_in_units_of_K_THEN_egu_of_temperature_pvs_is_K(

@@ -76,7 +76,7 @@ class Tekafg3XXXTests(unittest.TestCase):
     def test_GIVEN_arbitrary_command_WHEN_sent_THEN_output_received(self):
         expected_value = 15.0
         self.ca.set_pv_value("WRITE:SP", f"SOUR1:VOLT {expected_value}", wait=True)
-        self.ca.set_pv_value("OUTPUT1:VOLT.PROC", 1) # needed as SCAN macro for tests is "Passive"
+        self.ca.set_pv_value("OUTPUT1:VOLT.PROC", 1)  # needed as SCAN macro for tests is "Passive"
         self.ca.assert_that_pv_is("OUTPUT1:VOLT", expected_value)
         self.ca.set_pv_value("READ:SP", "SOUR1:VOLT?")
         self.ca.assert_that_pv_is("READ", str(expected_value))

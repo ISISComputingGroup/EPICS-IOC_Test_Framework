@@ -1,5 +1,4 @@
 import contextlib
-import os
 import unittest
 
 from utils.channel_access import ChannelAccess
@@ -19,13 +18,13 @@ MAX_CURRENT = 250
 IOCS = [
     {
         "name": "GENESYS_01",
-        "directory": os.path.join(
-            EPICS_TOP, "ioc", "master", "TDK_LAMBDA_GENESYS", "iocBoot", "iocGENESYS-IOC-01"
-        ),
+        "directory": (
+            EPICS_TOP / "ioc" / "master" / "TDK_LAMBDA_GENESYS" / "iocBoot" / "iocGENESYS-IOC-01"
+        ).as_posix(),
         "macros": {
             "ADDR1": "1",
             "PORT1": "1",
-            "AMPSTOGAUSS1": "{}".format(AMPS_TO_GAUSS),
+            "AMPSTOGAUSS1": f"{AMPS_TO_GAUSS}",
             "TOLERANCE": 0.1,
             "READ_OFFSET1": DEFAULT_READ_OFFSET,
             "WRITE_OFFSET1": DEFAULT_WRITE_OFFSET,
@@ -41,7 +40,7 @@ IOCS = [
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-class OutputMode(object):
+class OutputMode:
     VOLTAGE = "VOLTAGE"
     CURRENT = "CURRENT"
 

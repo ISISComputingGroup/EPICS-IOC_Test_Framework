@@ -7,7 +7,7 @@ from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
 from utils.emulator_launcher import EmulatorLauncher
-from utils.ioc_launcher import BaseLauncher, IOCRegister, get_default_ioc_dir
+from utils.ioc_launcher import EPICS_TOP, BaseLauncher, IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc, parameterized_list, skip_if_recsim
 
@@ -34,7 +34,9 @@ IOCS = [
             "MAX_VOLT": 9.9,
             "WRITE_UNIT": "TESLA",
             "DISPLAY_UNIT": "TESLA",
-            "RAMP_FILE": r"C:\\Instrument\\Apps\\EPICS\\support\\cryosms\\master\\ramps\\test.txt",
+            "RAMP_FILE": (
+                EPICS_TOP / "support" / "cryosms" / "master" / "ramps" / "test.txt"
+            ).as_posix(),
             "MID_TOLERANCE": 0.1,
             "TARGET_TOLERANCE": 0.01,
             "ALLOW_PERSIST": "Yes",
@@ -141,19 +143,19 @@ class CryoSMSTests(unittest.TestCase):
             "RAMP:LEADS.DISP": "0",
         }
         failed_pvs = []
-        for pv in expected_values:
+        for pv, value in expected_values.items():
             try:
-                if type(expected_values[pv]) in [int, float]:
+                if type(value) in [int, float]:
                     self.ca.assert_that_pv_is_within_range(
-                        pv, expected_values[pv] - 0.01, expected_values[pv] + 0.01, timeout=5
+                        pv, value - 0.01, value + 0.01, timeout=5
                     )
                 else:
-                    self.ca.assert_that_pv_is(pv, expected_values[pv], timeout=5)
-            except Exception as e:
+                    self.ca.assert_that_pv_is(pv, value, timeout=5)
+            except Exception as e:  # noqa: BLE001
                 if hasattr(e, "message"):
                     failed_pvs.append(f"{pv} {e.message}")  # pyright: ignore
                 else:
-                    failed_pvs.append(f"{pv} {repr(e)}")
+                    failed_pvs.append(f"{pv} {e!r}")
         if failed_pvs:
             self.fail("The following PVs generated errors:\n{}".format("\n".join(failed_pvs)))
 
@@ -193,9 +195,7 @@ class CryoSMSTests(unittest.TestCase):
                     output = self.ca.get_pv_value("OUTPUT")
             else:
                 self.fail(
-                    "Output failed to reach mid-point, was {0}G but expected {1}G".format(
-                        output, mid_point
-                    )
+                    f"Output failed to reach mid-point, was {output}G but expected {mid_point}G"
                 )
         self.ca.assert_that_pv_is("RAMP:STAT", "HOLDING ON TARGET", timeout=120)
         self.ca.assert_that_pv_is_within_range("OUTPUT", end_point - 0.01, end_point + 0.01)

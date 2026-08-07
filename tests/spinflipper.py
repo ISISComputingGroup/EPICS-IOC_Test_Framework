@@ -1,19 +1,18 @@
-import os
 import unittest
 
 from utils.channel_access import ChannelAccess
+from utils.ioc_launcher import EPICS_TOP
 from utils.test_modes import TestModes
 from utils.testing import get_running_lewis_and_ioc
 
 DEVICE_PREFIX = "SPINFLIPPER_01"
-EPICS_TOP = os.environ.get("KIT_ROOT", os.path.join("C:\\", "Instrument", "Apps", "EPICS"))
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
-        "directory": os.path.join(
-            EPICS_TOP, "ioc", "master", "SPINFLIPPER306015", "iocBoot", "iocSPINFLIPPER-IOC-01"
-        ),
+        "directory": (
+            EPICS_TOP / "ioc" / "master" / "SPINFLIPPER306015" / "iocBoot" / "iocSPINFLIPPER-IOC-01"
+        ).as_posix(),
         "macros": {},
         "emulator": "Spinflipper",
     },

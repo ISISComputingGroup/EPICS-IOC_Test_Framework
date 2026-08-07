@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from common_tests.DAQmx import DEVICE_PREFIX, ICPCONFIGNAME, DAQmxTests
@@ -11,9 +10,9 @@ IOCS = [
     {
         "name": DEVICE_PREFIX,
         "icpconfigname": ICPCONFIGNAME,
-        "directory": os.path.join(
-            EPICS_TOP, "support", "DAQmxBase", "master", "iocBoot", "iocDAQmx"
-        ),
+        "directory": (
+            EPICS_TOP / "support" / "DAQmxBase" / "master" / "iocBoot" / "iocDAQmx"
+        ).as_posix(),
         "emulator": DEVICE_PREFIX,
         "emulator_launcher_class": DAQMxEmulatorLauncher,
         "pv_for_existence": "ACQUIRE",
@@ -34,5 +33,3 @@ class DAQmxMonsterTests(DAQmxTests, unittest.TestCase):
     """
     Test all DAQMx tests using monster mode.
     """
-
-    pass

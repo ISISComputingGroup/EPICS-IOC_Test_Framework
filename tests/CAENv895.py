@@ -1,5 +1,3 @@
-from __future__ import division
-
 import os
 import unittest
 
@@ -89,10 +87,10 @@ class CAENv895Tests(unittest.TestCase):
         self.ca.assert_that_pv_is("CR0:C0:CH3:THOLD:SP", 75)
         self.ca.assert_that_pv_is("CR0:C1:CH0:ENABLE:SP", "YES")
         self.ca_np.assert_that_pv_is(
-            "AS:{}:vmeconfigMenu:currName".format(DEVICE_PREFIX), "ioctestdefaults"
+            f"AS:{DEVICE_PREFIX}:vmeconfigMenu:currName", "ioctestdefaults"
         )
-        self.ca_np.assert_that_pv_is("AS:{}:vmeconfigMenu:status".format(DEVICE_PREFIX), "Success")
-        self.ca_np.assert_that_pv_is("AS:{}:vmeconfigMenu:busy".format(DEVICE_PREFIX), "Done")
+        self.ca_np.assert_that_pv_is(f"AS:{DEVICE_PREFIX}:vmeconfigMenu:status", "Success")
+        self.ca_np.assert_that_pv_is(f"AS:{DEVICE_PREFIX}:vmeconfigMenu:busy", "Done")
 
     def test_GIVEN_output_widths_WHEN_output_widths_set_THEN_width_read_back(self):
         # GIVEN

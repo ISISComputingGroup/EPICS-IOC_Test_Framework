@@ -14,17 +14,17 @@ emulator_name = "kepco"
 TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
-class OutputMode(object):
+class OutputMode:
     VOLTAGE = "VOLTAGE"
     CURRENT = "CURRENT"
 
 
-class Status(object):
+class Status:
     ON = "ON"
     OFF = "OFF"
 
 
-class UnitFlags(object):
+class UnitFlags:
     VOLTAGE = 0
     CURRENT = 1
     ON = 1
@@ -50,7 +50,7 @@ IDN_LIST = [
 MAX_CURRENT = 1000
 
 
-class KepcoTests(object):
+class KepcoTests:
     """
     Tests for the KEPCO.
     """
@@ -73,7 +73,7 @@ class KepcoTests(object):
     def _set_IDN(self, expected_idn_no_firmware, expected_firmware):
         self._lewis.backdoor_set_on_device("idn_no_firmware", expected_idn_no_firmware)
         self._lewis.backdoor_set_on_device("firmware", expected_firmware)
-        expected_idn = "{}{}".format(expected_idn_no_firmware, str(expected_firmware))[
+        expected_idn = f"{expected_idn_no_firmware}{expected_firmware!s}"[
             :39
         ]  # EPICS limited to 40 chars
         self._ioc.set_simulated_value("SIM:IDN", expected_idn)

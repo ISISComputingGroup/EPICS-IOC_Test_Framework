@@ -36,14 +36,14 @@ def log_filename(test_name: str, what: str, device: str, test_mode: TestModes, v
     )
 
 
-class LogFileManager(object):
+class LogFileManager:
     """
     Class to manage the access of log files
     """
 
     def __init__(self, filename: str, write_mode: str = "w") -> None:
-        self.log_file_w = open(filename, write_mode, 1)
-        self.log_file_r = open(filename, "r")
+        self.log_file_w = open(filename, write_mode, 1)  # noqa: SIM115
+        self.log_file_r = open(filename, "r")  # noqa: SIM115
 
     def read_log(self) -> list[str]:
         """
@@ -84,9 +84,8 @@ class LogFileManager(object):
             sleep(1)
         else:
             raise AssertionError(
-                "IOC appears not to have started after {} seconds. Looking for '{}'".format(
-                    timeout, ioc_started_text
-                )
+                f"IOC appears not to have started after {timeout} "
+                f"seconds. Looking for '{ioc_started_text}'"
             )
 
     def close(self) -> None:

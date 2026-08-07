@@ -36,7 +36,7 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
     """
 
     def setUp(self):
-        super(KepcoNoRemTests, self).setUp()
+        super().setUp()
         self._set_IDN(IDN_NO_REM[0], IDN_NO_REM[1])
 
     def lewis_set_and_assert_list(self, lewis_vars_and_vals):
@@ -56,9 +56,9 @@ class KepcoNoRemTests(KepcoTests, unittest.TestCase):
             try:
                 self._lewis.assert_that_emulator_value_is(var, set_func(val), cast=int)
             except AssertionError as e:
-                error_message_calls += "\n{}\n{}".format(var, e.message)
+                error_message_calls += f"\n{var}\n{e.message}"
         if error_message_calls != "":
-            raise AssertionError("Failed to call sets:{}".format(error_message_calls))
+            raise AssertionError(f"Failed to call sets:{error_message_calls}")
 
     @parameterized.expand(
         parameterized_list(

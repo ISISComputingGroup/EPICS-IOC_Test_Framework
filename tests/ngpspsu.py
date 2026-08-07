@@ -142,7 +142,7 @@ class NgpspsuStatusTests(unittest.TestCase):
     def test_that_GIVEN_a_setup_device_THEN_the_status_is_zero(self):
         # When/Then:
         for digit in range(1, 9):
-            self.ca.assert_that_pv_is("STAT:HEX:{}".format(digit), 0)
+            self.ca.assert_that_pv_is(f"STAT:HEX:{digit}", 0)
 
 
 @add_method(setUp)

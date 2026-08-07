@@ -1,5 +1,4 @@
 import itertools
-import os
 import unittest
 
 from parameterized import parameterized
@@ -18,7 +17,7 @@ from utils.testing import (
 DEVICE_PREFIX = "FINS_01"
 
 IOC_NAME = "FINS"
-TEST_PATH = os.path.join(EPICS_TOP, "ioc", "master", IOC_NAME, "exampleSettings", "HELIUM_RECOVERY")
+TEST_PATH = EPICS_TOP / "ioc" / "master" / IOC_NAME / "exampleSettings" / "HELIUM_RECOVERY"
 
 IOC_PREFIX = "HA:HLM"
 
@@ -28,7 +27,7 @@ IOCS = [
         "directory": get_default_ioc_dir("FINS"),
         "custom_prefix": IOC_PREFIX,
         "macros": {
-            "FINSCONFIGDIR": TEST_PATH.replace("\\", "/"),
+            "FINSCONFIGDIR": TEST_PATH.as_posix(),
             "PLC_IP": "127.0.0.1",
             "PLC_NODE": 58,
         },
@@ -257,7 +256,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
 
         if pv_name != "HEARTBEAT":
-            self.ca.process_pv("{}:_RAW".format(pv_name))
+            self.ca.process_pv(f"{pv_name}:_RAW")
 
         self.ca.assert_that_pv_after_processing_is(pv_name, test_value)
 
@@ -266,10 +265,10 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     )
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int16_no_calc_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
-        self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
+        self.ca.set_pv_value(f"SIM:{pv_name}", test_value)
 
         if pv_name != "HEARTBEAT":
-            self.ca.process_pv("{}:_RAW".format(pv_name))
+            self.ca.process_pv(f"{pv_name}:_RAW")
 
         self.ca.assert_that_pv_after_processing_is(pv_name, test_value)
 
@@ -284,7 +283,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
             self.skipTest("HEARTBEAT does not have support for negative values")
 
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, -test_value))
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+        self.ca.process_pv(f"{pv_name}:_RAW")
         self.ca.assert_that_pv_after_processing_is(pv_name, -test_value)
 
     @parameterized.expand(
@@ -297,22 +296,22 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         if pv_name == "HEARTBEAT":
             self.skipTest("HEARTBEAT does not have support for negative values")
 
-        self.ca.set_pv_value("SIM:{}".format(pv_name), -test_value)
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+        self.ca.set_pv_value(f"SIM:{pv_name}", -test_value)
+        self.ca.process_pv(f"{pv_name}:_RAW")
         self.ca.assert_that_pv_after_processing_is(pv_name, -test_value)
 
     @parameterized.expand(parameterized_list(zip(INT16_PV_NAMES, INT16_TEST_VALUES)))
     @skip_if_recsim("lewis backdoor not supported in recsim")
     def test_WHEN_int16_value_set_backdoor_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, test_value))
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+        self.ca.process_pv(f"{pv_name}:_RAW")
         self.ca.assert_that_pv_is(pv_name, test_value / 10)
 
     @parameterized.expand(parameterized_list(zip(INT16_PV_NAMES, INT16_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int16_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
-        self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+        self.ca.set_pv_value(f"SIM:{pv_name}", test_value)
+        self.ca.process_pv(f"{pv_name}:_RAW")
         self.ca.assert_that_pv_is(pv_name, test_value / 10)
 
     @parameterized.expand(parameterized_list(zip(INT16_PV_NAMES, INT16_TEST_VALUES)))
@@ -321,7 +320,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         self, _, pv_name, test_value
     ):
         self._lewis.backdoor_run_function_on_device("set_memory", (pv_name, -test_value))
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+        self.ca.process_pv(f"{pv_name}:_RAW")
         self.ca.assert_that_pv_is(pv_name, -test_value / 10)
 
     @parameterized.expand(parameterized_list(zip(INT16_PV_NAMES, INT16_TEST_VALUES)))
@@ -329,8 +328,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     def test_WHEN_int16_value_set_negative_value_sim_pv_THEN_ioc_read_correctly(
         self, _, pv_name, test_value
     ):
-        self.ca.set_pv_value("SIM:{}".format(pv_name), -test_value)
-        self.ca.process_pv("{}:_RAW".format(pv_name))
+        self.ca.set_pv_value(f"SIM:{pv_name}", -test_value)
+        self.ca.process_pv(f"{pv_name}:_RAW")
         self.ca.assert_that_pv_is(pv_name, -test_value / 10)
 
     @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, DWORD_TEST_VALUES)))
@@ -342,7 +341,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(zip(DWORD_PV_NAMES, DWORD_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_int32_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
-        self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
+        self.ca.set_pv_value(f"SIM:{pv_name}", test_value)
         self.ca.assert_that_pv_after_processing_is(pv_name, test_value)
 
     @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, ANALOGUE_TEST_VALUES)))
@@ -354,7 +353,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @parameterized.expand(parameterized_list(zip(ANALOGUE_IN_PV_NAMES, ANALOGUE_TEST_VALUES)))
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_analogue_value_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
-        self.ca.set_pv_value("SIM:{}".format(pv_name), test_value)
+        self.ca.set_pv_value(f"SIM:{pv_name}", test_value)
         self.ca.assert_that_pv_after_processing_is_number(pv_name, test_value, 0.001)
 
     @parameterized.expand(parameterized_list(AUTO_MANUAL_PV_NAMES))
@@ -373,10 +372,10 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     def test_WHEN_auto_manual_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name):
         self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
 
-        self.ca.set_pv_value("SIM:{}".format(pv_name), 1)
+        self.ca.set_pv_value(f"SIM:{pv_name}", 1)
         self.ca.assert_that_pv_after_processing_is(pv_name, "AUTOMATIC")
 
-        self.ca.set_pv_value("SIM:{}".format(pv_name), 0)
+        self.ca.set_pv_value(f"SIM:{pv_name}", 0)
         self.ca.assert_that_pv_after_processing_is(pv_name, "MANUAL")
 
     @skip_if_recsim("lewis backdoor not available in recsim")
@@ -498,7 +497,7 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
     @skip_if_devsim("sim pvs not available in devsim")
     def test_WHEN_valve_status_set_sim_pv_THEN_ioc_read_correctly(self, _, pv_name, test_value):
         index_test_value = VALVE_STATUS_VALUES.index(test_value)
-        self.ca.set_pv_value("SIM:{}".format(pv_name), index_test_value)
+        self.ca.set_pv_value(f"SIM:{pv_name}", index_test_value)
         self.ca.assert_that_pv_after_processing_is(pv_name, test_value)
 
     # Liquefier alarms are tested separately because in the memory map they are unsigned integers. The C driver does
@@ -514,8 +513,8 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         mbbi_direct_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
         test_value = HeliumRecoveryPLCTests._get_alarm_test_value(mbbi_direct_pv, alarm_index)
 
-        raw_pv = "{}:_RAW".format(mbbi_direct_pv)
-        full_pv_name = "{}:ALARM".format(pv_name)
+        raw_pv = f"{mbbi_direct_pv}:_RAW"
+        full_pv_name = f"{pv_name}:ALARM"
 
         self.ca.process_pv(raw_pv)
         self.ca.assert_that_pv_is(full_pv_name, "OK")
@@ -535,17 +534,17 @@ class HeliumRecoveryPLCTests(unittest.TestCase):
         mbbi_direct_pv = HeliumRecoveryPLCTests._get_liquefier_hardware_pv(alarm_index)
         test_value = HeliumRecoveryPLCTests._get_alarm_test_value(mbbi_direct_pv, alarm_index)
 
-        raw_pv = "{}:_RAW".format(mbbi_direct_pv)
-        full_pv_name = "{}:ALARM".format(pv_name)
+        raw_pv = f"{mbbi_direct_pv}:_RAW"
+        full_pv_name = f"{pv_name}:ALARM"
 
         self.ca.process_pv(raw_pv)
         self.ca.assert_that_pv_is(full_pv_name, "OK")
 
-        self.ca.set_pv_value("SIM:{}".format(mbbi_direct_pv), test_value)
+        self.ca.set_pv_value(f"SIM:{mbbi_direct_pv}", test_value)
         self.ca.process_pv(raw_pv)
         self.ca.assert_that_pv_is(full_pv_name, "IN ALARM")
 
-        self.ca.set_pv_value("SIM:{}".format(mbbi_direct_pv), 0)
+        self.ca.set_pv_value(f"SIM:{mbbi_direct_pv}", 0)
         self.ca.process_pv(raw_pv)
         self.ca.assert_that_pv_is(full_pv_name, "OK")
 

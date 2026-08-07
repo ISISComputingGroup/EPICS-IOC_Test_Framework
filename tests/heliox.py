@@ -2,6 +2,7 @@ import itertools
 import unittest
 from contextlib import contextmanager
 
+from genie_python.genie import PVValue
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
@@ -90,7 +91,7 @@ class HelioxTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_temperature", [chan, temperature]
         )
-        self.ca.assert_that_pv_is_number("{}:TEMP".format(chan), temperature, tolerance=0.005)
+        self.ca.assert_that_pv_is_number(f"{chan}:TEMP", temperature, tolerance=0.005)
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_TEMPERATURES)))
     @skip_if_recsim("Lewis Backdoor not available in recsim")
@@ -100,9 +101,7 @@ class HelioxTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_temperature_sp", [chan, temperature]
         )
-        self.ca.assert_that_pv_is_number(
-            "{}:TEMP:SP:RBV".format(chan), temperature, tolerance=0.005
-        )
+        self.ca.assert_that_pv_is_number(f"{chan}:TEMP:SP:RBV", temperature, tolerance=0.005)
 
     @parameterized.expand(parameterized_list(CHANNELS_WITH_STABILITY))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -111,9 +110,7 @@ class HelioxTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device(
                 "backdoor_set_channel_stability", [chan, stability]
             )
-            self.ca.assert_that_pv_is(
-                "{}:STABILITY".format(chan), "Stable" if stability else "Unstable"
-            )
+            self.ca.assert_that_pv_is(f"{chan}:STABILITY", "Stable" if stability else "Unstable")
 
     @parameterized.expand(parameterized_list(CHANNELS_WITH_HEATER_AUTO))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -122,7 +119,7 @@ class HelioxTests(unittest.TestCase):
             self._lewis.backdoor_run_function_on_device(
                 "backdoor_set_channel_heater_auto", [chan, heater_auto]
             )
-            self.ca.assert_that_pv_is("{}:HEATER:AUTO".format(chan), "On" if heater_auto else "Off")
+            self.ca.assert_that_pv_is(f"{chan}:HEATER:AUTO", "On" if heater_auto else "Off")
 
     @parameterized.expand(parameterized_list(itertools.product(CHANNELS, TEST_HEATER_PERCENTAGES)))
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -132,7 +129,7 @@ class HelioxTests(unittest.TestCase):
         self._lewis.backdoor_run_function_on_device(
             "backdoor_set_channel_heater_percent", [chan, percent]
         )
-        self.ca.assert_that_pv_is_number("{}:HEATER:PERCENT".format(chan), percent, tolerance=0.005)
+        self.ca.assert_that_pv_is_number(f"{chan}:HEATER:PERCENT", percent, tolerance=0.005)
 
     @skip_if_recsim("Cannot properly simulate disconnected device in recsim")
     def test_WHEN_device_disconnected_THEN_temperature_goes_into_alarm(self):
@@ -208,18 +205,25 @@ class HelioxTests(unittest.TestCase):
             "drift_rate", value / 100
         )  # Emulator runs at 100x speed in framework
 
-        with self._simulate_helium_3_pot_empty():  # Will cause temperature to drift upwards continuously
+        with (
+            self._simulate_helium_3_pot_empty()
+        ):  # Will cause temperature to drift upwards continuously
             self.ca.assert_that_pv_is_number(
                 "REGEN:_CALCULATE_TEMP_DRIFT.VALB",
                 value,
                 timeout=(DRIFT_BUFFER_SIZE + 10),
                 tolerance=0.05,
             )
+
+            def _comparator(initial: PVValue, final: PVValue) -> bool:
+                assert isinstance(initial, float), "initial must be a float"
+                assert isinstance(final, float), "final must be a float"
+                return abs(initial - final) < 0.05 and abs(value - final) < 0.05
+
             self.ca.assert_that_pv_value_over_time_satisfies_comparator(
                 "REGEN:_CALCULATE_TEMP_DRIFT.VALB",
                 wait=DRIFT_BUFFER_SIZE,
-                comparator=lambda initial, final: abs(initial - final) < 0.05
-                and abs(value - final) < 0.05,
+                comparator=_comparator,
             )
             self.ca.assert_that_pv_is("REGEN:TEMP_DRIFT_RATE", 1)
 

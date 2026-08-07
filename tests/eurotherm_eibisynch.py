@@ -42,7 +42,7 @@ IOCS = [
 
 class EurothermTests(EurothermBaseTests, unittest.TestCase):
     def setUp(self):
-        super(EurothermTests, self).setUp()
+        super().setUp()
         self._lewis.backdoor_run_function_on_device("set_scaling", ["01", 1.0])
         self._lewis.backdoor_run_function_on_device("set_delay_time", [0.0])
         self._lewis: LewisLauncher

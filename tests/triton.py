@@ -119,7 +119,7 @@ class TritonTests(unittest.TestCase):
         for chan in VALID_TEMPERATURE_SENSORS:
             for enabled in [False, True, False]:  # Need to check both transitions work properly
                 self.ca.assert_setting_setpoint_sets_readback(
-                    "ON" if enabled else "OFF", "CHANNELS:T{}:STATE".format(chan)
+                    "ON" if enabled else "OFF", f"CHANNELS:T{chan}:STATE"
                 )
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -171,7 +171,7 @@ class TritonTests(unittest.TestCase):
 
     def _set_temp_via_backdoor(self, channel, temp):
         self._lewis.backdoor_command(
-            ["device", "set_temperature_backdoor", "'{}'".format(channel), "{}".format(temp)]
+            ["device", "set_temperature_backdoor", f"'{channel}'", f"{temp}"]
         )
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
@@ -210,7 +210,7 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_pressure_backdoor", str(sensor), str(pressure)]
             )
-            self.ca.assert_that_pv_is("PRESSURE:P{}".format(sensor), pressure)
+            self.ca.assert_that_pv_is(f"PRESSURE:P{sensor}", pressure)
 
     def test_WHEN_closed_loop_is_set_via_pv_THEN_readback_updates(self):
         for state in [False, True, False]:
@@ -233,7 +233,7 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_sensor_property_backdoor", str(chan), "temperature", str(value)]
             )
-            self.ca.assert_that_pv_is("CHANNELS:T{}:TEMP".format(chan), value)
+            self.ca.assert_that_pv_is(f"CHANNELS:T{chan}:TEMP", value)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_channel_resistance_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(
@@ -243,7 +243,7 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_sensor_property_backdoor", str(chan), "resistance", str(value)]
             )
-            self.ca.assert_that_pv_is("CHANNELS:T{}:RES".format(chan), value)
+            self.ca.assert_that_pv_is(f"CHANNELS:T{chan}:RES", value)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_channel_excitation_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(
@@ -253,7 +253,7 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_sensor_property_backdoor", str(chan), "excitation", str(value)]
             )
-            self.ca.assert_that_pv_is("CHANNELS:T{}:EXCITATION".format(chan), value)
+            self.ca.assert_that_pv_is(f"CHANNELS:T{chan}:EXCITATION", value)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_channel_pause_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(
@@ -263,7 +263,7 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_sensor_property_backdoor", str(chan), "pause", str(value)]
             )
-            self.ca.assert_that_pv_is("CHANNELS:T{}:PAUSE".format(chan), value)
+            self.ca.assert_that_pv_is(f"CHANNELS:T{chan}:PAUSE", value)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_channel_dwell_is_set_via_backdoor_THEN_the_pvs_update_with_values_just_written(
@@ -273,7 +273,7 @@ class TritonTests(unittest.TestCase):
             self._lewis.backdoor_command(
                 ["device", "set_sensor_property_backdoor", str(chan), "dwell", str(value)]
             )
-            self.ca.assert_that_pv_is("CHANNELS:T{}:DWELL".format(chan), value)
+            self.ca.assert_that_pv_is(f"CHANNELS:T{chan}:DWELL", value)
 
     @skip_if_recsim("Lewis backdoor not available in recsim")
     def test_WHEN_heater_resistance_is_changed_THEN_heater_heater_resistance_pv_updates(self):

@@ -10,7 +10,6 @@ import subprocess
 import sys
 import traceback
 import unittest
-from typing import List
 
 import xmlrunner
 from genie_python.utilities import cleanup_subprocs_on_process_exit
@@ -37,12 +36,12 @@ def clean_environment():
     Cleans up the test environment between tests.
     """
     autosave_directory = os.path.join(var_dir, "autosave")
-    files = glob.glob("{}/*SIM/*".format(autosave_directory))
+    files = glob.glob(f"{autosave_directory}/*SIM/*")
     for autosave_file in files:
         try:
             os.remove(autosave_file)
-        except Exception as e:
-            print("Failed to delete {}: {}".format(autosave_file, e))
+        except OSError as e:
+            print(f"Failed to delete {autosave_file}: {e}")
 
 
 def check_and_do_pre_ioc_launch_hook(ioc):
@@ -59,7 +58,7 @@ def check_and_do_pre_ioc_launch_hook(ioc):
     if callable(pre_ioc_launch_hook):
         pre_ioc_launch_hook()
     else:
-        raise ValueError("Pre IOC launch hook not callable, so nothing has been done for it.")
+        raise TypeError("Pre IOC launch hook not callable, so nothing has been done for it.")
 
 
 def make_device_launchers_from_module(test_module, mode):
@@ -78,7 +77,7 @@ def make_device_launchers_from_module(test_module, mode):
         iocs = test_module.IOCS
     except AttributeError:
         raise AttributeError(
-            "Expected module '{}' to contain an IOCS attribute".format(test_module.__name__)
+            f"Expected module '{test_module.__name__}' to contain an IOCS attribute"
         )
 
     if len(iocs) < 1:
@@ -94,7 +93,7 @@ def make_device_launchers_from_module(test_module, mode):
                 "IOC entry must have a 'directory' attribute which should give the path to the IOC"
             )
 
-    print("Testing module {} in {} mode.".format(test_module.__name__, TestModes.name(mode)))
+    print(f"Testing module {test_module.__name__} in {TestModes.name(mode)} mode.")
 
     device_launchers = []
     device_directories = set()
@@ -125,8 +124,8 @@ def make_device_launchers_from_module(test_module, mode):
             )
         elif "emulators" in ioc and mode != TestModes.RECSIM:
             emulator_launcher_class = ioc.get("emulators_launcher_class", MultiLewisLauncher)
-            test_emulator_data: List[TestEmulatorData] = ioc.get("emulators", [])
-            emulator_list: List[Emulator] = []
+            test_emulator_data: list[TestEmulatorData] = ioc.get("emulators", [])
+            emulator_list: list[Emulator] = []
             for test_emulator in test_emulator_data:
                 emulator_list.append(
                     Emulator(
@@ -267,10 +266,10 @@ def report_test_coverage_for_devices(tested_directories):
     """
     # get names of iocs from ioc folder
     iocs = []
-    for dir in os.listdir(IOCS_DIR):
-        if os.path.isdir(os.path.join(IOCS_DIR, dir)):
-            iocs.append(dir)
-    iocs = set(ioc.lower() for ioc in iocs)
+    for item in IOCS_DIR.iterdir():
+        if item.is_dir():
+            iocs.append(item.name)
+    iocs = {ioc.lower() for ioc in iocs}
 
     tested_iocs = []
     for dir in tested_directories:
@@ -315,9 +314,9 @@ class ReportFailLoadTestsuiteTestCase(unittest.TestCase):
         # strictly we should use and pass (*args, **kwargs) but we only call
         # this directly ourselves and not from a test suite.
         # We create a function based on fail_with_msg() to get a better test summary.
-        func_name = "{}_module_failed_to_load".format(failing_module_name)
+        func_name = f"{failing_module_name}_module_failed_to_load"
         setattr(self, func_name, self.fail_with_msg)
-        super(ReportFailLoadTestsuiteTestCase, self).__init__(func_name)
+        super().__init__(func_name)
         self.msg = msg
 
     def fail_with_msg(self):
@@ -371,8 +370,8 @@ def run_tests(
             except KeyboardInterrupt:
                 print("\nCleaning up...")
                 sys.exit(0)
-    except Exception:
-        msg = "ERROR: while attempting to load test suite: {}".format(traceback.format_exc())
+    except Exception:  # noqa: BLE001
+        msg = f"ERROR: while attempting to load test suite: {traceback.format_exc()}"
         result = runner.run(ReportFailLoadTestsuiteTestCase(module_name, msg)).wasSuccessful()
     return result
 
@@ -474,7 +473,7 @@ if __name__ == "__main__":
         arguments.tests_path = os.path.join(arguments.test_and_emulator, "tests")
         emulator_path = arguments.test_and_emulator
     else:
-        emulator_path = DEVICE_EMULATOR_PATH
+        emulator_path = str(DEVICE_EMULATOR_PATH)
 
     if os.path.dirname(arguments.tests_path):
         full_path = os.path.abspath(arguments.tests_path)
@@ -529,7 +528,9 @@ if __name__ == "__main__":
     # cygserver to cache this
     # we start it before cleanup_subprocs_on_process_exit() so it will
     # remain running as it takes a while to start and is safe to leave running
-    subprocess.run([os.path.join(EPICS_TOP, "tools", "master", "start_cygserver.bat")], shell=True)
+    subprocess.run(
+        [os.path.join(EPICS_TOP, "tools", "master", "start_cygserver.bat")], shell=True, check=False
+    )
 
     # make sure we close any subprocesses we create when we exit
     cleanup_subprocs_on_process_exit()
@@ -546,7 +547,7 @@ if __name__ == "__main__":
             success = load_and_run_tests(
                 tests, failfast, report_coverage, ask_before_running_tests, tests_mode
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             print("---\n---\n---\nERROR: when loading the tests: ")
             traceback.print_exc()
             print("---\n---\n---\n")

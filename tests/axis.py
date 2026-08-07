@@ -1,12 +1,14 @@
 import unittest
 
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.ioc_launcher import EPICS_TOP, get_default_ioc_dir
 from utils.test_modes import TestModes
 
 GALIL_ADDR = "127.0.0.11"
 
 GALIL_PREFIX = "GALIL_01"
+
+test_path = EPICS_TOP / "support" / "motorExtensions" / "master" / "settings" / "jaws_manager"
 
 IOCS = [
     {
@@ -17,6 +19,7 @@ IOCS = [
         "macros": {
             "GALILADDR": GALIL_ADDR,
             "MTRCTRL": "1",
+            "GALILCONFIGDIR": test_path.as_posix(),
         },
     }
 ]
@@ -64,25 +67,25 @@ class AxisTests(unittest.TestCase):
     def test_GIVEN_neither_retry_not_setpoint_deadbands_set_and_mres_bigger_than_eres_WHEN_checking_tolerance_WHEN_checking_tolerance_THEN_mres_times_ten_is_used(
         self,
     ):
-        MRES = 456
-        ERES = 123
-        self.ca.set_pv_value("MTR0101.MRES", MRES, sleep_after_set=0)
-        self.ca.set_pv_value("MTR0101.ERES", ERES, sleep_after_set=0)
+        mres = 456
+        eres = 123
+        self.ca.set_pv_value("MTR0101.MRES", mres, sleep_after_set=0)
+        self.ca.set_pv_value("MTR0101.ERES", eres, sleep_after_set=0)
         # RDBD can not be less than MRES, if it is the same as MRES that means unset
-        self.ca.set_pv_value("MTR0101.RDBD", MRES, sleep_after_set=0)
+        self.ca.set_pv_value("MTR0101.RDBD", mres, sleep_after_set=0)
         self.ca.set_pv_value("MTR0101.SPDB", 0, sleep_after_set=0)
 
-        self.ca.assert_that_pv_is("MTR0101:IN_POSITION:TOLERANCE", MRES * 10)
+        self.ca.assert_that_pv_is("MTR0101:IN_POSITION:TOLERANCE", mres * 10)
 
     def test_GIVEN_neither_retry_not_setpoint_deadbands_set_and_mres_smaller_than_eres_WHEN_checking_tolerance_WHEN_checking_tolerance_THEN_eres_times_ten_is_used(
         self,
     ):
-        MRES = 456
-        ERES = 789
-        self.ca.set_pv_value("MTR0101.MRES", MRES, sleep_after_set=0)
-        self.ca.set_pv_value("MTR0101.ERES", ERES, sleep_after_set=0)
+        mres = 456
+        eres = 789
+        self.ca.set_pv_value("MTR0101.MRES", mres, sleep_after_set=0)
+        self.ca.set_pv_value("MTR0101.ERES", eres, sleep_after_set=0)
         # RDBD can not be less than MRES, if it is the same as MRES that means unset
-        self.ca.set_pv_value("MTR0101.RDBD", MRES, sleep_after_set=0)
+        self.ca.set_pv_value("MTR0101.RDBD", mres, sleep_after_set=0)
         self.ca.set_pv_value("MTR0101.SPDB", 0, sleep_after_set=0)
 
-        self.ca.assert_that_pv_is("MTR0101:IN_POSITION:TOLERANCE", ERES * 10)
+        self.ca.assert_that_pv_is("MTR0101:IN_POSITION:TOLERANCE", eres * 10)

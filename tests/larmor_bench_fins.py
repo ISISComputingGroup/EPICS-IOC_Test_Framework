@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from utils.channel_access import ChannelAccess
@@ -8,14 +7,14 @@ from utils.testing import IOCRegister
 
 DEVICE_PREFIX = "FINS_01"
 ioc_name = "FINS"
-test_path = os.path.join(EPICS_TOP, "ioc", "master", ioc_name, "exampleSettings", "LARMOR_bench")
+test_path = EPICS_TOP / "ioc" / "master" / ioc_name / "exampleSettings" / "LARMOR_bench"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir(ioc_name),
         "pv_for_existence": "BENCH:FLOW1",
-        "macros": {"FINSCONFIGDIR": test_path.replace("\\", "/"), "PLCIP": "127.0.0.1"},
+        "macros": {"FINSCONFIGDIR": test_path.as_posix(), "PLCIP": "127.0.0.1"},
     },
 ]
 
