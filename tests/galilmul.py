@@ -1,8 +1,13 @@
+import os
 import unittest
 
 from utils.channel_access import ChannelAccess
 from utils.ioc_launcher import IOCRegister, get_default_ioc_dir
 from utils.test_modes import TestModes
+
+test_config_path = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_config", "galil")
+)
 
 DEVICE_PREFIX = "GALILMUL_01"
 
@@ -16,6 +21,7 @@ IOCS = [
             "GALILADDR1": "127.0.0.11",
             "MTRCTRL2": "02",
             "GALILADDR2": "127.0.0.12",
+            "GALILCONFIGDIR": test_config_path.replace("\\", "/"),
         },
     },
 ]
