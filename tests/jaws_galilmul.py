@@ -23,6 +23,8 @@ IOCS = [
         "macros": {
             "MTRCTRL1": "01",
             "MTRCTRL2": "02",
+            "GALILADDR1" "127.0.0.10",
+            "GALILADDR2" "127.0.0.11",
             "GALILCONFIGDIR": test_path.replace("\\", "/"),
         },
     },
