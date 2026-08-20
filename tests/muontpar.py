@@ -55,7 +55,7 @@ class MuonTPARTests(unittest.TestCase):
         self.ca.assert_that_pv_is("INPUT_FILE", DEFAULT_INPUT_FILE)
         self.ca.assert_that_pv_is("OUTPUT_FILE", DEFAULT_OUTPUT_FILE)
         with open(test_config_path / DEFAULT_OUTPUT_FILE, "rb") as tpar_file:
-            self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read().decode('utf-8'))
+            self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read().decode("utf-8"))
 
     def test_tpar_editor_writes_tpar_content(self):
         self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
@@ -65,7 +65,7 @@ class MuonTPARTests(unittest.TestCase):
         self.ca.set_pv_value("SAVE_FILE", 1, wait=True)
         self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
         with open(test_config_path / DEFAULT_OUTPUT_FILE, "rb") as tpar_file:
-            self.assertEqual(TEST_TPAR, tpar_file.read().decode('utf-8'))
+            self.assertEqual(TEST_TPAR, tpar_file.read().decode("utf-8"))
 
     def test_tpar_editor_reset(self):
         self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
@@ -74,4 +74,4 @@ class MuonTPARTests(unittest.TestCase):
         self.ca.set_pv_value("RESET", 1)
         self.ca.assert_that_pv_is("UNSAVED_CHANGES", "No")
         with open(test_config_path / DEFAULT_OUTPUT_FILE, "rb") as tpar_file:
-            self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read().decode('utf-8'))
+            self.ca.assert_that_pv_is("LINES_ARRAY:SP", tpar_file.read().decode("utf-8"))
