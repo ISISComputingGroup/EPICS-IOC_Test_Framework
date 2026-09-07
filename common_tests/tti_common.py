@@ -2,10 +2,13 @@ import abc
 
 from parameterized import parameterized
 
+from utils.channel_access import ChannelAccess
 from utils.testing import skip_if_recsim
 
 
 class TtiCommon(metaclass=abc.ABCMeta):
+    ca: ChannelAccess
+
     @abc.abstractmethod
     def get_off_state_name(self):
         pass
@@ -32,7 +35,8 @@ class TtiCommon(metaclass=abc.ABCMeta):
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
     def test_WHEN_ioc_not_in_error_state_THEN_correct_error_state_returned(self):
         expected_value = "No error"
-        self.ca.set_pv_value("CURRENT:SP", 3.0)
+        self.ca.set_pv_value("CURRENT:SP", 3.0, wait=True)
+        self.ca.set_pv_value("ERROR.PROC", 1)
         self.ca.assert_that_pv_is("ERROR", expected_value)
 
     @skip_if_recsim("Behaviour cannot be simulated in Recsim")
