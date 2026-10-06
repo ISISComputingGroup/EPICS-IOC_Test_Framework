@@ -23,7 +23,7 @@ TEST_MODES = [TestModes.RECSIM]
 class BEAMCORRTests(unittest.TestCase):
     def setUp(self) -> None:
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30)
+        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30, default_wait_time=0.0)
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
     def tearDown(self) -> None:
