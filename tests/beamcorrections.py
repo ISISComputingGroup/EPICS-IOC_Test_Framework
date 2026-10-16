@@ -1,29 +1,58 @@
+import os
 import unittest
 
 from parameterized import parameterized
 
+from common_tests.kepco import MAX_CURRENT, emulator_name
 from utils.channel_access import ChannelAccess
-from utils.ioc_launcher import get_default_ioc_dir
+from utils.free_ports import get_free_ports
+from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
+from utils.testing import get_running_lewis_and_ioc, skip_if_devsim, skip_if_recsim
 
+kepco_ports = get_free_ports(2)
 DEVICE_PREFIX = "BEAMCORR_01"
+HOST_PREFIX = os.environ["MYPVPREFIX"]
+if not HOST_PREFIX.endswith(":"):
+    HOST_PREFIX += ":"
 
 IOCS = [
     {
         "name": DEVICE_PREFIX,
         "directory": get_default_ioc_dir("BEAMCORR"),
-        "macros": {},
+        "macros": {
+            "HIFI_PV_MAIN": f"{HOST_PREFIX}KEPCO_01:CURRENT",
+            "STEER_1_PV": f"{HOST_PREFIX}KEPCO_02:CURRENT",
+        },
+    },
+    {
+        "name": "KEPCO_01",
+        "directory": get_default_ioc_dir("KEPCO"),
+        "macros": {"CURRENT_MAX": MAX_CURRENT, "REMOTE_ON_SET": "NO"},
+        "emulator": emulator_name,
+        "ioc_launcher_class": ProcServLauncher,
+        "device_num": "01",
+    },
+    {
+        "name": "KEPCO_02",
+        "directory": get_default_ioc_dir("KEPCO", 2),
+        "macros": {"CURRENT_MAX": MAX_CURRENT, "REMOTE_ON_SET": "NO"},
+        "emulator": emulator_name,
+        "ioc_launcher_class": ProcServLauncher,
+        "device_num": "02",
     },
 ]
 
 
-TEST_MODES = [TestModes.RECSIM]
+TEST_MODES = [TestModes.RECSIM, TestModes.DEVSIM]
 
 
 class BEAMCORRTests(unittest.TestCase):
     def setUp(self) -> None:
 
-        self.ca = ChannelAccess(device_prefix=DEVICE_PREFIX, default_timeout=30, default_wait_time=0.0)
+        self.ca = ChannelAccess(
+            device_prefix=DEVICE_PREFIX, default_timeout=30, default_wait_time=0.0
+        )
         self.ca.assert_that_pv_exists("DISABLE", timeout=30)
 
     def tearDown(self) -> None:
@@ -95,6 +124,7 @@ class BEAMCORRTests(unittest.TestCase):
             ("_all_trans_steer2", 0, 0, 2, 3, 2, 2, 0, 0, 4, 5, 6, 0, 7, 1, 1, 72),
         ]
     )
+    @skip_if_devsim("Devsim tests just to ensure remote connections.")
     def test_GIVEN_coefficients_AND_interfering_THEN_correct_offset(
         self,
         _,
@@ -148,6 +178,7 @@ class BEAMCORRTests(unittest.TestCase):
             ),
         ]
     )
+    @skip_if_devsim("Devsim tests just to ensure remote connections.")
     def test_GIVEN_musr_dir_AND_input_THEN_correct_musr_magnet(
         self, _, dir, main_val, trans_val
     ) -> None:
@@ -157,6 +188,7 @@ class BEAMCORRTests(unittest.TestCase):
         self.ca.assert_that_pv_is("MUSR_PV:MAIN", main_val)
         self.ca.assert_that_pv_is("MUSR_PV:TRANS", trans_val)
 
+    @skip_if_devsim("Devsim tests just to ensure remote connections.")
     def test_GIVEN_offset_AND_enable_corr_state_THEN_correct_output(self) -> None:
         self.set_intefering_magnets(1, 1, 1, 1, 1, 1, 0)
         self.set_coefficients(1, 1, 1, 1, 1, 1, 0, 1)
@@ -174,6 +206,52 @@ class BEAMCORRTests(unittest.TestCase):
         self.ca.set_pv_value("ENABLE:CORR", 0)
         self.ca.assert_that_pv_is("STEER_1:SP", 6)
 
+    @skip_if_devsim("Devsim tests just to ensure remote connections.")
     def test_GIVEN_units_set_pv_THEN_units_pushed(self) -> None:
         self.ca.set_pv_value("STEER_1:UNITS_SET", "T")
-        self.ca.assert_that_pv_is("STEER_1.EGU", "T")
+        self.ca.assert_that_pv_is("STEER_1.EGU", "T", timeout=30)
+
+    def kepco_setup(self) -> None:
+        self.kepco_1 = ChannelAccess(
+            device_prefix="KEPCO_01", default_timeout=30, default_wait_time=0.0
+        )
+        self.kepco_1.assert_that_pv_exists("VOLTAGE", timeout=30)
+        self.kepco_2 = ChannelAccess(
+            device_prefix="KEPCO_02", default_timeout=30, default_wait_time=0.0
+        )
+        self.kepco_2.assert_that_pv_exists("VOLTAGE", timeout=30)
+        self._kepco_emulator_1, self._kepco_1 = get_running_lewis_and_ioc("kepco", "KEPCO_01", "01")
+        self._kepco_emulator_1.backdoor_run_function_on_device("reset")
+        self._kepco_emulator_2, self._kepco_2 = get_running_lewis_and_ioc("kepco", "KEPCO_02", "02")
+        self._kepco_emulator_2.backdoor_run_function_on_device("reset")
+
+    @skip_if_recsim("Devsim setup to force connection to kepco instead of record simulation.")
+    def test_GIVEN_kepco_running_AND_not_recsim_THEN_properly_reads_from_kepco(self) -> None:
+        self.kepco_setup()
+        self._kepco_emulator_1.backdoor_set_on_device("current", 2)
+        self.ca.assert_that_pv_is("HIFI_PV:MAIN", 2)
+        self.ca.set_pv_value("STEER_1:HIFI_MAIN:COEFF", 1)
+        self.ca.set_pv_value("ENABLE:CORR", 1)
+        self.ca.assert_that_pv_is("STEERING_1:OFFSET", 2)
+
+    @skip_if_recsim("Devsim setup to force connection to kepco instead of record simulation.")
+    def test_GIVEN_kepco_running_AND_corrections_disabled_AND_not_recsim_THEN_properly_sets_to_kepco(
+        self,
+    ) -> None:
+        self.kepco_setup()
+        self.ca.set_pv_value("ENABLE:CORR", 0)
+        self.ca.set_pv_value("STEER_1:SP", 2)
+        self.kepco_2.assert_that_pv_is("CURRENT:SP", 2)
+        self._kepco_emulator_2.assert_that_emulator_value_is("setpoint_current", "2.0")
+
+    @skip_if_recsim("Devsim setup to force connection to kepco instead of record simulation.")
+    def test_GIVEN_kepco_running_AND_corrections_enabled_AND_not_recsim_THEN_properly_sets_to_kepco(
+        self,
+    ) -> None:
+        self.kepco_setup()
+        self.ca.set_pv_value("ENABLE:CORR", 1)
+        self._kepco_emulator_1.backdoor_set_on_device("current", 2)
+        self.ca.set_pv_value("STEER_1:HIFI_MAIN:COEFF", 1)
+        self.ca.set_pv_value("STEER_1:SP", 2)
+        self.kepco_2.assert_that_pv_is("CURRENT:SP", 4)
+        self._kepco_emulator_2.assert_that_emulator_value_is("setpoint_current", "4.0")
