@@ -555,6 +555,33 @@ IOCS = [
   },
 ]
 ```
+Launching with multiple of the same emulator across multiple IOCs simiaraly must use the `emulators` key, but the list should be length 1 for each IOC. Simply using `emulator` will cause failures as the tests will lose track of which emulators to close.
+```python
+from utils.free_ports import get_free_ports
+from utils.emulator_launcher import TestEmulatorData
+from utils.ioc_launcher import get_default_ioc_dir
+
+kepco_ports = get_free_ports(2)
+IOCS = [
+    {
+        "name": "KEPCO_01",
+        "directory": get_default_ioc_dir("KEPCO"),
+        "macros": {
+            "MY_MACRO": "My_value",
+        },
+        "emulators": [TestEmulatorData("kepco", kepco_ports[0], 0)],
+    },
+    {
+        "name": "KEPCO_02",
+        "directory": get_default_ioc_dir("KEPCO", 2),
+        "macros": {
+            "MY_MACRO": "My_value",
+        },
+        "emulators": [TestEmulatorData("kepco", kepco_ports[1], 1)],
+    },
+]
+```
+
 
 ## My test doesn't always pass when it should
 
