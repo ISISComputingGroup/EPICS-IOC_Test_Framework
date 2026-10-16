@@ -137,7 +137,9 @@ def get_running_lewis_and_ioc(
 
 
 def get_running_lewis_and_ioc(
-    emulator_name: str | None = None, ioc_name: str | None = None
+    emulator_name: str | None = None,
+    ioc_name: str | None = None,
+    emulator_number: str | None = None,
 ) -> tuple["EmulatorLauncher | MultiLewisLauncher | None", "BaseLauncher"]:
     """
     Assert that the emulator and ioc have been started if needed.
@@ -146,7 +148,7 @@ def get_running_lewis_and_ioc(
     :param ioc_name: the name of the IOC
     :return: lewis launcher and ioc launcher tuple
     """
-    lewis = EmulatorRegister.get_running(emulator_name)
+    lewis = EmulatorRegister.get_running(emulator_name, emulator_number)
     ioc = IOCRegister.get_running(ioc_name)
 
     if ioc is None and (lewis is None and emulator_name is not None):
