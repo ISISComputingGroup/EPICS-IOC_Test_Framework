@@ -12,12 +12,12 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import partial, partialmethod
 
-from genie_python.genie import PVValue
 from genie_python.genie_cachannel_wrapper import (
     CaChannelWrapper,
     UnableToConnectToPVException,
 )
 from genie_python.genie_p4p_wrapper import P4PWrapper
+from ibex_non_ca_helpers.typing import PVValue
 
 from utils.formatters import format_value
 
@@ -305,7 +305,7 @@ class ChannelAccess:
                 return None
             else:
                 return "Exception date time: {}{}{}{}{}".format(
-                    datetime.datetime.now(tz=datetime.timezone.utc),
+                    datetime.datetime.now(tz=datetime.UTC),
                     os.linesep,
                     message,
                     os.linesep,
@@ -643,7 +643,7 @@ class ChannelAccess:
             # Last try.
             if not self.ca.pv_exists(pv, timeout=1.0):
                 raise AssertionError(
-                    f"Exception date time: {datetime.datetime.now(tz=datetime.timezone.utc)}\n"
+                    f"Exception date time: {datetime.datetime.now(tz=datetime.UTC)}\n"
                     f"PV {pv} does not exist after {timeout} seconds"
                 )
 
