@@ -2,7 +2,7 @@ import itertools
 import unittest
 from contextlib import contextmanager
 
-from genie_python.genie import PVValue
+from ibex_non_ca_helpers.typing import PVValue
 from parameterized import parameterized
 
 from utils.channel_access import ChannelAccess
