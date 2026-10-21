@@ -555,6 +555,35 @@ IOCS = [
   },
 ]
 ```
+Launching with multiple of the same emulator across multiple IOCs is comparativley simple, just add a `device_num` attribute to each IOC.
+```python
+from utils.emulator_launcher import TestEmulatorData
+from utils.ioc_launcher import get_default_ioc_dir
+
+IOCS = [
+    {
+        "name": "KEPCO_01",
+        "directory": get_default_ioc_dir("KEPCO"),
+        "macros": {
+          "MY_MACRO": "My_value",
+        },
+        "emulator": emulator_name,
+        "ioc_launcher_class": ProcServLauncher,
+        "device_num": "01",
+    },
+    {
+        "name": "KEPCO_02",
+        "directory": get_default_ioc_dir("KEPCO", 2),
+        "macros": {
+          "MY_MACRO": "My_value",
+        },
+        "emulator": emulator_name,
+        "ioc_launcher_class": ProcServLauncher,
+        "device_num": "02",
+    },
+]
+```
+
 
 ## My test doesn't always pass when it should
 

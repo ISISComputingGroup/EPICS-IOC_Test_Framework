@@ -9,7 +9,7 @@ import subprocess
 import sys
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from functools import partial
 from time import sleep, time
 from types import TracebackType
@@ -42,32 +42,44 @@ class EmulatorRegister:
     RunningEmulators: ClassVar[dict[str]] = {}
 
     @classmethod
-    def get_running(cls, name: str | None) -> "EmulatorLauncher | MultiLewisLauncher | None":
+    def get_running(
+        cls, name: str | None, device_num: str = ""
+    ) -> "EmulatorLauncher | MultiLewisLauncher | None":
         """
         Get a running emulator by name, return None if not running.
 
         :param name: name of the lewis emulator to grab
         :return: lewis launcher
         """
+        if name is None:
+            return
+        if device_num != "":
+            name = f"{name}_{device_num}"
         return cls.RunningEmulators.get(name)
 
     @classmethod
-    def add_emulator(cls, name: str, emulator: "EmulatorLauncher | MultiLewisLauncher") -> None:
+    def add_emulator(
+        cls, name: str, emulator: "EmulatorLauncher | MultiLewisLauncher", device_num: str = ""
+    ) -> None:
         """
         Add a emulator to the running list.
 
         :param name: name of the emmulator
         :param emulator: the emmulator launcher
         """
+        if device_num != "":
+            name = f"{name}_{device_num}"
         cls.RunningEmulators[name] = emulator
 
     @classmethod
-    def remove_emulator(cls, name: str) -> None:
+    def remove_emulator(cls, name: str, device_num: str = "") -> None:
         """
         Removes an emulator from the running list.
 
         :param name: name of the emmulator
         """
+        if device_num != "":
+            name = f"{name}_{device_num}"
         del cls.RunningEmulators[name]
 
 
@@ -97,10 +109,13 @@ class EmulatorLauncher(metaclass=abc.ABCMeta):
         self._options = options
         self._test_name = test_name
         self._emulator_path = emulator_path
+        self.device_num: str = ""
+        if "device_num" in self._options:
+            self.device_num = self._options["device_num"]
 
     def __enter__(self) -> Self:
         self._open()
-        EmulatorRegister.add_emulator(self._emulator_id, self)
+        EmulatorRegister.add_emulator(self._emulator_id, self, self.device_num)
         return self
 
     def __exit__(
@@ -110,7 +125,7 @@ class EmulatorLauncher(metaclass=abc.ABCMeta):
         traceback: TracebackType | None,
     ) -> None:
         self._close()
-        EmulatorRegister.remove_emulator(self._emulator_id)
+        EmulatorRegister.remove_emulator(self._emulator_id, self.device_num)
 
     def _get_device(self) -> str:
         return self._device
@@ -594,6 +609,9 @@ class LewisLauncher(EmulatorLauncher):
         self._logFile = None
         self._connected = None
 
+        if "device_num" in options:
+            self.device_num = options["device_num"]
+
     @classmethod
     def from_emulator(cls, test_name: str, emulator: Emulator) -> Self:
         """
@@ -663,6 +681,14 @@ class LewisLauncher(EmulatorLauncher):
         self._connected = True
 
     def _log_filename(self) -> str:
+        if hasattr(self, "device_num"):
+            return log_filename(
+                self._test_name,
+                "lewis",
+                f"{self._emulator_id}_{self.device_num}",
+                TestModes.DEVSIM,
+                self._var_dir,
+            )
         return log_filename(
             self._test_name, "lewis", self._emulator_id, TestModes.DEVSIM, self._var_dir
         )
@@ -743,7 +769,7 @@ class LewisLauncher(EmulatorLauncher):
             f"127.0.0.1:{self._control_port}",
         ]
         lewis_command_line.extend(command)
-        time_stamp = datetime.fromtimestamp(time(), tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        time_stamp = datetime.fromtimestamp(time(), tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
         log_file = self._logFile
         assert log_file is not None
         log_file.write(
