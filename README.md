@@ -555,7 +555,7 @@ IOCS = [
   },
 ]
 ```
-Launching with multiple of the same emulator across multiple IOCs is comparativley simple,.
+Launching with multiple of the same emulator across multiple IOCs is comparativley simple, just add a `device_num` attribute to each IOC.
 ```python
 from utils.emulator_launcher import TestEmulatorData
 from utils.ioc_launcher import get_default_ioc_dir

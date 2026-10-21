@@ -5,6 +5,7 @@ from parameterized import parameterized
 
 from common_tests.kepco import MAX_CURRENT, emulator_name
 from utils.channel_access import ChannelAccess
+from utils.emulator_launcher import LewisLauncher
 from utils.free_ports import get_free_ports
 from utils.ioc_launcher import ProcServLauncher, get_default_ioc_dir
 from utils.test_modes import TestModes
@@ -220,9 +221,19 @@ class BEAMCORRTests(unittest.TestCase):
             device_prefix="KEPCO_02", default_timeout=30, default_wait_time=0.0
         )
         self.kepco_2.assert_that_pv_exists("VOLTAGE", timeout=30)
-        self._kepco_emulator_1, self._kepco_1 = get_running_lewis_and_ioc("kepco", "KEPCO_01", "01")
+        _kepco_emulator_1, self._kepco_1 = get_running_lewis_and_ioc("kepco", "KEPCO_01", "01")
+        assert isinstance(
+            _kepco_emulator_1, LewisLauncher
+        )  # Will never be multi-emulator but pyright is complaining about it
+        self._kepco_emulator_1: LewisLauncher = _kepco_emulator_1
+
         self._kepco_emulator_1.backdoor_run_function_on_device("reset")
-        self._kepco_emulator_2, self._kepco_2 = get_running_lewis_and_ioc("kepco", "KEPCO_02", "02")
+        _kepco_emulator_2, self._kepco_2 = get_running_lewis_and_ioc("kepco", "KEPCO_02", "02")
+        assert isinstance(
+            _kepco_emulator_2, LewisLauncher
+        )  # Will never be multi-emulator but pyright is complaining about it
+        self._kepco_emulator_2: LewisLauncher = _kepco_emulator_2
+
         self._kepco_emulator_2.backdoor_run_function_on_device("reset")
 
     @skip_if_recsim("Devsim setup to force connection to kepco instead of record simulation.")

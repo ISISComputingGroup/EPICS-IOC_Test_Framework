@@ -136,6 +136,12 @@ def get_running_lewis_and_ioc(
 ) -> tuple["EmulatorLauncher | MultiLewisLauncher", "BaseLauncher"]: ...
 
 
+@overload
+def get_running_lewis_and_ioc(
+    emulator_name: str, ioc_name: str, emulator_number: str
+) -> tuple["EmulatorLauncher | MultiLewisLauncher", "BaseLauncher"]: ...
+
+
 def get_running_lewis_and_ioc(
     emulator_name: str | None = None,
     ioc_name: str | None = None,
