@@ -164,6 +164,7 @@ class GalilTests(unittest.TestCase):
         self.pv.assert_that_pv_is_number("MOT:MTR0101.RBV", val, tolerance=eres)
         self.pv.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
         self.pv.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
+        self.pv.set_pv_value("MOT:MTR0101_MTRENC_DIFF.H", 2)  # make it think it is a stepper motor
         self.pv.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", 0.0, tolerance=eres)
 
         # now double encoder resolution so encoder now thinks it is at 2*val
@@ -172,6 +173,7 @@ class GalilTests(unittest.TestCase):
         self.pv.assert_that_pv_is_number("MOT:MTR0101.RMP", val / mres, tolerance=mres)
         self.pv.assert_that_pv_is_number("MOT:MTR0101.REP", val / eres, tolerance=eres)
         self.pv.assert_that_pv_is_number("MOT:MTR0101.RBV", 2.0 * val, tolerance=eres)
+        self.pv.set_pv_value("MOT:MTR0101_MTRENC_DIFF.H", 2)  # make it think it is a stepper motor
         self.pv.assert_that_pv_is_number("MOT:MTR0101_MTRENC_DIFF", -val, tolerance=eres)
 
     def setup_motors(self, ueip: Literal["Yes", "No"]):
