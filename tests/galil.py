@@ -158,6 +158,12 @@ class GalilTests(unittest.TestCase):
         assert isinstance(eres, float)
         self.zero_motors()
 
+        # make motor think it is a stepper motor as we only
+        # calculate _MTRENC_DIFF when it is
+        self.pv.set_pv_value("MOT:MTR0101_MTRTYPE_STATUS.SIMM", "YES")
+        self.pv.set_pv_value("MOT:MTR0101_MTRTYPE_STATUS.SVAL", 2)
+        self.pv.set_pv_value("MOT:MTR0101_MTRTYPE_STATUS.PROC", 1)
+
         # move to initial position and check in step
         self.pv.set_pv_value("MOT:MTR0101", val, wait=True)
         self.pv.assert_that_pv_is_number("MOT:MTR0101", val)
