@@ -4,18 +4,19 @@ Lewis emulator interface classes.
 
 import abc
 import contextlib
+import datetime
 import os
 import subprocess
 import sys
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from functools import partial
 from time import sleep, time
 from types import TracebackType
 from typing import Any, ClassVar, Self, TypeAlias, TypeVar
 
 import psutil
+
 from utils.emulator_exceptions import UnableToConnectToEmulatorException
 from utils.formatters import format_value
 from utils.free_ports import get_free_ports
@@ -768,7 +769,9 @@ class LewisLauncher(EmulatorLauncher):
             f"127.0.0.1:{self._control_port}",
         ]
         lewis_command_line.extend(command)
-        time_stamp = datetime.fromtimestamp(time(), tz=UTC).strftime("%Y-%m-%d %H:%M:%S")
+        time_stamp = datetime.datetime.fromtimestamp(time(), tz=datetime.UTC).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         log_file = self._logFile
         assert log_file is not None
         log_file.write(
