@@ -556,6 +556,32 @@ IOCS = [
 ]
 ```
 
+### Launching Multiple Emulators across IOCs
+Use the `emulator` attribute as normal, then add an additional `emulator_id` e.g.
+
+```python
+
+IOCS = [
+    {
+        "name": "KEPCO_01",
+        "directory": get_default_ioc_dir("KEPCO"),
+        "macros": {"CURRENT_MAX": MAX_CURRENT, "REMOTE_ON_SET": "NO"},
+        "emulator": emulator_name,
+        "emulator_id": "kepco_1",
+        "ioc_launcher_class": ProcServLauncher,
+        "device_num": "01",
+    },
+    {
+        "name": "KEPCO_02",
+        "directory": get_default_ioc_dir("KEPCO", 2),
+        "macros": {"CURRENT_MAX": MAX_CURRENT, "REMOTE_ON_SET": "NO"},
+        "emulator": emulator_name,
+        "emulator_id": "kepco_2",
+        "ioc_launcher_class": ProcServLauncher,
+        "device_num": "02",
+    }
+```
+
 ## My test doesn't always pass when it should
 
 ### Incorrect behaviour when restarting an ioc (autosave)
