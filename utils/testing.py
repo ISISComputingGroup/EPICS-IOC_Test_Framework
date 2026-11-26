@@ -5,6 +5,7 @@ from time import sleep
 from types import TracebackType
 from typing import TYPE_CHECKING, ClassVar, Concatenate, ParamSpec, Self, TypeVar, overload
 
+import global_settings
 from utils.emulator_launcher import EmulatorRegister
 from utils.ioc_launcher import IOCRegister
 from utils.test_modes import TestModes
@@ -247,6 +248,9 @@ skip_if_nosim = functools.partial(
 
 """Decorator to skip tests if running in devsim"""
 skip_always = functools.partial(skip_if_condition, lambda: True)
+
+"""Decorator to skip tests if running under PV access."""
+skip_if_pva = functools.partial(skip_if_condition, lambda: global_settings.DEFAULT_USE_PVA)
 
 
 def add_method(method: Callable[P, T]) -> Callable[[type[CT]], type[CT]]:
